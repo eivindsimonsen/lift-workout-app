@@ -40,7 +40,7 @@
             <input
               v-model="rememberMe"
               type="checkbox"
-              class="w-4 h-4 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500 focus:ring-2"
+              class="w-3 h-3 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500 focus:ring-1"
             />
             <span class="ml-2 text-sm text-dark-300">Husk meg</span>
           </label>

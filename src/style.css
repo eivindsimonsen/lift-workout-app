@@ -82,6 +82,12 @@
     min-width: 44px;
   }
   
+  /* Allow smaller checkboxes */
+  input[type="checkbox"] {
+    min-height: auto;
+    min-width: auto;
+  }
+  
   /* Fix for iOS Safari button text rendering */
   button {
     -webkit-font-smoothing: antialiased;
@@ -198,6 +204,24 @@
     .btn-secondary {
       -webkit-transform: translateZ(0);
       transform: translateZ(0);
+    }
+  }
+  
+  /* Active navigation link styling */
+  .nav-link-active {
+    color: #f97316 !important; /* primary-500 color */
+  }
+  
+  /* Ensure active navigation links are properly colored on mobile */
+  @media (max-width: 768px) {
+    .nav-link-active {
+      color: #f97316 !important;
+    }
+    
+    /* Override any conflicting styles for active navigation */
+    router-link.nav-link-active,
+    a.nav-link-active {
+      color: #f97316 !important;
     }
   }
 } 

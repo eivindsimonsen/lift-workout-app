@@ -15,28 +15,28 @@
             <router-link 
               to="/" 
               class="text-dark-300 hover:text-white transition-colors"
-              active-class="text-primary-500"
+              active-class="nav-link-active"
             >
               Dashboard
             </router-link>
             <router-link 
               to="/history" 
               class="text-dark-300 hover:text-white transition-colors"
-              active-class="text-primary-500"
+              active-class="nav-link-active"
             >
               Historikk
             </router-link>
             <router-link 
               to="/stats" 
               class="text-dark-300 hover:text-white transition-colors"
-              active-class="text-primary-500"
+              active-class="nav-link-active"
             >
               Statistikk
             </router-link>
             <router-link 
               to="/login" 
               class="text-dark-300 hover:text-white transition-colors"
-              active-class="text-primary-500"
+              active-class="nav-link-active"
             >
               Login
             </router-link>
@@ -55,7 +55,7 @@
         <router-link 
           to="/" 
           class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-          :class="{ 'text-primary-500': $route.path === '/' }"
+          :class="{ 'nav-link-active': $route.path === '/' }"
         >
           <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
@@ -67,7 +67,7 @@
         <router-link 
           to="/history" 
           class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-          :class="{ 'text-primary-500': $route.path === '/history' }"
+          :class="{ 'nav-link-active': $route.path === '/history' }"
         >
           <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -78,7 +78,7 @@
         <router-link 
           to="/stats" 
           class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-          :class="{ 'text-primary-500': $route.path === '/stats' }"
+          :class="{ 'nav-link-active': $route.path === '/stats' }"
         >
           <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -89,7 +89,7 @@
         <router-link 
           to="/login" 
           class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-          :class="{ 'text-primary-500': $route.path === '/login' }"
+          :class="{ 'nav-link-active': $route.path === '/login' }"
         >
           <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
