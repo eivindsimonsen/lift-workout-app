@@ -1,0 +1,19 @@
+{
+  "name": "NextRep - Treningslogg",
+  "short_name": "NextRep",
+  "description": "Din personlige treningslogg med full kontroll over treningsøktene dine",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+} 
