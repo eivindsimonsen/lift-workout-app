@@ -6,15 +6,120 @@
   body {
     @apply bg-dark-900 text-white font-sans;
   }
+  
+  /* Reset webkit styles for mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Ensure buttons maintain their styles on mobile */
+  button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  
+  /* Ensure inputs maintain their styles on mobile */
+  input, select, textarea {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+  
+  /* Fix for iOS Safari input styling */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 0;
+  }
+  
+  /* Fix for iOS Safari select styling */
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1em;
+    padding-right: 2.5rem;
+  }
+  
+  /* Remove default focus styles and add custom ones */
+  button:focus,
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+  }
+  
+  /* Ensure touch targets are large enough */
+  button, input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Fix for iOS Safari button text rendering */
+  button {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 @layer components {
   .btn-primary {
     @apply bg-primary-500 hover:bg-primary-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
   
   .btn-secondary {
     @apply bg-dark-700 hover:bg-dark-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
   
   .card {
@@ -23,5 +128,64 @@
   
   .input-field {
     @apply bg-dark-700 border border-dark-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: 1px solid;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Mobile-specific button styles */
+  @media (max-width: 768px) {
+    .btn-primary,
+    .btn-secondary {
+      min-height: 48px;
+      padding: 12px 16px;
+      font-size: 16px;
+      border-radius: 8px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    
+    .input-field {
+      min-height: 48px;
+      font-size: 16px;
+      padding: 12px 16px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Fix for iOS Safari button press states */
+    .btn-primary:active,
+    .btn-secondary:active {
+      transform: scale(0.98);
+      transition: transform 0.1s ease;
+    }
+    
+    /* Ensure proper text rendering on mobile */
+    input, select, textarea, button {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+  }
+  
+  /* Additional fixes for specific mobile browsers */
+  @supports (-webkit-touch-callout: none) {
+    /* iOS Safari specific fixes */
+    .btn-primary,
+    .btn-secondary {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+  }
+  
+  /* Fix for Android Chrome */
+  @media screen and (-webkit-min-device-pixel-ratio: 0) {
+    .btn-primary,
+    .btn-secondary {
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
   }
 } 
