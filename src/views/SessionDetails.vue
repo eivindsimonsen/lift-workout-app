@@ -1,0 +1,188 @@
+<template>
+  <div>
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-white mb-2">Økt Detaljer</h1>
+        <p class="text-dark-300">Se detaljer fra treningsøkten</p>
+      </div>
+      <router-link 
+        to="/history" 
+        class="btn-secondary"
+      >
+        Tilbake
+      </router-link>
+    </div>
+
+    <div v-if="!session" class="text-center py-12">
+      <p class="text-dark-300">Økt ikke funnet</p>
+      <router-link to="/history" class="btn-primary mt-4">Tilbake til Historikk</router-link>
+    </div>
+
+    <!-- Session Details -->
+    <div v-else class="space-y-6">
+      <!-- Session Header -->
+      <div class="card">
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 class="text-2xl font-bold text-white mb-2">{{ session.templateName }}</h2>
+            <p class="text-dark-300 mb-4">
+              {{ formatDate(session.date) }} • {{ session.duration }} minutter
+            </p>
+            <span 
+              class="px-3 py-1 rounded-full text-sm font-medium"
+              :style="{ 
+                backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
+                color: getWorkoutTypeColor(session.workoutType)
+              }"
+            >
+              {{ getWorkoutTypeName(session.workoutType) }}
+            </span>
+          </div>
+          <div class="text-right">
+            <p class="text-2xl font-bold text-primary-500">
+              {{ formatNumber(session.totalVolume || 0) }} kg
+            </p>
+            <p class="text-sm text-dark-300">Total volum</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-dark-700 rounded-lg p-4 text-center">
+          <p class="text-2xl font-bold text-primary-500">{{ session.exercises.length }}</p>
+          <p class="text-sm text-dark-300">Øvelser</p>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-4 text-center">
+          <p class="text-2xl font-bold text-primary-500">{{ getTotalSets(session) }}</p>
+          <p class="text-sm text-dark-300">Sett</p>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-4 text-center">
+          <p class="text-2xl font-bold text-primary-500">{{ session.duration }}</p>
+          <p class="text-sm text-dark-300">Minutter</p>
+        </div>
+      </div>
+
+      <!-- Exercises -->
+      <div class="card">
+        <h3 class="text-xl font-semibold text-white mb-4">Øvelser</h3>
+        <div class="space-y-4">
+          <div 
+            v-for="exercise in session.exercises" 
+            :key="exercise.exerciseId"
+            class="bg-dark-700 rounded-lg p-4"
+          >
+            <h4 class="font-medium text-white mb-3">{{ exercise.name }}</h4>
+            
+            <div class="space-y-2">
+              <div 
+                v-for="set in exercise.sets" 
+                :key="set.id"
+                class="flex items-center justify-between text-sm"
+              >
+                <span class="text-dark-300">Sett {{ exercise.sets.indexOf(set) + 1 }}:</span>
+                <div class="flex items-center gap-4">
+                  <span class="text-white">{{ set.reps }} reps</span>
+                  <span v-if="set.weight" class="text-white">{{ set.weight }} kg</span>
+                  <span v-if="set.weight && set.reps" class="text-primary-500 font-medium">
+                    {{ set.weight * set.reps }} kg
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="exercise.notes" class="mt-3 pt-3 border-t border-dark-600">
+              <p class="text-sm text-dark-300">{{ exercise.notes }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Notes -->
+      <div v-if="session.notes" class="card">
+        <h3 class="text-xl font-semibold text-white mb-4">Notater</h3>
+        <p class="text-dark-300">{{ session.notes }}</p>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3 justify-end">
+        <button 
+          @click="deleteSession"
+          class="btn-secondary text-red-400 hover:text-red-300"
+        >
+          Slett økt
+        </button>
+        <router-link 
+          to="/history" 
+          class="btn-primary"
+        >
+          Tilbake til Historikk
+        </router-link>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useWorkoutStore } from '@/stores/workoutStore'
+import type { WorkoutSession } from '@/types/workout'
+
+const router = useRouter()
+const route = useRoute()
+const workoutStore = useWorkoutStore()
+
+const session = ref<WorkoutSession | null>(null)
+
+// Methods
+const formatDate = (date: Date): string => {
+  return new Intl.DateTimeFormat('no-NO', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
+}
+
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('no-NO').format(Math.round(num))
+}
+
+const getWorkoutTypeName = (typeId: string): string => {
+  const type = workoutStore.getWorkoutType(typeId)
+  return type?.name || typeId
+}
+
+const getWorkoutTypeColor = (typeId: string): string => {
+  const type = workoutStore.getWorkoutType(typeId)
+  return type?.color || '#f97316'
+}
+
+const getTotalSets = (session: WorkoutSession): number => {
+  return session.exercises.reduce((total, exercise) => {
+    return total + exercise.sets.length
+  }, 0)
+}
+
+const deleteSession = () => {
+  if (!session.value) return
+  
+  if (confirm('Er du sikker på at du vil slette denne økten?')) {
+    workoutStore.deleteWorkoutSession(session.value.id)
+    router.push('/history')
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  const sessionId = route.params.id as string
+  const foundSession = workoutStore.getSessionById(sessionId)
+  
+  if (foundSession) {
+    session.value = foundSession
+  }
+})
+</script> 

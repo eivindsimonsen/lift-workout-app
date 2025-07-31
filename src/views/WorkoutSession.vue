@@ -116,15 +116,15 @@
       </div>
          </div>
 
-     <!-- Add Exercise Button -->
-     <div class="card">
-       <button 
-         @click="showAddExerciseModal = true"
-         class="w-full btn-secondary py-3"
-       >
-         + Legg til øvelse
-       </button>
-     </div>
+                 <!-- Add Exercise Button -->
+            <div class="card">
+              <router-link 
+                :to="`/workout/${sessionId}/add-exercise`"
+                class="w-full btn-secondary py-3 flex items-center justify-center"
+              >
+                + Legg til øvelse
+              </router-link>
+            </div>
 
      <!-- Session Notes -->
      <div class="card">
@@ -166,73 +166,7 @@
        </button>
      </div>
 
-     <!-- Add Exercise Modal -->
-     <div v-if="showAddExerciseModal" class="fixed bg-black/50 flex items-center justify-center p-4" style="top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; z-index: 9999;">
-       <div class="bg-dark-800 rounded-lg max-w-md w-full">
-         <div class="p-6">
-           <h3 class="text-xl font-semibold text-white mb-4">Legg til øvelse</h3>
-           
-           <div class="space-y-4">
-             <div>
-               <label class="block text-sm font-medium text-white mb-2">Øvelse</label>
-               <select 
-                 v-model="newExercise.exerciseId"
-                 required
-                 class="input-field w-full"
-               >
-                 <option value="">Velg øvelse</option>
-                 <option 
-                   v-for="exercise in availableExercises" 
-                   :key="exercise.id" 
-                   :value="exercise.id"
-                 >
-                   {{ exercise.name }}
-                 </option>
-               </select>
-             </div>
-             
-             <div class="grid grid-cols-2 gap-4">
-               <div>
-                 <label class="block text-xs text-dark-300 mb-1">Antall sett</label>
-                 <input
-                   v-model.number="newExercise.sets"
-                   type="number"
-                   min="1"
-                   required
-                   class="input-field w-full text-sm"
-                 />
-               </div>
-               <div>
-                 <label class="block text-xs text-dark-300 mb-1">Reps</label>
-                 <input
-                   v-model.number="newExercise.reps"
-                   type="number"
-                   min="1"
-                   required
-                   class="input-field w-full text-sm"
-                 />
-               </div>
-             </div>
-           </div>
-           
-           <div class="flex gap-3 justify-end mt-6">
-             <button 
-               @click="showAddExerciseModal = false"
-               class="btn-secondary"
-             >
-               Avbryt
-             </button>
-             <button 
-               @click="addExercise"
-               class="btn-primary"
-               :disabled="!newExercise.exerciseId"
-             >
-               Legg til
-             </button>
-           </div>
-         </div>
-       </div>
-     </div>
+
   </div>
 </template>
 
@@ -250,12 +184,6 @@ const workoutStore = useWorkoutStore()
 const session = ref<WorkoutSession | null>(null)
 const sessionNotes = ref('')
 const startTime = ref<Date | null>(null)
-const showAddExerciseModal = ref(false)
-const newExercise = ref({
-  exerciseId: '',
-  sets: 3,
-  reps: 8
-})
 
 // Computed
 const completedSets = computed(() => {
@@ -344,42 +272,7 @@ const addSet = (exerciseIndex: number) => {
   })
 }
 
-const addExercise = () => {
-  if (!session.value || !newExercise.value.exerciseId) return
-  
-  const exerciseData = workoutStore.exercises.find(e => e.id === newExercise.value.exerciseId)
-  if (!exerciseData) return
-  
-  const exercise = {
-    exerciseId: newExercise.value.exerciseId,
-    name: exerciseData.name,
-    sets: Array.from({ length: newExercise.value.sets }, (_, i) => ({
-      id: `set-${Date.now()}-${i}`,
-      reps: newExercise.value.reps,
-      weight: undefined,
-      restTime: undefined,
-      duration: undefined,
-      distance: undefined,
-      isCompleted: false
-    })),
-    notes: ''
-  }
-  
-  session.value.exercises.push(exercise)
-  
-  // Auto-save session
-  workoutStore.updateWorkoutSession(session.value.id, {
-    exercises: session.value.exercises
-  })
-  
-  // Reset form and close modal
-  newExercise.value = {
-    exerciseId: '',
-    sets: 3,
-    reps: 8
-  }
-  showAddExerciseModal.value = false
-}
+
 
 
 

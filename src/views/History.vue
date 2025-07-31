@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="w-full">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
@@ -9,8 +9,8 @@
     </div>
 
          <!-- Filters -->
-     <div class="mt-8 bg-dark-700 rounded-lg p-6">
-       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+     <div class="mt-8 bg-dark-700 rounded-lg p-4 sm:p-6">
+       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
          <!-- Search -->
          <div class="lg:col-span-2">
            <label class="block text-sm font-medium text-white mb-2">Søk etter økt</label>
@@ -21,7 +21,7 @@
              <input
                v-model="searchQuery"
                type="text"
-               class="input-field w-full pl-10"
+               class="input-field w-full pl-10 text-base"
                placeholder="Søk etter økt navn..."
              />
            </div>
@@ -101,31 +101,31 @@
      </div>
 
     <!-- Workout Sessions -->
-    <div v-if="filteredSessions.length === 0" class="mt-8 text-center py-12">
+    <div v-if="filteredSessions.length === 0" class="mt-8 text-center py-8 sm:py-12">
       <div class="w-16 h-16 bg-dark-700 rounded-full flex items-center justify-center mx-auto mb-4">
         <svg class="w-8 h-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
-      <p class="text-dark-300 mb-4">Ingen fullførte økter funnet</p>
-      <router-link to="/" class="btn-primary">
+      <p class="text-dark-300 mb-4 px-4">Ingen fullførte økter funnet</p>
+      <router-link to="/" class="btn-primary block no-underline mx-auto w-fit">
         Start din første økt
       </router-link>
     </div>
 
-    <div v-else class="mt-8 space-y-4">
-      <div 
+    <div v-else class="mt-8 space-y-4 px-1">
+      <router-link 
         v-for="session in filteredSessions" 
         :key="session.id"
-        class="card hover:bg-dark-700 transition-colors cursor-pointer"
-        @click="viewSession(session)"
+        :to="`/session/${session.id}`"
+        class="card hover:bg-dark-700 transition-colors cursor-pointer block no-underline"
       >
-        <div class="flex items-center justify-between">
-          <div class="flex-1">
+        <div class="flex items-center justify-between w-full">
+          <div class="flex-1 min-w-0">
             <div class="flex items-center gap-3 mb-2">
-              <h3 class="font-semibold text-white">{{ session.templateName }}</h3>
+              <h3 class="font-semibold text-white truncate">{{ session.templateName }}</h3>
               <span 
-                class="px-2 py-1 rounded-full text-xs font-medium"
+                class="px-2 py-1 rounded-full text-xs font-medium flex-shrink-0"
                 :style="{ 
                   backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
                   color: getWorkoutTypeColor(session.workoutType)
@@ -141,143 +141,35 @@
               {{ session.exercises.length }} øvelser • {{ formatNumber(session.totalVolume || 0) }} kg totalvolum
             </p>
           </div>
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-4 flex-shrink-0">
             <div class="text-right">
               <p class="text-lg font-bold text-primary-500">
                 {{ formatNumber(session.totalVolume || 0) }}
               </p>
               <p class="text-xs text-dark-400">kg</p>
             </div>
-            <svg class="w-5 h-5 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-dark-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </div>
         </div>
-      </div>
+      </router-link>
     </div>
 
-    <!-- Session Details Modal -->
-    <div v-if="selectedSession" class="fixed bg-black/50 flex items-center justify-center p-4" style="top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; z-index: 9999;">
-      <div class="bg-dark-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="p-6">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <h3 class="text-xl font-semibold text-white">{{ selectedSession.templateName }}</h3>
-              <p class="text-dark-300">
-                {{ formatDate(selectedSession.date) }} • {{ selectedSession.duration }} minutter
-              </p>
-            </div>
-            <div class="flex items-center gap-2">
-              <span 
-                class="px-3 py-1 rounded-full text-sm font-medium"
-                :style="{ 
-                  backgroundColor: getWorkoutTypeColor(selectedSession.workoutType) + '20',
-                  color: getWorkoutTypeColor(selectedSession.workoutType)
-                }"
-              >
-                {{ getWorkoutTypeName(selectedSession.workoutType) }}
-              </span>
-              <button 
-                @click="selectedSession = null"
-                class="text-dark-300 hover:text-white transition-colors"
-              >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Session Summary -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-dark-700 rounded-lg p-4 text-center">
-              <p class="text-2xl font-bold text-primary-500">{{ formatNumber(selectedSession.totalVolume || 0) }}</p>
-              <p class="text-sm text-dark-300">Total Volum (kg)</p>
-            </div>
-            <div class="bg-dark-700 rounded-lg p-4 text-center">
-              <p class="text-2xl font-bold text-primary-500">{{ selectedSession.exercises.length }}</p>
-              <p class="text-sm text-dark-300">Øvelser</p>
-            </div>
-            <div class="bg-dark-700 rounded-lg p-4 text-center">
-              <p class="text-2xl font-bold text-primary-500">{{ getTotalSets(selectedSession) }}</p>
-              <p class="text-sm text-dark-300">Sett</p>
-            </div>
-          </div>
-
-          <!-- Exercises -->
-          <div class="space-y-4">
-            <h4 class="text-lg font-semibold text-white">Øvelser</h4>
-            <div 
-              v-for="exercise in selectedSession.exercises" 
-              :key="exercise.exerciseId"
-              class="bg-dark-700 rounded-lg p-4"
-            >
-              <h5 class="font-medium text-white mb-3">{{ exercise.name }}</h5>
-              
-              <div class="space-y-2">
-                <div 
-                  v-for="set in exercise.sets" 
-                  :key="set.id"
-                  class="flex items-center justify-between text-sm"
-                >
-                  <span class="text-dark-300">Sett {{ exercise.sets.indexOf(set) + 1 }}:</span>
-                  <div class="flex items-center gap-4">
-                    <span class="text-white">{{ set.reps }} reps</span>
-                    <span v-if="set.weight" class="text-white">{{ set.weight }} kg</span>
-                    <span v-if="set.weight && set.reps" class="text-primary-500 font-medium">
-                      {{ set.weight * set.reps }} kg
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="exercise.notes" class="mt-3 pt-3 border-t border-dark-600">
-                <p class="text-sm text-dark-300">{{ exercise.notes }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Session Notes -->
-          <div v-if="selectedSession.notes" class="mt-6 pt-6 border-t border-dark-600">
-            <h4 class="text-lg font-semibold text-white mb-3">Notater</h4>
-            <p class="text-dark-300">{{ selectedSession.notes }}</p>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex justify-end gap-3 mt-6 pt-6 border-t border-dark-600">
-            <button 
-              @click="deleteSession(selectedSession.id)"
-              class="btn-secondary text-red-400 hover:text-red-300"
-            >
-              Slett økt
-            </button>
-            <button 
-              @click="selectedSession = null"
-              class="btn-primary"
-            >
-              Lukk
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed } from 'vue'
 import { useWorkoutStore } from '@/stores/workoutStore'
 import type { WorkoutSession } from '@/types/workout'
-
-const route = useRoute()
 const workoutStore = useWorkoutStore()
 
 // State
 const searchQuery = ref('')
 const selectedWorkoutType = ref('')
 const sortBy = ref('date')
-const selectedSession = ref<WorkoutSession | null>(null)
 
 // Computed
 const filteredSessions = computed(() => {
@@ -362,16 +254,7 @@ const getTotalSets = (session: WorkoutSession): number => {
   }, 0)
 }
 
-const viewSession = (session: WorkoutSession) => {
-  selectedSession.value = session
-}
 
-const deleteSession = (sessionId: string) => {
-  if (confirm('Er du sikker på at du vil slette denne økten?')) {
-    workoutStore.deleteWorkoutSession(sessionId)
-    selectedSession.value = null
-  }
-}
 
 const clearAllFilters = () => {
   searchQuery.value = ''
@@ -379,15 +262,5 @@ const clearAllFilters = () => {
   sortBy.value = 'date'
 }
 
-// Lifecycle
-onMounted(() => {
-  // Check if there's a session parameter in the URL
-  const sessionId = route.query.session as string
-  if (sessionId) {
-    const session = workoutStore.getSessionById(sessionId)
-    if (session) {
-      selectedSession.value = session
-    }
-  }
-})
+
 </script> 
