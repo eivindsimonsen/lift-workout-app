@@ -359,7 +359,6 @@ const workoutStore = useWorkoutStore()
 // State
 const showCreateModal = ref(false)
 const editingTemplate = ref<WorkoutTemplate | null>(null)
-const viewingTemplate = ref<WorkoutTemplate | null>(null)
 const selectedWorkoutType = ref('')
 const expandedTemplates = ref<Set<string>>(new Set())
 
