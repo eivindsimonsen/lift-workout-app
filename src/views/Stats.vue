@@ -4,14 +4,8 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold text-white mb-2">Statistikk</h1>
-        <p class="text-dark-300">Din progresjon over tid</p>
+        <p class="text-dark-300">Din treningsprogresjon over tid</p>
       </div>
-      <router-link to="/new-workout" class="btn-primary">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-        Ny Økt
-      </router-link>
     </div>
 
     <!-- Overview Stats -->
@@ -19,8 +13,22 @@
       <div class="card">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-dark-300 text-sm">Total Økter</p>
-            <p class="text-2xl font-bold text-white">{{ workoutStore.workoutStats.totalWorkouts }}</p>
+            <p class="text-dark-300 text-sm">Total Volum</p>
+            <p class="text-2xl font-bold text-white">{{ formatNumber(workoutStore.totalVolume) }} kg</p>
+          </div>
+          <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-dark-300 text-sm">Fullførte Økter</p>
+            <p class="text-2xl font-bold text-white">{{ workoutStore.completedSessions.length }}</p>
           </div>
           <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,22 +41,8 @@
       <div class="card">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-dark-300 text-sm">Total Volum</p>
-            <p class="text-2xl font-bold text-white">{{ formatNumber(workoutStore.workoutStats.totalVolume) }} kg</p>
-          </div>
-          <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
-            <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="flex items-center justify-between">
-          <div>
             <p class="text-dark-300 text-sm">Snitt Varighet</p>
-            <p class="text-2xl font-bold text-white">{{ workoutStore.workoutStats.averageWorkoutDuration }} min</p>
+            <p class="text-2xl font-bold text-white">{{ workoutStore.averageWorkoutDuration }} min</p>
           </div>
           <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,12 +55,8 @@
       <div class="card">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-dark-300 text-sm">Snitt Volum/Økt</p>
-            <p class="text-2xl font-bold text-white">
-              {{ workoutStore.workoutStats.totalWorkouts > 0 
-                ? formatNumber(workoutStore.workoutStats.totalVolume / workoutStore.workoutStats.totalWorkouts) 
-                : '0' }} kg
-            </p>
+            <p class="text-dark-300 text-sm">Snitt Volum/økt</p>
+            <p class="text-2xl font-bold text-white">{{ formatNumber(averageVolumePerWorkout) }} kg</p>
           </div>
           <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,69 +67,73 @@
       </div>
     </div>
 
-    <!-- Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <!-- Weekly Progress Chart -->
-      <div class="card">
-        <h2 class="text-xl font-semibold text-white mb-6">Ukentlig Progresjon</h2>
-        <div v-if="workoutStore.workoutStats.weeklyProgress.length === 0" class="text-center py-12">
-          <div class="w-16 h-16 bg-dark-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
+    <!-- Workout Type Distribution -->
+    <div class="card">
+      <h3 class="text-lg font-semibold text-white mb-6">Økt Type Fordeling</h3>
+      <div class="space-y-4">
+        <div 
+          v-for="type in workoutTypeStats" 
+          :key="type.id"
+          class="flex items-center gap-4"
+        >
+          <div class="w-20 text-sm text-dark-300">{{ type.name }}</div>
+          <div class="flex-1 bg-dark-700 rounded-full h-4 overflow-hidden">
+            <div
+              class="h-full rounded-full transition-all duration-500"
+              :style="{ 
+                width: `${type.percentage}%`,
+                backgroundColor: type.color
+              }"
+            ></div>
           </div>
-          <p class="text-dark-300">Ingen data tilgjengelig ennå</p>
-        </div>
-        <div v-else class="space-y-4">
-          <div 
-            v-for="(week, index) in workoutStore.workoutStats.weeklyProgress" 
-            :key="index"
-            class="flex items-center gap-4"
-          >
-            <div class="w-20 text-sm text-dark-300">{{ week.week }}</div>
-            <div class="flex-1 bg-dark-700 rounded-full h-4 overflow-hidden">
-              <div 
-                class="bg-gradient-to-r from-primary-500 to-primary-600 h-full rounded-full transition-all duration-500"
-                :style="{ width: `${getProgressPercentage(week.volume)}%` }"
-              ></div>
-            </div>
-            <div class="w-16 text-right text-sm font-medium text-white">
-              {{ formatNumber(week.volume) }} kg
-            </div>
+          <div class="w-16 text-right text-sm font-medium text-white">
+            {{ type.count }}
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Most Used Exercises -->
-      <div class="card">
-        <h2 class="text-xl font-semibold text-white mb-6">Mest Brukte Øvelser</h2>
-        <div v-if="workoutStore.workoutStats.mostUsedExercises.length === 0" class="text-center py-12">
-          <div class="w-16 h-16 bg-dark-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+    <!-- Weekly Progress -->
+    <div class="card">
+      <h3 class="text-lg font-semibold text-white mb-6">Ukentlig Progresjon</h3>
+      <div class="space-y-4">
+        <div 
+          v-for="week in workoutStore.workoutStats.weeklyProgress" 
+          :key="week.week"
+          class="flex items-center gap-4"
+        >
+          <div class="w-20 text-sm text-dark-300">{{ week.week }}</div>
+          <div class="flex-1 bg-dark-700 rounded-full h-4 overflow-hidden">
+            <div
+              class="bg-gradient-to-r from-primary-500 to-primary-600 h-full rounded-full transition-all duration-500"
+              :style="{ width: `${getWeeklyProgressPercentage(week.volume)}%` }"
+            ></div>
           </div>
-          <p class="text-dark-300">Ingen øvelser registrert ennå</p>
+          <div class="w-16 text-right text-sm font-medium text-white">
+            {{ formatNumber(week.volume) }}
+          </div>
         </div>
-        <div v-else class="space-y-4">
-          <div 
-            v-for="(exercise, index) in workoutStore.workoutStats.mostUsedExercises" 
-            :key="exercise.name"
-            class="flex items-center gap-4"
-          >
-            <div class="w-8 h-8 bg-primary-500/20 rounded-full flex items-center justify-center text-sm font-bold text-primary-500">
-              {{ index + 1 }}
-            </div>
-            <div class="flex-1">
-              <p class="text-white font-medium">{{ exercise.name }}</p>
-              <p class="text-sm text-dark-300">{{ exercise.count }} ganger</p>
-            </div>
-            <div class="w-20 bg-dark-700 rounded-full h-2 overflow-hidden">
-              <div 
-                class="bg-primary-500 h-full rounded-full transition-all duration-500"
-                :style="{ width: `${getExercisePercentage(exercise.count)}%` }"
-              ></div>
-            </div>
+      </div>
+    </div>
+
+    <!-- Most Used Exercises -->
+    <div class="card">
+      <h3 class="text-lg font-semibold text-white mb-6">Mest Brukte Øvelser</h3>
+      <div class="space-y-4">
+        <div 
+          v-for="exercise in workoutStore.workoutStats.mostUsedExercises" 
+          :key="exercise.name"
+          class="flex items-center gap-4"
+        >
+          <div class="flex-1 text-sm text-dark-300">{{ exercise.name }}</div>
+          <div class="flex-1 bg-dark-700 rounded-full h-4 overflow-hidden">
+            <div
+              class="bg-gradient-to-r from-primary-500 to-primary-600 h-full rounded-full transition-all duration-500"
+              :style="{ width: `${getExerciseUsagePercentage(exercise.count)}%` }"
+            ></div>
+          </div>
+          <div class="w-16 text-right text-sm font-medium text-white">
+            {{ exercise.count }}
           </div>
         </div>
       </div>
@@ -147,60 +141,66 @@
 
     <!-- Recent Activity -->
     <div class="card">
-      <h2 class="text-xl font-semibold text-white mb-6">Siste Aktivitet</h2>
-      <div v-if="workoutStore.recentWorkouts.length === 0" class="text-center py-12">
-        <p class="text-dark-300">Ingen økter registrert ennå</p>
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold text-white">Siste Aktivitet</h3>
+        <router-link 
+          to="/history" 
+          class="text-primary-500 hover:text-primary-400 text-sm font-medium"
+        >
+          Se alle
+        </router-link>
       </div>
+
+      <div v-if="workoutStore.recentSessions.length === 0" class="text-center py-8">
+        <p class="text-dark-300">Ingen aktivitet ennå</p>
+      </div>
+
       <div v-else class="space-y-4">
         <div 
-          v-for="workout in workoutStore.recentWorkouts.slice(0, 5)" 
-          :key="workout.id"
+          v-for="session in workoutStore.recentSessions" 
+          :key="session.id"
           class="flex items-center justify-between p-4 bg-dark-700 rounded-lg"
         >
-          <div class="flex items-center gap-4">
-            <div class="w-3 h-3 bg-primary-500 rounded-full"></div>
-            <div>
-              <p class="text-white font-medium">{{ workout.name }}</p>
-              <p class="text-sm text-dark-300">{{ formatDate(workout.date) }}</p>
-            </div>
+          <div class="flex-1">
+            <h4 class="font-medium text-white">{{ session.templateName }}</h4>
+            <p class="text-sm text-dark-300">
+              {{ formatDate(session.date) }} • {{ session.duration }} min
+            </p>
           </div>
-          <div class="text-right">
-            <p class="text-white font-medium">{{ formatNumber(workout.totalVolume || 0) }} kg</p>
-            <p class="text-sm text-dark-300">{{ workout.duration }} min</p>
+          <div class="flex items-center gap-3">
+            <span class="text-primary-500 font-medium">
+              {{ formatNumber(session.totalVolume || 0) }} kg
+            </span>
+            <span 
+              class="px-2 py-1 rounded-full text-xs font-medium"
+              :style="{ 
+                backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
+                color: getWorkoutTypeColor(session.workoutType)
+              }"
+            >
+              {{ getWorkoutTypeName(session.workoutType) }}
+            </span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Motivation Section -->
+    <!-- Motivation -->
     <div class="card">
-      <h2 class="text-xl font-semibold text-white mb-6">Motivasjon</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="p-6 bg-gradient-to-r from-primary-500/20 to-primary-600/20 rounded-lg border border-primary-500/30">
-          <h3 class="text-lg font-semibold text-white mb-2">Neste Mål</h3>
-          <p class="text-dark-200 mb-4">
-            Hold deg konsistent og se hvordan du utvikler deg over tid. Hver økt teller!
+      <h3 class="text-lg font-semibold text-white mb-4">Motivasjon</h3>
+      <div class="space-y-4">
+        <div class="p-4 bg-gradient-to-r from-primary-500/20 to-primary-600/20 rounded-lg border border-primary-500/30">
+          <p class="text-white font-medium mb-2">Neste repetisjon</p>
+          <p class="text-dark-200 text-sm">
+            Du har fullført {{ workoutStore.completedSessions.length }} økter med totalt {{ formatNumber(workoutStore.totalVolume) }} kg volum. 
+            Hold deg konsistent og se resultatene komme!
           </p>
-          <div class="text-center">
-            <p class="text-3xl font-bold text-primary-500 mb-1">
-              {{ workoutStore.workoutStats.totalWorkouts + 1 }}
-            </p>
-            <p class="text-dark-300 text-sm">Neste økt</p>
-          </div>
         </div>
-
-        <div class="p-6 bg-gradient-to-r from-dark-700 to-dark-600 rounded-lg">
-          <h3 class="text-lg font-semibold text-white mb-2">Progresjon</h3>
-          <p class="text-dark-200 mb-4">
-            Du har allerede fullført {{ workoutStore.workoutStats.totalWorkouts }} økter. 
-            Fortsett å bygge på denne styrken!
+        <div class="text-center">
+          <p class="text-2xl font-bold text-primary-500 mb-1">
+            {{ getCurrentStreak() }}
           </p>
-          <div class="text-center">
-            <p class="text-3xl font-bold text-white mb-1">
-              {{ formatNumber(workoutStore.workoutStats.totalVolume) }}
-            </p>
-            <p class="text-dark-300 text-sm">kg totalt løftet</p>
-          </div>
+          <p class="text-dark-300 text-sm">Dager på rad</p>
         </div>
       </div>
     </div>
@@ -213,6 +213,31 @@ import { useWorkoutStore } from '@/stores/workoutStore'
 
 const workoutStore = useWorkoutStore()
 
+// Computed
+const averageVolumePerWorkout = computed(() => {
+  if (workoutStore.completedSessions.length === 0) return 0
+  return workoutStore.totalVolume / workoutStore.completedSessions.length
+})
+
+const workoutTypeStats = computed(() => {
+  const typeCounts: { [key: string]: number } = {}
+  
+  workoutStore.completedSessions.forEach(session => {
+    typeCounts[session.workoutType] = (typeCounts[session.workoutType] || 0) + 1
+  })
+
+  const totalSessions = workoutStore.completedSessions.length
+  
+  return workoutStore.workoutTypes.map(type => ({
+    id: type.id,
+    name: type.name,
+    color: type.color,
+    count: typeCounts[type.id] || 0,
+    percentage: totalSessions > 0 ? Math.round((typeCounts[type.id] || 0) / totalSessions * 100) : 0
+  })).filter(stat => stat.count > 0)
+})
+
+// Methods
 const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('no-NO').format(Math.round(num))
 }
@@ -220,17 +245,56 @@ const formatNumber = (num: number): string => {
 const formatDate = (date: Date): string => {
   return new Intl.DateTimeFormat('no-NO', {
     day: 'numeric',
-    month: 'short'
+    month: 'short',
+    year: 'numeric'
   }).format(date)
 }
 
-const getProgressPercentage = (volume: number): number => {
-  const maxVolume = Math.max(...workoutStore.workoutStats.weeklyProgress.map(w => w.volume))
-  return maxVolume > 0 ? (volume / maxVolume) * 100 : 0
+const getWorkoutTypeName = (typeId: string): string => {
+  const type = workoutStore.getWorkoutType(typeId)
+  return type?.name || typeId
 }
 
-const getExercisePercentage = (count: number): number => {
+const getWorkoutTypeColor = (typeId: string): string => {
+  const type = workoutStore.getWorkoutType(typeId)
+  return type?.color || '#f97316'
+}
+
+const getWeeklyProgressPercentage = (volume: number): number => {
+  const maxVolume = Math.max(...workoutStore.workoutStats.weeklyProgress.map(w => w.volume))
+  if (maxVolume === 0) return 0
+  return Math.round((volume / maxVolume) * 100)
+}
+
+const getExerciseUsagePercentage = (count: number): number => {
   const maxCount = Math.max(...workoutStore.workoutStats.mostUsedExercises.map(e => e.count))
-  return maxCount > 0 ? (count / maxCount) * 100 : 0
+  if (maxCount === 0) return 0
+  return Math.round((count / maxCount) * 100)
+}
+
+const getCurrentStreak = (): number => {
+  if (workoutStore.completedSessions.length === 0) return 0
+  
+  const sortedSessions = [...workoutStore.completedSessions]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  
+  let streak = 0
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  for (let i = 0; i < sortedSessions.length; i++) {
+    const sessionDate = new Date(sortedSessions[i].date)
+    sessionDate.setHours(0, 0, 0, 0)
+    
+    const daysDiff = Math.floor((today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (daysDiff === streak) {
+      streak++
+    } else {
+      break
+    }
+  }
+  
+  return streak
 }
 </script> 

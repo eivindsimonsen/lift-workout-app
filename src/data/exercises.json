@@ -1,0 +1,222 @@
+{
+  "exercises": [
+    {
+      "id": "bench-press",
+      "name": "Benkpress",
+      "category": "push",
+      "workoutTypes": ["push", "upper", "full-body"],
+      "muscleGroups": ["bryst", "triceps", "skuldre"],
+      "equipment": "barbell",
+      "description": "Klassisk brystøvelse som også aktiverer triceps og foran skuldre"
+    },
+    {
+      "id": "overhead-press",
+      "name": "Militærpress",
+      "category": "push",
+      "workoutTypes": ["push", "upper", "full-body"],
+      "muscleGroups": ["skuldre", "triceps"],
+      "equipment": "barbell",
+      "description": "Stående press som fokuserer på skuldre og triceps"
+    },
+    {
+      "id": "incline-press",
+      "name": "Skrå Benkpress",
+      "category": "push",
+      "workoutTypes": ["push", "upper", "full-body"],
+      "muscleGroups": ["bryst", "triceps"],
+      "equipment": "barbell",
+      "description": "Benkpress med skrå benk for å treffe øvre bryst"
+    },
+    {
+      "id": "dumbbell-press",
+      "name": "Dumbbell Press",
+      "category": "push",
+      "workoutTypes": ["push", "upper", "full-body"],
+      "muscleGroups": ["bryst", "triceps", "skuldre"],
+      "equipment": "dumbbell",
+      "description": "Benkpress med dumbbells for bedre balanse og bevegelsesomfang"
+    },
+    {
+      "id": "dips",
+      "name": "Dips",
+      "category": "push",
+      "workoutTypes": ["push", "upper", "full-body"],
+      "muscleGroups": ["bryst", "triceps"],
+      "equipment": "bodyweight",
+      "description": "Kroppsvektøvelse som treffer bryst og triceps"
+    },
+    {
+      "id": "pull-ups",
+      "name": "Pull-ups",
+      "category": "pull",
+      "workoutTypes": ["pull", "upper", "full-body"],
+      "muscleGroups": ["rygg", "biceps"],
+      "equipment": "bodyweight",
+      "description": "Kroppsvektøvelse som treffer rygg og biceps"
+    },
+    {
+      "id": "barbell-rows",
+      "name": "Barbell Rows",
+      "category": "pull",
+      "workoutTypes": ["pull", "upper", "full-body"],
+      "muscleGroups": ["rygg", "biceps"],
+      "equipment": "barbell",
+      "description": "Klassisk ryggøvelse som bygger tykkelse"
+    },
+    {
+      "id": "deadlift",
+      "name": "Deadlift",
+      "category": "pull",
+      "workoutTypes": ["pull", "lower", "full-body"],
+      "muscleGroups": ["rygg", "glutes", "hamstrings"],
+      "equipment": "barbell",
+      "description": "Konge av alle øvelser som treffer hele bakkroppen"
+    },
+    {
+      "id": "lat-pulldown",
+      "name": "Lat Pulldown",
+      "category": "pull",
+      "workoutTypes": ["pull", "upper", "full-body"],
+      "muscleGroups": ["rygg", "biceps"],
+      "equipment": "cable",
+      "description": "Maskinøvelse som simulerer pull-ups"
+    },
+    {
+      "id": "squat",
+      "name": "Squat",
+      "category": "legs",
+      "workoutTypes": ["legs", "lower", "full-body"],
+      "muscleGroups": ["quadriceps", "glutes", "hamstrings"],
+      "equipment": "barbell",
+      "description": "Konge av benøvelser som treffer hele bena"
+    },
+    {
+      "id": "leg-press",
+      "name": "Leg Press",
+      "category": "legs",
+      "workoutTypes": ["legs", "lower", "full-body"],
+      "muscleGroups": ["quadriceps", "glutes"],
+      "equipment": "machine",
+      "description": "Maskinøvelse som fokuserer på quadriceps"
+    },
+    {
+      "id": "leg-curls",
+      "name": "Leg Curls",
+      "category": "legs",
+      "workoutTypes": ["legs", "lower", "full-body"],
+      "muscleGroups": ["hamstrings"],
+      "equipment": "machine",
+      "description": "Isolerende øvelse for hamstrings"
+    },
+    {
+      "id": "leg-extensions",
+      "name": "Leg Extensions",
+      "category": "legs",
+      "workoutTypes": ["legs", "lower", "full-body"],
+      "muscleGroups": ["quadriceps"],
+      "equipment": "machine",
+      "description": "Isolerende øvelse for quadriceps"
+    },
+    {
+      "id": "calf-raises",
+      "name": "Calf Raises",
+      "category": "legs",
+      "workoutTypes": ["legs", "lower", "full-body"],
+      "muscleGroups": ["calves"],
+      "equipment": "bodyweight",
+      "description": "Isolerende øvelse for legger"
+    },
+    {
+      "id": "shoulder-press",
+      "name": "Skulderpress",
+      "category": "push",
+      "workoutTypes": ["push", "upper", "full-body"],
+      "muscleGroups": ["skuldre", "triceps"],
+      "equipment": "dumbbell",
+      "description": "Dumbbell press for skuldre"
+    },
+    {
+      "id": "lateral-raises",
+      "name": "Side Raises",
+      "category": "push",
+      "workoutTypes": ["push", "upper", "full-body"],
+      "muscleGroups": ["skuldre"],
+      "equipment": "dumbbell",
+      "description": "Isolerende øvelse for side skuldre"
+    },
+    {
+      "id": "bicep-curls",
+      "name": "Bicep Curls",
+      "category": "pull",
+      "workoutTypes": ["pull", "upper", "full-body"],
+      "muscleGroups": ["biceps"],
+      "equipment": "dumbbell",
+      "description": "Klassisk bicepøvelse"
+    },
+    {
+      "id": "tricep-extensions",
+      "name": "Tricep Extensions",
+      "category": "push",
+      "workoutTypes": ["push", "upper", "full-body"],
+      "muscleGroups": ["triceps"],
+      "equipment": "cable",
+      "description": "Isolerende øvelse for triceps"
+    },
+    {
+      "id": "planks",
+      "name": "Planks",
+      "category": "core",
+      "workoutTypes": ["push", "pull", "legs", "upper", "lower", "full-body"],
+      "muscleGroups": ["core"],
+      "equipment": "bodyweight",
+      "description": "Kroppsvektøvelse for core stabilitet"
+    },
+    {
+      "id": "crunches",
+      "name": "Crunches",
+      "category": "core",
+      "workoutTypes": ["push", "pull", "legs", "upper", "lower", "full-body"],
+      "muscleGroups": ["core"],
+      "equipment": "bodyweight",
+      "description": "Klassisk mageøvelse"
+    }
+  ],
+  "workoutTypes": [
+    {
+      "id": "push",
+      "name": "Push",
+      "description": "Bryst, skuldre, triceps",
+      "color": "#f97316"
+    },
+    {
+      "id": "pull",
+      "name": "Pull", 
+      "description": "Rygg, biceps",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "legs",
+      "name": "Legs",
+      "description": "Ben, glutes",
+      "color": "#10b981"
+    },
+    {
+      "id": "upper",
+      "name": "Upper",
+      "description": "Øvre kropp",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "lower",
+      "name": "Lower",
+      "description": "Nedre kropp",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "full-body",
+      "name": "Full Body",
+      "description": "Hele kroppen",
+      "color": "#ef4444"
+    }
+  ]
+} 
