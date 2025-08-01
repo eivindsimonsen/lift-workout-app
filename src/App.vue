@@ -50,7 +50,7 @@
     </main>
 
     <!-- Mobile Bottom Navigation -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
+    <nav v-if="!isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
       <div class="flex justify-around">
         <router-link 
           to="/" 
@@ -98,9 +98,87 @@
         </router-link>
       </div>
     </nav>
+
+    <!-- Workout Session Navigation -->
+    <nav v-if="isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
+      <!-- Progress Bar -->
+      <div class="w-full bg-dark-600 h-1">
+        <div 
+          class="bg-primary-500 h-1 transition-all duration-300"
+          :style="{ width: `${workoutProgress}%` }"
+        ></div>
+      </div>
+      
+      <div class="flex justify-around p-3">
+        <button 
+          @click="saveWorkout"
+          class="flex-1 mx-2 btn-secondary py-3 flex items-center justify-center"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+          </svg>
+          Lagre
+        </button>
+        <button 
+          @click="completeWorkout"
+          class="flex-1 mx-2 btn-primary py-3 flex items-center justify-center"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Fullfør
+        </button>
+      </div>
+    </nav>
   </div>
 </template>
 
 <script setup lang="ts">
-// Main app component with navigation
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useWorkoutStore } from '@/stores/workoutStore'
+
+const route = useRoute()
+const router = useRouter()
+const workoutStore = useWorkoutStore()
+
+// Check if we're in a workout session
+const isWorkoutSession = computed(() => {
+  return route.path.startsWith('/workout/') && route.params.id
+})
+
+// Calculate workout progress
+const workoutProgress = computed(() => {
+  if (!isWorkoutSession.value) return 0
+  
+  const sessionId = route.params.id as string
+  const session = workoutStore.getSessionById(sessionId)
+  
+  if (!session) return 0
+  
+  const totalSets = session.exercises.reduce((total, exercise) => {
+    return total + exercise.sets.length
+  }, 0)
+  
+  if (totalSets === 0) return 0
+  
+  const completedSets = session.exercises.reduce((total, exercise) => {
+    return total + exercise.sets.filter(set => set.isCompleted).length
+  }, 0)
+  
+  return Math.round((completedSets / totalSets) * 100)
+})
+
+// Save workout function
+const saveWorkout = () => {
+  // This will be handled by the WorkoutSession component
+  // We can emit an event or use a global event bus
+  window.dispatchEvent(new CustomEvent('save-workout'))
+}
+
+// Complete workout function
+const completeWorkout = () => {
+  // This will be handled by the WorkoutSession component
+  window.dispatchEvent(new CustomEvent('complete-workout'))
+}
 </script> 
