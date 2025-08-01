@@ -55,7 +55,7 @@ export const useWorkoutStore = defineStore('workout', () => {
   const recentSessions = computed(() => {
     return completedSessions.value
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5)
+      .slice(0, 3)
   })
 
   const workoutStats = computed(() => {
@@ -212,6 +212,13 @@ export const useWorkoutStore = defineStore('workout', () => {
       throw new Error('Template not found')
     }
 
+    // Mark all existing sessions as completed (only one active session allowed)
+    sessions.value.forEach(session => {
+      if (!session.isCompleted) {
+        session.isCompleted = true
+      }
+    })
+
     const session: WorkoutSession = {
       id: `session-${Date.now()}`,
       templateId: template.id,
@@ -272,6 +279,20 @@ export const useWorkoutStore = defineStore('workout', () => {
     }
   }
 
+  const markSessionAsActive = (sessionId: string) => {
+    // First, mark all other sessions as completed (only one active session allowed)
+    sessions.value.forEach(session => {
+      if (session.id !== sessionId && !session.isCompleted) {
+        session.isCompleted = true
+      }
+    })
+    
+    // Then mark the current session as active
+    updateWorkoutSession(sessionId, {
+      isCompleted: false
+    })
+  }
+
   const deleteWorkoutSession = (sessionId: string) => {
     sessions.value = sessions.value.filter(s => s.id !== sessionId)
     saveData()
@@ -314,6 +335,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     startWorkoutSession,
     updateWorkoutSession,
     completeWorkoutSession,
+    markSessionAsActive,
     deleteWorkoutSession,
     getSessionById,
     getTemplatesByType

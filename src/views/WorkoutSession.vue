@@ -1,10 +1,18 @@
 <template>
   <div class="space-y-6">
-    <!-- Header -->
-    <div>
-      <h1 class="text-2xl font-bold text-white">{{ session?.templateName }}</h1>
-      <p class="text-dark-300">{{ getWorkoutTypeName(session?.workoutType || '') }}</p>
-    </div>
+         <!-- Header -->
+     <div class="flex items-center justify-between">
+       <h1 class="text-2xl font-bold text-white">{{ session?.templateName }}</h1>
+       <span 
+         class="inline-block px-3 py-1 text-sm font-medium rounded-full"
+         :style="{ 
+           backgroundColor: getWorkoutTypeColor(session?.workoutType || '') + '20',
+           color: getWorkoutTypeColor(session?.workoutType || '')
+         }"
+       >
+         {{ getWorkoutTypeName(session?.workoutType || '') }}
+       </span>
+     </div>
 
 
 
@@ -99,8 +107,8 @@
        <h3 class="text-lg font-semibold text-white mb-4">Sammendrag</h3>
        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
          <div class="text-center">
-           <p class="text-2xl font-bold text-primary-500">{{ completedSets }}</p>
-           <p class="text-sm text-dark-300">Fullførte sett</p>
+           <p class="text-2xl font-bold text-primary-500">{{ completedSets }} av {{ totalSets }}</p>
+           <p class="text-sm text-dark-300">Sett gjennomført</p>
          </div>
          <div class="text-center">
            <p class="text-2xl font-bold text-primary-500">{{ formatNumber(estimatedVolume) }}</p>
@@ -181,6 +189,11 @@ const getWorkoutTypeName = (typeId: string): string => {
   return type?.name || typeId
 }
 
+const getWorkoutTypeColor = (typeId: string): string => {
+  const type = workoutStore.getWorkoutType(typeId)
+  return type?.color || '#f97316'
+}
+
 const getCompletedSets = (exercise: any): number => {
   return exercise.sets.filter((set: any) => set.isCompleted).length
 }
@@ -251,7 +264,13 @@ const handleSaveWorkout = () => {
     notes: sessionNotes.value
   })
   
+  // Mark session as active (saved but not completed)
+  workoutStore.markSessionAsActive(session.value.id)
+  
   alert('Økt lagret! 💾')
+  
+  // Navigate back to dashboard to see the active session
+  router.push('/')
 }
 
 const handleCompleteWorkout = () => {

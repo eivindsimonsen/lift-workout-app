@@ -52,15 +52,8 @@
 
       <!-- Exercises -->
       <div class="card">
-        <div class="flex items-center justify-between mb-4">
+        <div class="mb-4">
           <h2 class="text-xl font-semibold text-white">Øvelser</h2>
-          <button 
-            @click="addExercise"
-            type="button"
-            class="btn-secondary text-sm"
-          >
-            + Legg til øvelse
-          </button>
         </div>
         
         <div class="space-y-4">
@@ -82,7 +75,7 @@
               </button>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="block text-xs text-dark-300 mb-1">Øvelse</label>
                 <select 
@@ -120,30 +113,20 @@
                   class="input-field w-full text-sm"
                 />
               </div>
-              <div>
-                <label class="block text-xs text-dark-300 mb-1">Vekt (kg)</label>
-                <input
-                  v-model.number="exercise.weight"
-                  type="number"
-                  min="0"
-                  class="input-field w-full text-sm"
-                />
-              </div>
             </div>
           </div>
+          
+          <button 
+            @click="addExercise"
+            type="button"
+            class="btn-secondary text-sm w-full"
+          >
+            + Legg til øvelse
+          </button>
         </div>
       </div>
 
-      <!-- Notes -->
-      <div class="card">
-        <h2 class="text-xl font-semibold text-white mb-4">Notater</h2>
-        <textarea
-          v-model="templateForm.notes"
-          rows="3"
-          class="input-field w-full"
-          placeholder="Valgfrie notater om økten..."
-        ></textarea>
-      </div>
+
 
       <!-- Actions -->
       <div class="flex gap-3 justify-end">
@@ -176,8 +159,7 @@ const workoutStore = useWorkoutStore()
 const templateForm = ref({
   name: '',
   workoutType: '',
-  exercises: [] as ExerciseTemplate[],
-  notes: ''
+  exercises: [] as ExerciseTemplate[]
 })
 
 // Computed
@@ -196,8 +178,7 @@ const addExercise = () => {
     sets: 3,
     reps: 8,
     weight: undefined,
-    restTime: undefined,
-    notes: ''
+    restTime: undefined
   })
 }
 
@@ -219,8 +200,7 @@ const saveTemplate = () => {
     id: `template-${Date.now()}`,
     name: templateForm.value.name,
     workoutType: templateForm.value.workoutType,
-    exercises: exercisesWithNames,
-    notes: templateForm.value.notes
+    exercises: exercisesWithNames
   }
 
   workoutStore.addTemplate(templateData)
