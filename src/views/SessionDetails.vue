@@ -119,12 +119,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useWorkoutData } from '@/composables/useWorkoutData'
+import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutSession } from '@/types/workout'
 
 const router = useRouter()
 const route = useRoute()
-const workoutData = useWorkoutData()
+const workoutData = useHybridData()
 
 const session = ref<WorkoutSession | null>(null)
 

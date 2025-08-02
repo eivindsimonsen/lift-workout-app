@@ -14,51 +14,23 @@
       </div>
     </header>
 
-    <!-- Login form content -->
+    <!-- Reset password form content -->
     <div class="flex items-center justify-center px-4 flex-1 mt-8">
       <div class="w-full max-w-md">
         <div class="text-center mb-8">
           <h1 class="text-3xl font-bold text-white mb-2">
-            {{ isRegistering ? 'Registrer deg' : 'Logg inn' }}
+            Tilbakestill passord
           </h1>
           <p class="text-dark-300">
-            {{ isRegistering ? 'Opprett din Treningsloggen konto' : 'Logg inn på din Treningsloggen konto' }}
+            Skriv inn ditt nye passord
           </p>
         </div>
 
         <div class="card">
           <form @submit.prevent="handleSubmit" class="space-y-6">
-            <div v-if="isRegistering">
-              <label for="name" class="block text-sm font-medium text-white mb-2">
-                Navn
-              </label>
-              <input
-                id="name"
-                v-model="name"
-                type="text"
-                required
-                class="input-field w-full"
-                placeholder="Skriv inn ditt navn"
-              />
-            </div>
-
-            <div>
-              <label for="email" class="block text-sm font-medium text-white mb-2">
-                E-post
-              </label>
-              <input
-                id="email"
-                v-model="email"
-                type="email"
-                required
-                class="input-field w-full"
-                placeholder="Skriv inn din e-post"
-              />
-            </div>
-
             <div>
               <label for="password" class="block text-sm font-medium text-white mb-2">
-                Passord
+                Nytt passord
               </label>
               <div class="relative">
                 <input
@@ -67,7 +39,7 @@
                   :type="showPassword ? 'text' : 'password'"
                   required
                   class="input-field w-full pr-10"
-                  :placeholder="isRegistering ? 'Minst 6 tegn' : 'Skriv inn passord'"
+                  placeholder="Minst 6 tegn"
                   minlength="6"
                 />
                 <button
@@ -86,9 +58,9 @@
               </div>
             </div>
 
-            <div v-if="isRegistering">
+            <div>
               <label for="confirmPassword" class="block text-sm font-medium text-white mb-2">
-                Bekreft passord
+                Bekreft nytt passord
               </label>
               <div class="relative">
                 <input
@@ -116,27 +88,12 @@
               </div>
             </div>
 
-            <div v-if="!isRegistering" class="flex items-center justify-between">
-              <label class="flex items-center">
-                <input
-                  v-model="rememberMe"
-                  type="checkbox"
-                  class="w-3 h-3 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500 focus:ring-1"
-                />
-                <span class="ml-2 text-sm text-dark-300">Husk meg</span>
-              </label>
-              
-              <button 
-                type="button"
-                @click="forgotPassword"
-                class="text-sm text-primary-500 hover:text-primary-400 transition-colors"
-              >
-                Glemt passord?
-              </button>
-            </div>
-
             <div v-if="errorMessage" class="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
               <p class="text-red-400 text-sm">{{ errorMessage }}</p>
+            </div>
+
+            <div v-if="successMessage" class="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+              <p class="text-green-400 text-sm">{{ successMessage }}</p>
             </div>
 
             <button
@@ -149,32 +106,20 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                {{ isRegistering ? 'Registrerer...' : 'Logger inn...' }}
+                Tilbakestiller...
               </span>
-              <span v-else>{{ isRegistering ? 'Registrer deg' : 'Logg inn' }}</span>
+              <span v-else>Tilbakestill passord</span>
             </button>
           </form>
 
           <div class="mt-6 text-center">
-            <p class="text-dark-300 text-sm">
-              {{ isRegistering ? 'Har du allerede en konto?' : 'Har du ikke en konto?' }}
-              <button 
-                @click="toggleMode"
-                class="text-primary-500 hover:text-primary-400 transition-colors font-medium"
-              >
-                {{ isRegistering ? 'Logg inn' : 'Registrer deg' }}
-              </button>
-            </p>
+            <router-link 
+              to="/login"
+              class="text-primary-500 hover:text-primary-400 transition-colors font-medium"
+            >
+              Tilbake til innlogging
+            </router-link>
           </div>
-        </div>
-
-        <div class="mt-8 text-center">
-          <p class="text-xs text-dark-400">
-            Ved å {{ isRegistering ? 'registrere deg' : 'logge inn' }} godtar du våre 
-            <a href="#" class="text-primary-500 hover:text-primary-400">vilkår</a> 
-            og 
-            <a href="#" class="text-primary-500 hover:text-primary-400">personvernregler</a>
-          </p>
         </div>
       </div>
     </div>
@@ -189,14 +134,11 @@ import { supabase } from '@/lib/supabase'
 const router = useRouter()
 
 // Form data
-const name = ref('')
-const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
-const rememberMe = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
-const isRegistering = ref(false)
+const successMessage = ref('')
 
 // Password visibility
 const showPassword = ref(false)
@@ -204,144 +146,40 @@ const showConfirmPassword = ref(false)
 
 // Computed
 const isFormValid = computed(() => {
-  if (isRegistering.value) {
-    return name.value.trim() && 
-           email.value.trim() && 
-           password.value.length >= 6 && 
-           password.value === confirmPassword.value
-  }
-  return email.value.trim() && password.value.length >= 6
+  return password.value.length >= 6 && password.value === confirmPassword.value
 })
 
 // Methods
-const clearForm = () => {
-  name.value = ''
-  email.value = ''
-  password.value = ''
-  confirmPassword.value = ''
-  errorMessage.value = ''
-  showPassword.value = false
-  showConfirmPassword.value = false
-}
-
-const toggleMode = () => {
-  isRegistering.value = !isRegistering.value
-  clearForm()
-}
-
 const handleSubmit = async () => {
   if (!isFormValid.value) {
-    errorMessage.value = isRegistering.value 
-      ? 'Vennligst fyll ut alle felter og sørg for at passordene matcher'
-      : 'Vennligst fyll ut alle felter'
+    errorMessage.value = 'Vennligst fyll ut alle felter og sørg for at passordene matcher'
     return
   }
 
   isLoading.value = true
   errorMessage.value = ''
+  successMessage.value = ''
 
   try {
-    if (isRegistering.value) {
-      await handleRegister()
-    } else {
-      await handleLogin()
-    }
-  } catch (error) {
-    console.error('Auth error:', error)
-    errorMessage.value = 'En feil oppstod. Prøv igjen.'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const handleRegister = async () => {
-  const { data, error } = await supabase.auth.signUp({
-    email: email.value,
-    password: password.value,
-    options: {
-      data: {
-        name: name.value
-      }
-    }
-  })
-
-  if (error) {
-    errorMessage.value = error.message
-    return
-  }
-
-  if (data.user) {
-    // Create user profile in our users table
-    const { error: profileError } = await supabase
-      .from('users')
-      .insert({
-        id: data.user.id,
-        supabase_id: data.user.id,
-        email: email.value,
-        name: name.value
-      })
-
-    if (profileError) {
-      console.error('Error creating user profile:', profileError)
-    }
-
-    // Show success message and redirect
-    alert('Registrering vellykket! Sjekk din e-post for bekreftelse.')
-    router.push('/')
-  }
-}
-
-const handleLogin = async () => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.value,
-    password: password.value
-  })
-
-  if (error) {
-    errorMessage.value = error.message
-    return
-  }
-
-  if (data.user) {
-    // If "Remember me" is checked, set a longer session duration
-    if (rememberMe.value) {
-      // Set session to persist for 30 days instead of default
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: data.session?.access_token || '',
-        refresh_token: data.session?.refresh_token || ''
-      })
-      
-      if (sessionError) {
-        console.error('Error setting session:', sessionError)
-      }
-    }
-
-    // Redirect to dashboard
-    router.push('/')
-  }
-}
-
-const forgotPassword = async () => {
-  if (!email.value) {
-    errorMessage.value = 'Vennligst skriv inn din e-post først'
-    return
-  }
-
-  try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
-      redirectTo: `${window.location.origin}/reset-password`
+    const { error } = await supabase.auth.updateUser({
+      password: password.value
     })
 
     if (error) {
       errorMessage.value = error.message
     } else {
-      // Show success message
-      errorMessage.value = ''
-      alert('Tilbakestillingslenke sendt til din e-post! Sjekk innboksen din og følg lenken for å tilbakestille passordet.')
+      successMessage.value = 'Passordet ditt er tilbakestilt! Du blir omdirigert til innlogging...'
+      
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
     }
   } catch (error) {
     console.error('Password reset error:', error)
-    errorMessage.value = 'En feil oppstod ved sending av tilbakestillingslenke. Prøv igjen.'
+    errorMessage.value = 'En feil oppstod ved tilbakestilling av passord. Prøv igjen.'
+  } finally {
+    isLoading.value = false
   }
 }
 </script> 

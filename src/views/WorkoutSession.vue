@@ -48,6 +48,7 @@
                                    <input
                     v-model.number="set.reps"
                     type="number"
+                    inputmode="numeric"
                     min="0"
                     class="input-field w-full text-sm py-1"
                     placeholder="8"
@@ -59,6 +60,7 @@
                                    <input
                     v-model.number="set.weight"
                     type="number"
+                    inputmode="decimal"
                     min="0"
                     step="0.5"
                     class="input-field w-full text-sm py-1"
@@ -182,12 +184,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useWorkoutData } from '@/composables/useWorkoutData'
+import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutSession } from '@/types/workout'
 
 const route = useRoute()
 const router = useRouter()
-const workoutData = useWorkoutData()
+const workoutData = useHybridData()
 
 // State
 const session = ref<WorkoutSession | null>(null)

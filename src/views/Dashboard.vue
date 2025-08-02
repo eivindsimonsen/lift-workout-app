@@ -241,10 +241,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useWorkoutData } from '@/composables/useWorkoutData'
+import { useHybridData } from '@/composables/useHybridData'
 
 const router = useRouter()
-const workoutData = useWorkoutData()
+const workoutData = useHybridData()
 
 // State
 const selectedWorkoutType = ref('')
@@ -302,14 +302,18 @@ const deleteTemplate = (id: string) => {
   }
 }
 
-const startWorkout = (templateId: string) => {
+const startWorkout = async (templateId: string) => {
   try {
-    const session = workoutData.startWorkoutSession(templateId)
+    const session = await workoutData.startWorkoutSession(templateId)
     if (session) {
       router.push(`/workout/${session.id}`)
+    } else {
+      console.error('❌ Failed to start workout session')
+      alert('Kunne ikke starte økt. Prøv igjen.')
     }
   } catch (error) {
     console.error('Failed to start workout:', error)
+    alert('Kunne ikke starte økt. Prøv igjen.')
   }
 }
 

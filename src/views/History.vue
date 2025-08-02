@@ -162,10 +162,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useWorkoutData } from '@/composables/useWorkoutData'
+import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutSession } from '@/types/workout'
 
-const workoutData = useWorkoutData()
+const workoutData = useHybridData()
 
 // State
 const searchQuery = ref('')

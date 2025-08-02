@@ -209,9 +209,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useWorkoutData } from '@/composables/useWorkoutData'
+import { useHybridData } from '@/composables/useHybridData'
 
-const workoutData = useWorkoutData()
+const workoutData = useHybridData()
 
 // Computed
 const averageVolumePerWorkout = computed(() => {

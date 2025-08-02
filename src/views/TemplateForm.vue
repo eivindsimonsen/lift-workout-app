@@ -132,12 +132,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useWorkoutData } from '@/composables/useWorkoutData'
+import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutTemplate, ExerciseTemplate } from '@/types/workout'
 
 const router = useRouter()
 const route = useRoute()
-const workoutData = useWorkoutData()
+const workoutData = useHybridData()
 
 const template = ref<WorkoutTemplate | null>(null)
 const templateForm = ref({
