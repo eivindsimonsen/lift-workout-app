@@ -14,9 +14,9 @@
              >
                Alle typer
              </button>
-             <button 
-               v-for="type in workoutStore.workoutTypes" 
-               :key="type.id"
+                           <button 
+                v-for="type in workoutTypes" 
+                :key="type.id"
                @click="selectedWorkoutType = type.id"
                :class="[
                  'px-4 py-2 rounded-lg border transition-colors text-sm font-medium',
@@ -196,13 +196,13 @@
         </router-link>
       </div>
 
-      <div v-if="workoutStore.recentSessions.length === 0" class="text-center py-8">
+      <div v-if="recentSessions.length === 0" class="text-center py-8">
         <p class="text-dark-300">Ingen fullførte økter ennå</p>
       </div>
 
       <div v-else class="space-y-4">
         <div 
-          v-for="session in workoutStore.recentSessions" 
+          v-for="session in recentSessions" 
           :key="session.id"
           @click="viewSession(session.id)"
           class="flex items-center justify-between p-4 bg-dark-700 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors"
@@ -241,10 +241,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useWorkoutStore } from '@/stores/workoutStore'
+import { useWorkoutData } from '@/composables/useWorkoutData'
 
 const router = useRouter()
-const workoutStore = useWorkoutStore()
+const workoutData = useWorkoutData()
 
 // State
 const selectedWorkoutType = ref('')
@@ -253,13 +253,21 @@ const expandedTemplates = ref<Set<string>>(new Set())
 // Computed
 const filteredTemplates = computed(() => {
   if (!selectedWorkoutType.value) {
-    return workoutStore.templates
+    return workoutData.templates.value
   }
-  return workoutStore.templates.filter(t => t.workoutType === selectedWorkoutType.value)
+  return workoutData.templates.value.filter(t => t.workoutType === selectedWorkoutType.value)
 })
 
 const activeSessions = computed(() => {
-  return workoutStore.sessions.filter(session => !session.isCompleted)
+  return workoutData.sessions.value.filter(session => !session.isCompleted)
+})
+
+const recentSessions = computed(() => {
+  return workoutData.recentSessions.value
+})
+
+const workoutTypes = computed(() => {
+  return workoutData.workoutTypes.value
 })
 
 
@@ -278,27 +286,28 @@ const formatDate = (date: Date): string => {
 }
 
 const getWorkoutTypeName = (typeId: string): string => {
-  const type = workoutStore.getWorkoutType(typeId)
+  const type = workoutData.getWorkoutType.value(typeId)
   return type?.name || typeId
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  const type = workoutStore.getWorkoutType(typeId)
-  return type?.color || '#f97316'
+  return workoutData.getWorkoutTypeColor.value(typeId)
 }
 
 
 
 const deleteTemplate = (id: string) => {
   if (confirm('Er du sikker på at du vil slette denne økten?')) {
-    workoutStore.deleteTemplate(id)
+    workoutData.deleteTemplate(id)
   }
 }
 
 const startWorkout = (templateId: string) => {
   try {
-    const session = workoutStore.startWorkoutSession(templateId)
-    router.push(`/workout/${session.id}`)
+    const session = workoutData.startWorkoutSession(templateId)
+    if (session) {
+      router.push(`/workout/${session.id}`)
+    }
   } catch (error) {
     console.error('Failed to start workout:', error)
   }

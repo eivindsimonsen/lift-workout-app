@@ -1,8 +1,8 @@
 {
-  "name": "eas-treningslogg",
+  "name": "treningsloggen",
   "version": "1.0.0",
   "type": "module",
-  "description": "EAS-Treningslogg - En minimalistisk treningslogg",
+  "description": "Treningsloggen - En minimalistisk treningslogg",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

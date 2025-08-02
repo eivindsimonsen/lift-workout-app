@@ -1,0 +1,40 @@
+{
+  "workoutTypes": [
+    {
+      "id": "push",
+      "name": "Push",
+      "description": "Bryst, skuldre, triceps",
+      "color": "#f97316"
+    },
+    {
+      "id": "pull",
+      "name": "Pull", 
+      "description": "Rygg, biceps",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "legs",
+      "name": "Legs",
+      "description": "Ben, glutes",
+      "color": "#10b981"
+    },
+    {
+      "id": "upper",
+      "name": "Upper",
+      "description": "Øvre kropp",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "lower",
+      "name": "Lower",
+      "description": "Nedre kropp",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "full-body",
+      "name": "Full Body",
+      "description": "Hele kroppen",
+      "color": "#ef4444"
+    }
+  ]
+} 

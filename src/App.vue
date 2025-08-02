@@ -5,7 +5,7 @@
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-2xl font-bold text-white">
-              <span class="text-primary-500">EAS-Treningslogg</span>
+              <span class="text-primary-500">Treningsloggen</span>
             </h1>
             <p class="text-sm text-dark-300">Full kontroll over treningsøktene dine</p>
           </div>
@@ -136,11 +136,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useWorkoutStore } from '@/stores/workoutStore'
+import { useWorkoutData } from '@/composables/useWorkoutData'
 
 const route = useRoute()
 const router = useRouter()
-const workoutStore = useWorkoutStore()
+const workoutData = useWorkoutData()
 
 // Check if we're in a workout session
 const isWorkoutSession = computed(() => {
@@ -152,7 +152,7 @@ const workoutProgress = computed(() => {
   if (!isWorkoutSession.value) return 0
   
   const sessionId = route.params.id as string
-  const session = workoutStore.getSessionById(sessionId)
+  const session = workoutData.getSessionById.value(sessionId)
   
   if (!session) return 0
   

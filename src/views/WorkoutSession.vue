@@ -174,9 +174,7 @@
        </div>
      </div>
 
-     
 
-     
 
   </div>
 </template>
@@ -184,16 +182,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useWorkoutStore } from '@/stores/workoutStore'
+import { useWorkoutData } from '@/composables/useWorkoutData'
 import type { WorkoutSession } from '@/types/workout'
 
 const route = useRoute()
 const router = useRouter()
-const workoutStore = useWorkoutStore()
+const workoutData = useWorkoutData()
 
 // State
 const session = ref<WorkoutSession | null>(null)
-const sessionNotes = ref('')
 const startTime = ref<Date | null>(null)
 const showAddExerciseModal = ref(false)
 const newExerciseId = ref('')
@@ -235,18 +232,17 @@ const sessionDuration = computed(() => {
 })
 
 const availableExercises = computed(() => {
-  return workoutStore.exercises
+  return workoutData.exercises.value
 })
 
 // Methods
 const getWorkoutTypeName = (typeId: string): string => {
-  const type = workoutStore.getWorkoutType(typeId)
+  const type = workoutData.getWorkoutType.value(typeId)
   return type?.name || typeId
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  const type = workoutStore.getWorkoutType(typeId)
-  return type?.color || '#f97316'
+  return workoutData.getWorkoutTypeColor.value(typeId)
 }
 
 const getCompletedSets = (exercise: any): number => {
@@ -263,7 +259,7 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
     set.isCompleted = isCompleted
     
     // Auto-save session
-    workoutStore.updateWorkoutSession(session.value.id, {
+    workoutData.updateWorkoutSession(session.value.id, {
       exercises: session.value.exercises
     })
   }
@@ -285,7 +281,7 @@ const addSet = (exerciseIndex: number) => {
   exercise.sets.push(newSet)
   
   // Auto-save session
-  workoutStore.updateWorkoutSession(session.value.id, {
+  workoutData.updateWorkoutSession(session.value.id, {
     exercises: session.value.exercises
   })
 }
@@ -293,7 +289,7 @@ const addSet = (exerciseIndex: number) => {
 const addExerciseToSession = () => {
   if (!session.value || !newExerciseId.value) return
 
-  const exerciseData = workoutStore.exercises.find(e => e.id === newExerciseId.value)
+  const exerciseData = workoutData.exercises.value.find(e => e.id === newExerciseId.value)
   if (!exerciseData) return
 
   const newExercise = {
@@ -313,7 +309,7 @@ const addExerciseToSession = () => {
   session.value.exercises.push(newExercise)
   
   // Update the session in the store
-  workoutStore.updateWorkoutSession(session.value.id, {
+  workoutData.updateWorkoutSession(session.value.id, {
     exercises: session.value.exercises
   })
 
@@ -329,13 +325,8 @@ const addExerciseToSession = () => {
 const completeWorkout = () => {
   if (!session.value) return
   
-  // Update session notes before completing
-  workoutStore.updateWorkoutSession(session.value.id, {
-    notes: sessionNotes.value
-  })
-  
   // Complete the workout
-  workoutStore.completeWorkoutSession(session.value.id)
+  workoutData.completeWorkoutSession(session.value.id)
   
   // Show completion message and redirect
   alert('Økt fullført! Godt jobbet! 💪')
@@ -345,13 +336,8 @@ const completeWorkout = () => {
 const handleSaveWorkout = () => {
   if (!session.value) return
   
-  // Auto-save current session
-  workoutStore.updateWorkoutSession(session.value.id, {
-    notes: sessionNotes.value
-  })
-  
   // Mark session as active (saved but not completed)
-  workoutStore.markSessionAsActive(session.value.id)
+  workoutData.markSessionAsActive(session.value.id)
   
   alert('Økt lagret! 💾')
   
@@ -370,7 +356,7 @@ const formatNumber = (num: number): string => {
 // Lifecycle
 onMounted(() => {
   const sessionId = route.params.id as string
-  const foundSession = workoutStore.getSessionById(sessionId)
+  const foundSession = workoutData.getSessionById.value(sessionId)
   
   if (!foundSession) {
     alert('Økt ikke funnet')
@@ -379,7 +365,6 @@ onMounted(() => {
   }
   
   session.value = foundSession
-  sessionNotes.value = foundSession.notes || ''
   startTime.value = new Date(foundSession.date)
   
   // Add event listeners for navigation buttons
@@ -388,13 +373,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  // Auto-save when leaving
-  if (session.value) {
-    workoutStore.updateWorkoutSession(session.value.id, {
-      notes: sessionNotes.value
-    })
-  }
-  
   // Remove event listeners
   window.removeEventListener('save-workout', handleSaveWorkout)
   window.removeEventListener('complete-workout', handleCompleteWorkout)

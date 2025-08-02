@@ -1,10 +1,10 @@
-# EAS-Treningslogg
+# Treningsloggen
 
 En minimalistisk og stilren treningslogg bygget med Vue 3, TypeScript og TailwindCSS.
 
 ## 🎯 Konsept
 
-EAS-Treningslogg handler om å alltid ta neste steg — neste repetisjon. Det er en motiverende, men oversiktlig loggbok som hjelper deg med å se utvikling over tid og gjøre det enklere å være konsistent med treningen.
+Treningsloggen handler om å alltid ta neste steg — neste repetisjon. Det er en motiverende, men oversiktlig loggbok som hjelper deg med å se utvikling over tid og gjøre det enklere å være konsistent med treningen.
 
 ## ✨ Funksjoner
 
@@ -36,7 +36,7 @@ EAS-Treningslogg handler om å alltid ta neste steg — neste repetisjon. Det er
 1. Klon prosjektet:
 ```bash
 git clone <repository-url>
-cd eas-treningslogg
+cd treningsloggen
 ```
 
 2. Installer avhengigheter:
@@ -62,7 +62,7 @@ npm run build
 ### Registrere en ny økt
 
 1. Klikk på "Start Økt" på dashboard eller naviger til "Ny Økt"
-2. Fyll ut øktdetaljer (navn, varighet, notater)
+2. Fyll ut øktdetaljer (navn, varighet)
 3. Legg til øvelser ved å klikke "Legg til øvelse"
 4. For hver øvelse, legg til sett med reps og vekt
 5. Klikk "Lagre Økt" når du er ferdig
@@ -95,8 +95,8 @@ Applikasjonen bruker et mørkt tema med oransje aksentfarge (#F97316) for å ska
 
 Applikasjonen lagrer følgende data lokalt:
 
-- **Workout**: Øktdetaljer med navn, dato, varighet og notater
-- **Exercise**: Øvelser med navn og notater
+- **Workout**: Øktdetaljer med navn, dato og varighet
+- **Exercise**: Øvelser med navn
 - **Set**: Sett med reps, vekt, varighet og andre detaljer
 
 ## 🔧 Utvikling
@@ -132,4 +132,4 @@ Dette er et personlig prosjekt, men feedback og forslag er alltid velkomne!
 
 ---
 
-**EAS-Treningslogg** - Ta neste steg mot dine mål! 💪 
+**Treningsloggen** - Ta neste steg mot dine mål! 💪 

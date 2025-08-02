@@ -2,7 +2,7 @@
   <div class="max-w-md mx-auto">
     <div class="text-center mb-8">
       <h1 class="text-3xl font-bold text-white mb-2">Logg inn</h1>
-              <p class="text-dark-300">Logg inn på din EAS-Treningslogg konto</p>
+              <p class="text-dark-300">Logg inn på din Treningsloggen konto</p>
     </div>
 
     <div class="card">

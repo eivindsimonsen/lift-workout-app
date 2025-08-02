@@ -2,7 +2,6 @@ export interface Exercise {
   id: string
   name: string
   sets: Set[]
-  notes?: string
 }
 
 export interface Set {
@@ -19,7 +18,6 @@ export interface Workout {
   date: Date
   duration: number // in minutes
   exercises: Exercise[]
-  notes?: string
   totalVolume?: number
 }
 
@@ -54,7 +52,6 @@ export interface WorkoutTemplate {
   name: string
   workoutType: string
   exercises: ExerciseTemplate[]
-  notes?: string
   isDefault?: boolean
 }
 
@@ -64,7 +61,6 @@ export interface ExerciseTemplate {
   sets: number
   reps: number
   weight?: number
-  notes?: string
 }
 
 export interface WorkoutSession {
@@ -75,7 +71,6 @@ export interface WorkoutSession {
   date: Date
   duration: number // in minutes
   exercises: WorkoutExercise[]
-  notes?: string
   totalVolume?: number
   isCompleted: boolean
 }
@@ -84,7 +79,6 @@ export interface WorkoutExercise {
   exerciseId: string
   name: string
   sets: WorkoutSet[]
-  notes?: string
 }
 
 export interface WorkoutSet {

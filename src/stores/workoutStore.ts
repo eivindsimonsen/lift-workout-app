@@ -111,8 +111,8 @@ export const useWorkoutStore = defineStore('workout', () => {
   const loadData = () => {
     isLoading.value = true
     try {
-      const savedTemplates = localStorage.getItem('eas-treningslogg-templates')
-      const savedSessions = localStorage.getItem('eas-treningslogg-sessions')
+      const savedTemplates = localStorage.getItem('treningsloggen-templates')
+const savedSessions = localStorage.getItem('treningsloggen-sessions')
 
       if (savedTemplates) {
         templates.value = JSON.parse(savedTemplates)
@@ -137,8 +137,8 @@ export const useWorkoutStore = defineStore('workout', () => {
 
   const saveData = () => {
     try {
-      localStorage.setItem('eas-treningslogg-templates', JSON.stringify(templates.value))
-      localStorage.setItem('eas-treningslogg-sessions', JSON.stringify(sessions.value))
+      localStorage.setItem('treningsloggen-templates', JSON.stringify(templates.value))
+localStorage.setItem('treningsloggen-sessions', JSON.stringify(sessions.value))
     } catch (error) {
       console.error('Error saving data:', error)
     }
@@ -236,10 +236,8 @@ export const useWorkoutStore = defineStore('workout', () => {
           duration: undefined,
           distance: undefined,
           isCompleted: false
-        }],
-        notes: exercise.notes
+        }]
       })),
-      notes: template.notes,
       isCompleted: false
     }
 

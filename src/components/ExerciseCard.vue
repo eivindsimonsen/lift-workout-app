@@ -37,10 +37,7 @@
       </table>
     </div>
 
-    <!-- Exercise Notes -->
-    <p v-if="exercise.notes" class="text-sm text-dark-300 mt-3 italic">
-      {{ exercise.notes }}
-    </p>
+
 
     <!-- Total Volume for Exercise -->
     <div class="mt-3 pt-3 border-t border-dark-600">

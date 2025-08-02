@@ -44,7 +44,7 @@
             >
               <option value="">Velg type</option>
               <option 
-                v-for="type in workoutStore.workoutTypes" 
+                v-for="type in workoutTypes" 
                 :key="type.id" 
                 :value="type.id"
               >
@@ -132,12 +132,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useWorkoutStore } from '@/stores/workoutStore'
+import { useWorkoutData } from '@/composables/useWorkoutData'
 import type { WorkoutTemplate, ExerciseTemplate } from '@/types/workout'
 
 const router = useRouter()
 const route = useRoute()
-const workoutStore = useWorkoutStore()
+const workoutData = useWorkoutData()
 
 const template = ref<WorkoutTemplate | null>(null)
 const templateForm = ref({
@@ -151,11 +151,15 @@ const isEditing = computed(() => {
   return route.name === 'EditTemplate'
 })
 
+const workoutTypes = computed(() => {
+  return workoutData.workoutTypes.value
+})
+
 const availableExercises = computed(() => {
   if (!templateForm.value.workoutType) {
-    return workoutStore.exercises
+    return workoutData.exercises.value
   }
-  return workoutStore.getExercisesByWorkoutType(templateForm.value.workoutType)
+  return workoutData.getExercisesByWorkoutType.value(templateForm.value.workoutType)
 })
 
 // Methods
@@ -175,7 +179,7 @@ const removeExercise = (index: number) => {
 const saveTemplate = () => {
   // Update exercise names based on selected exercise IDs
   const exercisesWithNames = templateForm.value.exercises.map(exercise => {
-    const exerciseData = workoutStore.exercises.find(e => e.id === exercise.exerciseId)
+    const exerciseData = workoutData.exercises.value.find(e => e.id === exercise.exerciseId)
     return {
       ...exercise,
       name: exerciseData?.name || exercise.name
@@ -184,7 +188,7 @@ const saveTemplate = () => {
 
   if (isEditing.value && template.value) {
     // Update existing template
-    workoutStore.updateTemplate(template.value.id, {
+    workoutData.updateTemplate(template.value.id, {
       name: templateForm.value.name,
       workoutType: templateForm.value.workoutType,
       exercises: exercisesWithNames
@@ -197,7 +201,7 @@ const saveTemplate = () => {
       workoutType: templateForm.value.workoutType,
       exercises: exercisesWithNames
     }
-    workoutStore.addTemplate(templateData)
+    workoutData.addTemplate(templateData)
   }
 
   router.push('/')
@@ -207,7 +211,7 @@ const saveTemplate = () => {
 onMounted(() => {
   if (isEditing.value) {
     const templateId = route.params.id as string
-    const foundTemplate = workoutStore.templates.find(t => t.id === templateId)
+    const foundTemplate = workoutData.templates.value.find(t => t.id === templateId)
     
     if (foundTemplate) {
       template.value = foundTemplate
@@ -216,7 +220,7 @@ onMounted(() => {
         workoutType: foundTemplate.workoutType,
         exercises: foundTemplate.exercises.map(exercise => {
           // Find the correct exerciseId based on the exercise name
-          const matchingExercise = workoutStore.exercises.find(e => e.name === exercise.name)
+          const matchingExercise = workoutData.exercises.value.find(e => e.name === exercise.name)
           return {
             ...exercise,
             exerciseId: exercise.exerciseId || matchingExercise?.id || ''
