@@ -3,8 +3,8 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-white mb-2">Opprett Ny Økt</h1>
-        <p class="text-dark-300">Lag en ny treningsøkt</p>
+        <h1 class="text-3xl font-bold text-white mb-2">{{ isEditing ? 'Rediger Økt' : 'Opprett Ny Økt' }}</h1>
+        <p class="text-dark-300">{{ isEditing ? 'Endre treningsøkten din' : 'Lag en ny treningsøkt' }}</p>
       </div>
       <router-link 
         to="/" 
@@ -14,8 +14,13 @@
       </router-link>
     </div>
 
-    <!-- Create Template Form -->
-    <form @submit.prevent="saveTemplate" class="space-y-6">
+    <div v-if="isEditing && !template" class="text-center py-12">
+      <p class="text-dark-300">Økt ikke funnet</p>
+      <router-link to="/" class="btn-primary mt-4">Tilbake til Dashboard</router-link>
+    </div>
+
+    <!-- Template Form -->
+    <form v-else @submit.prevent="saveTemplate" class="space-y-6">
       <!-- Basic Info -->
       <div class="card">
         <h2 class="text-xl font-semibold text-white mb-4">Grunnleggende Informasjon</h2>
@@ -75,58 +80,35 @@
               </button>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-xs text-dark-300 mb-1">Øvelse</label>
-                <select 
-                  v-model="exercise.exerciseId"
-                  required
-                  class="input-field w-full text-sm"
+            <div>
+              <label class="block text-xs text-dark-300 mb-1">Øvelse</label>
+              <select 
+                v-model="exercise.exerciseId"
+                required
+                class="input-field w-full text-sm"
+              >
+                <option value="">Velg øvelse</option>
+                <option 
+                  v-for="ex in availableExercises" 
+                  :key="ex.id" 
+                  :value="ex.id"
                 >
-                  <option value="">Velg øvelse</option>
-                  <option 
-                    v-for="ex in availableExercises" 
-                    :key="ex.id" 
-                    :value="ex.id"
-                  >
-                    {{ ex.name }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs text-dark-300 mb-1">Antall sett</label>
-                <input
-                  v-model.number="exercise.sets"
-                  type="number"
-                  min="1"
-                  required
-                  class="input-field w-full text-sm"
-                />
-              </div>
-              <div>
-                <label class="block text-xs text-dark-300 mb-1">Reps</label>
-                <input
-                  v-model.number="exercise.reps"
-                  type="number"
-                  min="1"
-                  required
-                  class="input-field w-full text-sm"
-                />
-              </div>
+                  {{ ex.name }}
+                </option>
+              </select>
             </div>
           </div>
           
+          <!-- Add Exercise Button at bottom -->
           <button 
             @click="addExercise"
             type="button"
-            class="btn-secondary text-sm w-full"
+            class="w-full btn-secondary py-3 flex items-center justify-center"
           >
             + Legg til øvelse
           </button>
         </div>
       </div>
-
-
 
       <!-- Actions -->
       <div class="flex gap-3 justify-end">
@@ -140,7 +122,7 @@
           type="submit"
           class="btn-primary"
         >
-          Opprett Økt
+          {{ isEditing ? 'Oppdater Økt' : 'Opprett Økt' }}
         </button>
       </div>
     </form>
@@ -148,14 +130,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workoutStore'
-import type { ExerciseTemplate } from '@/types/workout'
+import type { WorkoutTemplate, ExerciseTemplate } from '@/types/workout'
 
 const router = useRouter()
+const route = useRoute()
 const workoutStore = useWorkoutStore()
 
+const template = ref<WorkoutTemplate | null>(null)
 const templateForm = ref({
   name: '',
   workoutType: '',
@@ -163,6 +147,10 @@ const templateForm = ref({
 })
 
 // Computed
+const isEditing = computed(() => {
+  return route.name === 'EditTemplate'
+})
+
 const availableExercises = computed(() => {
   if (!templateForm.value.workoutType) {
     return workoutStore.exercises
@@ -175,10 +163,8 @@ const addExercise = () => {
   templateForm.value.exercises.push({
     exerciseId: '',
     name: '',
-    sets: 3,
-    reps: 8,
-    weight: undefined,
-    restTime: undefined
+    sets: 0, // Will be configured during workout session
+    reps: 0 // Will be configured during workout session
   })
 }
 
@@ -196,14 +182,48 @@ const saveTemplate = () => {
     }
   })
 
-  const templateData = {
-    id: `template-${Date.now()}`,
-    name: templateForm.value.name,
-    workoutType: templateForm.value.workoutType,
-    exercises: exercisesWithNames
+  if (isEditing.value && template.value) {
+    // Update existing template
+    workoutStore.updateTemplate(template.value.id, {
+      name: templateForm.value.name,
+      workoutType: templateForm.value.workoutType,
+      exercises: exercisesWithNames
+    })
+  } else {
+    // Create new template
+    const templateData = {
+      id: `template-${Date.now()}`,
+      name: templateForm.value.name,
+      workoutType: templateForm.value.workoutType,
+      exercises: exercisesWithNames
+    }
+    workoutStore.addTemplate(templateData)
   }
 
-  workoutStore.addTemplate(templateData)
   router.push('/')
 }
+
+// Lifecycle
+onMounted(() => {
+  if (isEditing.value) {
+    const templateId = route.params.id as string
+    const foundTemplate = workoutStore.templates.find(t => t.id === templateId)
+    
+    if (foundTemplate) {
+      template.value = foundTemplate
+      templateForm.value = {
+        name: foundTemplate.name,
+        workoutType: foundTemplate.workoutType,
+        exercises: foundTemplate.exercises.map(exercise => {
+          // Find the correct exerciseId based on the exercise name
+          const matchingExercise = workoutStore.exercises.find(e => e.name === exercise.name)
+          return {
+            ...exercise,
+            exerciseId: exercise.exerciseId || matchingExercise?.id || ''
+          }
+        })
+      }
+    }
+  }
+})
 </script> 

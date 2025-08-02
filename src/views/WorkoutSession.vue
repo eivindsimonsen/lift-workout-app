@@ -45,26 +45,26 @@
                          <div class="grid grid-cols-2 gap-3">
                <div>
                  <label class="block text-xs text-dark-300 mb-1">Reps</label>
-                 <input
-                   v-model.number="set.reps"
-                   type="number"
-                   min="0"
-                   class="input-field w-full text-sm py-1"
-                   placeholder="0"
-                   @input="updateSetCompletion(exerciseIndex, setIndex)"
-                 />
+                                   <input
+                    v-model.number="set.reps"
+                    type="number"
+                    min="0"
+                    class="input-field w-full text-sm py-1"
+                    placeholder="8"
+                    @input="updateSetCompletion(exerciseIndex, setIndex)"
+                  />
                </div>
                <div>
                  <label class="block text-xs text-dark-300 mb-1">Vekt (kg)</label>
-                 <input
-                   v-model.number="set.weight"
-                   type="number"
-                   min="0"
-                   step="0.5"
-                   class="input-field w-full text-sm py-1"
-                   placeholder="0"
-                   @input="updateSetCompletion(exerciseIndex, setIndex)"
-                 />
+                                   <input
+                    v-model.number="set.weight"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    class="input-field w-full text-sm py-1"
+                    placeholder="20"
+                    @input="updateSetCompletion(exerciseIndex, setIndex)"
+                  />
                </div>
              </div>
 
@@ -92,12 +92,65 @@
 
                  <!-- Add Exercise Button -->
             <div class="card">
-              <router-link 
-                :to="`/workout/${session?.id}/add-exercise`"
+              <button 
+                @click="showAddExerciseModal = true"
                 class="w-full btn-secondary py-3 flex items-center justify-center"
               >
                 + Legg til øvelse
-              </router-link>
+              </button>
+            </div>
+
+            <!-- Add Exercise Modal -->
+            <div v-if="showAddExerciseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div class="bg-dark-800 rounded-lg p-6 w-full max-w-md mx-4">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-xl font-semibold text-white">Legg til Øvelse</h3>
+                  <button 
+                    @click="showAddExerciseModal = false"
+                    class="text-dark-400 hover:text-white"
+                  >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <form @submit.prevent="addExerciseToSession" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-white mb-2">Øvelse</label>
+                    <select 
+                      v-model="newExerciseId"
+                      required
+                      class="input-field w-full"
+                    >
+                      <option value="">Velg øvelse</option>
+                      <option 
+                        v-for="exercise in availableExercises" 
+                        :key="exercise.id" 
+                        :value="exercise.id"
+                      >
+                        {{ exercise.name }}
+                      </option>
+                    </select>
+                  </div>
+                  
+                  <div class="flex gap-3 justify-end">
+                    <button 
+                      type="button"
+                      @click="showAddExerciseModal = false"
+                      class="btn-secondary"
+                    >
+                      Avbryt
+                    </button>
+                    <button 
+                      type="submit"
+                      class="btn-primary"
+                    >
+                      Legg til Øvelse
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
 
 
@@ -142,6 +195,8 @@ const workoutStore = useWorkoutStore()
 const session = ref<WorkoutSession | null>(null)
 const sessionNotes = ref('')
 const startTime = ref<Date | null>(null)
+const showAddExerciseModal = ref(false)
+const newExerciseId = ref('')
 
 // Computed
 const completedSets = computed(() => {
@@ -220,9 +275,8 @@ const addSet = (exerciseIndex: number) => {
   const exercise = session.value.exercises[exerciseIndex]
   const newSet = {
     id: `set-${Date.now()}-${exercise.sets.length}`,
-    reps: exercise.sets[exercise.sets.length - 1]?.reps || 8,
-    weight: exercise.sets[exercise.sets.length - 1]?.weight || 0,
-    restTime: 0,
+    reps: 0,
+    weight: 0,
     duration: undefined,
     distance: undefined,
     isCompleted: false
@@ -234,6 +288,38 @@ const addSet = (exerciseIndex: number) => {
   workoutStore.updateWorkoutSession(session.value.id, {
     exercises: session.value.exercises
   })
+}
+
+const addExerciseToSession = () => {
+  if (!session.value || !newExerciseId.value) return
+
+  const exerciseData = workoutStore.exercises.find(e => e.id === newExerciseId.value)
+  if (!exerciseData) return
+
+  const newExercise = {
+    exerciseId: newExerciseId.value,
+    name: exerciseData.name,
+    sets: [{
+      id: `set-${Date.now()}`,
+      reps: 0,
+      weight: 0,
+      duration: undefined,
+      distance: undefined,
+      isCompleted: false
+    }]
+  }
+
+  // Add the exercise to the session
+  session.value.exercises.push(newExercise)
+  
+  // Update the session in the store
+  workoutStore.updateWorkoutSession(session.value.id, {
+    exercises: session.value.exercises
+  })
+
+  // Reset form and close modal
+  newExerciseId.value = ''
+  showAddExerciseModal.value = false
 }
 
 

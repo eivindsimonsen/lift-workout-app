@@ -11,7 +11,6 @@ export interface Set {
   weight?: number
   duration?: number // in seconds
   distance?: number // in meters
-  restTime?: number // in seconds
 }
 
 export interface Workout {
@@ -65,7 +64,6 @@ export interface ExerciseTemplate {
   sets: number
   reps: number
   weight?: number
-  restTime?: number
   notes?: string
 }
 
@@ -95,6 +93,5 @@ export interface WorkoutSet {
   weight?: number
   duration?: number
   distance?: number
-  restTime?: number
   isCompleted: boolean
 } 

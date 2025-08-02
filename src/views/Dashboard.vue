@@ -1,6 +1,6 @@
 <template>
   <div>
-                                                                                                                       <!-- Header with Filter and New Workout Button -->
+  <!-- Header with Filter and New Workout Button -->
          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
            <div class="flex items-center gap-2 flex-wrap">
              <button 

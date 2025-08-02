@@ -229,15 +229,14 @@ export const useWorkoutStore = defineStore('workout', () => {
       exercises: template.exercises.map(exercise => ({
         exerciseId: exercise.exerciseId,
         name: exercise.name,
-        sets: Array.from({ length: exercise.sets }, (_, i) => ({
-          id: `set-${Date.now()}-${i}`,
-          reps: exercise.reps,
-          weight: exercise.weight,
-          restTime: exercise.restTime,
+        sets: [{
+          id: `set-${Date.now()}`,
+          reps: 0,
+          weight: 0,
           duration: undefined,
           distance: undefined,
           isCompleted: false
-        })),
+        }],
         notes: exercise.notes
       })),
       notes: template.notes,

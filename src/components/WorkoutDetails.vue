@@ -41,11 +41,7 @@
       </div>
     </div>
 
-    <!-- Notes -->
-    <div v-if="workout.notes" class="p-4 bg-dark-700 rounded-lg">
-      <h4 class="text-sm font-medium text-white mb-2">Notater</h4>
-      <p class="text-dark-200">{{ workout.notes }}</p>
-    </div>
+
   </div>
 </template>
 

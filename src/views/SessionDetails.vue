@@ -92,17 +92,9 @@
               </div>
             </div>
 
-            <div v-if="exercise.notes" class="mt-3 pt-3 border-t border-dark-600">
-              <p class="text-sm text-dark-300">{{ exercise.notes }}</p>
-            </div>
+
           </div>
         </div>
-      </div>
-
-      <!-- Session Notes -->
-      <div v-if="session.notes" class="card">
-        <h3 class="text-xl font-semibold text-white mb-4">Notater</h3>
-        <p class="text-dark-300">{{ session.notes }}</p>
       </div>
 
       <!-- Actions -->
