@@ -1,10 +1,10 @@
-# NextRep by Eivind
+# EAS-Treningslogg
 
 En minimalistisk og stilren treningslogg bygget med Vue 3, TypeScript og TailwindCSS.
 
 ## 🎯 Konsept
 
-NextRep handler om å alltid ta neste steg — neste repetisjon. Det er en motiverende, men oversiktlig loggbok som hjelper deg med å se utvikling over tid og gjøre det enklere å være konsistent med treningen.
+EAS-Treningslogg handler om å alltid ta neste steg — neste repetisjon. Det er en motiverende, men oversiktlig loggbok som hjelper deg med å se utvikling over tid og gjøre det enklere å være konsistent med treningen.
 
 ## ✨ Funksjoner
 
@@ -36,7 +36,7 @@ NextRep handler om å alltid ta neste steg — neste repetisjon. Det er en motiv
 1. Klon prosjektet:
 ```bash
 git clone <repository-url>
-cd nextrep-workout-app
+cd eas-treningslogg
 ```
 
 2. Installer avhengigheter:
@@ -124,7 +124,7 @@ For å legge til nye funksjoner:
 
 ## 📝 Lisens
 
-Dette prosjektet er laget av Eivind som en personlig treningslogg.
+Dette prosjektet er laget som en personlig treningslogg.
 
 ## 🤝 Bidrag
 
@@ -132,4 +132,4 @@ Dette er et personlig prosjekt, men feedback og forslag er alltid velkomne!
 
 ---
 
-**NextRep by Eivind** - Ta neste steg mot dine mål! 💪 
+**EAS-Treningslogg** - Ta neste steg mot dine mål! 💪 

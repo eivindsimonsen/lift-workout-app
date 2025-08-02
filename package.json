@@ -1,8 +1,8 @@
 {
-  "name": "nextrep-workout-app",
+  "name": "eas-treningslogg",
   "version": "1.0.0",
   "type": "module",
-  "description": "NextRep by Eivind - En minimalistisk treningslogg",
+  "description": "EAS-Treningslogg - En minimalistisk treningslogg",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

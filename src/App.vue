@@ -5,7 +5,7 @@
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-2xl font-bold text-white">
-              <span class="text-primary-500">NextRep</span>
+              <span class="text-primary-500">EAS-Treningslogg</span>
             </h1>
             <p class="text-sm text-dark-300">Full kontroll over treningsøktene dine</p>
           </div>
