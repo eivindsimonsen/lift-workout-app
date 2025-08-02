@@ -130,8 +130,10 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const router = useRouter()
+const { showError, handleAuthError } = useErrorHandler()
 
 // Form data
 const password = ref('')
@@ -175,9 +177,9 @@ const handleSubmit = async () => {
         router.push('/login')
       }, 2000)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Password reset error:', error)
-    errorMessage.value = 'En feil oppstod ved tilbakestilling av passord. Prøv igjen.'
+    handleAuthError(error)
   } finally {
     isLoading.value = false
   }

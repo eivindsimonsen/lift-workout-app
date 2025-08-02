@@ -1,5 +1,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '@/lib/supabase'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { 
   WorkoutTemplate, 
   ExerciseTemplate, 
@@ -45,7 +46,7 @@ const createSupabaseData = () => {
       if (templatesError) throw templatesError
       
       logSupabaseAccess('Get templates', `${templatesData.length} templates`)
-      templates.value = templatesData.map(template => ({
+      templates.value = templatesData.map((template: any) => ({
         id: template.id,
         name: template.name,
         workoutType: template.workout_type,
@@ -63,7 +64,7 @@ const createSupabaseData = () => {
       if (sessionsError) throw sessionsError
       
       logSupabaseAccess('Get sessions', `${sessionsData.length} sessions`)
-      sessions.value = sessionsData.map(session => ({
+      sessions.value = sessionsData.map((session: any) => ({
         id: session.id,
         templateId: session.template_id,
         templateName: session.template_name,
@@ -77,8 +78,11 @@ const createSupabaseData = () => {
 
       console.log('✅ Supabase user data loaded')
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error loading Supabase data:', error)
+      // Use error handler to show user-friendly error
+      const { handleDatabaseError } = useErrorHandler()
+      handleDatabaseError(error)
     } finally {
       isLoading.value = false
     }
@@ -95,7 +99,7 @@ const createSupabaseData = () => {
     }
 
     // Listen for auth changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       console.log('Auth state changed:', event, session?.user?.email)
       
       if (event === 'SIGNED_IN' && session?.user) {

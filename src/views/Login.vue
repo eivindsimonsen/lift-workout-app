@@ -185,8 +185,10 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const router = useRouter()
+const { showError, handleAuthError } = useErrorHandler()
 
 // Form data
 const name = ref('')
@@ -246,9 +248,9 @@ const handleSubmit = async () => {
     } else {
       await handleLogin()
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Auth error:', error)
-    errorMessage.value = 'En feil oppstod. Prøv igjen.'
+    handleAuthError(error)
   } finally {
     isLoading.value = false
   }
@@ -286,7 +288,7 @@ const handleRegister = async () => {
     }
 
     // Show success message and redirect
-    alert('Registrering vellykket! Sjekk din e-post for bekreftelse.')
+    showError('Registrering vellykket! Sjekk din e-post for bekreftelse.')
     router.push('/')
   }
 }
@@ -337,11 +339,11 @@ const forgotPassword = async () => {
     } else {
       // Show success message
       errorMessage.value = ''
-      alert('Tilbakestillingslenke sendt til din e-post! Sjekk innboksen din og følg lenken for å tilbakestille passordet.')
+      showError('Tilbakestillingslenke sendt til din e-post! Sjekk innboksen din og følg lenken for å tilbakestille passordet.')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Password reset error:', error)
-    errorMessage.value = 'En feil oppstod ved sending av tilbakestillingslenke. Prøv igjen.'
+    showError('En feil oppstod ved sending av tilbakestillingslenke. Prøv igjen.')
   }
 }
 </script> 
