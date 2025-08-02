@@ -1,64 +1,134 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Environment variable names - defined as constants to avoid string literals in error messages
+const ENV_KEYS = {
+  URL: 'VITE_SUPABASE_URL',
+  ANON_KEY: 'VITE_SUPABASE_ANON_KEY'
+} as const
+
+// Safely access environment variables without exposing names in error messages
+const getEnvVar = (name: string): string | undefined => {
+  try {
+    const value = import.meta.env[name] as string
+    // Only log in development to avoid exposing values in production
+    if (import.meta.env.DEV) {
+      console.log(`🔧 Environment variable ${name}: ${value ? 'SET' : 'NOT SET'}`)
+    }
+    return value
+  } catch {
+    return undefined
+  }
+}
+
+// Check if environment variables are available
+const hasValidConfig = (): boolean => {
+  const url = getEnvVar(ENV_KEYS.URL)
+  const key = getEnvVar(ENV_KEYS.ANON_KEY)
+  return Boolean(url && key)
+}
 
 let supabase: any
 
-// Check if we're in production and provide helpful error messages
-if (!supabaseUrl || !supabaseAnonKey) {
-  const isProduction = import.meta.env.PROD
-  
-  if (isProduction) {
-    console.error('❌ Supabase environment variables are missing in production!')
-    console.error('Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your production environment.')
-    console.error('If you are using Netlify, add these as environment variables in your site settings.')
-    console.error('If you are using Vercel, add these in your project settings.')
-    
-    // In production, we'll create a mock client that shows user-friendly errors
-    const mockClient = {
-      auth: {
-        signUp: async () => ({ error: { message: 'Supabase er ikke konfigurert. Vennligst kontakt administrator.' } }),
-        signInWithPassword: async () => ({ error: { message: 'Supabase er ikke konfigurert. Vennligst kontakt administrator.' } }),
-        signOut: async () => ({ error: { message: 'Supabase er ikke konfigurert. Vennligst kontakt administrator.' } }),
-        updateUser: async () => ({ error: { message: 'Supabase er ikke konfigurert. Vennligst kontakt administrator.' } }),
-        resetPasswordForEmail: async () => ({ error: { message: 'Supabase er ikke konfigurert. Vennligst kontakt administrator.' } }),
-        getSession: async () => ({ data: { session: null }, error: null }),
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-        setSession: async () => ({ error: { message: 'Supabase er ikke konfigurert. Vennligst kontakt administrator.' } })
-      },
-      from: () => ({
-        insert: async () => ({ error: { message: 'Supabase er ikke konfigurert. Vennligst kontakt administrator.' } }),
-        select: async () => ({ data: [], error: { message: 'Supabase er ikke konfigurert. Vennligst kontakt administrator.' } }),
-        update: async () => ({ error: { message: 'Supabase er ikke konfigurert. Vennligst kontakt administrator.' } }),
-        delete: async () => ({ error: { message: 'Supabase er ikke konfigurert. Vennligst kontakt administrator.' } })
-      })
-    }
-    
-    supabase = mockClient
-  } else {
-    // In development, provide more specific guidance
-    console.error('❌ Supabase environment variables are missing!')
-    console.error('Please create a .env.local file in your project root with:')
-    console.error('VITE_SUPABASE_URL=your_supabase_project_url')
-    console.error('VITE_SUPABASE_ANON_KEY=your_supabase_anon_key')
-    
-    throw new Error(
-      'Missing Supabase environment variables. ' +
-      'Please create a .env.local file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY'
-    )
+// Initialize Supabase client based on environment
+if (hasValidConfig()) {
+  // Create the actual Supabase client
+  if (import.meta.env.DEV) {
+    console.log('✅ Database configuration found, creating Supabase client')
   }
-} else {
+  
+  const supabaseUrl = getEnvVar(ENV_KEYS.URL)!
+  const supabaseAnonKey = getEnvVar(ENV_KEYS.ANON_KEY)!
+  
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-      // Enable persistent sessions
       persistSession: true,
-      // Set longer session duration (30 days)
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce'
     }
   })
+} else {
+  // Configuration is missing
+  if (import.meta.env.PROD) {
+    // In production, create a mock client that gracefully handles missing config
+    const mockClient = {
+      auth: {
+        signUp: async () => ({ 
+          error: { 
+            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+          } 
+        }),
+        signInWithPassword: async () => ({ 
+          error: { 
+            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+          } 
+        }),
+        signOut: async () => ({ 
+          error: { 
+            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+          } 
+        }),
+        updateUser: async () => ({ 
+          error: { 
+            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+          } 
+        }),
+        resetPasswordForEmail: async () => ({ 
+          error: { 
+            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+          } 
+        }),
+        getSession: async () => ({ data: { session: null }, error: null }),
+        onAuthStateChange: () => ({ 
+          data: { 
+            subscription: { 
+              unsubscribe: () => {} 
+            } 
+          } 
+        }),
+        setSession: async () => ({ 
+          error: { 
+            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+          } 
+        })
+      },
+      from: () => ({
+        insert: async () => ({ 
+          error: { 
+            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+          } 
+        }),
+        select: async () => ({ 
+          data: [], 
+          error: { 
+            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+          } 
+        }),
+        update: async () => ({ 
+          error: { 
+            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+          } 
+        }),
+        delete: async () => ({ 
+          error: { 
+            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+          } 
+        })
+      })
+    }
+    
+    supabase = mockClient
+  } else {
+    // In development, provide helpful guidance
+    console.error('❌ Database configuration is missing!')
+    console.error('Please create a .env.local file with the required environment variables.')
+    console.error('See SUPABASE_SETUP.md for detailed instructions.')
+    
+    throw new Error(
+      'Missing database configuration. ' +
+      'Please create a .env.local file with the required environment variables'
+    )
+  }
 }
 
 export { supabase }
