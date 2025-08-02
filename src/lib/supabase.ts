@@ -1,44 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Environment variable names - defined as constants to avoid string literals in error messages
-const ENV_KEYS = {
-  URL: 'VITE_SUPABASE_URL',
-  ANON_KEY: 'VITE_SUPABASE_ANON_KEY'
-} as const
-
-// Safely access environment variables without exposing names in error messages
-const getEnvVar = (name: string): string | undefined => {
-  try {
-    const value = import.meta.env[name] as string
-    // Only log in development to avoid exposing values in production
-    if (import.meta.env.DEV) {
-      console.log(`🔧 Environment variable ${name}: ${value ? 'SET' : 'NOT SET'}`)
-    }
-    return value
-  } catch {
-    return undefined
-  }
-}
-
-// Check if environment variables are available
-const hasValidConfig = (): boolean => {
-  const url = getEnvVar(ENV_KEYS.URL)
-  const key = getEnvVar(ENV_KEYS.ANON_KEY)
-  return Boolean(url && key)
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 let supabase: any
 
-// Initialize Supabase client based on environment
-if (hasValidConfig()) {
-  // Create the actual Supabase client
-  if (import.meta.env.DEV) {
-    console.log('✅ Database configuration found, creating Supabase client')
-  }
-  
-  const supabaseUrl = getEnvVar(ENV_KEYS.URL)!
-  const supabaseAnonKey = getEnvVar(ENV_KEYS.ANON_KEY)!
-  
+// Initialize Supabase client
+if (supabaseUrl && supabaseAnonKey) {
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
@@ -48,87 +16,74 @@ if (hasValidConfig()) {
     }
   })
 } else {
-  // Configuration is missing
-  if (import.meta.env.PROD) {
-    // In production, create a mock client that gracefully handles missing config
-    const mockClient = {
-      auth: {
-        signUp: async () => ({ 
-          error: { 
-            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+  // Create a mock client for missing configuration
+  const mockClient = {
+    auth: {
+      signUp: async () => ({ 
+        error: { 
+          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+        } 
+      }),
+      signInWithPassword: async () => ({ 
+        error: { 
+          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+        } 
+      }),
+      signOut: async () => ({ 
+        error: { 
+          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+        } 
+      }),
+      updateUser: async () => ({ 
+        error: { 
+          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+        } 
+      }),
+      resetPasswordForEmail: async () => ({ 
+        error: { 
+          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+        } 
+      }),
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ 
+        data: { 
+          subscription: { 
+            unsubscribe: () => {} 
           } 
-        }),
-        signInWithPassword: async () => ({ 
-          error: { 
-            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-          } 
-        }),
-        signOut: async () => ({ 
-          error: { 
-            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-          } 
-        }),
-        updateUser: async () => ({ 
-          error: { 
-            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-          } 
-        }),
-        resetPasswordForEmail: async () => ({ 
-          error: { 
-            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-          } 
-        }),
-        getSession: async () => ({ data: { session: null }, error: null }),
-        onAuthStateChange: () => ({ 
-          data: { 
-            subscription: { 
-              unsubscribe: () => {} 
-            } 
-          } 
-        }),
-        setSession: async () => ({ 
-          error: { 
-            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-          } 
-        })
-      },
-      from: () => ({
-        insert: async () => ({ 
-          error: { 
-            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-          } 
-        }),
-        select: async () => ({ 
-          data: [], 
-          error: { 
-            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-          } 
-        }),
-        update: async () => ({ 
-          error: { 
-            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-          } 
-        }),
-        delete: async () => ({ 
-          error: { 
-            message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-          } 
-        })
+        } 
+      }),
+      setSession: async () => ({ 
+        error: { 
+          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+        } 
       })
-    }
-    
-    supabase = mockClient
-  } else {
-    // In development, provide helpful guidance
-    console.error('❌ Database configuration is missing!')
-    console.error('Please create a .env.local file with the required environment variables.')
-    console.error('See SUPABASE_SETUP.md for detailed instructions.')
-    
-    throw new Error(
-      'Missing database configuration. ' +
-      'Please create a .env.local file with the required environment variables'
-    )
+    },
+    from: () => ({
+      insert: async () => ({ 
+        error: { 
+          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+        } 
+      }),
+      select: async () => ({ 
+        data: [], 
+        error: { 
+          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+        } 
+      }),
+      update: async () => ({ 
+        error: { 
+          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+        } 
+      }),
+      delete: async () => ({ 
+        error: { 
+          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
+        } 
+      })
+    })
   }
+  
+  supabase = mockClient
 }
 
 export { supabase }

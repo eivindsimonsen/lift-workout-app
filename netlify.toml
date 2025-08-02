@@ -1,13 +1,9 @@
 [build]
-  command = "npm run build"
+  command = "npm install && npm run build"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "18"
-
-# Ensure environment variables are available during build
-[context.production.environment]
-  NODE_ENV = "production"
 
 [[redirects]]
   from = "/*"
