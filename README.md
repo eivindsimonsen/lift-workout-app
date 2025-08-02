@@ -20,7 +20,7 @@ Treningsloggen handler om å alltid ta neste steg — neste repetisjon. Det er e
 - **Vue 3** med Composition API
 - **TypeScript** for type-sikkerhet
 - **TailwindCSS** for styling
-- **Pinia** for state management
+- **Composables** for state management
 - **Vue Router** for navigasjon
 - **Vite** som build tool
 
@@ -107,7 +107,7 @@ Applikasjonen lagrer følgende data lokalt:
 src/
 ├── components/     # Gjenbrukbare komponenter
 ├── views/         # Side-komponenter
-├── stores/        # Pinia stores
+├── composables/   # Vue composables
 ├── types/         # TypeScript type definisjoner
 ├── router/        # Vue Router konfigurasjon
 └── style.css      # Globale stiler

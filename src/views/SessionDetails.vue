@@ -119,12 +119,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useWorkoutStore } from '@/stores/workoutStore'
+import { useWorkoutData } from '@/composables/useWorkoutData'
 import type { WorkoutSession } from '@/types/workout'
 
 const router = useRouter()
 const route = useRoute()
-const workoutStore = useWorkoutStore()
+const workoutData = useWorkoutData()
 
 const session = ref<WorkoutSession | null>(null)
 
@@ -144,13 +144,12 @@ const formatNumber = (num: number): string => {
 }
 
 const getWorkoutTypeName = (typeId: string): string => {
-  const type = workoutStore.getWorkoutType(typeId)
+  const type = workoutData.getWorkoutType.value(typeId)
   return type?.name || typeId
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  const type = workoutStore.getWorkoutType(typeId)
-  return type?.color || '#f97316'
+  return workoutData.getWorkoutTypeColor.value(typeId)
 }
 
 const getTotalSets = (session: WorkoutSession): number => {
@@ -163,7 +162,7 @@ const deleteSession = () => {
   if (!session.value) return
   
   if (confirm('Er du sikker på at du vil slette denne økten?')) {
-    workoutStore.deleteWorkoutSession(session.value.id)
+    workoutData.deleteWorkoutSession(session.value.id)
     router.push('/history')
   }
 }
@@ -171,7 +170,7 @@ const deleteSession = () => {
 // Lifecycle
 onMounted(() => {
   const sessionId = route.params.id as string
-  const foundSession = workoutStore.getSessionById(sessionId)
+  const foundSession = workoutData.getSessionById.value(sessionId)
   
   if (foundSession) {
     session.value = foundSession

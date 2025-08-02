@@ -14,7 +14,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-dark-300 text-sm">Total Volum</p>
-            <p class="text-2xl font-bold text-white">{{ formatNumber(workoutStore.totalVolume) }} kg</p>
+            <p class="text-2xl font-bold text-white">{{ formatNumber(workoutData.totalVolume.value) }} kg</p>
           </div>
           <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,7 +28,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-dark-300 text-sm">Fullførte Økter</p>
-            <p class="text-2xl font-bold text-white">{{ workoutStore.completedSessions.length }}</p>
+            <p class="text-2xl font-bold text-white">{{ workoutData.completedSessions.value.length }}</p>
           </div>
           <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,7 +42,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-dark-300 text-sm">Snitt Varighet</p>
-            <p class="text-2xl font-bold text-white">{{ workoutStore.averageWorkoutDuration }} min</p>
+            <p class="text-2xl font-bold text-white">{{ workoutData.averageWorkoutDuration.value }} min</p>
           </div>
           <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@
       <h3 class="text-lg font-semibold text-white mb-6">Ukentlig Progresjon</h3>
       <div class="space-y-4">
         <div 
-          v-for="week in workoutStore.workoutStats.weeklyProgress" 
+          v-for="week in workoutData.workoutStats.value.weeklyProgress" 
           :key="week.week"
           class="flex items-center gap-4"
         >
@@ -121,7 +121,7 @@
       <h3 class="text-lg font-semibold text-white mb-6">Mest Brukte Øvelser</h3>
       <div class="space-y-4">
         <div 
-          v-for="exercise in workoutStore.workoutStats.mostUsedExercises" 
+          v-for="exercise in workoutData.workoutStats.value.mostUsedExercises" 
           :key="exercise.name"
           class="flex items-center gap-4"
         >
@@ -151,13 +151,13 @@
         </router-link>
       </div>
 
-      <div v-if="workoutStore.recentSessions.length === 0" class="text-center py-8">
+      <div v-if="workoutData.recentSessions.value.length === 0" class="text-center py-8">
         <p class="text-dark-300">Ingen aktivitet ennå</p>
       </div>
 
       <div v-else class="space-y-4">
         <div 
-          v-for="session in workoutStore.recentSessions" 
+          v-for="session in workoutData.recentSessions.value" 
           :key="session.id"
           class="flex items-center justify-between p-4 bg-dark-700 rounded-lg"
         >
@@ -191,10 +191,10 @@
       <div class="space-y-4">
         <div class="p-4 bg-gradient-to-r from-primary-500/20 to-primary-600/20 rounded-lg border border-primary-500/30">
           <p class="text-white font-medium mb-2">Neste repetisjon</p>
-          <p class="text-dark-200 text-sm">
-            Du har fullført {{ workoutStore.completedSessions.length }} økter med totalt {{ formatNumber(workoutStore.totalVolume) }} kg volum. 
-            Hold deg konsistent og se resultatene komme!
-          </p>
+                     <p class="text-dark-200 text-sm">
+             Du har fullført {{ workoutData.completedSessions.value.length }} økter med totalt {{ formatNumber(workoutData.totalVolume.value) }} kg volum. 
+             Hold deg konsistent og se resultatene komme!
+           </p>
         </div>
         <div class="text-center">
           <p class="text-2xl font-bold text-primary-500 mb-1">
@@ -209,26 +209,26 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useWorkoutStore } from '@/stores/workoutStore'
+import { useWorkoutData } from '@/composables/useWorkoutData'
 
-const workoutStore = useWorkoutStore()
+const workoutData = useWorkoutData()
 
 // Computed
 const averageVolumePerWorkout = computed(() => {
-  if (workoutStore.completedSessions.length === 0) return 0
-  return workoutStore.totalVolume / workoutStore.completedSessions.length
+  if (workoutData.completedSessions.value.length === 0) return 0
+  return workoutData.totalVolume.value / workoutData.completedSessions.value.length
 })
 
 const workoutTypeStats = computed(() => {
   const typeCounts: { [key: string]: number } = {}
   
-  workoutStore.completedSessions.forEach(session => {
+  workoutData.completedSessions.value.forEach(session => {
     typeCounts[session.workoutType] = (typeCounts[session.workoutType] || 0) + 1
   })
 
-  const totalSessions = workoutStore.completedSessions.length
+  const totalSessions = workoutData.completedSessions.value.length
   
-  return workoutStore.workoutTypes.map(type => ({
+  return workoutData.workoutTypes.value.map(type => ({
     id: type.id,
     name: type.name,
     color: type.color,
@@ -251,31 +251,30 @@ const formatDate = (date: Date): string => {
 }
 
 const getWorkoutTypeName = (typeId: string): string => {
-  const type = workoutStore.getWorkoutType(typeId)
+  const type = workoutData.getWorkoutType.value(typeId)
   return type?.name || typeId
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  const type = workoutStore.getWorkoutType(typeId)
-  return type?.color || '#f97316'
+  return workoutData.getWorkoutTypeColor.value(typeId)
 }
 
 const getWeeklyProgressPercentage = (volume: number): number => {
-  const maxVolume = Math.max(...workoutStore.workoutStats.weeklyProgress.map(w => w.volume))
+  const maxVolume = Math.max(...workoutData.workoutStats.value.weeklyProgress.map(w => w.volume))
   if (maxVolume === 0) return 0
   return Math.round((volume / maxVolume) * 100)
 }
 
 const getExerciseUsagePercentage = (count: number): number => {
-  const maxCount = Math.max(...workoutStore.workoutStats.mostUsedExercises.map(e => e.count))
+  const maxCount = Math.max(...workoutData.workoutStats.value.mostUsedExercises.map(e => e.count))
   if (maxCount === 0) return 0
   return Math.round((count / maxCount) * 100)
 }
 
 const getCurrentStreak = (): number => {
-  if (workoutStore.completedSessions.length === 0) return 0
+  if (workoutData.completedSessions.value.length === 0) return 0
   
-  const sortedSessions = [...workoutStore.completedSessions]
+  const sortedSessions = [...workoutData.completedSessions.value]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   
   let streak = 0

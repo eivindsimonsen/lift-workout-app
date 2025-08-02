@@ -8,10 +8,7 @@ import type {
   ExerciseData,
   WorkoutType 
 } from '@/types/workout'
-import exerciseData from '@/data/exercises.json'
-import workoutTypesData from '@/data/workout-types.json'
-import workoutTemplatesData from '@/data/workout-templates.json'
-import workoutSessionsData from '@/data/workout-sessions.json'
+// JSON data will be loaded dynamically
 
 // Console logging utility
 const logJSONAccess = (operation: string, details?: any) => {
@@ -31,18 +28,30 @@ const createWorkoutData = () => {
   const isLoading = ref(false)
 
   // Load data from JSON files
-  const loadData = () => {
+  const loadData = async () => {
     isLoading.value = true
     try {
+      // Load exercises
+      const exercisesResponse = await fetch('/src/data/exercises.json')
+      const exerciseData = await exercisesResponse.json()
       logJSONAccess('Get exercises', `${exerciseData.exercises.length} exercises`)
       exercises.value = exerciseData.exercises
       
+      // Load workout types
+      const workoutTypesResponse = await fetch('/src/data/workout-types.json')
+      const workoutTypesData = await workoutTypesResponse.json()
       logJSONAccess('Get workout types', `${workoutTypesData.workoutTypes.length} types`)
       workoutTypes.value = workoutTypesData.workoutTypes
       
+      // Load templates
+      const templatesResponse = await fetch('/src/data/workout-templates.json')
+      const workoutTemplatesData = await templatesResponse.json()
       logJSONAccess('Get templates', `${workoutTemplatesData.workoutTemplates.length} templates`)
       templates.value = workoutTemplatesData.workoutTemplates
       
+      // Load sessions
+      const sessionsResponse = await fetch('/src/data/workout-sessions.json')
+      const workoutSessionsData = await sessionsResponse.json()
       logJSONAccess('Get sessions', `${workoutSessionsData.workoutSessions.length} sessions`)
       const parsedSessions = workoutSessionsData.workoutSessions
       sessions.value = parsedSessions.map((session: any) => ({
@@ -174,20 +183,23 @@ const createWorkoutData = () => {
     }
   })
 
-  // Actions (for now, these are read-only since we're using JSON files)
+  // Actions - now with actual functionality
   const addTemplate = (template: WorkoutTemplate) => {
     logJSONAccess('Add template', template.name)
-    // In a real implementation, this would save to JSON or database
+    templates.value.push(template)
   }
 
   const updateTemplate = (id: string, updates: Partial<WorkoutTemplate>) => {
     logJSONAccess('Update template', id)
-    // In a real implementation, this would save to JSON or database
+    const index = templates.value.findIndex(t => t.id === id)
+    if (index !== -1) {
+      templates.value[index] = { ...templates.value[index], ...updates }
+    }
   }
 
   const deleteTemplate = (id: string) => {
     logJSONAccess('Delete template', id)
-    // In a real implementation, this would save to JSON or database
+    templates.value = templates.value.filter(t => t.id !== id)
   }
 
   const startWorkoutSession = (templateId: string): WorkoutSession | null => {
@@ -198,40 +210,100 @@ const createWorkoutData = () => {
       return null
     }
 
+    // Mark all existing sessions as completed (only one active session allowed)
+    sessions.value.forEach(session => {
+      if (!session.isCompleted) {
+        session.isCompleted = true
+      }
+    })
+
+    const session: WorkoutSession = {
+      id: `session-${Date.now()}`,
+      templateId: template.id,
+      templateName: template.name,
+      workoutType: template.workoutType,
+      date: new Date(),
+      duration: 0,
+      exercises: template.exercises.map(exercise => ({
+        exerciseId: exercise.exerciseId,
+        name: exercise.name,
+        sets: [{
+          id: `set-${Date.now()}`,
+          reps: 0,
+          weight: 0,
+          duration: undefined,
+          distance: undefined,
+          isCompleted: false
+        }]
+      })),
+      isCompleted: false
+    }
+
+    sessions.value.push(session)
     logJSONAccess('Start session', template.name)
-    // In a real implementation, this would create a new session
-    return null
+    return session
   }
 
   const updateWorkoutSession = (sessionId: string, updates: Partial<WorkoutSession>) => {
     logJSONAccess('Update session', sessionId)
-    // In a real implementation, this would save to JSON or database
+    const index = sessions.value.findIndex(s => s.id === sessionId)
+    if (index !== -1) {
+      sessions.value[index] = { ...sessions.value[index], ...updates }
+    }
   }
 
   const completeWorkoutSession = (sessionId: string) => {
     logJSONAccess('Complete session', sessionId)
-    // In a real implementation, this would save to JSON or database
+    const session = sessions.value.find(s => s.id === sessionId)
+    if (session) {
+      // Calculate total volume
+      const totalVolume = session.exercises.reduce((exerciseTotal, exercise) => {
+        const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
+          if (set.isCompleted && set.weight) {
+            return setTotal + (set.weight * set.reps)
+          }
+          return setTotal
+        }, 0)
+        return exerciseTotal + exerciseVolume
+      }, 0)
+
+      updateWorkoutSession(sessionId, {
+        isCompleted: true,
+        totalVolume,
+        duration: Math.round((Date.now() - new Date(session.date).getTime()) / 60000) // minutes
+      })
+    }
   }
 
   const markSessionAsActive = (sessionId: string) => {
     logJSONAccess('Mark session active', sessionId)
-    // In a real implementation, this would save to JSON or database
+    // First, mark all other sessions as completed (only one active session allowed)
+    sessions.value.forEach(session => {
+      if (session.id !== sessionId && !session.isCompleted) {
+        session.isCompleted = true
+      }
+    })
+    
+    // Then mark the current session as active
+    updateWorkoutSession(sessionId, {
+      isCompleted: false
+    })
   }
 
   const deleteWorkoutSession = (sessionId: string) => {
     logJSONAccess('Delete session', sessionId)
-    // In a real implementation, this would save to JSON or database
+    sessions.value = sessions.value.filter(s => s.id !== sessionId)
   }
 
   // Initialize data
-  loadData()
-  
-  // Log initialization summary
-  console.log('🚀 Data loaded:', {
-    exercises: exercises.value.length,
-    types: workoutTypes.value.length,
-    templates: templates.value.length,
-    sessions: sessions.value.length
+  loadData().then(() => {
+    // Log initialization summary
+    console.log('🚀 Data loaded:', {
+      exercises: exercises.value.length,
+      types: workoutTypes.value.length,
+      templates: templates.value.length,
+      sessions: sessions.value.length
+    })
   })
 
   return {

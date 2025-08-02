@@ -36,7 +36,7 @@
            >
              <option value="">Alle typer</option>
              <option 
-               v-for="type in workoutStore.workoutTypes" 
+               v-for="type in workoutData.workoutTypes.value" 
                :key="type.id" 
                :value="type.id"
              >
@@ -162,9 +162,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useWorkoutStore } from '@/stores/workoutStore'
+import { useWorkoutData } from '@/composables/useWorkoutData'
 import type { WorkoutSession } from '@/types/workout'
-const workoutStore = useWorkoutStore()
+
+const workoutData = useWorkoutData()
 
 // State
 const searchQuery = ref('')
@@ -173,7 +174,7 @@ const sortBy = ref('date')
 
 // Computed
 const filteredSessions = computed(() => {
-  let sessions = workoutStore.completedSessions
+  let sessions = workoutData.completedSessions.value
 
   // Filter by search query
   if (searchQuery.value) {
@@ -239,13 +240,12 @@ const formatNumber = (num: number): string => {
 }
 
 const getWorkoutTypeName = (typeId: string): string => {
-  const type = workoutStore.getWorkoutType(typeId)
+  const type = workoutData.getWorkoutType.value(typeId)
   return type?.name || typeId
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  const type = workoutStore.getWorkoutType(typeId)
-  return type?.color || '#f97316'
+  return workoutData.getWorkoutTypeColor.value(typeId)
 }
 
 const getTotalSets = (session: WorkoutSession): number => {
