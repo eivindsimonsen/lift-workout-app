@@ -19,6 +19,7 @@ const logSupabaseAccess = (operation: string, details?: any) => {
 
 // Singleton instance
 let supabaseDataInstance: ReturnType<typeof createSupabaseData> | null = null
+let isInitializing = false
 
 const createSupabaseData = () => {
   // State (only user data)
@@ -108,11 +109,12 @@ const createSupabaseData = () => {
   // Authentication methods
   const initializeAuth = async () => {
     // Prevent multiple initializations
-    if (isInitialized.value) {
-      console.log('Auth already initialized, skipping')
+    if (isInitialized.value || isInitializing) {
+      console.log('Auth already initialized or initializing, skipping')
       return
     }
 
+    isInitializing = true
     isInitialized.value = true
     console.log('🔐 Initializing authentication...')
 
@@ -128,7 +130,7 @@ const createSupabaseData = () => {
         console.log('📱 No existing session found')
       }
 
-      // Listen for auth changes
+      // Listen for auth changes (only set up once)
       supabase.auth.onAuthStateChange(async (event: any, session: any) => {
         console.log('🔄 Auth state changed:', event, session?.user?.email)
         
@@ -149,37 +151,47 @@ const createSupabaseData = () => {
         }
       })
 
-      // Handle page visibility changes (mobile browser)
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible' && currentUser.value && !isLoading.value) {
-          console.log('📱 Page became visible, checking session...')
-          // Re-check session when page becomes visible
-          supabase.auth.getSession().then(({ data: { session } }: any) => {
-            if (session?.user && session.user.id !== currentUser.value?.id) {
-              console.log('📱 Session changed, updating user')
-              currentUser.value = session.user
-              loadData()
+      // Handle page visibility changes (mobile browser) - only set up once
+      if (typeof document !== 'undefined') {
+        const handleVisibilityChange = () => {
+          if (document.visibilityState === 'visible' && currentUser.value && !isLoading.value) {
+            console.log('📱 Page became visible, checking session...')
+            // Only re-check session if we don't have a current user
+            if (!currentUser.value) {
+              supabase.auth.getSession().then(({ data: { session } }: any) => {
+                if (session?.user && session.user.id !== currentUser.value?.id) {
+                  console.log('📱 Session changed, updating user')
+                  currentUser.value = session.user
+                  loadData()
+                }
+              })
             }
-          })
+          }
         }
-      }
 
-      document.addEventListener('visibilitychange', handleVisibilityChange)
-
-      // Cleanup function
-      return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange)
+        document.addEventListener('visibilitychange', handleVisibilityChange)
       }
     } catch (error) {
       console.error('❌ Error initializing auth:', error)
       isInitialized.value = false // Reset on error
+    } finally {
+      isInitializing = false
     }
   }
 
   const signOut = async () => {
+    console.log('🚪 Signing out user...')
     const { error } = await supabase.auth.signOut()
     if (error) {
       console.error('Error signing out:', error)
+    } else {
+      // Reset local state immediately
+      console.log('🔄 Resetting local state after sign out')
+      currentUser.value = null
+      isAuthenticated.value = false
+      templates.value = []
+      sessions.value = []
+      isLoading.value = false
     }
   }
 
@@ -558,6 +570,7 @@ const createSupabaseData = () => {
     isLoading,
     currentUser,
     isAuthenticated,
+    isInitialized,
 
     // Computed
     completedSessions,
@@ -585,13 +598,20 @@ const createSupabaseData = () => {
 }
 
 export function useSupabaseData() {
+  // Ensure singleton is created only once
   if (!supabaseDataInstance) {
+    console.log('🔧 Creating new Supabase data instance')
     supabaseDataInstance = createSupabaseData()
     
-    // Initialize auth state when composable is first used
-    onMounted(() => {
-      supabaseDataInstance!.initializeAuth()
-    })
+    // Initialize auth state immediately when singleton is created
+    // Use setTimeout to ensure this runs after the current execution context
+    setTimeout(() => {
+      if (supabaseDataInstance && !supabaseDataInstance.isInitialized.value) {
+        supabaseDataInstance.initializeAuth()
+      }
+    }, 0)
+  } else {
+    console.log('🔧 Reusing existing Supabase data instance')
   }
   
   return supabaseDataInstance

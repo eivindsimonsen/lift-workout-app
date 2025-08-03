@@ -42,7 +42,6 @@ const createWorkoutData = () => {
       // Load workout types
       logJSONAccess('Get workout types', `${workoutTypesData.workoutTypes.length} types`)
       workoutTypes.value = workoutTypesData.workoutTypes
-      console.log('🔍 useWorkoutData - workoutTypes loaded:', workoutTypes.value)
       
       // Load templates
       logJSONAccess('Get templates', `${workoutTemplatesData.workoutTemplates.length} templates`)

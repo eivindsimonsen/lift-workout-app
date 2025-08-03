@@ -248,6 +248,7 @@ const { showError, handleAuthError } = useErrorHandler()
 const showUserMenu = ref(false)
 const showProfileModal = ref(false)
 const isUpdating = ref(false)
+const hasInitialized = ref(false) // Track if app has been initialized
 
 // Profile form data
 const profileName = ref('')
@@ -262,7 +263,10 @@ const isWorkoutSession = computed(() => {
 // Computed properties
 const isAuthenticated = computed(() => workoutData.isAuthenticated.value)
 const currentUser = computed(() => workoutData.currentUser.value)
-const isLoading = computed(() => workoutData.isLoading.value)
+const isLoading = computed(() => {
+  // Only show loading if we haven't initialized yet and are actually loading
+  return !hasInitialized.value && workoutData.isLoading.value
+})
 
 const userInitials = computed(() => {
   if (!currentUser.value) return '?'
@@ -281,10 +285,20 @@ const toggleUserMenu = () => {
 }
 
 const handleSignOut = async () => {
-  await workoutData.signOut()
-  showUserMenu.value = false
-  showProfileModal.value = false
-  router.push('/login')
+  try {
+    console.log('🚪 App: Starting sign out process...')
+    await workoutData.signOut()
+    showUserMenu.value = false
+    showProfileModal.value = false
+    
+    // Force navigation to login page
+    console.log('🚪 App: Redirecting to login page...')
+    router.push('/login')
+  } catch (error) {
+    console.error('Error during sign out:', error)
+    // Even if there's an error, try to redirect to login
+    router.push('/login')
+  }
 }
 
 const updateProfile = async () => {
@@ -355,4 +369,18 @@ watch(showProfileModal, (newValue) => {
     initializeProfileData()
   }
 })
+
+// Watch for authentication state to mark app as initialized
+watch(isAuthenticated, (newValue) => {
+  if (newValue || !workoutData.isLoading.value) {
+    hasInitialized.value = true
+  }
+}, { immediate: true })
+
+// Also watch loading state
+watch(() => workoutData.isLoading.value, (newValue) => {
+  if (!newValue) {
+    hasInitialized.value = true
+  }
+}, { immediate: true })
 </script> 

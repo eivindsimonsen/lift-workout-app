@@ -12,9 +12,6 @@ export const useHybridData = () => {
   const staticData = useWorkoutData() // JSON files for static data
   const userData = useSupabaseData() // Supabase for user data
 
-  // Debug logging
-  console.log('🔍 useHybridData - staticData.workoutTypes:', staticData.workoutTypes.value)
-
   // Combined computed properties
   const getWorkoutTypeColor = computed(() => {
     return (id: string) => {
