@@ -121,7 +121,7 @@
                 <input
                   v-model="rememberMe"
                   type="checkbox"
-                  class="w-4 h-4 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500 focus:ring-2 focus:ring-offset-0 cursor-pointer"
+                  class="cursor-pointer"
                 />
                 <span class="ml-2 text-sm text-dark-300 cursor-pointer">Husk meg</span>
               </label>
@@ -182,7 +182,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useErrorHandler } from '@/composables/useErrorHandler'
@@ -204,6 +204,27 @@ const isRegistering = ref(false)
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 
+// Check if user is already authenticated and redirect
+onMounted(async () => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.user) {
+    // User is already logged in, redirect to dashboard
+    router.push('/')
+  } else {
+    // Check if we have remembered credentials
+    const rememberedEmail = localStorage.getItem('rememberedEmail')
+    const rememberedPassword = localStorage.getItem('rememberedPassword')
+    const rememberedMe = localStorage.getItem('rememberMe')
+    
+    if (rememberedEmail && rememberedPassword && rememberedMe === 'true') {
+      // Auto-fill the form with remembered credentials
+      email.value = rememberedEmail
+      password.value = rememberedPassword
+      rememberMe.value = true
+    }
+  }
+})
+
 // Computed
 const isFormValid = computed(() => {
   if (isRegistering.value) {
@@ -218,8 +239,11 @@ const isFormValid = computed(() => {
 // Methods
 const clearForm = () => {
   name.value = ''
-  email.value = ''
-  password.value = ''
+  // Don't clear email and password if "Remember me" is active
+  if (!rememberMe.value) {
+    email.value = ''
+    password.value = ''
+  }
   confirmPassword.value = ''
   errorMessage.value = ''
   showPassword.value = false
@@ -300,32 +324,39 @@ const handleRegister = async () => {
 }
 
 const handleLogin = async () => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.value,
-    password: password.value
-  })
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.value,
+      password: password.value
+    })
 
-  if (error) {
-    errorMessage.value = error.message
-    return
-  }
-
-  if (data.user) {
-    // If "Remember me" is checked, set a longer session duration
-    if (rememberMe.value) {
-      // Set session to persist for 30 days instead of default
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: data.session?.access_token || '',
-        refresh_token: data.session?.refresh_token || ''
-      })
-      
-      if (sessionError) {
-        console.error('Error setting session:', sessionError)
-      }
+    if (error) {
+      errorMessage.value = error.message
+      return
     }
 
-    // Redirect to dashboard
-    router.push('/')
+    if (data.user) {
+      // If "Remember me" is checked, save credentials to localStorage
+      if (rememberMe.value) {
+        localStorage.setItem('rememberedEmail', email.value)
+        localStorage.setItem('rememberedPassword', password.value)
+        localStorage.setItem('rememberMe', 'true')
+      } else {
+        // Only clear credentials if user explicitly unchecks "Remember me"
+        localStorage.removeItem('rememberedEmail')
+        localStorage.removeItem('rememberedPassword')
+        localStorage.removeItem('rememberMe')
+      }
+
+      // Reset loading state before redirect
+      isLoading.value = false
+      
+      // Redirect to dashboard
+      router.push('/')
+    }
+  } catch (error: any) {
+    console.error('Login error:', error)
+    errorMessage.value = 'En feil oppstod under innlogging. Prøv igjen.'
   }
 }
 
@@ -351,5 +382,13 @@ const forgotPassword = async () => {
     console.error('Password reset error:', error)
     showError('En feil oppstod ved sending av tilbakestillingslenke. Prøv igjen.')
   }
+}
+
+// Function to clear remembered credentials (can be called from profile or settings)
+const clearRememberedCredentials = () => {
+  localStorage.removeItem('rememberedEmail')
+  localStorage.removeItem('rememberedPassword')
+  localStorage.removeItem('rememberMe')
+  console.log('🧹 Cleared remembered credentials')
 }
 </script> 

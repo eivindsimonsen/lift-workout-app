@@ -199,6 +199,7 @@ const createSupabaseData = () => {
       sessions.value = []
       isLoading.value = false
       
+      // Don't clear remembered credentials - keep them for easy re-login
       console.log('✅ Sign out completed successfully')
     } catch (error) {
       console.error('Unexpected error during sign out:', error)
@@ -208,6 +209,8 @@ const createSupabaseData = () => {
       templates.value = []
       sessions.value = []
       isLoading.value = false
+      
+      // Don't clear remembered credentials even on error
     }
   }
 
