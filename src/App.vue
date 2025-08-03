@@ -73,6 +73,7 @@
                       
                       <button 
                         @click="showProfileModal = true"
+                        data-action="profile"
                         class="w-full text-left px-4 py-2 text-sm text-dark-300 hover:text-white hover:bg-dark-600 transition-colors"
                       >
                         <div class="flex items-center space-x-2">
@@ -85,6 +86,7 @@
                       
                       <button 
                         @click="handleSignOut"
+                        data-action="logout"
                         class="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-dark-600 transition-colors"
                       >
                         <div class="flex items-center space-x-2">
@@ -214,6 +216,7 @@
                 </button>
                 <button 
                   @click="handleSignOut"
+                  data-action="logout"
                   class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
                 >
                   Logg ut
@@ -287,9 +290,15 @@ const toggleUserMenu = () => {
 const handleSignOut = async () => {
   try {
     console.log('🚪 App: Starting sign out process...')
-    await workoutData.signOut()
+    
+    // Close menus immediately to prevent UI issues
     showUserMenu.value = false
     showProfileModal.value = false
+    
+    // Add a small delay to ensure UI updates before logout
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    await workoutData.signOut()
     
     // Force navigation to login page
     console.log('🚪 App: Redirecting to login page...')
@@ -349,6 +358,12 @@ const initializeProfileData = () => {
 // Close user menu when clicking outside
 const handleClickOutside = (event: Event) => {
   const target = event.target as Element
+  
+  // Don't close if clicking on logout button or profile button
+  if (target.closest('[data-action="logout"]') || target.closest('[data-action="profile"]')) {
+    return
+  }
+  
   if (!target.closest('.user-menu')) {
     showUserMenu.value = false
   }
