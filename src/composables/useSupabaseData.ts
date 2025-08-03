@@ -27,6 +27,7 @@ const createSupabaseData = () => {
   const isLoading = ref(false)
   const currentUser = ref<any>(null)
   const isAuthenticated = ref(false)
+  const isInitialized = ref(false) // Add initialization guard
 
   // Load data from Supabase (only user data)
   const loadData = async () => {
@@ -35,7 +36,22 @@ const createSupabaseData = () => {
       return
     }
 
+    // Prevent multiple simultaneous calls
+    if (isLoading.value) {
+      console.log('Data loading already in progress, skipping')
+      return
+    }
+
     isLoading.value = true
+    
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (isLoading.value) {
+        console.warn('⚠️ Data loading timeout, resetting loading state')
+        isLoading.value = false
+      }
+    }, 10000) // 10 second timeout
+
     try {
       // Load templates for the current user
       const { data: templatesData, error: templatesError } = await supabase
@@ -84,35 +100,80 @@ const createSupabaseData = () => {
       const { handleDatabaseError } = useErrorHandler()
       handleDatabaseError(error)
     } finally {
+      clearTimeout(timeoutId)
       isLoading.value = false
     }
   }
 
   // Authentication methods
   const initializeAuth = async () => {
-    // Get initial session
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) {
-      currentUser.value = session.user
-      isAuthenticated.value = true
-      await loadData()
+    // Prevent multiple initializations
+    if (isInitialized.value) {
+      console.log('Auth already initialized, skipping')
+      return
     }
 
-    // Listen for auth changes
-    supabase.auth.onAuthStateChange(async (event: any, session: any) => {
-      console.log('Auth state changed:', event, session?.user?.email)
-      
-      if (event === 'SIGNED_IN' && session?.user) {
+    isInitialized.value = true
+    console.log('🔐 Initializing authentication...')
+
+    try {
+      // Get initial session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        console.log('📱 Found existing session for user:', session.user.email)
         currentUser.value = session.user
         isAuthenticated.value = true
         await loadData()
-      } else if (event === 'SIGNED_OUT') {
-        currentUser.value = null
-        isAuthenticated.value = false
-        templates.value = []
-        sessions.value = []
+      } else {
+        console.log('📱 No existing session found')
       }
-    })
+
+      // Listen for auth changes
+      supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+        console.log('🔄 Auth state changed:', event, session?.user?.email)
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          currentUser.value = session.user
+          isAuthenticated.value = true
+          await loadData()
+        } else if (event === 'SIGNED_OUT') {
+          currentUser.value = null
+          isAuthenticated.value = false
+          templates.value = []
+          sessions.value = []
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          // Handle token refresh on mobile
+          console.log('🔄 Token refreshed for user:', session.user.email)
+          currentUser.value = session.user
+          isAuthenticated.value = true
+        }
+      })
+
+      // Handle page visibility changes (mobile browser)
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible' && currentUser.value && !isLoading.value) {
+          console.log('📱 Page became visible, checking session...')
+          // Re-check session when page becomes visible
+          supabase.auth.getSession().then(({ data: { session } }: any) => {
+            if (session?.user && session.user.id !== currentUser.value?.id) {
+              console.log('📱 Session changed, updating user')
+              currentUser.value = session.user
+              loadData()
+            }
+          })
+        }
+      }
+
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+
+      // Cleanup function
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    } catch (error) {
+      console.error('❌ Error initializing auth:', error)
+      isInitialized.value = false // Reset on error
+    }
   }
 
   const signOut = async () => {
@@ -120,6 +181,17 @@ const createSupabaseData = () => {
     if (error) {
       console.error('Error signing out:', error)
     }
+  }
+
+  // Reset function for mobile browser issues
+  const resetState = () => {
+    console.log('🔄 Resetting Supabase data state')
+    isLoading.value = false
+    isInitialized.value = false
+    currentUser.value = null
+    isAuthenticated.value = false
+    templates.value = []
+    sessions.value = []
   }
 
   // Computed properties (only user data)
@@ -479,11 +551,6 @@ const createSupabaseData = () => {
     sessions.value = sessions.value.filter(s => s.id !== sessionId)
   }
 
-  // Initialize auth on mount
-  onMounted(() => {
-    initializeAuth()
-  })
-
   return {
     // State (only user data)
     templates,
@@ -511,13 +578,21 @@ const createSupabaseData = () => {
     completeWorkoutSession,
     markSessionAsActive,
     deleteWorkoutSession,
-    signOut
+    signOut,
+    initializeAuth,
+    resetState
   }
 }
 
-export const useSupabaseData = () => {
+export function useSupabaseData() {
   if (!supabaseDataInstance) {
     supabaseDataInstance = createSupabaseData()
+    
+    // Initialize auth state when composable is first used
+    onMounted(() => {
+      supabaseDataInstance!.initializeAuth()
+    })
   }
+  
   return supabaseDataInstance
 } 

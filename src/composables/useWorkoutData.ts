@@ -8,7 +8,11 @@ import type {
   ExerciseData,
   WorkoutType 
 } from '@/types/workout'
-// JSON data will be loaded dynamically
+// Import JSON data directly
+import * as exerciseData from '@/data/exercises.json'
+import * as workoutTypesData from '@/data/workout-types.json'
+import * as workoutTemplatesData from '@/data/workout-templates.json'
+import * as workoutSessionsData from '@/data/workout-sessions.json'
 
 // Console logging utility
 const logJSONAccess = (operation: string, details?: any) => {
@@ -28,30 +32,23 @@ const createWorkoutData = () => {
   const isLoading = ref(false)
 
   // Load data from JSON files
-  const loadData = async () => {
+  const loadData = () => {
     isLoading.value = true
     try {
       // Load exercises
-      const exercisesResponse = await fetch('/src/data/exercises.json')
-      const exerciseData = await exercisesResponse.json()
       logJSONAccess('Get exercises', `${exerciseData.exercises.length} exercises`)
       exercises.value = exerciseData.exercises
       
       // Load workout types
-      const workoutTypesResponse = await fetch('/src/data/workout-types.json')
-      const workoutTypesData = await workoutTypesResponse.json()
       logJSONAccess('Get workout types', `${workoutTypesData.workoutTypes.length} types`)
       workoutTypes.value = workoutTypesData.workoutTypes
+      console.log('🔍 useWorkoutData - workoutTypes loaded:', workoutTypes.value)
       
       // Load templates
-      const templatesResponse = await fetch('/src/data/workout-templates.json')
-      const workoutTemplatesData = await templatesResponse.json()
       logJSONAccess('Get templates', `${workoutTemplatesData.workoutTemplates.length} templates`)
       templates.value = workoutTemplatesData.workoutTemplates
       
       // Load sessions
-      const sessionsResponse = await fetch('/src/data/workout-sessions.json')
-      const workoutSessionsData = await sessionsResponse.json()
       logJSONAccess('Get sessions', `${workoutSessionsData.workoutSessions.length} sessions`)
       const parsedSessions = workoutSessionsData.workoutSessions
       sessions.value = parsedSessions.map((session: any) => ({
@@ -296,15 +293,17 @@ const createWorkoutData = () => {
   }
 
   // Initialize data
-  loadData().then(() => {
-    // Log initialization summary
+  loadData()
+  
+  // Log initialization summary after a short delay
+  setTimeout(() => {
     console.log('🚀 Data loaded:', {
       exercises: exercises.value.length,
       types: workoutTypes.value.length,
       templates: templates.value.length,
       sessions: sessions.value.length
     })
-  })
+  }, 100)
 
   return {
     // State

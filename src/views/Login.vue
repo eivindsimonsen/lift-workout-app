@@ -287,9 +287,15 @@ const handleRegister = async () => {
       console.error('Error creating user profile:', profileError)
     }
 
-    // Show success message and redirect
+    // Show success message and switch to login mode
     showError('Registrering vellykket! Sjekk din e-post for bekreftelse.')
-    router.push('/')
+    
+    // Clear form and switch to login mode
+    clearForm()
+    isRegistering.value = false
+    
+    // Keep user on login page
+    // router.push('/') - removed this line
   }
 }
 

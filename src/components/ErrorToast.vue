@@ -19,7 +19,7 @@
           <div class="flex-shrink-0">
             <svg
               v-if="error.type === 'error'"
-              class="w-5 h-5 text-red-400"
+              class="w-5 h-5 text-red-300"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -28,7 +28,7 @@
             </svg>
             <svg
               v-else-if="error.type === 'warning'"
-              class="w-5 h-5 text-yellow-400"
+              class="w-5 h-5 text-yellow-300"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -37,7 +37,7 @@
             </svg>
             <svg
               v-else
-              class="w-5 h-5 text-blue-400"
+              class="w-5 h-5 text-blue-300"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -47,7 +47,7 @@
           </div>
           
           <div class="ml-3 flex-1">
-            <p class="text-sm font-medium" :class="textClasses">
+            <p class="text-sm font-semibold" :class="textClasses">
               {{ error.message }}
             </p>
             
@@ -143,13 +143,13 @@ const toastClasses = computed(() => {
   
   switch (error.value.type) {
     case 'error':
-      return 'bg-red-500/10 border-red-500/20'
+      return 'bg-red-500/20 border-red-500/30'
     case 'warning':
-      return 'bg-yellow-500/10 border-yellow-500/20'
+      return 'bg-yellow-500/20 border-yellow-500/30'
     case 'info':
-      return 'bg-blue-500/10 border-blue-500/20'
+      return 'bg-blue-500/20 border-blue-500/30'
     default:
-      return 'bg-red-500/10 border-red-500/20'
+      return 'bg-red-500/20 border-red-500/30'
   }
 })
 
@@ -158,13 +158,13 @@ const textClasses = computed(() => {
   
   switch (error.value.type) {
     case 'error':
-      return 'text-red-400'
+      return 'text-red-300'
     case 'warning':
-      return 'text-yellow-400'
+      return 'text-yellow-300'
     case 'info':
-      return 'text-blue-400'
+      return 'text-blue-300'
     default:
-      return 'text-red-400'
+      return 'text-red-300'
   }
 })
 

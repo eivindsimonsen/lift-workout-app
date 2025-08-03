@@ -267,7 +267,8 @@ const recentSessions = computed(() => {
 })
 
 const workoutTypes = computed(() => {
-  return workoutData.workoutTypes.value
+  console.log('🔍 Dashboard workoutTypes:', workoutData.workoutTypes.value)
+  return workoutData.workoutTypes.value || []
 })
 
 
