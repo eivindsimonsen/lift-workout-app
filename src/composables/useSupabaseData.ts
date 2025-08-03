@@ -181,12 +181,28 @@ const createSupabaseData = () => {
 
   const signOut = async () => {
     console.log('🚪 Signing out user...')
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('Error signing out:', error)
-    } else {
-      // Reset local state immediately
+    
+    try {
+      const result = await supabase.auth.signOut()
+      console.log('🚪 Sign out result:', result)
+      
+      if (result.error) {
+        console.error('Error signing out:', result.error)
+        // Even if there's an error, we should still reset local state
+      }
+      
+      // Always reset local state regardless of error
       console.log('🔄 Resetting local state after sign out')
+      currentUser.value = null
+      isAuthenticated.value = false
+      templates.value = []
+      sessions.value = []
+      isLoading.value = false
+      
+      console.log('✅ Sign out completed successfully')
+    } catch (error) {
+      console.error('Unexpected error during sign out:', error)
+      // Even if there's an unexpected error, reset local state
       currentUser.value = null
       isAuthenticated.value = false
       templates.value = []

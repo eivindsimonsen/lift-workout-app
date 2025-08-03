@@ -7,6 +7,7 @@ let supabase: any
 
 // Initialize Supabase client
 if (supabaseUrl && supabaseAnonKey) {
+  console.log('🔧 Initializing Supabase client with provided credentials')
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
@@ -16,6 +17,9 @@ if (supabaseUrl && supabaseAnonKey) {
     }
   })
 } else {
+  console.warn('⚠️ Missing Supabase environment variables. Using mock client.')
+  console.warn('Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env.local file')
+  
   // Create a mock client for missing configuration
   const mockClient = {
     auth: {
@@ -30,9 +34,8 @@ if (supabaseUrl && supabaseAnonKey) {
         } 
       }),
       signOut: async () => ({ 
-        error: { 
-          message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-        } 
+        data: { user: null, session: null },
+        error: null // Return success for logout even in mock mode
       }),
       updateUser: async () => ({ 
         error: { 
