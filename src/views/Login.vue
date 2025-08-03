@@ -117,13 +117,14 @@
             </div>
 
             <div v-if="!isRegistering" class="flex items-center justify-between">
-              <label class="flex items-center">
+              <label class="flex items-center cursor-pointer">
                 <input
                   v-model="rememberMe"
                   type="checkbox"
-                  class="w-3 h-3 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500 focus:ring-1"
+                  @click="handleCheckboxClick"
+                  class="w-4 h-4 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500 focus:ring-2 focus:ring-offset-0 cursor-pointer"
                 />
-                <span class="ml-2 text-sm text-dark-300">Husk meg</span>
+                <span class="ml-2 text-sm text-dark-300 cursor-pointer" @click="rememberMe = !rememberMe">Husk meg</span>
               </label>
               
               <button 
@@ -351,5 +352,10 @@ const forgotPassword = async () => {
     console.error('Password reset error:', error)
     showError('En feil oppstod ved sending av tilbakestillingslenke. Prøv igjen.')
   }
+}
+
+const handleCheckboxClick = () => {
+  console.log('Remember me checkbox clicked!')
+  console.log('Current rememberMe value:', rememberMe.value)
 }
 </script> 
