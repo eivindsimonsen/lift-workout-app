@@ -205,22 +205,40 @@ const createSupabaseData = () => {
       // Handle page visibility changes (mobile browser) - only set up once
       if (typeof document !== 'undefined') {
         const handleVisibilityChange = () => {
-          if (document.visibilityState === 'visible' && currentUser.value && !isLoading.value) {
+          if (document.visibilityState === 'visible') {
             console.log('📱 Page became visible, checking session...')
-            // Only re-check session if we don't have a current user
-            if (!currentUser.value) {
-              supabase.auth.getSession().then(({ data: { session } }: any) => {
-                if (session?.user && session.user.id !== currentUser.value?.id) {
+            
+            // Always check session when page becomes visible to ensure state is fresh
+            supabase.auth.getSession().then(({ data: { session } }: any) => {
+              if (session?.user) {
+                // If we have a session but no current user, or user ID changed, update
+                if (!currentUser.value || session.user.id !== currentUser.value.id) {
                   console.log('📱 Session changed, updating user')
                   currentUser.value = session.user
+                  isAuthenticated.value = true
                   loadData()
                 }
-              })
-            }
+              } else if (currentUser.value) {
+                // If we have a current user but no session, user was logged out
+                console.log('📱 No session found, user was logged out')
+                currentUser.value = null
+                isAuthenticated.value = false
+                templates.value = []
+                sessions.value = []
+              }
+            }).catch((error: any) => {
+              console.error('📱 Error checking session on visibility change:', error)
+              // Don't reset state on error, just log it
+            })
           }
         }
 
         document.addEventListener('visibilitychange', handleVisibilityChange)
+        
+        // Store the handler for cleanup
+        if (typeof window !== 'undefined') {
+          (window as any).__visibilityChangeHandler = handleVisibilityChange
+        }
       }
     } catch (error) {
       console.error('❌ Error initializing auth:', error)
@@ -274,6 +292,18 @@ const createSupabaseData = () => {
     isAuthenticated.value = false
     templates.value = []
     sessions.value = []
+  }
+
+  // Cleanup function to remove event listeners
+  const cleanup = () => {
+    console.log('🧹 Cleaning up Supabase data event listeners')
+    if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+      const handler = (window as any).__visibilityChangeHandler
+      if (handler) {
+        document.removeEventListener('visibilitychange', handler)
+        delete (window as any).__visibilityChangeHandler
+      }
+    }
   }
 
   // Computed properties (only user data)
@@ -686,7 +716,8 @@ const createSupabaseData = () => {
     deleteWorkoutSession,
     signOut,
     initializeAuth,
-    resetState
+    resetState,
+    cleanup
   }
 }
 

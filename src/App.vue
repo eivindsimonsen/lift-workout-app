@@ -46,28 +46,6 @@
                   Statistikk
                 </router-link>
                 
-                <!-- Workout Session Actions (Desktop) -->
-                <div v-if="isWorkoutSession" class="flex items-center space-x-3">
-                  <button 
-                    @click="handleSaveWorkout"
-                    class="bg-dark-600 hover:bg-dark-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
-                    Lagre
-                  </button>
-                  <button 
-                    @click="handleCompleteWorkout"
-                    class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Fullfør
-                  </button>
-                </div>
-                
                 <!-- User Menu -->
                 <div class="relative user-menu">
                   <button 
@@ -127,9 +105,44 @@
         </header>
 
         <!-- Main content -->
-        <main :class="isAuthenticated ? 'container mx-auto px-4 py-8 pb-24 md:pb-8' : ''">
+        <main :class="isAuthenticated ? `container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-24 md:pb-8'}` : ''">
           <router-view />
         </main>
+
+        <!-- Desktop Workout Session Actions - only show if in workout session -->
+        <div v-if="isAuthenticated && isWorkoutSession" class="hidden md:block fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
+          <!-- Progress Bar as border-top -->
+          <div class="w-full h-1 bg-dark-600">
+            <div 
+              class="bg-primary-500 h-1 transition-all duration-300"
+              :style="{ width: workoutProgress.percentage + '%' }"
+            ></div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="container mx-auto px-4 py-4">
+            <div class="flex gap-3 max-w-md mx-auto">
+              <button 
+                @click="handleSaveWorkout"
+                class="flex-1 bg-dark-600 hover:bg-dark-500 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                Lagre
+              </button>
+              <button 
+                @click="handleCompleteWorkout"
+                class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Fullfør
+              </button>
+            </div>
+          </div>
+        </div>
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
         <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
@@ -307,6 +320,7 @@ const showUserMenu = ref(false)
 const showProfileModal = ref(false)
 const isUpdating = ref(false)
 const hasInitialized = ref(false) // Track if app has been initialized
+const sessionCheckInterval = ref<NodeJS.Timeout | null>(null)
 
 // Profile form data
 const profileName = ref('')
@@ -479,11 +493,80 @@ const handleClickOutside = (event: Event) => {
 // Lifecycle
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  
+  // Add focus/blur handlers to help with tab switching issues
+  const handleFocus = () => {
+    console.log('📱 Window focused, checking auth state...')
+    // Re-check authentication state when window gains focus
+    if (workoutData.isAuthenticated.value && workoutData.currentUser.value) {
+      // Force a session check to ensure state is fresh
+      workoutData.loadData()
+    }
+  }
+  
+  const handleBlur = () => {
+    console.log('📱 Window blurred')
+    // Optional: could add cleanup here if needed
+  }
+  
+  window.addEventListener('focus', handleFocus)
+  window.addEventListener('blur', handleBlur)
+  
+  // Store handlers for cleanup
+  ;(window as any).__appFocusHandler = handleFocus
+  ;(window as any).__appBlurHandler = handleBlur
+
+  // Start periodic session check
+  startSessionCheck()
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  
+  // Clean up focus/blur handlers
+  if (typeof window !== 'undefined') {
+    const focusHandler = (window as any).__appFocusHandler
+    const blurHandler = (window as any).__appBlurHandler
+    
+    if (focusHandler) {
+      window.removeEventListener('focus', focusHandler)
+      delete (window as any).__appFocusHandler
+    }
+    
+    if (blurHandler) {
+      window.removeEventListener('blur', blurHandler)
+      delete (window as any).__appBlurHandler
+    }
+  }
+  
+  // Clean up Supabase data event listeners
+  workoutData.cleanup()
+  stopSessionCheck()
 })
+
+// Periodic session check to prevent app from becoming unresponsive
+const startSessionCheck = () => {
+  // Clear any existing interval
+  if (sessionCheckInterval.value) {
+    clearInterval(sessionCheckInterval.value)
+  }
+  
+  // Check session every 30 seconds to ensure app stays responsive
+  sessionCheckInterval.value = setInterval(() => {
+    if (workoutData.isAuthenticated.value && workoutData.currentUser.value) {
+      console.log('🔄 Periodic session check...')
+      // This will trigger a session refresh if needed
+      workoutData.loadData()
+    }
+  }, 30000) // 30 seconds
+}
+
+const stopSessionCheck = () => {
+  if (sessionCheckInterval.value) {
+    clearInterval(sessionCheckInterval.value)
+    sessionCheckInterval.value = null
+  }
+}
 
 // Watch for modal state changes
 watch(showProfileModal, (newValue) => {
