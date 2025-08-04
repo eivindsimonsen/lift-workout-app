@@ -9,7 +9,8 @@
   >
     <div
       v-if="error"
-      class="fixed top-4 right-4 z-50 max-w-sm w-full"
+      class="fixed z-50 max-w-sm w-full mx-4 sm:mx-0"
+      :class="toastPosition"
     >
       <div
         class="rounded-lg p-4 shadow-lg border"
@@ -19,7 +20,7 @@
           <div class="flex-shrink-0">
             <svg
               v-if="error.type === 'error'"
-              class="w-5 h-5 text-red-300"
+              class="w-5 h-5 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -28,7 +29,7 @@
             </svg>
             <svg
               v-else-if="error.type === 'warning'"
-              class="w-5 h-5 text-yellow-300"
+              class="w-5 h-5 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -37,7 +38,7 @@
             </svg>
             <svg
               v-else
-              class="w-5 h-5 text-blue-300"
+              class="w-5 h-5 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -53,17 +54,17 @@
             
             <div v-if="error.details && showDetails" class="mt-2">
               <details class="text-xs">
-                <summary class="cursor-pointer text-dark-400 hover:text-dark-300">
+                <summary class="cursor-pointer text-white hover:text-gray-200">
                   Vis tekniske detaljer
                 </summary>
-                <div class="mt-1 p-2 bg-dark-800 rounded text-dark-400 font-mono break-all">
+                <div class="mt-1 p-2 bg-white/20 rounded text-white font-mono break-all">
                   {{ error.details }}
                 </div>
               </details>
             </div>
             
             <div v-if="errorId" class="mt-1">
-              <p class="text-xs text-dark-400">
+              <p class="text-xs text-white/80">
                 Feil-ID: {{ errorId }}
               </p>
             </div>
@@ -72,7 +73,7 @@
           <div class="ml-4 flex-shrink-0 flex">
             <button
               @click="closeToast"
-              class="inline-flex text-dark-400 hover:text-dark-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              class="inline-flex text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <span class="sr-only">Lukk</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,18 +139,23 @@ watch(error, (newError) => {
 }, { immediate: true })
 
 // Computed classes
+const toastPosition = computed(() => {
+  // On mobile, position at top center. On desktop, position at top right
+  return 'top-4 left-1/2 transform -translate-x-1/2 sm:left-auto sm:right-4 sm:transform-none'
+})
+
 const toastClasses = computed(() => {
   if (!error.value) return ''
   
   switch (error.value.type) {
     case 'error':
-      return 'bg-red-500/20 border-red-500/30'
+      return 'bg-red-500 border-red-500'
     case 'warning':
-      return 'bg-yellow-500/20 border-yellow-500/30'
+      return 'bg-yellow-500 border-yellow-500'
     case 'info':
-      return 'bg-blue-500/20 border-blue-500/30'
+      return 'bg-blue-500 border-blue-500'
     default:
-      return 'bg-red-500/20 border-red-500/30'
+      return 'bg-red-500 border-red-500'
   }
 })
 
@@ -158,13 +164,13 @@ const textClasses = computed(() => {
   
   switch (error.value.type) {
     case 'error':
-      return 'text-red-300'
+      return 'text-white'
     case 'warning':
-      return 'text-yellow-300'
+      return 'text-white'
     case 'info':
-      return 'text-blue-300'
+      return 'text-white'
     default:
-      return 'text-red-300'
+      return 'text-white'
   }
 })
 

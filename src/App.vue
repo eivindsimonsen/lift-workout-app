@@ -46,6 +46,28 @@
                   Statistikk
                 </router-link>
                 
+                <!-- Workout Session Actions (Desktop) -->
+                <div v-if="isWorkoutSession" class="flex items-center space-x-3">
+                  <button 
+                    @click="handleSaveWorkout"
+                    class="bg-dark-600 hover:bg-dark-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    Lagre
+                  </button>
+                  <button 
+                    @click="handleCompleteWorkout"
+                    class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Fullfør
+                  </button>
+                </div>
+                
                 <!-- User Menu -->
                 <div class="relative user-menu">
                   <button 
@@ -158,6 +180,39 @@
           </div>
         </nav>
 
+        <!-- Workout Session Navigation - only show if in workout session -->
+        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
+          <!-- Progress Bar as border-top -->
+          <div class="w-full h-1 bg-dark-600">
+            <div 
+              class="bg-primary-500 h-1 transition-all duration-300"
+              :style="{ width: workoutProgress.percentage + '%' }"
+            ></div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="flex gap-3 p-4">
+            <button 
+              @click="handleSaveWorkout"
+              class="flex-1 bg-dark-600 hover:bg-dark-500 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              Lagre
+            </button>
+            <button 
+              @click="handleCompleteWorkout"
+              class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Fullfør
+            </button>
+          </div>
+        </nav>
+
         <!-- Profile Modal -->
         <div v-if="showProfileModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div class="bg-dark-800 rounded-lg max-w-md w-full p-6">
@@ -263,6 +318,32 @@ const isWorkoutSession = computed(() => {
   return route.path.startsWith('/workout/') && route.params.id
 })
 
+// Workout progress for the progress bar
+const workoutProgress = computed(() => {
+  if (!isWorkoutSession.value || !route.params.id) {
+    return { completedSets: 0, totalSets: 0, percentage: 0 }
+  }
+  
+  const sessionId = route.params.id as string
+  const session = workoutData.getSessionById.value(sessionId)
+  
+  if (!session) {
+    return { completedSets: 0, totalSets: 0, percentage: 0 }
+  }
+  
+  const completedSets = session.exercises.reduce((total, exercise) => {
+    return total + exercise.sets.filter(set => set.isCompleted).length
+  }, 0)
+  
+  const totalSets = session.exercises.reduce((total, exercise) => {
+    return total + exercise.sets.length
+  }, 0)
+  
+  const percentage = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0
+  
+  return { completedSets, totalSets, percentage }
+})
+
 // Computed properties
 const isAuthenticated = computed(() => workoutData.isAuthenticated.value)
 const currentUser = computed(() => workoutData.currentUser.value)
@@ -344,6 +425,32 @@ const updateProfile = async () => {
     handleAuthError(error)
   } finally {
     isUpdating.value = false
+  }
+}
+
+const handleSaveWorkout = async () => {
+  if (!isWorkoutSession.value || !route.params.id) return
+
+  try {
+    const sessionId = route.params.id as string
+    await workoutData.markSessionAsActive(sessionId)
+    // Don't show error message on success - just redirect
+    router.push('/')
+  } catch (error: any) {
+    handleAuthError(error)
+  }
+}
+
+const handleCompleteWorkout = async () => {
+  if (!isWorkoutSession.value || !route.params.id) return
+
+  try {
+    const sessionId = route.params.id as string
+    await workoutData.completeWorkoutSession(sessionId)
+    // Don't show error message on success - just redirect
+    router.push('/history')
+  } catch (error: any) {
+    handleAuthError(error)
   }
 }
 

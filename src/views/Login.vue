@@ -1,21 +1,15 @@
 <template>
   <div class="min-h-screen bg-dark-900">
-    <!-- Header - same as authenticated pages -->
-    <header class="bg-dark-800 border-b border-dark-700">
-      <div class="container mx-auto px-4 py-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold text-white">
-              <span class="text-primary-500">Treningsloggen</span>
-            </h1>
-            <p class="text-sm text-dark-300">Full kontroll over treningsøktene dine</p>
-          </div>
-        </div>
+    <!-- Loading state during login -->
+    <div v-if="isLoading" class="flex items-center justify-center min-h-screen">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+        <p class="text-dark-300">Logger inn...</p>
       </div>
-    </header>
+    </div>
 
     <!-- Login form content -->
-    <div class="flex items-center justify-center px-4 flex-1 mt-8">
+    <div v-else class="flex items-center justify-center px-4 flex-1 min-h-screen">
       <div class="w-full max-w-md">
         <div class="text-center mb-8">
           <h1 class="text-3xl font-bold text-white mb-2">
@@ -351,9 +345,8 @@ const handleLogin = async () => {
         localStorage.removeItem('rememberMe')
       }
 
-      // Reset loading state before redirect
-      isLoading.value = false
-      
+      // Keep loading state active during redirect to prevent double header
+      // The loading state will be cleared when the component unmounts
       // Redirect to dashboard
       router.push('/')
     }

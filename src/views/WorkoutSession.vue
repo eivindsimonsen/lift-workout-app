@@ -182,7 +182,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutSession } from '@/types/workout'
@@ -320,37 +320,6 @@ const addExerciseToSession = () => {
   showAddExerciseModal.value = false
 }
 
-
-
-
-
-const completeWorkout = () => {
-  if (!session.value) return
-  
-  // Complete the workout
-  workoutData.completeWorkoutSession(session.value.id)
-  
-  // Show completion message and redirect
-  alert('Økt fullført! Godt jobbet! 💪')
-  router.push('/')
-}
-
-const handleSaveWorkout = () => {
-  if (!session.value) return
-  
-  // Mark session as active (saved but not completed)
-  workoutData.markSessionAsActive(session.value.id)
-  
-  alert('Økt lagret! 💾')
-  
-  // Navigate back to dashboard to see the active session
-  router.push('/')
-}
-
-const handleCompleteWorkout = () => {
-  completeWorkout()
-}
-
 const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('no-NO').format(Math.round(num))
 }
@@ -368,15 +337,5 @@ onMounted(() => {
   
   session.value = foundSession
   startTime.value = new Date(foundSession.date)
-  
-  // Add event listeners for navigation buttons
-  window.addEventListener('save-workout', handleSaveWorkout)
-  window.addEventListener('complete-workout', handleCompleteWorkout)
-})
-
-onUnmounted(() => {
-  // Remove event listeners
-  window.removeEventListener('save-workout', handleSaveWorkout)
-  window.removeEventListener('complete-workout', handleCompleteWorkout)
 })
 </script> 
