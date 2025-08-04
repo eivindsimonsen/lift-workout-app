@@ -54,6 +54,9 @@ const createSupabaseData = () => {
     }, 10000) // 10 second timeout
 
     try {
+      // Ensure user profile exists before loading data
+      await ensureUserProfile()
+      
       // Load templates for the current user
       const { data: templatesData, error: templatesError } = await supabase
         .from('workout_templates')
@@ -98,11 +101,59 @@ const createSupabaseData = () => {
     } catch (error: any) {
       console.error('❌ Error loading Supabase data:', error)
       // Use error handler to show user-friendly error
-      const { handleDatabaseError } = useErrorHandler()
-      handleDatabaseError(error)
+      const { showError } = useErrorHandler()
+      showError('Kunne ikke laste data fra databasen. Prøv å oppdatere siden.')
     } finally {
       clearTimeout(timeoutId)
       isLoading.value = false
+    }
+  }
+
+  // Ensure user profile exists in users table
+  const ensureUserProfile = async () => {
+    if (!currentUser.value) {
+      console.log('No user logged in, skipping profile check')
+      return
+    }
+
+    try {
+      // Check if user profile exists
+      const { data: existingUser, error: selectError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', currentUser.value.id)
+        .single()
+
+      if (selectError) {
+        // Check if the error is due to no rows found (PGRST116) or other issues
+        if (selectError.code === 'PGRST116' || selectError.message?.includes('No rows found')) {
+          // User profile doesn't exist, create it
+          console.log('Creating user profile for:', currentUser.value.email)
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: currentUser.value.id,
+              supabase_id: currentUser.value.id,
+              email: currentUser.value.email,
+              name: currentUser.value.user_metadata?.name || null
+            })
+
+          if (insertError) {
+            console.error('Error creating user profile:', insertError)
+            throw insertError
+          }
+          
+          console.log('✅ User profile created successfully')
+        } else {
+          console.error('Error checking user profile:', selectError)
+          throw selectError
+        }
+      } else {
+        console.log('✅ User profile already exists')
+      }
+    } catch (error) {
+      console.error('Error ensuring user profile:', error)
+      throw error
     }
   }
 
@@ -325,30 +376,40 @@ const createSupabaseData = () => {
 
     logSupabaseAccess('Add template', template.name)
     
-    const { data, error } = await supabase
-      .from('workout_templates')
-      .insert({
-        user_id: currentUser.value.id,
-        name: template.name,
-        workout_type: template.workoutType,
-        exercises: template.exercises,
-        is_default: template.isDefault
+    try {
+      // Ensure user profile exists before creating template
+      await ensureUserProfile()
+      
+      const { data, error } = await supabase
+        .from('workout_templates')
+        .insert({
+          user_id: currentUser.value.id,
+          name: template.name,
+          workout_type: template.workoutType,
+          exercises: template.exercises,
+          is_default: template.isDefault
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error adding template:', error)
+        return
+      }
+
+      templates.value.push({
+        id: data.id,
+        name: data.name,
+        workoutType: data.workout_type,
+        exercises: data.exercises,
+        isDefault: data.is_default
       })
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error adding template:', error)
-      return
+    } catch (error) {
+      console.error('Error in addTemplate:', error)
+      // Use error handler to show user-friendly error
+      const { showError } = useErrorHandler()
+      showError('Kunne ikke opprette økt. Prøv igjen.')
     }
-
-    templates.value.push({
-      id: data.id,
-      name: data.name,
-      workoutType: data.workout_type,
-      exercises: data.exercises,
-      isDefault: data.is_default
-    })
   }
 
   const updateTemplate = async (id: string, updates: Partial<WorkoutTemplate>) => {
@@ -406,6 +467,9 @@ const createSupabaseData = () => {
     }
 
     try {
+      // Ensure user profile exists before creating session
+      await ensureUserProfile()
+      
       // First, mark all existing active sessions as completed
       const { error: updateError } = await supabase
         .from('workout_sessions')
@@ -456,23 +520,27 @@ const createSupabaseData = () => {
           workout_type: template.workoutType,
           date: session.date.toISOString(),
           duration: session.duration,
-          total_volume: 0,
           exercises: session.exercises,
-          is_completed: false
+          is_completed: session.isCompleted
         })
         .select()
         .single()
 
       if (error) {
-        console.error('Error starting session:', error)
+        console.error('Error creating workout session:', error)
         return null
       }
 
+      // Update session with database ID
       session.id = data.id
-      sessions.value.push(session)
+      sessions.value.unshift(session)
+
       return session
     } catch (error) {
       console.error('Error in startWorkoutSession:', error)
+      // Use error handler to show user-friendly error
+      const { showError } = useErrorHandler()
+      showError('Kunne ikke starte treningsøkt. Prøv igjen.')
       return null
     }
   }
@@ -537,6 +605,9 @@ const createSupabaseData = () => {
     logSupabaseAccess('Mark session active', sessionId)
     
     try {
+      // Ensure user profile exists before updating sessions
+      await ensureUserProfile()
+      
       // First, mark all other sessions as completed
       const { error: updateError } = await supabase
         .from('workout_sessions')
@@ -563,6 +634,9 @@ const createSupabaseData = () => {
       })
     } catch (error) {
       console.error('Error in markSessionAsActive:', error)
+      // Use error handler to show user-friendly error
+      const { showError } = useErrorHandler()
+      showError('Kunne ikke aktivere treningsøkt. Prøv igjen.')
     }
   }
 

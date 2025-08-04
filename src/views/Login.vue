@@ -309,6 +309,9 @@ const handleRegister = async () => {
 
     if (profileError) {
       console.error('Error creating user profile:', profileError)
+      // Show error message to user
+      errorMessage.value = 'Registrering fullført, men det oppstod en feil med brukerprofilen. Prøv å logge inn.'
+      return
     }
 
     // Show success message and switch to login mode
