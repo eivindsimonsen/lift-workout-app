@@ -25,9 +25,20 @@
       >
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-white">{{ exercise.name }}</h3>
-          <span class="text-sm text-dark-300">
-            {{ getCompletedSets(exercise) }}/{{ exercise.sets.length }} sett
-          </span>
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-dark-300">
+              {{ getCompletedSets(exercise) }}/{{ exercise.sets.length }} sett
+            </span>
+            <button 
+              @click="removeExercise(exerciseIndex)"
+              class="text-red-400 hover:text-red-300 transition-colors p-1"
+              title="Slett øvelse"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- Sets -->
@@ -44,25 +55,27 @@
 
                          <div class="grid grid-cols-2 gap-3">
                <div>
-                 <label class="block text-xs text-dark-300 mb-1">Reps</label>
+                 <label class="block text-xs text-dark-300 mb-1">Reps *</label>
                                    <input
                     v-model.number="set.reps"
                     type="number"
                     inputmode="numeric"
                     min="0"
+                    required
                     class="input-field w-full text-sm py-1"
                     placeholder="8"
                     @input="updateSetCompletion(exerciseIndex, setIndex)"
                   />
                </div>
                <div>
-                 <label class="block text-xs text-dark-300 mb-1">Vekt (kg)</label>
+                 <label class="block text-xs text-dark-300 mb-1">Vekt (kg) *</label>
                                    <input
                     v-model.number="set.weight"
                     type="number"
                     inputmode="decimal"
                     min="0"
                     step="0.5"
+                    required
                     class="input-field w-full text-sm py-1"
                     placeholder="20"
                     @input="updateSetCompletion(exerciseIndex, setIndex)"
@@ -255,7 +268,14 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   if (!session.value) return
   
   const set = session.value.exercises[exerciseIndex].sets[setIndex]
-  const isCompleted = Boolean(set.weight && set.reps && set.weight > 0 && set.reps > 0)
+  
+  // A set is only completed if both weight and reps are provided and greater than 0
+  const isCompleted = Boolean(
+    set.weight && 
+    set.reps && 
+    set.weight > 0 && 
+    set.reps > 0
+  )
   
   if (set.isCompleted !== isCompleted) {
     set.isCompleted = isCompleted
@@ -318,6 +338,19 @@ const addExerciseToSession = () => {
   // Reset form and close modal
   newExerciseId.value = ''
   showAddExerciseModal.value = false
+}
+
+const removeExercise = (index: number) => {
+  if (!session.value) return
+  
+  if (confirm('Er du sikker på at du vil slette denne øvelsen?')) {
+    session.value.exercises.splice(index, 1)
+    
+    // Update the session in the store
+    workoutData.updateWorkoutSession(session.value.id, {
+      exercises: session.value.exercises
+    })
+  }
 }
 
 const formatNumber = (num: number): string => {

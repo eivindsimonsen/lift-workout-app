@@ -133,7 +133,8 @@
               </button>
               <button 
                 @click="handleCompleteWorkout"
-                class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                :disabled="!canCompleteWorkout"
+                class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -216,7 +217,8 @@
             </button>
             <button 
               @click="handleCompleteWorkout"
-              class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              :disabled="!canCompleteWorkout"
+              class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -358,6 +360,11 @@ const workoutProgress = computed(() => {
   return { completedSets, totalSets, percentage }
 })
 
+// Check if workout can be completed (100% progress)
+const canCompleteWorkout = computed(() => {
+  return workoutProgress.value.percentage === 100
+})
+
 // Computed properties
 const isAuthenticated = computed(() => workoutData.isAuthenticated.value)
 const currentUser = computed(() => workoutData.currentUser.value)
@@ -457,6 +464,12 @@ const handleSaveWorkout = async () => {
 
 const handleCompleteWorkout = async () => {
   if (!isWorkoutSession.value || !route.params.id) return
+
+  // Check if workout is 100% complete
+  if (!canCompleteWorkout.value) {
+    showError('Du må fullføre alle sett før du kan fullføre økten')
+    return
+  }
 
   try {
     const sessionId = route.params.id as string

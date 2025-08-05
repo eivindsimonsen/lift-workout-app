@@ -97,8 +97,8 @@
           :key="template.id"
           class="bg-dark-700 rounded-lg p-6 border border-dark-600 hover:border-primary-500/50 transition-colors flex flex-col h-full"
         >
-                              <!-- Workout Type Badge -->
-           <div class="mb-4">
+                              <!-- Workout Type Badge and Delete Button -->
+           <div class="flex items-center justify-between mb-4">
              <span 
                class="px-3 py-1 rounded-full text-xs font-medium"
                :style="{ 
@@ -108,11 +108,6 @@
              >
                {{ getWorkoutTypeName(template.workoutType) }}
              </span>
-           </div>
-
-           <!-- Template Info -->
-           <div class="flex items-center justify-between mb-4">
-             <h3 class="text-lg font-semibold text-white">{{ template.name }}</h3>
              <button 
                @click.stop="deleteTemplate(template.id)"
                class="text-red-400 hover:text-red-300 transition-colors p-1"
@@ -121,6 +116,11 @@
                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
                </svg>
              </button>
+           </div>
+
+           <!-- Template Title -->
+           <div class="mb-4">
+             <h3 class="text-lg font-semibold text-white">{{ template.name }}</h3>
            </div>
 
           <p class="text-sm text-dark-300 mb-4">
