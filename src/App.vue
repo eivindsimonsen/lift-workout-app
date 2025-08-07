@@ -297,9 +297,22 @@
     </div>
   </ErrorBoundary>
    
-   <!-- Global Error Toast -->
-   <ErrorToast />
- </template>
+       <!-- Global Error Toast -->
+    <ErrorToast />
+    
+    <!-- Confirmation Modal -->
+    <ConfirmModal
+      :is-visible="showConfirmModal"
+      :title="confirmModalConfig.title"
+      :message="confirmModalConfig.message"
+      :confirm-text="confirmModalConfig.confirmText"
+      :cancel-text="confirmModalConfig.cancelText"
+      :on-confirm="confirmModalConfig.onConfirm"
+      :on-cancel="confirmModalConfig.onCancel"
+      @confirm="showConfirmModal = false"
+      @cancel="showConfirmModal = false"
+    />
+  </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
@@ -308,6 +321,7 @@ import { useHybridData } from '@/composables/useHybridData'
 import { supabase } from '@/lib/supabase'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const route = useRoute()
@@ -321,6 +335,17 @@ const showProfileModal = ref(false)
 const isUpdating = ref(false)
 const hasInitialized = ref(false) // Track if app has been initialized
 const sessionCheckInterval = ref<NodeJS.Timeout | null>(null)
+
+// Confirmation modal state
+const showConfirmModal = ref(false)
+const confirmModalConfig = ref({
+  title: '',
+  message: '',
+  confirmText: '',
+  cancelText: '',
+  onConfirm: undefined as (() => void) | undefined,
+  onCancel: undefined as (() => void) | undefined
+})
 
 // Profile form data
 const profileName = ref('')
@@ -464,24 +489,26 @@ const handleSaveWorkout = async () => {
 const handleCompleteWorkout = async () => {
   if (!isWorkoutSession.value || !route.params.id) return
 
-  // Check if workout is 100% complete
-  const isFullyCompleted = workoutProgress.value.percentage === 100
-  
-  if (!isFullyCompleted) {
-    // Show confirmation dialog for incomplete workout
-    if (!confirm('Ikke alle sett er fullført. Er du sikker på at du vil avslutte økten?')) {
-      return
+  // Show confirmation modal
+  confirmModalConfig.value = {
+    title: 'Avslutt Økt',
+    message: 'Er du sikker på at du vil avslutte økten?',
+    confirmText: 'Avslutt Økt',
+    cancelText: 'Avbryt',
+    onConfirm: async () => {
+      try {
+        const sessionId = route.params.id as string
+        await workoutData.completeWorkoutSession(sessionId)
+        router.push('/history')
+      } catch (error: any) {
+        handleAuthError(error)
+      }
+    },
+    onCancel: () => {
+      showConfirmModal.value = false
     }
   }
-
-  try {
-    const sessionId = route.params.id as string
-    await workoutData.completeWorkoutSession(sessionId)
-    // Don't show error message on success - just redirect
-    router.push('/history')
-  } catch (error: any) {
-    handleAuthError(error)
-  }
+  showConfirmModal.value = true
 }
 
 // Initialize profile data when modal opens

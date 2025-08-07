@@ -51,15 +51,15 @@
           >
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-white">Sett {{ setIndex + 1 }}</span>
-              <button 
-                @click="removeSet(exerciseIndex, setIndex)"
-                class="text-red-400 hover:text-red-300 transition-colors p-1"
-                title="Slett sett"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+                             <button 
+                 @click="removeSet(exerciseIndex, setIndex)"
+                 class="text-dark-400 hover:text-red-400 transition-colors p-1"
+                 title="Slett sett"
+               >
+                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                 </svg>
+               </button>
             </div>
 
                          <div class="grid grid-cols-2 gap-3">
@@ -188,31 +188,7 @@
               </div>
             </div>
 
-            <!-- Complete Confirmation Modal -->
-            <div v-if="showCompleteConfirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="showCompleteConfirmationModal = false">
-              <div class="bg-dark-800 rounded-lg p-6 w-full max-w-md mx-4" @click.stop>
-                <div class="text-center">
-                  <h3 class="text-xl font-semibold text-white mb-4">Avslutt Økt</h3>
-                  <p class="text-dark-300 mb-6">
-                    Ikke alle sett er fullført. Er du sikker på at du vil avslutte økten?
-                  </p>
-                  <div class="flex gap-3 justify-center">
-                    <button 
-                      @click="showCompleteConfirmationModal = false"
-                      class="btn-secondary"
-                    >
-                      Avbryt
-                    </button>
-                    <button 
-                      @click="completeWorkout"
-                      class="btn-primary"
-                    >
-                      Avslutt Økt
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+
 
 
 
@@ -250,13 +226,27 @@
 
 
 
-  </div>
-</template>
+     </div>
+   
+   <!-- Confirmation Modal -->
+   <ConfirmModal
+     :is-visible="showConfirmModal"
+     :title="confirmModalConfig.title"
+     :message="confirmModalConfig.message"
+     :confirm-text="confirmModalConfig.confirmText"
+     :cancel-text="confirmModalConfig.cancelText"
+     :on-confirm="confirmModalConfig.onConfirm"
+     :on-cancel="confirmModalConfig.onCancel"
+     @confirm="showConfirmModal = false"
+     @cancel="showConfirmModal = false"
+   />
+ </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import type { WorkoutSession } from '@/types/workout'
 
 const route = useRoute()
@@ -268,7 +258,15 @@ const session = ref<WorkoutSession | null>(null)
 const startTime = ref<Date | null>(null)
 const showAddExerciseModal = ref(false)
 const newExerciseId = ref('')
-const showCompleteConfirmationModal = ref(false)
+const showConfirmModal = ref(false)
+const confirmModalConfig = ref({
+  title: '',
+  message: '',
+  confirmText: '',
+  cancelText: '',
+  onConfirm: undefined as (() => void) | undefined,
+  onCancel: undefined as (() => void) | undefined
+})
 
 // Computed
 const completedSets = computed(() => {
@@ -420,14 +418,12 @@ const addExerciseToSession = () => {
 const removeExercise = (index: number) => {
   if (!session.value) return
   
-  if (confirm('Er du sikker på at du vil slette denne øvelsen?')) {
-    session.value.exercises.splice(index, 1)
-    
-    // Update the session in the store
-    workoutData.updateWorkoutSession(session.value.id, {
-      exercises: session.value.exercises
-    })
-  }
+  session.value.exercises.splice(index, 1)
+  
+  // Update the session in the store
+  workoutData.updateWorkoutSession(session.value.id, {
+    exercises: session.value.exercises
+  })
 }
 
 const removeSet = (exerciseIndex: number, setIndex: number) => {
@@ -437,26 +433,22 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   
   // If this is the last set of the exercise, remove the entire exercise
   if (exercise.sets.length <= 1) {
-    if (confirm('Dette er det siste settet i øvelsen. Slette hele øvelsen?')) {
-      session.value.exercises.splice(exerciseIndex, 1)
-      
-      // Update the session in the store
-      workoutData.updateWorkoutSession(session.value.id, {
-        exercises: session.value.exercises
-      })
-    }
-    return
-  }
-  
-  // Otherwise, just remove the set
-  if (confirm('Er du sikker på at du vil slette dette settet?')) {
-    exercise.sets.splice(setIndex, 1)
+    session.value.exercises.splice(exerciseIndex, 1)
     
     // Update the session in the store
     workoutData.updateWorkoutSession(session.value.id, {
       exercises: session.value.exercises
     })
+    return
   }
+  
+  // Otherwise, just remove the set
+  exercise.sets.splice(setIndex, 1)
+  
+  // Update the session in the store
+  workoutData.updateWorkoutSession(session.value.id, {
+    exercises: session.value.exercises
+  })
 }
 
 const formatNumber = (num: number): string => {
@@ -464,20 +456,26 @@ const formatNumber = (num: number): string => {
 }
 
 const handleCompleteWorkout = () => {
-  const isFullyCompleted = completedSets.value === totalSets.value
-  
-  if (!isFullyCompleted) {
-    showCompleteConfirmationModal.value = true
-  } else {
-    completeWorkout()
+  confirmModalConfig.value = {
+    title: 'Avslutt Økt',
+    message: 'Er du sikker på at du vil avslutte økten?',
+    confirmText: 'Avslutt Økt',
+    cancelText: 'Avbryt',
+    onConfirm: () => {
+      completeWorkout()
+    },
+    onCancel: () => {
+      showConfirmModal.value = false
+    }
   }
+  showConfirmModal.value = true
 }
 
 const completeWorkout = async () => {
   if (!session.value) return
   
   try {
-    showCompleteConfirmationModal.value = false
+    showConfirmModal.value = false
     await workoutData.completeWorkoutSession(session.value.id)
     router.push('/history')
   } catch (error: any) {
