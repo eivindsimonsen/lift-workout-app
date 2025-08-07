@@ -17,7 +17,7 @@ import * as workoutSessionsData from '@/data/workout-sessions.json'
 // Console logging utility
 const logJSONAccess = (operation: string, details?: any) => {
   const timestamp = new Date().toLocaleTimeString('no-NO')
-  console.log(`%c[${timestamp}] ${operation}`, 'color: #3b82f6; font-weight: bold;', details || '')
+
 }
 
 // Singleton instance
@@ -55,7 +55,7 @@ const createWorkoutData = () => {
         date: new Date(session.date)
       }))
       
-      console.log('✅ All data loaded')
+  
       
     } catch (error) {
       console.error('❌ Error loading data:', error)
@@ -296,12 +296,7 @@ const createWorkoutData = () => {
   
   // Log initialization summary after a short delay
   setTimeout(() => {
-    console.log('🚀 Data loaded:', {
-      exercises: exercises.value.length,
-      types: workoutTypes.value.length,
-      templates: templates.value.length,
-      sessions: sessions.value.length
-    })
+    // Data loaded successfully
   }, 100)
 
   return {

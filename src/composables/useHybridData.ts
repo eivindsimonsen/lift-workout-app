@@ -5,7 +5,7 @@ import { useSupabaseData } from './useSupabaseData' // For user data (Supabase)
 // Console logging utility
 const logHybridAccess = (operation: string, details?: any) => {
   const timestamp = new Date().toLocaleTimeString('no-NO')
-  console.log(`%c[${timestamp}] Hybrid: ${operation}`, 'color: #8b5cf6; font-weight: bold;', details || '')
+
 }
 
 export const useHybridData = () => {

@@ -64,7 +64,7 @@
 
                          <div class="grid grid-cols-2 gap-3">
                <div>
-                 <label class="block text-xs text-dark-300 mb-1">Reps *</label>
+                 <label class="block text-xs text-dark-300 mb-1">Reps</label>
                                    <input
                     v-model.number="set.reps"
                     type="number"
@@ -77,7 +77,7 @@
                   />
                </div>
                <div>
-                 <label class="block text-xs text-dark-300 mb-1">Vekt (kg) *</label>
+                 <label class="block text-xs text-dark-300 mb-1">Vekt (kg)</label>
                                    <input
                     v-model.number="set.weight"
                     type="number"
@@ -191,33 +191,20 @@
      <!-- Summary -->
      <div class="card">
        <h3 class="text-lg font-semibold text-white mb-4">Sammendrag</h3>
-       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-         <div class="text-center">
-           <p class="text-2xl font-bold text-primary-500">{{ completedSets }} av {{ totalSets }}</p>
-           <p class="text-sm text-dark-300">Sett gjennomført</p>
-         </div>
-         <div class="text-center">
-           <p class="text-2xl font-bold text-primary-500">{{ formatNumber(estimatedVolume) }}</p>
-           <p class="text-sm text-dark-300">Estimert volum (kg)</p>
-         </div>
-         <div class="text-center">
-           <p class="text-2xl font-bold text-primary-500">{{ sessionDuration }}</p>
-           <p class="text-sm text-dark-300">Varighet</p>
-         </div>
-       </div>
-       
-       <!-- Complete Workout Button -->
-       <div class="flex gap-3">
-         <button 
-           @click="handleCompleteWorkout"
-           class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-         >
-           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-           </svg>
-           Fullfør Økt
-         </button>
-       </div>
+               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="text-center">
+            <p class="text-2xl font-bold text-primary-500">{{ completedSets }} av {{ totalSets }}</p>
+            <p class="text-sm text-dark-300">Sett gjennomført</p>
+          </div>
+          <div class="text-center">
+            <p class="text-2xl font-bold text-primary-500">{{ formatNumber(estimatedVolume) }}</p>
+            <p class="text-sm text-dark-300">Estimert volum (kg)</p>
+          </div>
+          <div class="text-center">
+            <p class="text-2xl font-bold text-primary-500">{{ sessionDuration }}</p>
+            <p class="text-sm text-dark-300">Varighet</p>
+          </div>
+        </div>
      </div>
 
 
@@ -433,13 +420,8 @@ const formatNumber = (num: number): string => {
 }
 
 const handleCompleteWorkout = () => {
-  console.log('🎯 handleCompleteWorkout called')
-  
   if (confirm('Er du sikker på at du vil avslutte økten?')) {
-    console.log('🎯 User confirmed, completing workout')
     completeWorkout()
-  } else {
-    console.log('🎯 User cancelled')
   }
 }
 
@@ -447,14 +429,9 @@ const completeWorkout = async () => {
   if (!session.value) return
   
   try {
-    console.log('🚀 Starting workout completion for session:', session.value.id)
-    
     await workoutData.completeWorkoutSession(session.value.id)
-    console.log('✅ Workout completed successfully')
-    
     router.push('/history')
   } catch (error: any) {
-    console.error('❌ Error completing workout:', error)
     handleAuthError(error)
   }
 }

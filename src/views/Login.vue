@@ -324,7 +324,7 @@ const handleRegister = async () => {
     if (profileError) {
       // Check if it's a duplicate key error (user already exists)
       if (profileError.code === '23505' || profileError.message?.includes('duplicate key')) {
-        console.log('User profile already exists, continuing...')
+    
       } else {
         console.error('Error creating user profile:', profileError)
         // Show error message to user
@@ -413,6 +413,6 @@ const clearRememberedCredentials = () => {
   localStorage.removeItem('rememberedEmail')
   localStorage.removeItem('rememberedPassword')
   localStorage.removeItem('rememberMe')
-  console.log('🧹 Cleared remembered credentials')
+  
 }
 </script> 

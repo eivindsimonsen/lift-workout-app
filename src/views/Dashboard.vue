@@ -26,23 +26,23 @@
                   {{ session.exercises.length }} øvelser • Fortsett økt
                 </p>
               </div>
-              <div class="flex items-center gap-2">
-                <span 
-                  class="px-2 py-1 rounded-full text-xs font-medium"
-                  :style="{ 
-                    backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
-                    color: getWorkoutTypeColor(session.workoutType)
-                  }"
-                >
-                  {{ getWorkoutTypeName(session.workoutType) }}
-                </span>
-              </div>
+                             <div class="flex items-center gap-2">
+                 <span 
+                   class="px-3 py-2 rounded-full text-sm font-medium"
+                   :style="{ 
+                     backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
+                     color: getWorkoutTypeColor(session.workoutType)
+                   }"
+                 >
+                   {{ getWorkoutTypeName(session.workoutType) }}
+                 </span>
+               </div>
             </div>
           </div>
                  </div>
 
                                                                                                                                                                <!-- Workout Templates Section -->
-             <div>
+             <div class="mt-8">
                <div class="flex items-center justify-between mb-4">
                  <h2 class="text-xl font-semibold text-white">Treningsøkter</h2>
                  <router-link 
@@ -77,15 +77,15 @@
         >
                               <!-- Workout Type Badge and Delete Button -->
            <div class="flex items-center justify-between mb-4">
-             <span 
-               class="px-3 py-1 rounded-full text-xs font-medium"
-               :style="{ 
-                 backgroundColor: getWorkoutTypeColor(template.workoutType) + '20',
-                 color: getWorkoutTypeColor(template.workoutType)
-               }"
-             >
-               {{ getWorkoutTypeName(template.workoutType) }}
-             </span>
+                           <span 
+                class="px-4 py-2 rounded-full text-sm font-medium"
+                :style="{ 
+                  backgroundColor: getWorkoutTypeColor(template.workoutType) + '20',
+                  color: getWorkoutTypeColor(template.workoutType)
+                }"
+              >
+                {{ getWorkoutTypeName(template.workoutType) }}
+              </span>
              <button 
                @click.stop="deleteTemplate(template.id)"
                class="text-red-400 hover:text-red-300 transition-colors p-1"
@@ -105,42 +105,68 @@
             {{ template.exercises.length }} øvelser
           </p>
 
-                   <!-- Exercise Preview -->
-          <div class="space-y-2 mb-6 flex-grow">
-            <div 
-              v-for="exercise in template.exercises.slice(0, 3)" 
-              :key="exercise.exerciseId"
-              class="flex items-center justify-between text-sm"
-            >
-              <span class="text-dark-200">{{ exercise.name }}</span>
-              <span class="text-dark-400">{{ exercise.sets }}x{{ exercise.reps }}</span>
-            </div>
-            
-            <!-- Expandable Section -->
-            <div v-if="template.exercises.length > 3">
-              <div v-if="!expandedTemplates.has(template.id)" class="text-xs text-dark-400">
-                +{{ template.exercises.length - 3 }} flere øvelser
-              </div>
-              
-              <div v-else class="space-y-2">
-                <div 
-                  v-for="exercise in template.exercises.slice(3)" 
-                  :key="exercise.exerciseId"
-                  class="flex items-center justify-between text-sm"
-                >
-                  <span class="text-dark-200">{{ exercise.name }}</span>
-                  <span class="text-dark-400">{{ exercise.sets }}x{{ exercise.reps }}</span>
-                </div>
-              </div>
-              
-              <button 
-                @click="toggleExpanded(template.id)"
-                class="text-xs text-primary-500 hover:text-primary-400 mt-2 transition-colors"
-              >
-                {{ expandedTemplates.has(template.id) ? 'Vis mindre' : 'Vis alle øvelser' }}
-              </button>
-            </div>
-          </div>
+                                       <!-- Exercise Preview -->
+           <div class="mb-6 flex-grow">
+             <!-- Categorized Exercises -->
+             <div v-if="!expandedTemplates.has(template.id)">
+               <div class="space-y-3">
+                 <div 
+                   v-for="(exercises, muscleGroup) in getCategorizedExercises(template.exercises.slice(0, 6))" 
+                   :key="muscleGroup"
+                   class="space-y-1"
+                 >
+                   <div class="text-xs font-medium text-primary-400 uppercase tracking-wide">
+                     {{ getMuscleGroupName(muscleGroup) }}
+                   </div>
+                   <div class="grid grid-cols-2 gap-1">
+                     <div 
+                       v-for="exercise in exercises" 
+                       :key="exercise.exerciseId"
+                       class="text-sm text-dark-200"
+                     >
+                       {{ exercise.name }}
+                     </div>
+                   </div>
+                 </div>
+               </div>
+               
+               <div v-if="template.exercises.length > 6" class="text-xs text-dark-400 mt-3">
+                 +{{ template.exercises.length - 6 }} flere øvelser
+               </div>
+             </div>
+             
+             <!-- Expanded View -->
+             <div v-else>
+               <div class="space-y-3">
+                 <div 
+                   v-for="(exercises, muscleGroup) in getCategorizedExercises(template.exercises)" 
+                   :key="muscleGroup"
+                   class="space-y-1"
+                 >
+                   <div class="text-xs font-medium text-primary-400 uppercase tracking-wide">
+                     {{ getMuscleGroupName(muscleGroup) }}
+                   </div>
+                   <div class="grid grid-cols-2 gap-1">
+                     <div 
+                       v-for="exercise in exercises" 
+                       :key="exercise.exerciseId"
+                       class="text-sm text-dark-200"
+                     >
+                       {{ exercise.name }}
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+             
+             <button 
+               v-if="template.exercises.length > 6"
+               @click="toggleExpanded(template.id)"
+               class="text-xs text-primary-500 hover:text-primary-400 mt-3 transition-colors"
+             >
+               {{ expandedTemplates.has(template.id) ? 'Vis mindre' : 'Vis alle øvelser' }}
+             </button>
+           </div>
 
                                        <!-- Action Buttons -->
            <div class="flex gap-2 mt-auto">
@@ -198,15 +224,15 @@
             <span class="text-primary-500 font-medium">
               {{ formatNumber(session.totalVolume || 0) }} kg
             </span>
-            <span 
-              class="px-2 py-1 rounded-full text-xs font-medium"
-              :style="{ 
-                backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
-                color: getWorkoutTypeColor(session.workoutType)
-              }"
-            >
-              {{ getWorkoutTypeName(session.workoutType) }}
-            </span>
+                         <span 
+               class="px-3 py-2 rounded-full text-sm font-medium"
+               :style="{ 
+                 backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
+                 color: getWorkoutTypeColor(session.workoutType)
+               }"
+             >
+               {{ getWorkoutTypeName(session.workoutType) }}
+             </span>
           </div>
         </div>
       </div>
@@ -280,11 +306,9 @@ const startWorkout = async (templateId: string) => {
     if (session) {
       router.push(`/workout/${session.id}`)
     } else {
-      console.error('❌ Failed to start workout session')
       alert('Kunne ikke starte økt. Prøv igjen.')
     }
   } catch (error) {
-    console.error('Failed to start workout:', error)
     alert('Kunne ikke starte økt. Prøv igjen.')
   }
 }
@@ -303,6 +327,51 @@ const toggleExpanded = (templateId: string) => {
   } else {
     expandedTemplates.value.add(templateId)
   }
+}
+
+// Helper function to categorize exercises by muscle group
+const getCategorizedExercises = (exercises: any[]) => {
+  const categorized: { [key: string]: any[] } = {}
+  
+  exercises.forEach(exercise => {
+    // Get exercise data from workoutData.exercises
+    const exerciseData = workoutData.exercises.value.find(e => e.id === exercise.exerciseId)
+    if (exerciseData && exerciseData.muscleGroups) {
+      // Use the first muscle group as the primary category
+      const primaryMuscleGroup = exerciseData.muscleGroups[0]
+      if (!categorized[primaryMuscleGroup]) {
+        categorized[primaryMuscleGroup] = []
+      }
+      categorized[primaryMuscleGroup].push(exercise)
+    } else {
+      // Fallback category for exercises without muscle group data
+      if (!categorized['other']) {
+        categorized['other'] = []
+      }
+      categorized['other'].push(exercise)
+    }
+  })
+  
+  return categorized
+}
+
+// Helper function to get Norwegian muscle group names
+const getMuscleGroupName = (muscleGroup: string | number): string => {
+  const muscleGroupNames: { [key: string]: string } = {
+    'bryst': 'Bryst',
+    'triceps': 'Triceps',
+    'skuldre': 'Skuldre',
+    'rygg': 'Rygg',
+    'biceps': 'Biceps',
+    'quadriceps': 'Quadriceps',
+    'glutes': 'Glutes',
+    'hamstrings': 'Hamstrings',
+    'calves': 'Legger',
+    'core': 'Core',
+    'other': 'Andre'
+  }
+  
+  return muscleGroupNames[String(muscleGroup)] || String(muscleGroup)
 }
 
 

@@ -14,7 +14,7 @@ import type {
 // Console logging utility
 const logSupabaseAccess = (operation: string, details?: any) => {
   const timestamp = new Date().toLocaleTimeString('no-NO')
-  console.log(`%c[${timestamp}] Supabase: ${operation}`, 'color: #10b981; font-weight: bold;', details || '')
+
 }
 
 // Singleton instance
@@ -33,13 +33,13 @@ const createSupabaseData = () => {
   // Load data from Supabase (only user data)
   const loadData = async () => {
     if (!currentUser.value) {
-      console.log('No user logged in, skipping data load')
+  
       return
     }
 
     // Prevent multiple simultaneous calls
     if (isLoading.value) {
-      console.log('Data loading already in progress, skipping')
+  
       return
     }
 
@@ -96,7 +96,7 @@ const createSupabaseData = () => {
         isCompleted: session.is_completed
       }))
 
-      console.log('✅ Supabase user data loaded')
+  
       
     } catch (error: any) {
       console.error('❌ Error loading Supabase data:', error)
@@ -112,7 +112,7 @@ const createSupabaseData = () => {
   // Ensure user profile exists in users table
   const ensureUserProfile = async () => {
     if (!currentUser.value) {
-      console.log('No user logged in, skipping profile check')
+  
       return
     }
 
@@ -128,7 +128,7 @@ const createSupabaseData = () => {
         // Check if the error is due to no rows found (PGRST116) or other issues
         if (selectError.code === 'PGRST116' || selectError.message?.includes('No rows found')) {
           // User profile doesn't exist, create it
-          console.log('Creating user profile for:', currentUser.value.email)
+      
           const { error: insertError } = await supabase
             .from('users')
             .insert({
@@ -146,20 +146,20 @@ const createSupabaseData = () => {
           if (insertError) {
             // Check if it's a duplicate key error (user already exists)
             if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
-              console.log('User profile already exists (caught in insert), continuing...')
+          
             } else {
               console.error('Error creating user profile:', insertError)
               throw insertError
             }
           } else {
-            console.log('✅ User profile created successfully')
+        
           }
         } else {
           console.error('Error checking user profile:', selectError)
           throw selectError
         }
       } else {
-        console.log('✅ User profile already exists')
+    
       }
     } catch (error) {
       console.error('Error ensuring user profile:', error)
@@ -171,29 +171,29 @@ const createSupabaseData = () => {
   const initializeAuth = async () => {
     // Prevent multiple initializations
     if (isInitialized.value || isInitializing) {
-      console.log('Auth already initialized or initializing, skipping')
+  
       return
     }
 
     isInitializing = true
     isInitialized.value = true
-    console.log('🔐 Initializing authentication...')
+
 
     try {
       // Get initial session
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
-        console.log('📱 Found existing session for user:', session.user.email)
+    
         currentUser.value = session.user
         isAuthenticated.value = true
         await loadData()
       } else {
-        console.log('📱 No existing session found')
+    
       }
 
       // Listen for auth changes (only set up once)
       supabase.auth.onAuthStateChange(async (event: any, session: any) => {
-        console.log('🔄 Auth state changed:', event, session?.user?.email)
+    
         
         if (event === 'SIGNED_IN' && session?.user) {
           currentUser.value = session.user
@@ -209,7 +209,7 @@ const createSupabaseData = () => {
           sessions.value = []
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           // Handle token refresh on mobile
-          console.log('🔄 Token refreshed for user:', session.user.email)
+      
           currentUser.value = session.user
           isAuthenticated.value = true
         }
@@ -219,21 +219,21 @@ const createSupabaseData = () => {
       if (typeof document !== 'undefined') {
         const handleVisibilityChange = () => {
           if (document.visibilityState === 'visible') {
-            console.log('📱 Page became visible, checking session...')
+        
             
             // Always check session when page becomes visible to ensure state is fresh
             supabase.auth.getSession().then(({ data: { session } }: any) => {
               if (session?.user) {
                 // If we have a session but no current user, or user ID changed, update
                 if (!currentUser.value || session.user.id !== currentUser.value.id) {
-                  console.log('📱 Session changed, updating user')
+              
                   currentUser.value = session.user
                   isAuthenticated.value = true
                   loadData()
                 }
               } else if (currentUser.value) {
                 // If we have a current user but no session, user was logged out
-                console.log('📱 No session found, user was logged out')
+            
                 currentUser.value = null
                 isAuthenticated.value = false
                 templates.value = []
@@ -262,11 +262,11 @@ const createSupabaseData = () => {
   }
 
   const signOut = async () => {
-    console.log('🚪 Signing out user...')
+
     
     try {
       const result = await supabase.auth.signOut()
-      console.log('🚪 Sign out result:', result)
+  
       
       if (result.error) {
         console.error('Error signing out:', result.error)
@@ -274,7 +274,7 @@ const createSupabaseData = () => {
       }
       
       // Always reset local state regardless of error
-      console.log('🔄 Resetting local state after sign out')
+  
       currentUser.value = null
       isAuthenticated.value = false
       templates.value = []
@@ -282,7 +282,7 @@ const createSupabaseData = () => {
       isLoading.value = false
       
       // Don't clear remembered credentials - keep them for easy re-login
-      console.log('✅ Sign out completed successfully')
+  
     } catch (error) {
       console.error('Unexpected error during sign out:', error)
       // Even if there's an unexpected error, reset local state
@@ -298,7 +298,7 @@ const createSupabaseData = () => {
 
   // Reset function for mobile browser issues
   const resetState = () => {
-    console.log('🔄 Resetting Supabase data state')
+
     isLoading.value = false
     isInitialized.value = false
     currentUser.value = null
@@ -309,7 +309,7 @@ const createSupabaseData = () => {
 
   // Cleanup function to remove event listeners
   const cleanup = () => {
-    console.log('🧹 Cleaning up Supabase data event listeners')
+
     if (typeof document !== 'undefined' && typeof window !== 'undefined') {
       const handler = (window as any).__visibilityChangeHandler
       if (handler) {
@@ -590,7 +590,7 @@ const createSupabaseData = () => {
 
   const updateWorkoutSession = async (sessionId: string, updates: Partial<WorkoutSession>) => {
     logSupabaseAccess('Update session', sessionId)
-    console.log('🔄 Updating workout session:', sessionId, 'with updates:', updates)
+
     
     try {
       const { error } = await supabase
@@ -611,12 +611,11 @@ const createSupabaseData = () => {
         throw error
       }
 
-      console.log('✅ Session updated in database successfully')
+  
 
       const index = sessions.value.findIndex(s => s.id === sessionId)
       if (index !== -1) {
         sessions.value[index] = { ...sessions.value[index], ...updates }
-        console.log('🔄 Local state updated')
       } else {
         console.warn('⚠️ Session not found in local state for update')
       }
@@ -628,7 +627,6 @@ const createSupabaseData = () => {
 
   const completeWorkoutSession = async (sessionId: string) => {
     logSupabaseAccess('Complete session', sessionId)
-    console.log('🔄 Completing workout session:', sessionId)
     
     try {
       const session = sessions.value.find(s => s.id === sessionId)
@@ -637,8 +635,7 @@ const createSupabaseData = () => {
         throw new Error('Session not found')
       }
       
-      console.log('📊 Found session, calculating volume...')
-      console.log('📋 Session data:', session)
+
       
       // Calculate total volume
       const totalVolume = session.exercises.reduce((exerciseTotal, exercise) => {
@@ -653,17 +650,14 @@ const createSupabaseData = () => {
 
       const duration = Math.round((Date.now() - new Date(session.date).getTime()) / 60000)
       
-      console.log('📈 Total volume calculated:', totalVolume)
-      console.log('⏱️ Duration calculated:', duration)
 
-      console.log('💾 Updating session in database...')
       await updateWorkoutSession(sessionId, {
         isCompleted: true,
         totalVolume,
         duration
       })
       
-      console.log('✅ Session completed successfully')
+
       
       // Update local state
       const sessionIndex = sessions.value.findIndex(s => s.id === sessionId)
@@ -674,7 +668,6 @@ const createSupabaseData = () => {
           totalVolume,
           duration
         }
-        console.log('🔄 Local state updated')
       }
       
     } catch (error) {
@@ -781,7 +774,7 @@ const createSupabaseData = () => {
 export function useSupabaseData() {
   // Ensure singleton is created only once
   if (!supabaseDataInstance) {
-    console.log('🔧 Creating new Supabase data instance')
+
     supabaseDataInstance = createSupabaseData()
     
     // Initialize auth state immediately when singleton is created
@@ -792,7 +785,7 @@ export function useSupabaseData() {
       }
     }, 0)
   } else {
-    console.log('🔧 Reusing existing Supabase data instance')
+
   }
   
   return supabaseDataInstance

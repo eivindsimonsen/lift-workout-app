@@ -7,7 +7,7 @@ let supabase: any
 
 // Initialize Supabase client
 if (supabaseUrl && supabaseAnonKey) {
-  console.log('🔧 Initializing Supabase client with provided credentials')
+  
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,

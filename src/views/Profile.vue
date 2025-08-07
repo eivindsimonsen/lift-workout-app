@@ -39,41 +39,22 @@
           </div>
         </div>
 
-        <!-- Phone Number -->
-        <div>
-          <h3 class="text-lg font-semibold text-white mb-4">Kontaktinformasjon</h3>
-          <div>
-            <label class="block text-sm font-medium text-white mb-2">Mobilnummer</label>
-            <input 
-              v-model="phoneNumber"
-              type="tel"
-              class="input-field w-full"
-              placeholder="+47 123 45 678"
-            />
-            <p class="text-xs text-dark-400 mt-1">Valgfritt - brukes for gjenoppretting av konto</p>
-          </div>
-        </div>
-
-                 <!-- Subscription Information -->
+                 <!-- Phone Number -->
          <div>
-           <h3 class="text-lg font-semibold text-white mb-4">Abonnement</h3>
-           <div class="bg-dark-700 rounded-lg p-4">
-             <div class="flex items-center justify-between">
-               <div>
-                 <p class="text-white font-medium">{{ currentSubscription.label }}</p>
-                 <p class="text-sm text-dark-300">{{ currentSubscription.description }}</p>
-               </div>
-               <span 
-                 class="inline-block px-3 py-1 text-sm font-medium rounded-full"
-                 :class="subscriptionBadgeClass"
-               >
-                 {{ subscriptionStatus === 'active' ? 'Aktiv' : 'Inaktiv' }}
-               </span>
-             </div>
+           <h3 class="text-lg font-semibold text-white mb-4">Kontaktinformasjon</h3>
+           <div>
+             <label class="block text-sm font-medium text-white mb-2">Mobilnummer</label>
+             <input 
+               v-model="phoneNumber"
+               type="tel"
+               class="input-field w-full"
+               placeholder="+47 123 45 678"
+             />
+             <p class="text-xs text-dark-400 mt-1">Valgfritt - brukes for gjenoppretting av konto</p>
            </div>
          </div>
 
-        <!-- Password Change -->
+         <!-- Password Change -->
         <div>
           <h3 class="text-lg font-semibold text-white mb-4">Endre passord</h3>
           <div class="space-y-4">
@@ -106,15 +87,15 @@
                 />
               </div>
             </div>
-            <p class="text-xs text-dark-400">La feltene stå tomme hvis du ikke vil endre passord</p>
-          </div>
-        </div>
+                         <p class="text-xs text-dark-400">La feltene stå tomme hvis du ikke vil endre passord</p>
+           </div>
+         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex gap-3 pt-4">
+                   <!-- Action Buttons -->
+        <div class="flex justify-end pt-4">
           <button 
             type="submit"
-            class="btn-primary flex-1"
+            class="btn-primary"
             :disabled="isUpdating"
           >
             <span v-if="isUpdating" class="flex items-center gap-2">
@@ -126,15 +107,40 @@
             </span>
             <span v-else>Oppdater profil</span>
           </button>
-          <button 
-            type="button"
-            @click="handleSignOut"
-            class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors"
-          >
-            Logg ut
-          </button>
-        </div>
-      </form>
+                </div>
+             </form>
+     </div>
+
+     <!-- Subscription Information - Outside the card -->
+     <div class="card">
+       <div>
+         <h3 class="text-lg font-semibold text-white mb-4">Abonnement</h3>
+         <div class="bg-dark-700 rounded-lg p-4">
+           <div class="flex items-center justify-between">
+             <div>
+               <p class="text-white font-medium">{{ currentSubscription.label }}</p>
+               <p class="text-sm text-dark-300">{{ currentSubscription.description }}</p>
+             </div>
+             <span 
+               class="inline-block px-3 py-1 text-sm font-medium rounded-full"
+               :class="subscriptionBadgeClass"
+             >
+               {{ subscriptionStatus === 'active' ? 'Aktiv' : 'Inaktiv' }}
+             </span>
+           </div>
+         </div>
+       </div>
+     </div>
+
+     <!-- Sign Out Button - Outside the card, centered at bottom -->
+    <div class="flex justify-center pt-8">
+      <button 
+        type="button"
+        @click="handleSignOut"
+        class="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-lg transition-colors font-medium"
+      >
+        Logg ut
+      </button>
     </div>
 
     
@@ -166,7 +172,6 @@ const isUpdating = ref(false)
 // Subscription data
 const subscriptionType = ref('free')
 const subscriptionStatus = ref('active')
-const subscriptionDescription = ref('Gratis versjon med grunnleggende funksjoner')
 
 const subscriptionBadgeClass = computed(() => {
   return 'bg-green-500 text-white'

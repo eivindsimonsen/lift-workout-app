@@ -321,7 +321,7 @@ const toggleUserMenu = () => {
 
 const handleSignOut = async () => {
   try {
-    console.log('🚪 App: Starting sign out process...')
+
     
     // Close menus immediately to prevent UI issues
     showUserMenu.value = false
@@ -332,7 +332,7 @@ const handleSignOut = async () => {
     await workoutData.signOut()
     
     // Force navigation to login page
-    console.log('🚪 App: Redirecting to login page...')
+
     router.push('/login')
   } catch (error) {
     console.error('Error during sign out:', error)
@@ -395,7 +395,7 @@ onMounted(async () => {
   
   // Add focus/blur handlers to help with tab switching issues
   const handleFocus = () => {
-    console.log('📱 Window focused, checking auth state...')
+
     // Re-check authentication state when window gains focus
     if (workoutData.isAuthenticated.value && workoutData.currentUser.value) {
       // Force a session check to ensure state is fresh
@@ -404,7 +404,7 @@ onMounted(async () => {
   }
   
   const handleBlur = () => {
-    console.log('📱 Window blurred')
+
     // Optional: could add cleanup here if needed
   }
   
@@ -453,7 +453,7 @@ const startSessionCheck = () => {
   // Check session every 30 seconds to ensure app stays responsive
   sessionCheckInterval.value = setInterval(() => {
     if (workoutData.isAuthenticated.value && workoutData.currentUser.value) {
-      console.log('🔄 Periodic session check...')
+  
       // This will trigger a session refresh if needed
       workoutData.loadData()
     }
