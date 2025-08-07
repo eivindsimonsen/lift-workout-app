@@ -1,6 +1,10 @@
 <template>
   <div>
-
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-white mb-2">Dashboard</h1>
+      <p class="text-dark-300">Oversikt over dine treningsøkter og aktiviteter</p>
+    </div>
 
                                                    <!-- Active Workout Sessions -->
          <div v-if="activeSessions.length > 0" class="mt-8">

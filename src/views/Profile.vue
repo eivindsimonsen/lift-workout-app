@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-white">Brukerprofil</h1>
+        <h1 class="text-3xl font-bold text-white mb-2">Brukerprofil</h1>
         <p class="text-sm text-dark-300">Administrer din profil og innstillinger</p>
       </div>
     </div>
