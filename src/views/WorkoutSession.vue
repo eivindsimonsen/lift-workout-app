@@ -49,9 +49,18 @@
             class="bg-dark-700 rounded-lg p-3"
             :class="{ 'border-l-4 border-primary-500': set.isCompleted }"
           >
-                         <div class="mb-2">
-               <span class="text-sm font-medium text-white">Sett {{ setIndex + 1 }}</span>
-             </div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-white">Sett {{ setIndex + 1 }}</span>
+              <button 
+                @click="removeSet(exerciseIndex, setIndex)"
+                class="text-red-400 hover:text-red-300 transition-colors p-1"
+                title="Slett sett"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
 
                          <div class="grid grid-cols-2 gap-3">
                <div>
@@ -109,9 +118,15 @@
             <div class="card">
               <button 
                 @click="showAddExerciseModal = true"
-                class="w-full btn-secondary py-3 flex items-center justify-center"
+                :disabled="availableExercises.length === 0"
+                class="w-full btn-secondary py-3 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                + Legg til øvelse
+                <span v-if="availableExercises.length === 0">
+                  Alle øvelser lagt til
+                </span>
+                <span v-else>
+                  + Legg til øvelse
+                </span>
               </button>
             </div>
 
@@ -133,7 +148,11 @@
                 <form @submit.prevent="addExerciseToSession" class="space-y-4">
                   <div>
                     <label class="block text-sm font-medium text-white mb-2">Øvelse</label>
+                    <div v-if="availableExercises.length === 0" class="text-center py-4">
+                      <p class="text-dark-300">Alle øvelser er allerede lagt til i økten.</p>
+                    </div>
                     <select 
+                      v-else
                       v-model="newExerciseId"
                       required
                       class="input-field w-full"
@@ -158,6 +177,7 @@
                       Avbryt
                     </button>
                     <button 
+                      v-if="availableExercises.length > 0"
                       type="submit"
                       class="btn-primary"
                     >
@@ -168,12 +188,38 @@
               </div>
             </div>
 
+            <!-- Complete Confirmation Modal -->
+            <div v-if="showCompleteConfirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="showCompleteConfirmationModal = false">
+              <div class="bg-dark-800 rounded-lg p-6 w-full max-w-md mx-4" @click.stop>
+                <div class="text-center">
+                  <h3 class="text-xl font-semibold text-white mb-4">Avslutt Økt</h3>
+                  <p class="text-dark-300 mb-6">
+                    Ikke alle sett er fullført. Er du sikker på at du vil avslutte økten?
+                  </p>
+                  <div class="flex gap-3 justify-center">
+                    <button 
+                      @click="showCompleteConfirmationModal = false"
+                      class="btn-secondary"
+                    >
+                      Avbryt
+                    </button>
+                    <button 
+                      @click="completeWorkout"
+                      class="btn-primary"
+                    >
+                      Avslutt Økt
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
 
 
      <!-- Summary -->
      <div class="card">
        <h3 class="text-lg font-semibold text-white mb-4">Sammendrag</h3>
-       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
          <div class="text-center">
            <p class="text-2xl font-bold text-primary-500">{{ completedSets }} av {{ totalSets }}</p>
            <p class="text-sm text-dark-300">Sett gjennomført</p>
@@ -186,6 +232,19 @@
            <p class="text-2xl font-bold text-primary-500">{{ sessionDuration }}</p>
            <p class="text-sm text-dark-300">Varighet</p>
          </div>
+       </div>
+       
+       <!-- Complete Workout Button -->
+       <div class="flex gap-3">
+         <button 
+           @click="handleCompleteWorkout"
+           class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+         >
+           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+           </svg>
+           Fullfør Økt
+         </button>
        </div>
      </div>
 
@@ -209,6 +268,7 @@ const session = ref<WorkoutSession | null>(null)
 const startTime = ref<Date | null>(null)
 const showAddExerciseModal = ref(false)
 const newExerciseId = ref('')
+const showCompleteConfirmationModal = ref(false)
 
 // Computed
 const completedSets = computed(() => {
@@ -247,7 +307,11 @@ const sessionDuration = computed(() => {
 })
 
 const availableExercises = computed(() => {
-  return workoutData.exercises.value
+  if (!session.value) return workoutData.exercises.value
+  
+  // Filter out exercises that are already in the session
+  const existingExerciseIds = session.value.exercises.map(e => e.exerciseId)
+  return workoutData.exercises.value.filter(exercise => !existingExerciseIds.includes(exercise.id))
 })
 
 // Methods
@@ -314,6 +378,19 @@ const addExerciseToSession = () => {
   const exerciseData = workoutData.exercises.value.find(e => e.id === newExerciseId.value)
   if (!exerciseData) return
 
+  // Check if exercise already exists in session
+  const exerciseExists = session.value.exercises.some(e => e.exerciseId === newExerciseId.value)
+  if (exerciseExists) {
+    alert('Denne øvelsen er allerede lagt til i økten.')
+    return
+  }
+
+  // Check if there are available exercises
+  if (availableExercises.value.length === 0) {
+    alert('Det er ingen flere øvelser å legge til.')
+    return
+  }
+
   const newExercise = {
     exerciseId: newExerciseId.value,
     name: exerciseData.name,
@@ -353,8 +430,60 @@ const removeExercise = (index: number) => {
   }
 }
 
+const removeSet = (exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  
+  const exercise = session.value.exercises[exerciseIndex]
+  
+  // If this is the last set of the exercise, remove the entire exercise
+  if (exercise.sets.length <= 1) {
+    if (confirm('Dette er det siste settet i øvelsen. Slette hele øvelsen?')) {
+      session.value.exercises.splice(exerciseIndex, 1)
+      
+      // Update the session in the store
+      workoutData.updateWorkoutSession(session.value.id, {
+        exercises: session.value.exercises
+      })
+    }
+    return
+  }
+  
+  // Otherwise, just remove the set
+  if (confirm('Er du sikker på at du vil slette dette settet?')) {
+    exercise.sets.splice(setIndex, 1)
+    
+    // Update the session in the store
+    workoutData.updateWorkoutSession(session.value.id, {
+      exercises: session.value.exercises
+    })
+  }
+}
+
 const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('no-NO').format(Math.round(num))
+}
+
+const handleCompleteWorkout = () => {
+  const isFullyCompleted = completedSets.value === totalSets.value
+  
+  if (!isFullyCompleted) {
+    showCompleteConfirmationModal.value = true
+  } else {
+    completeWorkout()
+  }
+}
+
+const completeWorkout = async () => {
+  if (!session.value) return
+  
+  try {
+    showCompleteConfirmationModal.value = false
+    await workoutData.completeWorkoutSession(session.value.id)
+    router.push('/history')
+  } catch (error: any) {
+    console.error('Error completing workout:', error)
+    alert('En feil oppstod ved fullføring av økten. Prøv igjen.')
+  }
 }
 
 // Lifecycle
