@@ -180,9 +180,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useSignupProtection } from '@/composables/useSignupProtection'
 
 const router = useRouter()
 const { showError, handleAuthError } = useErrorHandler()
+const { isRecentlySignedUp, markSignupAttempt, clearSignupAttempt } = useSignupProtection()
 
 // Form data
 const name = ref('')
@@ -257,6 +259,11 @@ const handleSubmit = async () => {
     return
   }
 
+  // Prevent multiple submissions
+  if (isLoading.value) {
+    return
+  }
+
   isLoading.value = true
   errorMessage.value = ''
 
@@ -275,6 +282,15 @@ const handleSubmit = async () => {
 }
 
 const handleRegister = async () => {
+  // Check if user recently attempted to sign up
+  if (isRecentlySignedUp(email.value)) {
+    errorMessage.value = 'Du har nylig forsøkt å registrere deg. Vennligst vent litt før du prøver igjen.'
+    return
+  }
+
+  // Mark this signup attempt
+  markSignupAttempt(email.value)
+
   const { data, error } = await supabase.auth.signUp({
     email: email.value,
     password: password.value,
@@ -300,12 +316,19 @@ const handleRegister = async () => {
         email: email.value,
         name: name.value
       })
+      .select()
+      .single()
 
     if (profileError) {
-      console.error('Error creating user profile:', profileError)
-      // Show error message to user
-      errorMessage.value = 'Registrering fullført, men det oppstod en feil med brukerprofilen. Prøv å logge inn.'
-      return
+      // Check if it's a duplicate key error (user already exists)
+      if (profileError.code === '23505' || profileError.message?.includes('duplicate key')) {
+        console.log('User profile already exists, continuing...')
+      } else {
+        console.error('Error creating user profile:', profileError)
+        // Show error message to user
+        errorMessage.value = 'Registrering fullført, men det oppstod en feil med brukerprofilen. Prøv å logge inn.'
+        return
+      }
     }
 
     // Show success message and switch to login mode
@@ -317,6 +340,9 @@ const handleRegister = async () => {
     
     // Keep user on login page
     // router.push('/') - removed this line
+  } else {
+    // If signup failed, clear the signup attempt marker
+    clearSignupAttempt(email.value)
   }
 }
 

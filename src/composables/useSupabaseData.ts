@@ -137,13 +137,20 @@ const createSupabaseData = () => {
               email: currentUser.value.email,
               name: currentUser.value.user_metadata?.name || null
             })
+            .select()
+            .single()
 
           if (insertError) {
-            console.error('Error creating user profile:', insertError)
-            throw insertError
+            // Check if it's a duplicate key error (user already exists)
+            if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
+              console.log('User profile already exists (caught in insert), continuing...')
+            } else {
+              console.error('Error creating user profile:', insertError)
+              throw insertError
+            }
+          } else {
+            console.log('✅ User profile created successfully')
           }
-          
-          console.log('✅ User profile created successfully')
         } else {
           console.error('Error checking user profile:', selectError)
           throw selectError
@@ -188,7 +195,10 @@ const createSupabaseData = () => {
         if (event === 'SIGNED_IN' && session?.user) {
           currentUser.value = session.user
           isAuthenticated.value = true
-          await loadData()
+          // Only load data if we don't already have it
+          if (templates.value.length === 0 && sessions.value.length === 0) {
+            await loadData()
+          }
         } else if (event === 'SIGNED_OUT') {
           currentUser.value = null
           isAuthenticated.value = false

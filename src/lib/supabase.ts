@@ -13,7 +13,9 @@ if (supabaseUrl && supabaseAnonKey) {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      flowType: 'pkce'
+      flowType: 'pkce',
+      // Add rate limiting to prevent duplicate requests
+      storageKey: 'treningsloggen-auth'
     }
   })
 } else {
