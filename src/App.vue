@@ -71,18 +71,18 @@
                         <p class="text-dark-300 text-xs">{{ currentUser?.email }}</p>
                       </div>
                       
-                      <button 
-                        @click="showProfileModal = true"
-                        data-action="profile"
-                        class="w-full text-left px-4 py-2 text-sm text-dark-300 hover:text-white hover:bg-dark-600 transition-colors"
-                      >
-                        <div class="flex items-center space-x-2">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          <span>Profil</span>
-                        </div>
-                      </button>
+                                             <router-link 
+                         to="/profile"
+                         data-action="profile"
+                         class="w-full text-left px-4 py-2 text-sm text-dark-300 hover:text-white hover:bg-dark-600 transition-colors"
+                       >
+                         <div class="flex items-center space-x-2">
+                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                           </svg>
+                           <span>Profil</span>
+                         </div>
+                       </router-link>
                       
                       <button 
                         @click="handleSignOut"
@@ -181,15 +181,15 @@
               <span class="text-xs">Statistikk</span>
             </router-link>
             
-            <button 
-              @click="showProfileModal = true"
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-            >
-              <div class="w-6 h-6 mb-1 bg-primary-500 rounded-full flex items-center justify-center">
-                <span class="text-white text-xs font-medium">{{ userInitials }}</span>
-              </div>
-              <span class="text-xs">Profil</span>
-            </button>
+                         <router-link 
+               to="/profile"
+               class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+             >
+               <div class="w-6 h-6 mb-1 bg-primary-500 rounded-full flex items-center justify-center">
+                 <span class="text-white text-xs font-medium">{{ userInitials }}</span>
+               </div>
+               <span class="text-xs">Profil</span>
+             </router-link>
           </div>
         </nav>
 
@@ -226,73 +226,7 @@
           </div>
         </nav>
 
-        <!-- Profile Modal -->
-        <div v-if="showProfileModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div class="bg-dark-800 rounded-lg max-w-md w-full p-6">
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-xl font-semibold text-white">Brukerprofil</h2>
-              <button 
-                @click="showProfileModal = false"
-                class="text-dark-300 hover:text-white transition-colors"
-              >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-white mb-2">Navn</label>
-                <input 
-                  v-model="profileName"
-                  type="text"
-                  class="input-field w-full"
-                  placeholder="Ditt navn"
-                />
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-white mb-2">E-post</label>
-                <input 
-                  v-model="profileEmail"
-                  type="email"
-                  class="input-field w-full"
-                  placeholder="din@email.com"
-                  disabled
-                />
-                <p class="text-xs text-dark-400 mt-1">E-post kan ikke endres</p>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-white mb-2">Nytt passord</label>
-                <input 
-                  v-model="newPassword"
-                  type="password"
-                  class="input-field w-full"
-                  placeholder="La stå tomt for å beholde nåværende"
-                />
-              </div>
-
-              <div class="flex space-x-3 pt-4">
-                <button 
-                  @click="updateProfile"
-                  class="btn-primary flex-1"
-                  :disabled="isUpdating"
-                >
-                  {{ isUpdating ? 'Oppdaterer...' : 'Oppdater profil' }}
-                </button>
-                <button 
-                  @click="handleSignOut"
-                  data-action="logout"
-                  class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Logg ut
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        
       </div>
     </div>
   </ErrorBoundary>
@@ -300,18 +234,7 @@
        <!-- Global Error Toast -->
     <ErrorToast />
     
-    <!-- Confirmation Modal -->
-    <ConfirmModal
-      :is-visible="showConfirmModal"
-      :title="confirmModalConfig.title"
-      :message="confirmModalConfig.message"
-      :confirm-text="confirmModalConfig.confirmText"
-      :cancel-text="confirmModalConfig.cancelText"
-      :on-confirm="confirmModalConfig.onConfirm"
-      :on-cancel="confirmModalConfig.onCancel"
-      @confirm="showConfirmModal = false"
-      @cancel="showConfirmModal = false"
-    />
+
   </template>
 
 <script setup lang="ts">
@@ -321,7 +244,6 @@ import { useHybridData } from '@/composables/useHybridData'
 import { supabase } from '@/lib/supabase'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
-import ConfirmModal from '@/components/ConfirmModal.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const route = useRoute()
@@ -331,26 +253,10 @@ const { showError, handleAuthError } = useErrorHandler()
 
 // Authentication state
 const showUserMenu = ref(false)
-const showProfileModal = ref(false)
-const isUpdating = ref(false)
 const hasInitialized = ref(false) // Track if app has been initialized
 const sessionCheckInterval = ref<NodeJS.Timeout | null>(null)
 
-// Confirmation modal state
-const showConfirmModal = ref(false)
-const confirmModalConfig = ref({
-  title: '',
-  message: '',
-  confirmText: '',
-  cancelText: '',
-  onConfirm: undefined as (() => void) | undefined,
-  onCancel: undefined as (() => void) | undefined
-})
 
-// Profile form data
-const profileName = ref('')
-const profileEmail = ref('')
-const newPassword = ref('')
 
 // Check if we're in a workout session
 const isWorkoutSession = computed(() => {
@@ -419,7 +325,6 @@ const handleSignOut = async () => {
     
     // Close menus immediately to prevent UI issues
     showUserMenu.value = false
-    showProfileModal.value = false
     
     // Add a small delay to ensure UI updates before logout
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -436,42 +341,7 @@ const handleSignOut = async () => {
   }
 }
 
-const updateProfile = async () => {
-  if (!currentUser.value) return
 
-  isUpdating.value = true
-  
-  try {
-    const updates: any = {}
-    
-    // Update name if changed
-    if (profileName.value !== currentUser.value.user_metadata?.name) {
-      updates.data = { name: profileName.value }
-    }
-    
-    // Update password if provided
-    if (newPassword.value.trim()) {
-      updates.password = newPassword.value
-    }
-    
-    if (Object.keys(updates).length > 0) {
-      const { error } = await supabase.auth.updateUser(updates)
-      
-      if (error) {
-        handleAuthError(error)
-      } else {
-        showError('Profil oppdatert!')
-        newPassword.value = ''
-        showProfileModal.value = false
-      }
-    }
-  } catch (error: any) {
-    console.error('Error updating profile:', error)
-    handleAuthError(error)
-  } finally {
-    isUpdating.value = false
-  }
-}
 
 const handleSaveWorkout = async () => {
   if (!isWorkoutSession.value || !route.params.id) return
@@ -489,35 +359,18 @@ const handleSaveWorkout = async () => {
 const handleCompleteWorkout = async () => {
   if (!isWorkoutSession.value || !route.params.id) return
 
-  // Show confirmation modal
-  confirmModalConfig.value = {
-    title: 'Avslutt Økt',
-    message: 'Er du sikker på at du vil avslutte økten?',
-    confirmText: 'Avslutt Økt',
-    cancelText: 'Avbryt',
-    onConfirm: async () => {
-      try {
-        const sessionId = route.params.id as string
-        await workoutData.completeWorkoutSession(sessionId)
-        router.push('/history')
-      } catch (error: any) {
-        handleAuthError(error)
-      }
-    },
-    onCancel: () => {
-      showConfirmModal.value = false
+  if (confirm('Er du sikker på at du vil avslutte økten?')) {
+    try {
+      const sessionId = route.params.id as string
+      await workoutData.completeWorkoutSession(sessionId)
+      router.push('/history')
+    } catch (error: any) {
+      handleAuthError(error)
     }
   }
-  showConfirmModal.value = true
 }
 
-// Initialize profile data when modal opens
-const initializeProfileData = () => {
-  if (currentUser.value) {
-    profileName.value = currentUser.value.user_metadata?.name || ''
-    profileEmail.value = currentUser.value.email || ''
-  }
-}
+
 
 // Close user menu when clicking outside
 const handleClickOutside = (event: Event) => {
@@ -534,8 +387,11 @@ const handleClickOutside = (event: Event) => {
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
+  
+  // Initialize authentication first
+  await workoutData.initializeAuth()
   
   // Add focus/blur handlers to help with tab switching issues
   const handleFocus = () => {
@@ -611,12 +467,7 @@ const stopSessionCheck = () => {
   }
 }
 
-// Watch for modal state changes
-watch(showProfileModal, (newValue) => {
-  if (newValue) {
-    initializeProfileData()
-  }
-})
+
 
 // Watch for authentication state to mark app as initialized
 watch(isAuthenticated, (newValue) => {

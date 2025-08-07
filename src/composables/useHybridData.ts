@@ -72,6 +72,7 @@ export const useHybridData = () => {
 
     // Actions (all from Supabase)
     loadData: userData.loadData,
+    initializeAuth: userData.initializeAuth,
     addTemplate: userData.addTemplate,
     updateTemplate: userData.updateTemplate,
     deleteTemplate: userData.deleteTemplate,

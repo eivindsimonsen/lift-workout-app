@@ -135,7 +135,10 @@ const createSupabaseData = () => {
               id: currentUser.value.id,
               supabase_id: currentUser.value.id,
               email: currentUser.value.email,
-              name: currentUser.value.user_metadata?.name || null
+              name: currentUser.value.user_metadata?.name || null,
+              phone: currentUser.value.user_metadata?.phone || null,
+              subscription_type: 'free',
+              subscription_status: 'active'
             })
             .select()
             .single()
@@ -587,36 +590,56 @@ const createSupabaseData = () => {
 
   const updateWorkoutSession = async (sessionId: string, updates: Partial<WorkoutSession>) => {
     logSupabaseAccess('Update session', sessionId)
+    console.log('🔄 Updating workout session:', sessionId, 'with updates:', updates)
     
-    const { error } = await supabase
-      .from('workout_sessions')
-      .update({
-        template_name: updates.templateName,
-        workout_type: updates.workoutType,
-        duration: updates.duration,
-        total_volume: updates.totalVolume,
-        exercises: updates.exercises,
-        is_completed: updates.isCompleted,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', sessionId)
+    try {
+      const { error } = await supabase
+        .from('workout_sessions')
+        .update({
+          template_name: updates.templateName,
+          workout_type: updates.workoutType,
+          duration: updates.duration,
+          total_volume: updates.totalVolume,
+          exercises: updates.exercises,
+          is_completed: updates.isCompleted,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId)
 
-    if (error) {
-      console.error('Error updating session:', error)
-      return
-    }
+      if (error) {
+        console.error('❌ Error updating session in database:', error)
+        throw error
+      }
 
-    const index = sessions.value.findIndex(s => s.id === sessionId)
-    if (index !== -1) {
-      sessions.value[index] = { ...sessions.value[index], ...updates }
+      console.log('✅ Session updated in database successfully')
+
+      const index = sessions.value.findIndex(s => s.id === sessionId)
+      if (index !== -1) {
+        sessions.value[index] = { ...sessions.value[index], ...updates }
+        console.log('🔄 Local state updated')
+      } else {
+        console.warn('⚠️ Session not found in local state for update')
+      }
+    } catch (error) {
+      console.error('❌ Error in updateWorkoutSession:', error)
+      throw error
     }
   }
 
   const completeWorkoutSession = async (sessionId: string) => {
     logSupabaseAccess('Complete session', sessionId)
+    console.log('🔄 Completing workout session:', sessionId)
     
-    const session = sessions.value.find(s => s.id === sessionId)
-    if (session) {
+    try {
+      const session = sessions.value.find(s => s.id === sessionId)
+      if (!session) {
+        console.error('❌ Session not found:', sessionId)
+        throw new Error('Session not found')
+      }
+      
+      console.log('📊 Found session, calculating volume...')
+      console.log('📋 Session data:', session)
+      
       // Calculate total volume
       const totalVolume = session.exercises.reduce((exerciseTotal, exercise) => {
         const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
@@ -628,11 +651,35 @@ const createSupabaseData = () => {
         return exerciseTotal + exerciseVolume
       }, 0)
 
+      const duration = Math.round((Date.now() - new Date(session.date).getTime()) / 60000)
+      
+      console.log('📈 Total volume calculated:', totalVolume)
+      console.log('⏱️ Duration calculated:', duration)
+
+      console.log('💾 Updating session in database...')
       await updateWorkoutSession(sessionId, {
         isCompleted: true,
         totalVolume,
-        duration: Math.round((Date.now() - new Date(session.date).getTime()) / 60000) // minutes
+        duration
       })
+      
+      console.log('✅ Session completed successfully')
+      
+      // Update local state
+      const sessionIndex = sessions.value.findIndex(s => s.id === sessionId)
+      if (sessionIndex !== -1) {
+        sessions.value[sessionIndex] = {
+          ...sessions.value[sessionIndex],
+          isCompleted: true,
+          totalVolume,
+          duration
+        }
+        console.log('🔄 Local state updated')
+      }
+      
+    } catch (error) {
+      console.error('❌ Error in completeWorkoutSession:', error)
+      throw error
     }
   }
 

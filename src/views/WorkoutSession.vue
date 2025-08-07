@@ -188,10 +188,6 @@
               </div>
             </div>
 
-
-
-
-
      <!-- Summary -->
      <div class="card">
        <h3 class="text-lg font-semibold text-white mb-4">Sammendrag</h3>
@@ -228,45 +224,26 @@
 
      </div>
    
-   <!-- Confirmation Modal -->
-   <ConfirmModal
-     :is-visible="showConfirmModal"
-     :title="confirmModalConfig.title"
-     :message="confirmModalConfig.message"
-     :confirm-text="confirmModalConfig.confirmText"
-     :cancel-text="confirmModalConfig.cancelText"
-     :on-confirm="confirmModalConfig.onConfirm"
-     :on-cancel="confirmModalConfig.onCancel"
-     @confirm="showConfirmModal = false"
-     @cancel="showConfirmModal = false"
-   />
+  
  </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
-import ConfirmModal from '@/components/ConfirmModal.vue'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { WorkoutSession } from '@/types/workout'
 
 const route = useRoute()
 const router = useRouter()
 const workoutData = useHybridData()
+const { handleAuthError } = useErrorHandler()
 
 // State
 const session = ref<WorkoutSession | null>(null)
 const startTime = ref<Date | null>(null)
 const showAddExerciseModal = ref(false)
 const newExerciseId = ref('')
-const showConfirmModal = ref(false)
-const confirmModalConfig = ref({
-  title: '',
-  message: '',
-  confirmText: '',
-  cancelText: '',
-  onConfirm: undefined as (() => void) | undefined,
-  onCancel: undefined as (() => void) | undefined
-})
 
 // Computed
 const completedSets = computed(() => {
@@ -456,31 +433,29 @@ const formatNumber = (num: number): string => {
 }
 
 const handleCompleteWorkout = () => {
-  confirmModalConfig.value = {
-    title: 'Avslutt Økt',
-    message: 'Er du sikker på at du vil avslutte økten?',
-    confirmText: 'Avslutt Økt',
-    cancelText: 'Avbryt',
-    onConfirm: () => {
-      completeWorkout()
-    },
-    onCancel: () => {
-      showConfirmModal.value = false
-    }
+  console.log('🎯 handleCompleteWorkout called')
+  
+  if (confirm('Er du sikker på at du vil avslutte økten?')) {
+    console.log('🎯 User confirmed, completing workout')
+    completeWorkout()
+  } else {
+    console.log('🎯 User cancelled')
   }
-  showConfirmModal.value = true
 }
 
 const completeWorkout = async () => {
   if (!session.value) return
   
   try {
-    showConfirmModal.value = false
+    console.log('🚀 Starting workout completion for session:', session.value.id)
+    
     await workoutData.completeWorkoutSession(session.value.id)
+    console.log('✅ Workout completed successfully')
+    
     router.push('/history')
   } catch (error: any) {
-    console.error('Error completing workout:', error)
-    alert('En feil oppstod ved fullføring av økten. Prøv igjen.')
+    console.error('❌ Error completing workout:', error)
+    handleAuthError(error)
   }
 }
 
@@ -490,7 +465,7 @@ onMounted(() => {
   const foundSession = workoutData.getSessionById.value(sessionId)
   
   if (!foundSession) {
-    alert('Økt ikke funnet')
+    handleAuthError({ message: 'Økt ikke funnet' })
     router.push('/')
     return
   }

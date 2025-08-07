@@ -8,6 +8,7 @@ import ResetPassword from '@/views/ResetPassword.vue'
 import WorkoutSession from '@/views/WorkoutSession.vue'
 import TemplateForm from '@/views/TemplateForm.vue'
 import SessionDetails from '@/views/SessionDetails.vue'
+import Profile from '@/views/Profile.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -15,6 +16,7 @@ const router = createRouter({
     { path: '/', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
     { path: '/history', name: 'History', component: History, meta: { requiresAuth: true } },
     { path: '/stats', name: 'Stats', component: Stats, meta: { requiresAuth: true } },
+    { path: '/profile', name: 'Profile', component: Profile, meta: { requiresAuth: true } },
     { path: '/login', name: 'Login', component: Login, meta: { requiresAuth: false } },
     { path: '/reset-password', name: 'ResetPassword', component: ResetPassword, meta: { requiresAuth: false } },
     { path: '/workout/:id', name: 'WorkoutSession', component: WorkoutSession, meta: { requiresAuth: true } },

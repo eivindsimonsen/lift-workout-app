@@ -314,7 +314,9 @@ const handleRegister = async () => {
         id: data.user.id,
         supabase_id: data.user.id,
         email: email.value,
-        name: name.value
+        name: name.value,
+        subscription_type: 'free',
+        subscription_status: 'active'
       })
       .select()
       .single()
