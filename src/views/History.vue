@@ -1,104 +1,57 @@
 <template>
   <div class="w-full">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-white mb-2">Historikk</h1>
-        <p class="text-dark-300">Se dine fullførte treningsøkter</p>
-      </div>
-    </div>
-
-         <!-- Filters -->
-     <div class="mt-8 bg-dark-700 rounded-lg p-4 sm:p-6">
-       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-         <!-- Search -->
-         <div class="lg:col-span-2">
-           <label class="block text-sm font-medium text-white mb-2">Søk etter økt</label>
-           <div class="relative">
-             <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-             </svg>
-             <input
-               v-model="searchQuery"
-               type="text"
-               class="input-field w-full pl-10 text-base"
-               placeholder="Søk etter økt navn..."
-             />
-           </div>
-         </div>
-         
-         <!-- Workout Type Filter -->
-         <div>
-           <label class="block text-sm font-medium text-white mb-2">Økt Type</label>
-           <select 
-             v-model="selectedWorkoutType" 
-             class="input-field w-full"
-           >
-             <option value="">Alle typer</option>
-             <option 
-               v-for="type in workoutData.workoutTypes.value" 
-               :key="type.id" 
-               :value="type.id"
-             >
-               {{ type.name }}
-             </option>
-           </select>
-         </div>
-         
-         <!-- Sort By -->
-         <div>
-           <label class="block text-sm font-medium text-white mb-2">Sorter etter</label>
-           <select 
-             v-model="sortBy" 
-             class="input-field w-full"
-           >
-             <option value="date">Dato (nyeste først)</option>
-             <option value="date-asc">Dato (eldste først)</option>
-             <option value="volume">Volum (høyest først)</option>
-             <option value="volume-asc">Volum (lavest først)</option>
-             <option value="duration">Varighet (lengst først)</option>
-             <option value="duration-asc">Varighet (kortest først)</option>
-             <option value="exercises">Antall øvelser</option>
-             <option value="sets">Antall sett</option>
-             <option value="name">Navn (A-Å)</option>
-             <option value="name-desc">Navn (Å-A)</option>
-           </select>
-         </div>
+         <!-- Header -->
+     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+       <div>
+         <h1 class="text-3xl font-bold text-white mb-2">Historikk</h1>
+         <p class="text-dark-300">Se dine fullførte treningsøkter</p>
        </div>
        
-       <!-- Active Filters Display -->
-       <div v-if="hasActiveFilters" class="mt-4 pt-4 border-t border-dark-600">
-         <div class="flex items-center gap-2 flex-wrap">
-           <span class="text-sm text-dark-300">Aktive filtre:</span>
-           <button 
-             v-if="searchQuery"
-             @click="searchQuery = ''"
-             class="inline-flex items-center gap-1 px-2 py-1 bg-primary-500/20 text-primary-400 rounded-full text-xs hover:bg-primary-500/30 transition-colors"
-           >
-             Søk: "{{ searchQuery }}"
-             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-             </svg>
-           </button>
-           <button 
-             v-if="selectedWorkoutType"
-             @click="selectedWorkoutType = ''"
-             class="inline-flex items-center gap-1 px-2 py-1 bg-primary-500/20 text-primary-400 rounded-full text-xs hover:bg-primary-500/30 transition-colors"
-           >
-             Type: {{ getWorkoutTypeName(selectedWorkoutType) }}
-             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-             </svg>
-           </button>
-           <button 
-             @click="clearAllFilters"
-             class="text-xs text-dark-400 hover:text-white transition-colors"
-           >
-             Nullstill alle filtre
-           </button>
-         </div>
-       </div>
+       <!-- Filter Button -->
+       <button 
+         @click="showFilterModal = true"
+         class="inline-flex items-center gap-2 px-4 py-2 bg-dark-600 hover:bg-dark-500 text-white rounded-lg transition-colors text-sm font-medium"
+       >
+         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+         </svg>
+         Filtre
+         <span v-if="hasActiveFilters" class="w-2 h-2 bg-primary-500 rounded-full"></span>
+       </button>
      </div>
+
+    <!-- Active Filters Display -->
+    <div v-if="hasActiveFilters" class="mt-4 flex items-center gap-2 flex-wrap">
+      <span class="text-sm text-dark-300">Aktive filtre:</span>
+      <button 
+        v-if="searchQuery"
+        @click="searchQuery = ''"
+        class="inline-flex items-center gap-1 px-2 py-1 bg-primary-500/20 text-primary-400 rounded-full text-xs hover:bg-primary-500/30 transition-colors"
+      >
+        Søk: "{{ searchQuery }}"
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <button 
+        v-if="selectedWorkoutType"
+        @click="selectedWorkoutType = ''"
+        class="inline-flex items-center gap-1 px-2 py-1 bg-primary-500/20 text-primary-400 rounded-full text-xs hover:bg-primary-500/30 transition-colors"
+      >
+        Type: {{ getWorkoutTypeName(selectedWorkoutType) }}
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <button 
+        @click="clearAllFilters"
+        class="text-xs text-dark-400 hover:text-white transition-colors"
+      >
+        Nullstill alle filtre
+      </button>
+    </div>
+
+
 
     <!-- Workout Sessions -->
     <div v-if="filteredSessions.length === 0" class="mt-8 text-center py-8 sm:py-12">
@@ -156,6 +109,69 @@
       </router-link>
     </div>
 
+    <!-- Filter Modal -->
+    <FilterModal
+      :is-visible="showFilterModal"
+      title="Filtrer historikk"
+      apply-text="Bruk filtre"
+      @close="showFilterModal = false"
+      @apply="showFilterModal = false"
+      @clear-all="clearAllFilters"
+    >
+      <!-- Search -->
+      <div>
+        <label class="block text-sm font-medium text-white mb-2">Søk etter økt</label>
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="input-field w-full pl-10 text-base"
+            placeholder="Søk etter økt navn..."
+          />
+        </div>
+      </div>
+      
+      <!-- Workout Type Filter -->
+      <div>
+        <label class="block text-sm font-medium text-white mb-2">Økt Type</label>
+        <select 
+          v-model="selectedWorkoutType" 
+          class="input-field w-full"
+        >
+          <option value="">Alle typer</option>
+          <option 
+            v-for="type in workoutData.workoutTypes.value" 
+            :key="type.id" 
+            :value="type.id"
+          >
+            {{ type.name }}
+          </option>
+        </select>
+      </div>
+      
+      <!-- Sort By -->
+      <div>
+        <label class="block text-sm font-medium text-white mb-2">Sorter etter</label>
+        <select 
+          v-model="sortBy" 
+          class="input-field w-full"
+        >
+          <option value="date">Dato (nyeste først)</option>
+          <option value="date-asc">Dato (eldste først)</option>
+          <option value="volume">Volum (høyest først)</option>
+          <option value="volume-asc">Volum (lavest først)</option>
+          <option value="duration">Varighet (lengst først)</option>
+          <option value="duration-asc">Varighet (kortest først)</option>
+          <option value="exercises">Antall øvelser</option>
+          <option value="sets">Antall sett</option>
+          <option value="name">Navn (A-Å)</option>
+          <option value="name-desc">Navn (Å-A)</option>
+        </select>
+      </div>
+    </FilterModal>
       
   </div>
 </template>
@@ -163,6 +179,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useHybridData } from '@/composables/useHybridData'
+import FilterModal from '@/components/FilterModal.vue'
 import type { WorkoutSession } from '@/types/workout'
 
 const workoutData = useHybridData()
@@ -171,6 +188,7 @@ const workoutData = useHybridData()
 const searchQuery = ref('')
 const selectedWorkoutType = ref('')
 const sortBy = ref('date')
+const showFilterModal = ref(false)
 
 // Computed
 const filteredSessions = computed(() => {

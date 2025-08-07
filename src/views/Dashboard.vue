@@ -1,43 +1,6 @@
 <template>
   <div>
-  <!-- Header with Filter and New Workout Button -->
-         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-           <div class="flex items-center gap-2 flex-wrap">
-             <button 
-               @click="selectedWorkoutType = ''"
-               :class="[
-                 'px-4 py-2 rounded-lg border transition-colors text-sm font-medium',
-                 selectedWorkoutType === '' 
-                   ? 'bg-primary-500 text-white border-primary-500' 
-                   : 'bg-dark-600 text-dark-300 border-dark-500 hover:bg-dark-500'
-               ]"
-             >
-               Alle typer
-             </button>
-                           <button 
-                v-for="type in workoutTypes" 
-                :key="type.id"
-               @click="selectedWorkoutType = type.id"
-               :class="[
-                 'px-4 py-2 rounded-lg border transition-colors text-sm font-medium',
-                 selectedWorkoutType === type.id 
-                   ? 'bg-primary-500 text-white border-primary-500' 
-                   : 'bg-dark-600 text-dark-300 border-dark-500 hover:bg-dark-500'
-               ]"
-             >
-               {{ type.name }}
-             </button>
-           </div>
-           <router-link 
-             to="/template/create"
-             class="btn-primary inline-flex items-center gap-2"
-           >
-             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-             </svg>
-             Ny Økt
-           </router-link>
-         </div>
+
 
                                                    <!-- Active Workout Sessions -->
          <div v-if="activeSessions.length > 0" class="mt-8">
@@ -74,10 +37,21 @@
           </div>
                  </div>
 
-                                                                               <!-- Workout Templates Section -->
-            <div class="mt-8">
-              <h2 class="text-xl font-semibold text-white mb-4">Treningsøkter</h2>
-            </div>
+                                                                                                                                                               <!-- Workout Templates Section -->
+             <div>
+               <div class="flex items-center justify-between mb-4">
+                 <h2 class="text-xl font-semibold text-white">Treningsøkter</h2>
+                 <router-link 
+                   to="/template/create"
+                   class="btn-primary inline-flex items-center gap-2"
+                 >
+                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                   </svg>
+                   Ny Økt
+                 </router-link>
+               </div>
+             </div>
 
                   <div v-if="filteredTemplates.length === 0" class="mt-4 text-center py-12">
          <div class="w-16 h-16 bg-dark-700 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -234,7 +208,7 @@
       </div>
     </div>
 
-    
+
   </div>
 </template>
 
@@ -247,15 +221,11 @@ const router = useRouter()
 const workoutData = useHybridData()
 
 // State
-const selectedWorkoutType = ref('')
 const expandedTemplates = ref<Set<string>>(new Set())
 
 // Computed
 const filteredTemplates = computed(() => {
-  if (!selectedWorkoutType.value) {
-    return workoutData.templates.value
-  }
-  return workoutData.templates.value.filter(t => t.workoutType === selectedWorkoutType.value)
+  return workoutData.templates.value
 })
 
 const activeSessions = computed(() => {
@@ -266,9 +236,7 @@ const recentSessions = computed(() => {
   return workoutData.recentSessions.value
 })
 
-const workoutTypes = computed(() => {
-  return workoutData.workoutTypes.value || []
-})
+
 
 
 
@@ -332,6 +300,8 @@ const toggleExpanded = (templateId: string) => {
     expandedTemplates.value.add(templateId)
   }
 }
+
+
 
 
 </script> 
