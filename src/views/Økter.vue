@@ -113,9 +113,9 @@
                 :key="groupName"
                 class="space-y-1"
               >
-                <h4 class="text-xs font-medium text-primary-400 uppercase tracking-wide">
-                  {{ (getMuscleGroupDisplayName && getMuscleGroupDisplayName(groupName)) || groupName }}
-                </h4>
+                                 <h4 class="text-xs font-medium text-primary-400 uppercase tracking-wide">
+                   {{ groupName }}
+                 </h4>
                 <div class="space-y-1">
                   <div 
                     v-for="(exercise, index) in group" 
@@ -239,22 +239,5 @@ const getExerciseGroups = (exercises: any[]) => {
   return groups
 }
 
-const getMuscleGroupDisplayName = (groupName: string): string => {
-  const displayNames: Record<string, string> = {
-    'chest': 'Chest',
-    'back': 'Back',
-    'shoulders': 'Shoulders',
-    'biceps': 'Biceps',
-    'triceps': 'Triceps',
-    'quadriceps': 'Quadriceps',
-    'hamstrings': 'Hamstrings',
-    'glutes': 'Glutes',
-    'calves': 'Calves',
-    'core': 'Core',
-    'forearms': 'Forearms',
-    'andre': 'Other'
-  }
-  
-  return displayNames[groupName] || groupName
-}
+
 </script> 

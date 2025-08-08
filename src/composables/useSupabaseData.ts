@@ -90,17 +90,47 @@ const createSupabaseData = () => {
       if (sessionsError) throw sessionsError
       
       logSupabaseAccess('Get sessions', `${sessionsData.length} sessions`)
-      sessions.value = sessionsData.map((session: any) => ({
-        id: session.id,
-        templateId: session.template_id,
-        templateName: session.template_name,
-        workoutType: session.workout_type,
-        date: new Date(session.date),
-        duration: session.duration,
-        totalVolume: session.total_volume,
-        exercises: session.exercises,
-        isCompleted: session.is_completed
-      }))
+      console.log('🔍 LoadData - Raw sessions from database:', sessionsData)
+      sessions.value = sessionsData.map((session: any) => {
+        console.log('🔍 LoadData - Processing session:', session.id, 'Exercises:', session.exercises)
+        
+        // Ensure exercises data is properly formatted with numbers
+        const exercises = session.exercises?.map((exercise: any) => ({
+          ...exercise,
+          sets: exercise.sets?.map((set: any) => ({
+            ...set,
+            weight: typeof set.weight === 'string' ? parseFloat(set.weight) || 0 : set.weight || 0,
+            reps: typeof set.reps === 'string' ? parseInt(set.reps) || 0 : set.reps || 0
+          })) || []
+        })) || []
+        
+        console.log('🔍 LoadData - Processed exercises:', exercises)
+        
+        // Recalculate total volume based on corrected weights
+        const recalculatedTotalVolume = exercises.reduce((exerciseTotal, exercise) => {
+          const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
+            if (set.isCompleted && set.weight && set.reps) {
+              return setTotal + (set.weight * set.reps)
+            }
+            return setTotal
+          }, 0)
+          return exerciseTotal + exerciseVolume
+        }, 0)
+        
+        console.log('🔍 LoadData - Original totalVolume:', session.total_volume, 'Recalculated:', recalculatedTotalVolume)
+        
+        return {
+          id: session.id,
+          templateId: session.template_id,
+          templateName: session.template_name,
+          workoutType: session.workout_type,
+          date: new Date(session.date),
+          duration: session.duration,
+          totalVolume: recalculatedTotalVolume,
+          exercises: exercises,
+          isCompleted: session.is_completed
+        }
+      })
 
       // Load exercises for the current user
       const { data: exercisesData, error: exercisesError } = await supabase
@@ -145,10 +175,21 @@ const createSupabaseData = () => {
             muscleGroupMapping[group.toLowerCase()] || group
           )
           
-          // Remove duplicates and keep only the simplified groups
-          muscleGroups = [...new Set(mappedGroups)].filter(group => 
+          // Remove duplicates and keep only the simplified groups, but convert to Norwegian display names
+          const simplifiedGroups = [...new Set(mappedGroups)].filter(group => 
             ['chest', 'back', 'legs', 'arms', 'shoulders'].includes(group)
           )
+          
+          // Convert to Norwegian display names
+          const norwegianMapping: { [key: string]: string } = {
+            'chest': 'Bryst',
+            'back': 'Rygg',
+            'legs': 'Ben',
+            'arms': 'Armer',
+            'shoulders': 'Skuldre'
+          }
+          
+          muscleGroups = simplifiedGroups.map(group => norwegianMapping[group] || group)
         }
         
         return {
@@ -662,6 +703,34 @@ const createSupabaseData = () => {
   const updateWorkoutSession = async (sessionId: string, updates: Partial<WorkoutSession>) => {
     logSupabaseAccess('Update session', sessionId)
 
+    // Debug logging
+    if (updates.exercises) {
+      console.log('🔍 UpdateWorkoutSession - Exercises being saved:', updates.exercises)
+      
+      // Ensure all weights and reps are numbers before saving
+      updates.exercises.forEach((exercise: any, index: number) => {
+        exercise.sets.forEach((set: any, setIndex: number) => {
+          // Ensure weight and reps are numbers
+          if (typeof set.weight === 'string') {
+            set.weight = parseFloat(set.weight) || 0
+          }
+          if (typeof set.reps === 'string') {
+            set.reps = parseInt(set.reps) || 0
+          }
+          
+          // Additional safety check - ensure they are actually numbers
+          set.weight = Number(set.weight) || 0
+          set.reps = Number(set.reps) || 0
+          
+          console.log(`🔍 UpdateWorkoutSession - Exercise ${index}, Set ${setIndex}:`, {
+            weight: set.weight,
+            weightType: typeof set.weight,
+            reps: set.reps,
+            repsType: typeof set.reps
+          })
+        })
+      })
+    }
     
     try {
       const { error } = await supabase
@@ -709,15 +778,23 @@ const createSupabaseData = () => {
 
       
       // Calculate total volume
+      console.log('🔍 CompleteWorkoutSession - Session exercises:', session.exercises)
       const totalVolume = session.exercises.reduce((exerciseTotal, exercise) => {
         const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
+          console.log('🔍 CompleteWorkoutSession - Set:', set)
           if (set.isCompleted && set.weight) {
-            return setTotal + (set.weight * set.reps)
+            // Ensure weight and reps are numbers
+            const weight = Number(set.weight) || 0
+            const reps = Number(set.reps) || 0
+            const volume = weight * reps
+            console.log('🔍 CompleteWorkoutSession - Weight:', weight, 'Reps:', reps, 'Volume:', volume)
+            return setTotal + volume
           }
           return setTotal
         }, 0)
         return exerciseTotal + exerciseVolume
       }, 0)
+      console.log('🔍 CompleteWorkoutSession - Total volume:', totalVolume)
 
       const duration = Math.round((Date.now() - new Date(session.date).getTime()) / 60000)
       

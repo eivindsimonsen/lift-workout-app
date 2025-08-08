@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between mb-8">
       <div>
         <h1 class="text-3xl font-bold text-white mb-2">{{ exercise?.name }}</h1>
-        <p class="text-dark-300">{{ exercise?.muscleGroups?.join(', ') || 'Øvelse' }}</p>
+                 <p class="text-dark-300">{{ exercise?.muscleGroups?.join(', ') || 'Øvelse' }}</p>
       </div>
       <router-link 
         to="/exercises" 
@@ -328,6 +328,8 @@ const formatDate = (date: Date): string => {
     month: 'short'
   }).format(date)
 }
+
+
 
 const getWeekNumber = (date: Date): number => {
   const startOfYear = new Date(date.getFullYear(), 0, 1)

@@ -98,7 +98,7 @@
                   :key="muscle"
                   class="px-2 py-1 text-xs bg-dark-600 text-dark-300 rounded"
                 >
-                  {{ getMuscleGroupDisplayName(muscle) }}
+                  {{ muscle }}
                 </span>
               </div>
             </div>
@@ -144,7 +144,7 @@ const showAddForm = ref(false)
 const editingExercise = ref<any>(null)
 
 // Muscle group order for categorization
-const muscleGroupOrder = ['chest', 'back', 'legs', 'arms', 'shoulders']
+const muscleGroupOrder = ['Bryst', 'Rygg', 'Ben', 'Armer', 'Skuldre']
 
 // Computed properties
 const isLoading = computed(() => workoutData.isLoading.value)
@@ -233,7 +233,7 @@ const formatDate = (date: Date): string => {
 }
 
 const getCategoryName = (muscleGroup: string): string => {
-  return getMuscleGroupDisplayName(muscleGroup)
+  return muscleGroup
 }
 
 const getExercisesByCategory = (muscleGroup: string) => {
@@ -242,17 +242,7 @@ const getExercisesByCategory = (muscleGroup: string) => {
 
 
 
-const getMuscleGroupDisplayName = (groupName: string): string => {
-  const displayNames: Record<string, string> = {
-    'chest': 'Bryst',
-    'back': 'Rygg',
-    'legs': 'Ben',
-    'arms': 'Armer',
-    'shoulders': 'Skuldre'
-  }
-  
-  return displayNames[groupName] || groupName
-}
+
 
 const editExercise = (exercise: any) => {
   editingExercise.value = exercise

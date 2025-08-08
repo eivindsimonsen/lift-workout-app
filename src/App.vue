@@ -11,106 +11,6 @@
 
       <!-- App content when loaded -->
       <div v-else>
-        <!-- Header - only show if authenticated -->
-        <header v-if="isAuthenticated" class="bg-dark-800 border-b border-dark-700">
-          <div class="container mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h1 class="text-2xl font-bold text-white">
-                  <span class="text-primary-500">Fremgang</span>
-                </h1>
-                <p class="text-sm text-dark-300">Full kontroll over treningsøktene dine</p>
-              </div>
-              
-              <!-- Desktop Navigation -->
-              <nav class="hidden md:flex items-center space-x-6">
-                <router-link 
-                  to="/" 
-                  class="text-dark-300 hover:text-white transition-colors"
-                  active-class="nav-link-active"
-                >
-                  Økter
-                </router-link>
-                <router-link 
-                  to="/exercises" 
-                  class="text-dark-300 hover:text-white transition-colors"
-                  active-class="nav-link-active"
-                >
-                  Øvelser
-                </router-link>
-                <router-link 
-                  to="/history" 
-                  class="text-dark-300 hover:text-white transition-colors"
-                  active-class="nav-link-active"
-                >
-                  Historikk
-                </router-link>
-                <router-link 
-                  to="/stats" 
-                  class="text-dark-300 hover:text-white transition-colors"
-                  active-class="nav-link-active"
-                >
-                  Statistikk
-                </router-link>
-                
-                <!-- User Menu -->
-                <div class="relative user-menu">
-                  <button 
-                    @click="toggleUserMenu"
-                    class="flex items-center space-x-2 text-dark-300 hover:text-white transition-colors"
-                  >
-                    <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
-                      <span class="text-white text-sm font-medium">
-                        {{ userInitials }}
-                      </span>
-                    </div>
-                    <span class="text-sm">{{ currentUser?.user_metadata?.name || currentUser?.email }}</span>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  
-                  <!-- User Dropdown Menu -->
-                  <div v-if="showUserMenu" class="absolute right-0 mt-2 w-48 bg-dark-700 rounded-lg shadow-lg border border-dark-600 z-50">
-                    <div class="py-2">
-                      <div class="px-4 py-2 border-b border-dark-600">
-                        <p class="text-white text-sm font-medium">{{ currentUser?.user_metadata?.name || 'Bruker' }}</p>
-                        <p class="text-dark-300 text-xs">{{ currentUser?.email }}</p>
-                      </div>
-                      
-                      <router-link 
-                        to="/profile"
-                        data-action="profile"
-                        class="w-full text-left px-4 py-2 text-sm text-dark-300 hover:text-white hover:bg-dark-600 transition-colors"
-                      >
-                        <div class="flex items-center space-x-2">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          <span>Profil</span>
-                        </div>
-                      </router-link>
-                      
-                      <button 
-                        @click="handleSignOut"
-                        data-action="logout"
-                        class="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-dark-600 transition-colors"
-                      >
-                        <div class="flex items-center space-x-2">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                          </svg>
-                          <span>Logg ut</span>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </nav>
-            </div>
-          </div>
-        </header>
-
         <!-- Main content -->
         <main :class="isAuthenticated ? `container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-24 md:pb-8'}` : ''">
           <router-view />
@@ -169,7 +69,7 @@
             <router-link 
               to="/exercises" 
               class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-              :class="{ 'nav-link-active': $route.path === '/exercises' }"
+              :class="{ 'nav-link-active': $route.path === '/exercises' || $route.path.startsWith('/exercise/') }"
             >
               <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -180,7 +80,7 @@
             <router-link 
               to="/history" 
               class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-              :class="{ 'nav-link-active': $route.path === '/history' }"
+              :class="{ 'nav-link-active': $route.path === '/history' || $route.path.startsWith('/session/') }"
             >
               <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -203,9 +103,9 @@
               to="/profile"
               class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
             >
-              <div class="w-6 h-6 mb-1 bg-primary-500 rounded-full flex items-center justify-center">
-                <span class="text-white text-xs font-medium">{{ userInitials }}</span>
-              </div>
+              <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
               <span class="text-xs">Profil</span>
             </router-link>
           </div>
@@ -266,7 +166,6 @@ const workoutData = useHybridData()
 const { showError, handleAuthError } = useErrorHandler()
 
 // State
-const showUserMenu = ref(false)
 const hasInitialized = ref(false)
 const sessionCheckInterval = ref<NodeJS.Timeout | null>(null)
 
@@ -306,33 +205,9 @@ const isLoading = computed(() => {
   return !hasInitialized.value && workoutData.isLoading.value
 })
 
-const userInitials = computed(() => {
-  if (!currentUser.value) return '?'
-  
-  const name = currentUser.value.user_metadata?.name || currentUser.value.email || ''
-  return name
-    .split(' ')
-    .map((word: string) => word.charAt(0).toUpperCase())
-    .join('')
-    .slice(0, 2)
-})
+
 
 // Methods
-const toggleUserMenu = () => {
-  showUserMenu.value = !showUserMenu.value
-}
-
-const handleSignOut = async () => {
-  try {
-    showUserMenu.value = false
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await workoutData.signOut()
-    router.push('/login')
-  } catch (error) {
-    console.error('Error during sign out:', error)
-    router.push('/login')
-  }
-}
 
 const handleSaveWorkout = async () => {
   if (!isWorkoutSession.value || !route.params.id) return
@@ -360,17 +235,7 @@ const handleCompleteWorkout = async () => {
   }
 }
 
-const handleClickOutside = (event: Event) => {
-  const target = event.target as Element
-  
-  if (target.closest('[data-action="logout"]') || target.closest('[data-action="profile"]')) {
-    return
-  }
-  
-  if (!target.closest('.user-menu')) {
-    showUserMenu.value = false
-  }
-}
+
 
 // Session management
 const startSessionCheck = () => {
@@ -394,8 +259,6 @@ const stopSessionCheck = () => {
 
 // Lifecycle
 onMounted(async () => {
-  document.addEventListener('click', handleClickOutside)
-  
   await workoutData.initializeAuth()
   
   const handleFocus = () => {
@@ -411,8 +274,6 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-  
   if (typeof window !== 'undefined') {
     const focusHandler = (window as any).__appFocusHandler
     

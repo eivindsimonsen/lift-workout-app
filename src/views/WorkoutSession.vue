@@ -72,23 +72,24 @@
             </div>
 
                          <div class="grid grid-cols-2 gap-3">
-               <div>
-                 <label class="block text-xs text-dark-300 mb-1">Reps</label>
-                                   <input
-                    v-model.number="set.reps"
+                               <div>
+                  <label class="block text-xs text-dark-300 mb-1">Reps</label>
+                  <input
+                    :value="set.reps"
                     type="number"
                     inputmode="numeric"
                     min="0"
                     required
                     class="input-field w-full text-sm py-1"
                     placeholder="8"
-                    @input="updateSetCompletion(exerciseIndex, setIndex)"
+                    @input="(event) => handleRepsInput(event, exerciseIndex, setIndex)"
+                    @blur="(event) => handleRepsBlur(event, exerciseIndex, setIndex)"
                   />
-               </div>
-               <div>
-                 <label class="block text-xs text-dark-300 mb-1">Vekt (kg)</label>
-                                   <input
-                    v-model.number="set.weight"
+                </div>
+                               <div>
+                  <label class="block text-xs text-dark-300 mb-1">Vekt (kg)</label>
+                  <input
+                    :value="set.weight"
                     type="number"
                     inputmode="decimal"
                     min="0"
@@ -96,9 +97,10 @@
                     required
                     class="input-field w-full text-sm py-1"
                     placeholder="20"
-                    @input="updateSetCompletion(exerciseIndex, setIndex)"
+                    @input="(event) => handleWeightInput(event, exerciseIndex, setIndex)"
+                    @blur="(event) => handleWeightBlur(event, exerciseIndex, setIndex)"
                   />
-               </div>
+                </div>
              </div>
 
             <!-- Volume Display -->
@@ -299,10 +301,80 @@ const getCompletedSets = (exercise: any): number => {
   return exercise.sets.filter((set: any) => set.isCompleted).length
 }
 
+const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  
+  const target = event.target as HTMLInputElement
+  const value = target.value
+  
+  // Update the weight value immediately for display
+  session.value.exercises[exerciseIndex].sets[setIndex].weight = value === '' ? 0 : parseFloat(value) || 0
+  
+  // Debug logging
+  console.log('🔍 handleWeightInput - Value:', value, 'Parsed:', session.value.exercises[exerciseIndex].sets[setIndex].weight)
+}
+
+const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  
+  const target = event.target as HTMLInputElement
+  const value = target.value
+  
+  // Ensure weight is a number
+  const weight = value === '' ? 0 : parseFloat(value) || 0
+  session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
+  
+  console.log('🔍 handleWeightBlur - Final weight:', weight, 'Type:', typeof weight)
+  
+  // Update completion status and save
+  updateSetCompletion(exerciseIndex, setIndex)
+}
+
+const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  
+  const target = event.target as HTMLInputElement
+  const value = target.value
+  
+  // Update the reps value immediately for display
+  session.value.exercises[exerciseIndex].sets[setIndex].reps = value === '' ? 0 : parseInt(value) || 0
+  
+  // Debug logging
+  console.log('🔍 handleRepsInput - Value:', value, 'Parsed:', session.value.exercises[exerciseIndex].sets[setIndex].reps)
+}
+
+const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  
+  const target = event.target as HTMLInputElement
+  const value = target.value
+  
+  // Ensure reps is a number
+  const reps = value === '' ? 0 : parseInt(value) || 0
+  session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
+  
+  console.log('🔍 handleRepsBlur - Final reps:', reps, 'Type:', typeof reps)
+  
+  // Update completion status and save
+  updateSetCompletion(exerciseIndex, setIndex)
+}
+
 const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   if (!session.value) return
   
   const set = session.value.exercises[exerciseIndex].sets[setIndex]
+  
+  // Ensure weight and reps are numbers
+  if (typeof set.weight === 'string') {
+    set.weight = parseFloat(set.weight) || 0
+  }
+  if (typeof set.reps === 'string') {
+    set.reps = parseInt(set.reps) || 0
+  }
+  
+  // Debug logging
+  console.log('🔍 UpdateSetCompletion - Weight:', set.weight, 'Type:', typeof set.weight)
+  console.log('🔍 UpdateSetCompletion - Reps:', set.reps, 'Type:', typeof set.reps)
   
   // A set is only completed if both weight and reps are provided and greater than 0
   const isCompleted = Boolean(
@@ -334,6 +406,10 @@ const addSet = (exerciseIndex: number) => {
     distance: undefined,
     isCompleted: false
   }
+  
+  // Ensure weight and reps are numbers
+  newSet.weight = Number(newSet.weight) || 0
+  newSet.reps = Number(newSet.reps) || 0
   
   exercise.sets.push(newSet)
   
@@ -374,6 +450,10 @@ const addExerciseToSession = () => {
       isCompleted: false
     }]
   }
+  
+  // Ensure weight and reps are numbers
+  newExercise.sets[0].weight = Number(newExercise.sets[0].weight) || 0
+  newExercise.sets[0].reps = Number(newExercise.sets[0].reps) || 0
 
   // Add the exercise to the session
   session.value.exercises.push(newExercise)

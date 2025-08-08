@@ -43,46 +43,46 @@
               <input
                 v-model="form.muscleGroups"
                 type="checkbox"
-                value="chest"
+                value="Bryst"
                 class="mr-2 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500"
               />
-                             <span class="text-white text-sm">Bryst</span>
-             </label>
-             <label class="flex items-center">
-               <input
-                 v-model="form.muscleGroups"
-                 type="checkbox"
-                 value="back"
-                 class="mr-2 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500"
-               />
-               <span class="text-white text-sm">Rygg</span>
-             </label>
-             <label class="flex items-center">
-               <input
-                 v-model="form.muscleGroups"
-                 type="checkbox"
-                 value="legs"
-                 class="mr-2 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500"
-               />
-               <span class="text-white text-sm">Ben</span>
-             </label>
-             <label class="flex items-center">
-               <input
-                 v-model="form.muscleGroups"
-                 type="checkbox"
-                 value="arms"
-                 class="mr-2 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500"
-               />
-               <span class="text-white text-sm">Armer</span>
-             </label>
-             <label class="flex items-center">
-               <input
-                 v-model="form.muscleGroups"
-                 type="checkbox"
-                 value="shoulders"
-                 class="mr-2 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500"
-               />
-               <span class="text-white text-sm">Skuldre</span>
+              <span class="text-white text-sm">Bryst</span>
+            </label>
+            <label class="flex items-center">
+              <input
+                v-model="form.muscleGroups"
+                type="checkbox"
+                value="Rygg"
+                class="mr-2 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500"
+              />
+              <span class="text-white text-sm">Rygg</span>
+            </label>
+            <label class="flex items-center">
+              <input
+                v-model="form.muscleGroups"
+                type="checkbox"
+                value="Ben"
+                class="mr-2 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500"
+              />
+              <span class="text-white text-sm">Ben</span>
+            </label>
+            <label class="flex items-center">
+              <input
+                v-model="form.muscleGroups"
+                type="checkbox"
+                value="Armer"
+                class="mr-2 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500"
+              />
+              <span class="text-white text-sm">Armer</span>
+            </label>
+            <label class="flex items-center">
+              <input
+                v-model="form.muscleGroups"
+                type="checkbox"
+                value="Skuldre"
+                class="mr-2 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-primary-500"
+              />
+              <span class="text-white text-sm">Skuldre</span>
             </label>
           </div>
         </div>
