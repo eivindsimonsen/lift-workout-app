@@ -13,7 +13,7 @@
          </div>
          <button 
            @click="showAddForm = true"
-           class="btn-primary px-8 py-4 text-base font-medium flex items-center gap-2 whitespace-nowrap"
+           class="btn-primary px-6 py-3 text-base font-medium flex items-center gap-2 whitespace-nowrap"
          >
            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -94,29 +94,20 @@
             
             
             
-            <!-- Muscle Groups -->
-            <div class="mb-3">
-              <div class="flex flex-wrap gap-1">
-                <span 
-                  v-for="muscle in exercise.muscleGroups" 
-                  :key="muscle"
-                  class="px-2 py-1 text-xs bg-dark-600 text-dark-300 rounded"
-                >
-                  {{ muscle }}
-                </span>
-              </div>
-            </div>
-            
             <div v-if="exercise.lastPerformance" class="space-y-1">
               <p class="text-sm text-dark-300">
                 Sist: {{ exercise.lastPerformance.weight }}kg × {{ exercise.lastPerformance.reps }} reps
               </p>
-              <p class="text-xs text-dark-400">
-                {{ formatDate(exercise.lastPerformance.date) }}
+            </div>
+            
+            <!-- One Rep Max -->
+            <div v-if="exercise.oneRepMax > 0" class="space-y-1">
+              <p class="text-sm text-dark-300">
+                1RM: {{ exercise.oneRepMax }}kg × 1 rep
               </p>
             </div>
             
-            <div v-else class="text-sm text-dark-400">
+            <div v-if="!exercise.lastPerformance && exercise.oneRepMax === 0" class="text-sm text-dark-400">
               Ingen data ennå
             </div>
           </div>
@@ -197,12 +188,30 @@ const allExercises = computed(() => {
       ? performances.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
       : null
 
+    // Calculate one rep max from all completed sets with 1 rep
+    let oneRepMax = 0
+    workoutData.sessions.value
+      ?.filter(session => session.isCompleted)
+      ?.forEach(session => {
+        const sessionExercise = session.exercises?.find(e => e.exerciseId === exercise.id)
+        if (sessionExercise) {
+          sessionExercise.sets?.forEach(set => {
+            if (set.isCompleted && set.weight && set.reps === 1) {
+              if (set.weight > oneRepMax) {
+                oneRepMax = set.weight
+              }
+            }
+          })
+        }
+      })
+
     return {
       id: exercise.id,
       name: exercise.name,
       muscleGroups: exercise.muscleGroups || [],
       totalSessions,
-      lastPerformance
+      lastPerformance,
+      oneRepMax
     }
   }) || []
 

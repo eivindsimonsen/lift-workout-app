@@ -34,8 +34,8 @@
           <p class="text-sm text-dark-300">Totale reps</p>
         </div>
         <div class="card text-center">
-          <p class="text-2xl font-bold text-primary-500">{{ personalBest.weight }}kg</p>
-          <p class="text-sm text-dark-300">Personlig rekord</p>
+          <p class="text-2xl font-bold text-primary-500">{{ oneRepMax }}kg</p>
+          <p class="text-sm text-dark-300">1RM</p>
         </div>
         <div class="card text-center">
           <p class="text-2xl font-bold text-primary-500">{{ averageWeight }}kg</p>
@@ -346,11 +346,51 @@ const totalReps = computed(() => {
 })
 
 const personalBest = computed(() => {
-  if (performances.value.length === 0) return { weight: 0, reps: 0 }
-  // Find the highest weight lifted for this specific exercise
-  return performances.value.reduce((best, current) => {
-    return current.weight > best.weight ? current : best
-  })
+  if (!exercise.value) return { weight: 0, reps: 0 }
+  
+  // Find the highest weight lifted for 1 rep (one rep max)
+  let oneRepMax = 0
+  
+  workoutData.sessions.value
+    .filter(session => session.isCompleted)
+    .forEach(session => {
+      const exerciseData = session.exercises.find(e => e.exerciseId === exercise.value.id)
+      if (exerciseData) {
+        exerciseData.sets.forEach(set => {
+          if (set.isCompleted && set.weight && set.reps === 1) {
+            if (set.weight > oneRepMax) {
+              oneRepMax = set.weight
+            }
+          }
+        })
+      }
+    })
+  
+  return { weight: oneRepMax, reps: 1 }
+})
+
+const oneRepMax = computed(() => {
+  if (!exercise.value) return 0
+  
+  // Find the highest weight lifted for 1 rep (one rep max)
+  let max = 0
+  
+  workoutData.sessions.value
+    .filter(session => session.isCompleted)
+    .forEach(session => {
+      const exerciseData = session.exercises.find(e => e.exerciseId === exercise.value.id)
+      if (exerciseData) {
+        exerciseData.sets.forEach(set => {
+          if (set.isCompleted && set.weight && set.reps === 1) {
+            if (set.weight > max) {
+              max = set.weight
+            }
+          }
+        })
+      }
+    })
+  
+  return max
 })
 
 const averageWeight = computed(() => {

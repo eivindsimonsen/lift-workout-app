@@ -29,7 +29,7 @@
             <!-- Last Performance -->
             <div v-if="getLastPerformance(exercise.exerciseId)" class="mt-1">
               <p class="text-xs text-dark-400">
-                Sist: {{ getLastPerformance(exercise.exerciseId)?.weight }}kg × {{ getLastPerformance(exercise.exerciseId)?.reps }} reps
+                Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg
                 <span class="text-dark-500">• {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
               </p>
             </div>
@@ -81,7 +81,7 @@
                     min="0"
                     required
                     class="input-field w-full text-sm py-1"
-                    placeholder="8"
+                    :placeholder="getLastPerformance(exercise.exerciseId)?.reps?.toString() || '8'"
                     @input="(event) => handleRepsInput(event, exerciseIndex, setIndex)"
                     @blur="(event) => handleRepsBlur(event, exerciseIndex, setIndex)"
                   />
@@ -96,7 +96,7 @@
                     step="0.5"
                     required
                     class="input-field w-full text-sm py-1"
-                    placeholder="20"
+                    :placeholder="getLastPerformance(exercise.exerciseId)?.weight?.toString() || '20'"
                     @input="(event) => handleWeightInput(event, exerciseIndex, setIndex)"
                     @blur="(event) => handleWeightBlur(event, exerciseIndex, setIndex)"
                   />
