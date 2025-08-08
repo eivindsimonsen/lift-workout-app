@@ -1,135 +1,63 @@
 # Treningsloggen
 
-En minimalistisk og stilren treningslogg bygget med Vue 3, TypeScript og TailwindCSS.
+En treningslogg bygget med Vue 3 (Composition API) og TypeScript. Appen gjør det enkelt å registrere økter, følge progresjon og se meningsfulle statistikker – med fokus på konsistens og styrkeutvikling.
 
-## 🎯 Konsept
+## Hva appen gjør
+- Registrer økter med øvelser og sett (reps/vekt)
+- Se «Sist»‑hint per øvelse i aktive økter (reps × kg) for raskt å matche/forbedre
+- Øvelsesliste med 1RM (one‑rep max) per øvelse
+- Detaljside for øvelse med graf over fremgang og 1RM som personlig rekord
+- Historikk over fullførte økter
+- Statistikkside med totaler, vaner (streaks/kalender), fordeling og motivasjon
 
-Treningsloggen handler om å alltid ta neste steg — neste repetisjon. Det er en motiverende, men oversiktlig loggbok som hjelper deg med å se utvikling over tid og gjøre det enklere å være konsistent med treningen.
+## Hovedfunksjoner
+- Økter: Start/fortsett aktive økter, legg til øvelser og sett
+- Øvelser: Kategorisert liste, redigering, 1RM‑oversikt
+- Historikk: Filtrer/les oppsummering av tidligere økter
+- Statistikk: Fremgang over tid, vaner, fordeling og prestasjoner
+- Mobilfokus: Nederste navigasjon og rene visninger
 
-## ✨ Funksjoner
+## Teknologi
+- Vue 3 + Composition API (TypeScript)
+- Vite, TailwindCSS
+- Supabase (autentisering og brukerdata)
 
-- **Økter**: Oversikt over siste økter, totalvolum og raske handlinger
-- **Ny Økt**: Enkel registrering av treningsøkter med øvelser, sett og repetisjoner
-- **Historikk**: Søk og filtrer gjennom alle tidligere økter
-- **Statistikk**: Se progresjon over tid med grafer og analyser
-- **Lokal lagring**: Alle data lagres lokalt i nettleseren
-- **Responsivt design**: Fungerer perfekt på både desktop og mobil
-
-## 🛠️ Teknologi
-
-- **Vue 3** med Composition API
-- **TypeScript** for type-sikkerhet
-- **TailwindCSS** for styling
-- **Composables** for state management
-- **Vue Router** for navigasjon
-- **Vite** som build tool
-
-## 🚀 Kom i gang
-
-### Forutsetninger
-
-- Node.js (versjon 16 eller høyere)
-- npm eller yarn
-
-### Installasjon
-
-1. Klon prosjektet:
-```bash
-git clone <repository-url>
-cd treningsloggen
-```
-
-2. Installer avhengigheter:
+## Kjør lokalt
+1) Installer avhengigheter:
 ```bash
 npm install
 ```
-
-3. Start utviklingsserver:
+2) Start utviklingsserver:
 ```bash
 npm run dev
 ```
+3) Åpne `http://localhost:5173`
 
-4. Åpne nettleseren og gå til `http://localhost:5173`
+## Supabase
+Appen bruker Supabase for autentisering og brukerens data. Se `supabase-setup/` for komplett steg‑for‑steg oppsett, ferdige SQL‑filer (opprette tabeller, seed av norske øvelser) og tips for free‑tier.
 
-### Build for produksjon
+Kortversjon:
+- Opprett prosjekt i Supabase
+- Sett `VITE_SUPABASE_URL` og `VITE_SUPABASE_ANON_KEY` i `.env.local`
+- Kjør relevante SQL‑skript fra `supabase-setup/`
 
-```bash
-npm run build
-```
-
-## 📱 Bruk av applikasjonen
-
-### Registrere en ny økt
-
-1. Klikk på "Start Økt" på økter-siden eller naviger til "Ny Økt"
-2. Fyll ut øktdetaljer (navn, varighet)
-3. Legg til øvelser ved å klikke "Legg til øvelse"
-4. For hver øvelse, legg til sett med reps og vekt
-5. Klikk "Lagre Økt" når du er ferdig
-
-### Se historikk
-
-- Naviger til "Historikk" for å se alle tidligere økter
-- Bruk søkefunksjonen for å finne spesifikke økter
-- Sorter etter dato, navn, varighet eller volum
-- Klikk på en økt for å se detaljer
-
-### Analysere statistikk
-
-- Gå til "Statistikk" for å se progresjon over tid
-- Se ukentlig volum og mest brukte øvelser
-- Følg din utvikling med motivasjonelle elementer
-
-## 🎨 Design
-
-Applikasjonen bruker et mørkt tema med oransje aksentfarge (#F97316) for å skape en solid og motiverende følelse. Designet er minimalistisk og fokuserer på brukervennlighet.
-
-### Farger
-
-- **Primærfarge**: Oransje (#F97316)
-- **Bakgrunn**: Mørk (#0f172a)
-- **Kort**: Mørkere grå (#1e293b)
-- **Tekst**: Hvit og grå nyanser
-
-## 📊 Data Struktur
-
-Applikasjonen lagrer følgende data lokalt:
-
-- **Workout**: Øktdetaljer med navn, dato og varighet
-- **Exercise**: Øvelser med navn
-- **Set**: Sett med reps, vekt, varighet og andre detaljer
-
-## 🔧 Utvikling
-
-### Prosjektstruktur
-
+## Mappestruktur (utdrag)
 ```
 src/
-├── components/     # Gjenbrukbare komponenter
-├── views/         # Side-komponenter
-├── composables/   # Vue composables
-├── types/         # TypeScript type definisjoner
-├── router/        # Vue Router konfigurasjon
-└── style.css      # Globale stiler
+  components/
+  views/
+  composables/
+  router/
+  types/
+supabase-setup/
+  create_exercises_table.sql
+  fix_exercises_table.sql
+  update_users_table.sql
+  SEED_exercises_no.sql
+  README.md
 ```
 
-### Nye funksjoner
+## Bidrag
+Dette er et personlig prosjekt, men innspill er velkomne.
 
-For å legge til nye funksjoner:
-
-1. Opprett nye komponenter i `src/components/`
-2. Legg til nye routes i `src/router/index.ts`
-3. Oppdater store hvis nødvendig i `src/stores/`
-4. Legg til TypeScript typer i `src/types/`
-
-## 📝 Lisens
-
-Dette prosjektet er laget som en personlig treningslogg.
-
-## 🤝 Bidrag
-
-Dette er et personlig prosjekt, men feedback og forslag er alltid velkomne!
-
----
-
-**Treningsloggen** - Ta neste steg mot dine mål! 💪 
+— Ta neste steg mot dine mål 💪 
