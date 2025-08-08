@@ -159,10 +159,7 @@ const isFormValid = computed(() => {
 const handleSubmit = async () => {
   if (!isFormValid.value) return
 
-  console.log('📝 Form data before submit:', {
-    name: form.value.name.trim(),
-    muscleGroups: form.value.muscleGroups
-  })
+
 
   isSubmitting.value = true
   

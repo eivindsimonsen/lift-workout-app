@@ -309,9 +309,6 @@ const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number
   
   // Update the weight value immediately for display
   session.value.exercises[exerciseIndex].sets[setIndex].weight = value === '' ? 0 : parseFloat(value) || 0
-  
-  // Debug logging
-  console.log('🔍 handleWeightInput - Value:', value, 'Parsed:', session.value.exercises[exerciseIndex].sets[setIndex].weight)
 }
 
 const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
@@ -323,8 +320,6 @@ const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number)
   // Ensure weight is a number
   const weight = value === '' ? 0 : parseFloat(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
-  
-  console.log('🔍 handleWeightBlur - Final weight:', weight, 'Type:', typeof weight)
   
   // Update completion status and save
   updateSetCompletion(exerciseIndex, setIndex)
@@ -338,9 +333,6 @@ const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) 
   
   // Update the reps value immediately for display
   session.value.exercises[exerciseIndex].sets[setIndex].reps = value === '' ? 0 : parseInt(value) || 0
-  
-  // Debug logging
-  console.log('🔍 handleRepsInput - Value:', value, 'Parsed:', session.value.exercises[exerciseIndex].sets[setIndex].reps)
 }
 
 const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
@@ -353,8 +345,6 @@ const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) =
   const reps = value === '' ? 0 : parseInt(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
   
-  console.log('🔍 handleRepsBlur - Final reps:', reps, 'Type:', typeof reps)
-  
   // Update completion status and save
   updateSetCompletion(exerciseIndex, setIndex)
 }
@@ -364,17 +354,13 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   
   const set = session.value.exercises[exerciseIndex].sets[setIndex]
   
-  // Ensure weight and reps are numbers
+    // Ensure weight and reps are numbers
   if (typeof set.weight === 'string') {
     set.weight = parseFloat(set.weight) || 0
   }
   if (typeof set.reps === 'string') {
     set.reps = parseInt(set.reps) || 0
   }
-  
-  // Debug logging
-  console.log('🔍 UpdateSetCompletion - Weight:', set.weight, 'Type:', typeof set.weight)
-  console.log('🔍 UpdateSetCompletion - Reps:', set.reps, 'Type:', typeof set.reps)
   
   // A set is only completed if both weight and reps are provided and greater than 0
   const isCompleted = Boolean(

@@ -2,8 +2,26 @@
   <div>
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-white mb-2">Økter</h1>
-      <p class="text-dark-300">Oversikt over dine treningsøkter</p>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
+            </svg>
+          </div>
+          <h1 class="text-3xl font-bold text-white">Økter</h1>
+        </div>
+        <router-link 
+          to="/template/create"
+          class="btn-primary inline-flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Ny Økt
+        </router-link>
+      </div>
     </div>
 
     <!-- Active Workout Sessions -->
@@ -43,17 +61,8 @@
 
     <!-- Workout Templates Section -->
     <div class="mt-8">
-      <div class="flex items-center justify-between mb-4">
+      <div class="mb-4">
         <h2 class="text-xl font-semibold text-white">Treningsøkter</h2>
-        <router-link 
-          to="/template/create"
-          class="btn-primary inline-flex items-center gap-2"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          Ny Økt
-        </router-link>
       </div>
 
       <!-- Info message when there's an active session -->

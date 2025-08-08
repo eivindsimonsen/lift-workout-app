@@ -2,10 +2,14 @@
   <div>
          <!-- Header -->
      <div class="mb-8">
-       <div class="flex items-start justify-between">
-         <div>
-           <h1 class="text-3xl font-bold text-white mb-2">Øvelser</h1>
-           <p class="text-dark-300">Oversikt over alle øvelser og din fremgang</p>
+       <div class="flex items-center justify-between">
+         <div class="flex items-center gap-3">
+           <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+             </svg>
+           </div>
+           <h1 class="text-3xl font-bold text-white">Øvelser</h1>
          </div>
          <button 
            @click="showAddForm = true"
@@ -150,11 +154,8 @@ const muscleGroupOrder = ['Bryst', 'Rygg', 'Ben', 'Armer', 'Skuldre']
 const isLoading = computed(() => workoutData.isLoading.value)
 
 const allExercises = computed(() => {
-  console.log('🔍 Computing allExercises, workoutData.exercises.value:', workoutData.exercises.value)
-  
   // Start with all exercises from Supabase
   const exercises = workoutData.exercises.value?.map(exercise => {
-    console.log('🔍 Processing exercise:', exercise)
     const performances: any[] = []
     let totalSessions = 0
 
@@ -205,8 +206,6 @@ const allExercises = computed(() => {
     }
   }) || []
 
-  console.log('🔍 Final exercises array:', exercises)
-  
   // Sort exercises by name within each category
   return exercises.sort((a, b) => a.name.localeCompare(b.name, 'no'))
 })
@@ -239,10 +238,6 @@ const getCategoryName = (muscleGroup: string): string => {
 const getExercisesByCategory = (muscleGroup: string) => {
   return allExercises.value?.filter(exercise => exercise.muscleGroups?.includes(muscleGroup)) || []
 }
-
-
-
-
 
 const editExercise = (exercise: any) => {
   editingExercise.value = exercise

@@ -1,10 +1,14 @@
 <template>
   <div class="w-full">
          <!-- Header -->
-     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-       <div>
-         <h1 class="text-3xl font-bold text-white mb-2">Historikk</h1>
-         <p class="text-dark-300">Se dine fullførte treningsøkter</p>
+     <div class="flex items-center justify-between mb-8">
+       <div class="flex items-center gap-3">
+         <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+           <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+           </svg>
+         </div>
+         <h1 class="text-3xl font-bold text-white">Historikk</h1>
        </div>
        
        <!-- Filter Button -->

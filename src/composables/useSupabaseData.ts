@@ -35,17 +35,14 @@ const createSupabaseData = () => {
 
   // Load data from Supabase (only user data)
   const loadData = async () => {
-    console.log('📊 loadData called, currentUser:', currentUser.value?.email)
-    console.log('📊 isAuthenticated:', isAuthenticated.value)
     
-    if (!currentUser.value) {
-      console.log('📊 No current user, skipping loadData')
-      return
-    }
+    
+          if (!currentUser.value) {
+        return
+      }
 
     // Prevent multiple simultaneous calls
     if (isLoading.value) {
-      console.log('📊 Already loading, skipping loadData')
       return
     }
 
@@ -90,9 +87,7 @@ const createSupabaseData = () => {
       if (sessionsError) throw sessionsError
       
       logSupabaseAccess('Get sessions', `${sessionsData.length} sessions`)
-      console.log('🔍 LoadData - Raw sessions from database:', sessionsData)
       sessions.value = sessionsData.map((session: any) => {
-        console.log('🔍 LoadData - Processing session:', session.id, 'Exercises:', session.exercises)
         
         // Ensure exercises data is properly formatted with numbers
         const exercises = session.exercises?.map((exercise: any) => ({
@@ -104,8 +99,6 @@ const createSupabaseData = () => {
           })) || []
         })) || []
         
-        console.log('🔍 LoadData - Processed exercises:', exercises)
-        
         // Recalculate total volume based on corrected weights
         const recalculatedTotalVolume = exercises.reduce((exerciseTotal, exercise) => {
           const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
@@ -116,8 +109,6 @@ const createSupabaseData = () => {
           }, 0)
           return exerciseTotal + exerciseVolume
         }, 0)
-        
-        console.log('🔍 LoadData - Original totalVolume:', session.total_volume, 'Recalculated:', recalculatedTotalVolume)
         
         return {
           id: session.id,
@@ -142,7 +133,6 @@ const createSupabaseData = () => {
       if (exercisesError) throw exercisesError
       
       logSupabaseAccess('Get exercises', `${exercisesData.length} exercises`)
-      console.log('📊 Loaded exercises:', exercisesData)
       exercises.value = exercisesData.map((exercise: any) => {
         // Handle both old and new data structures
         let muscleGroups = exercise.muscle_groups || []
@@ -198,9 +188,6 @@ const createSupabaseData = () => {
           muscleGroups: muscleGroups
         }
       })
-      console.log('📊 Mapped exercises:', exercises.value)
-
-  
       
     } catch (error: any) {
       console.error('❌ Error loading Supabase data:', error)
@@ -215,10 +202,7 @@ const createSupabaseData = () => {
 
   // Ensure user profile exists in users table
   const ensureUserProfile = async () => {
-    console.log('🔐 ensureUserProfile called, currentUser:', currentUser.value?.email)
-    
     if (!currentUser.value) {
-      console.log('🔐 No current user in ensureUserProfile')
       return
     }
 
@@ -275,11 +259,8 @@ const createSupabaseData = () => {
 
   // Authentication methods
   const initializeAuth = async () => {
-    console.log('🔐 Initializing authentication...')
-    
     // Prevent multiple initializations
     if (isInitialized.value || isInitializing) {
-      console.log('🔐 Auth already initialized or initializing, skipping...')
       return
     }
 
@@ -290,17 +271,11 @@ const createSupabaseData = () => {
     try {
       // Get initial session
       const { data: { session } } = await supabase.auth.getSession()
-      console.log('🔐 Initial session check:', { hasSession: !!session, hasUser: !!session?.user })
       
       if (session?.user) {
-        console.log('🔐 User found in session:', session.user.email)
         currentUser.value = session.user
         isAuthenticated.value = true
-        console.log('🔐 About to call loadData...')
         await loadData()
-        console.log('🔐 loadData completed')
-      } else {
-        console.log('🔐 No user found in session')
       }
 
       // Listen for auth changes (only set up once)
@@ -703,9 +678,7 @@ const createSupabaseData = () => {
   const updateWorkoutSession = async (sessionId: string, updates: Partial<WorkoutSession>) => {
     logSupabaseAccess('Update session', sessionId)
 
-    // Debug logging
     if (updates.exercises) {
-      console.log('🔍 UpdateWorkoutSession - Exercises being saved:', updates.exercises)
       
       // Ensure all weights and reps are numbers before saving
       updates.exercises.forEach((exercise: any, index: number) => {
@@ -721,13 +694,6 @@ const createSupabaseData = () => {
           // Additional safety check - ensure they are actually numbers
           set.weight = Number(set.weight) || 0
           set.reps = Number(set.reps) || 0
-          
-          console.log(`🔍 UpdateWorkoutSession - Exercise ${index}, Set ${setIndex}:`, {
-            weight: set.weight,
-            weightType: typeof set.weight,
-            reps: set.reps,
-            repsType: typeof set.reps
-          })
         })
       })
     }
@@ -778,23 +744,19 @@ const createSupabaseData = () => {
 
       
       // Calculate total volume
-      console.log('🔍 CompleteWorkoutSession - Session exercises:', session.exercises)
       const totalVolume = session.exercises.reduce((exerciseTotal, exercise) => {
         const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
-          console.log('🔍 CompleteWorkoutSession - Set:', set)
           if (set.isCompleted && set.weight) {
             // Ensure weight and reps are numbers
             const weight = Number(set.weight) || 0
             const reps = Number(set.reps) || 0
             const volume = weight * reps
-            console.log('🔍 CompleteWorkoutSession - Weight:', weight, 'Reps:', reps, 'Volume:', volume)
             return setTotal + volume
           }
           return setTotal
         }, 0)
         return exerciseTotal + exerciseVolume
       }, 0)
-      console.log('🔍 CompleteWorkoutSession - Total volume:', totalVolume)
 
       const duration = Math.round((Date.now() - new Date(session.date).getTime()) / 60000)
       
@@ -889,23 +851,13 @@ const createSupabaseData = () => {
     name: string
     muscleGroups: string[]
   }) => {
-    console.log('🔐 addExercise called, currentUser:', currentUser.value)
-    console.log('🔐 isAuthenticated:', isAuthenticated.value)
-    
     if (!currentUser.value) {
-      console.warn('⚠️ No user logged in, cannot add exercise')
       return null
     }
 
     try {
       // Ensure user profile exists before adding exercise
       await ensureUserProfile()
-      
-      console.log('📝 Adding exercise with data:', {
-        user_id: currentUser.value.id,
-        name: exercise.name,
-        muscle_groups: exercise.muscleGroups
-      })
       
       const { data, error } = await supabase
         .from('exercises')

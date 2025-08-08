@@ -2,9 +2,13 @@
   <div>
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-3xl font-bold text-white mb-2">{{ exercise?.name }}</h1>
-                 <p class="text-dark-300">{{ exercise?.muscleGroups?.join(', ') || 'Øvelse' }}</p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+          <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          </svg>
+        </div>
+        <h1 class="text-3xl font-bold text-white">{{ exercise?.name }}</h1>
       </div>
       <router-link 
         to="/exercises" 

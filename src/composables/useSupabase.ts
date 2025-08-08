@@ -192,12 +192,7 @@ export const useSupabase = () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-    console.log('🔧 Supabase config check:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseAnonKey,
-      url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'missing',
-      key: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'missing'
-    })
+
 
     if (supabaseUrl && supabaseAnonKey) {
       // Initialize Supabase client
@@ -211,7 +206,6 @@ export const useSupabase = () => {
         }
       })
       isInitialized.value = true
-      console.log('✅ Supabase client initialized successfully')
     } else {
       // Use mock client for missing configuration
       console.warn('⚠️ Missing Supabase environment variables. Using mock client.')
