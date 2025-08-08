@@ -1,5 +1,5 @@
 <template>
-  <div v-if="error" class="min-h-screen bg-dark-900 flex items-center justify-center px-4">
+  <div v-if="error" class="min-h-screen bg-dark-900 flex items-center justify-center px-4 py-8">
     <div class="max-w-md w-full">
       <div class="text-center mb-8">
         <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">

@@ -6,12 +6,12 @@
         <h1 class="text-3xl font-bold text-white mb-2">{{ isEditing ? 'Rediger Økt' : 'Opprett Ny Økt' }}</h1>
         <p class="text-dark-300">{{ isEditing ? 'Endre treningsøkten din' : 'Lag en ny treningsøkt' }}</p>
       </div>
-      <router-link 
-        to="/" 
-        class="btn-secondary"
-      >
-        Avbryt
-      </router-link>
+             <router-link 
+         to="/" 
+         class="btn-secondary"
+       >
+         Avbryt
+       </router-link>
     </div>
 
     <div v-if="isEditing && !template" class="text-center py-12">
@@ -72,10 +72,11 @@
               <button 
                 @click="removeExercise(index)"
                 type="button"
-                class="text-red-400 hover:text-red-300"
+                class="text-dark-400 hover:text-red-400 transition-colors p-1"
+                title="Slett øvelse"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
@@ -110,21 +111,23 @@
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="flex gap-3 justify-end">
-        <router-link 
-          to="/" 
-          class="btn-secondary"
-        >
-          Avbryt
-        </router-link>
-        <button 
-          type="submit"
-          class="btn-primary"
-        >
-          {{ isEditing ? 'Oppdater Økt' : 'Opprett Økt' }}
-        </button>
-      </div>
+             <!-- Actions -->
+       <div class="flex gap-3">
+         <button 
+           v-if="isEditing"
+           @click="deleteTemplate"
+           type="button"
+           class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+         >
+           Slett økt
+         </button>
+         <button 
+           type="submit"
+           class="flex-1 btn-primary"
+         >
+           {{ isEditing ? 'Oppdater Økt' : 'Opprett Økt' }}
+         </button>
+       </div>
     </form>
   </div>
 </template>
@@ -174,6 +177,13 @@ const addExercise = () => {
 
 const removeExercise = (index: number) => {
   templateForm.value.exercises.splice(index, 1)
+}
+
+const deleteTemplate = () => {
+  if (template.value && confirm('Er du sikker på at du vil slette denne økten?')) {
+    workoutData.deleteTemplate(template.value.id)
+    router.push('/')
+  }
 }
 
 const saveTemplate = () => {

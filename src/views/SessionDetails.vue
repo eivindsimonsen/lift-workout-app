@@ -97,21 +97,15 @@
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="flex gap-3 justify-end">
-        <button 
-          @click="deleteSession"
-          class="btn-secondary text-red-400 hover:text-red-300"
-        >
-          Slett økt
-        </button>
-        <router-link 
-          to="/history" 
-          class="btn-primary"
-        >
-          Tilbake til Historikk
-        </router-link>
-      </div>
+        <!-- Actions -->
+       <div class="flex gap-3">
+         <button 
+           @click="deleteSession"
+           class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+         >
+           Slett økt
+         </button>
+       </div>
     </div>
   </div>
 </template>
