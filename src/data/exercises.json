@@ -5,180 +5,140 @@
       "name": "Benkpress",
       "category": "push",
       "workoutTypes": ["push", "upper", "full-body"],
-      "muscleGroups": ["bryst", "triceps", "skuldre"],
-      "equipment": "barbell",
-      "description": "Klassisk brystøvelse som også aktiverer triceps og foran skuldre"
+      "muscleGroups": ["bryst", "triceps", "skuldre"]
     },
     {
       "id": "overhead-press",
       "name": "Militærpress",
       "category": "push",
       "workoutTypes": ["push", "upper", "full-body"],
-      "muscleGroups": ["skuldre", "triceps"],
-      "equipment": "barbell",
-      "description": "Stående press som fokuserer på skuldre og triceps"
+      "muscleGroups": ["skuldre", "triceps"]
     },
     {
       "id": "incline-press",
       "name": "Skrå Benkpress",
       "category": "push",
       "workoutTypes": ["push", "upper", "full-body"],
-      "muscleGroups": ["bryst", "triceps"],
-      "equipment": "barbell",
-      "description": "Benkpress med skrå benk for å treffe øvre bryst"
+      "muscleGroups": ["bryst", "triceps"]
     },
     {
       "id": "dumbbell-press",
       "name": "Dumbbell Press",
       "category": "push",
       "workoutTypes": ["push", "upper", "full-body"],
-      "muscleGroups": ["bryst", "triceps", "skuldre"],
-      "equipment": "dumbbell",
-      "description": "Benkpress med dumbbells for bedre balanse og bevegelsesomfang"
+      "muscleGroups": ["bryst", "triceps", "skuldre"]
     },
     {
       "id": "dips",
       "name": "Dips",
       "category": "push",
       "workoutTypes": ["push", "upper", "full-body"],
-      "muscleGroups": ["bryst", "triceps"],
-      "equipment": "bodyweight",
-      "description": "Kroppsvektøvelse som treffer bryst og triceps"
+      "muscleGroups": ["bryst", "triceps"]
     },
     {
       "id": "pull-ups",
       "name": "Pull-ups",
       "category": "pull",
       "workoutTypes": ["pull", "upper", "full-body"],
-      "muscleGroups": ["rygg", "biceps"],
-      "equipment": "bodyweight",
-      "description": "Kroppsvektøvelse som treffer rygg og biceps"
+      "muscleGroups": ["rygg", "biceps"]
     },
     {
       "id": "barbell-rows",
       "name": "Barbell Rows",
       "category": "pull",
       "workoutTypes": ["pull", "upper", "full-body"],
-      "muscleGroups": ["rygg", "biceps"],
-      "equipment": "barbell",
-      "description": "Klassisk ryggøvelse som bygger tykkelse"
+      "muscleGroups": ["rygg", "biceps"]
     },
     {
       "id": "deadlift",
       "name": "Deadlift",
       "category": "pull",
       "workoutTypes": ["pull", "lower", "full-body"],
-      "muscleGroups": ["rygg", "glutes", "hamstrings"],
-      "equipment": "barbell",
-      "description": "Konge av alle øvelser som treffer hele bakkroppen"
+      "muscleGroups": ["rygg", "glutes", "hamstrings"]
     },
     {
       "id": "lat-pulldown",
       "name": "Lat Pulldown",
       "category": "pull",
       "workoutTypes": ["pull", "upper", "full-body"],
-      "muscleGroups": ["rygg", "biceps"],
-      "equipment": "cable",
-      "description": "Maskinøvelse som simulerer pull-ups"
+      "muscleGroups": ["rygg", "biceps"]
     },
     {
       "id": "squat",
       "name": "Squat",
       "category": "legs",
       "workoutTypes": ["legs", "lower", "full-body"],
-      "muscleGroups": ["quadriceps", "glutes", "hamstrings"],
-      "equipment": "barbell",
-      "description": "Konge av benøvelser som treffer hele bena"
+      "muscleGroups": ["quadriceps", "glutes", "hamstrings"]
     },
     {
       "id": "leg-press",
       "name": "Leg Press",
       "category": "legs",
       "workoutTypes": ["legs", "lower", "full-body"],
-      "muscleGroups": ["quadriceps", "glutes"],
-      "equipment": "machine",
-      "description": "Maskinøvelse som fokuserer på quadriceps"
+      "muscleGroups": ["quadriceps", "glutes"]
     },
     {
       "id": "leg-curls",
       "name": "Leg Curls",
       "category": "legs",
       "workoutTypes": ["legs", "lower", "full-body"],
-      "muscleGroups": ["hamstrings"],
-      "equipment": "machine",
-      "description": "Isolerende øvelse for hamstrings"
+      "muscleGroups": ["hamstrings"]
     },
     {
       "id": "leg-extensions",
       "name": "Leg Extensions",
       "category": "legs",
       "workoutTypes": ["legs", "lower", "full-body"],
-      "muscleGroups": ["quadriceps"],
-      "equipment": "machine",
-      "description": "Isolerende øvelse for quadriceps"
+      "muscleGroups": ["quadriceps"]
     },
     {
       "id": "calf-raises",
       "name": "Calf Raises",
       "category": "legs",
       "workoutTypes": ["legs", "lower", "full-body"],
-      "muscleGroups": ["calves"],
-      "equipment": "bodyweight",
-      "description": "Isolerende øvelse for legger"
+      "muscleGroups": ["calves"]
     },
     {
       "id": "shoulder-press",
       "name": "Skulderpress",
       "category": "push",
       "workoutTypes": ["push", "upper", "full-body"],
-      "muscleGroups": ["skuldre", "triceps"],
-      "equipment": "dumbbell",
-      "description": "Dumbbell press for skuldre"
+      "muscleGroups": ["skuldre", "triceps"]
     },
     {
       "id": "lateral-raises",
       "name": "Side Raises",
       "category": "push",
       "workoutTypes": ["push", "upper", "full-body"],
-      "muscleGroups": ["skuldre"],
-      "equipment": "dumbbell",
-      "description": "Isolerende øvelse for side skuldre"
+      "muscleGroups": ["skuldre"]
     },
     {
       "id": "bicep-curls",
       "name": "Bicep Curls",
       "category": "pull",
       "workoutTypes": ["pull", "upper", "full-body"],
-      "muscleGroups": ["biceps"],
-      "equipment": "dumbbell",
-      "description": "Klassisk bicepøvelse"
+      "muscleGroups": ["biceps"]
     },
     {
       "id": "tricep-extensions",
       "name": "Tricep Extensions",
       "category": "push",
       "workoutTypes": ["push", "upper", "full-body"],
-      "muscleGroups": ["triceps"],
-      "equipment": "cable",
-      "description": "Isolerende øvelse for triceps"
+      "muscleGroups": ["triceps"]
     },
     {
       "id": "planks",
       "name": "Planks",
       "category": "core",
       "workoutTypes": ["push", "pull", "legs", "upper", "lower", "full-body"],
-      "muscleGroups": ["core"],
-      "equipment": "bodyweight",
-      "description": "Kroppsvektøvelse for core stabilitet"
+      "muscleGroups": ["core"]
     },
     {
       "id": "crunches",
       "name": "Crunches",
       "category": "core",
       "workoutTypes": ["push", "pull", "legs", "upper", "lower", "full-body"],
-      "muscleGroups": ["core"],
-      "equipment": "bodyweight",
-      "description": "Klassisk mageøvelse"
+      "muscleGroups": ["core"]
     }
   ]
 } 

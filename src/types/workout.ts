@@ -36,8 +36,6 @@ export interface ExerciseData {
   category: string
   workoutTypes: string[]
   muscleGroups: string[]
-  equipment: string
-  description: string
 }
 
 export interface WorkoutType {

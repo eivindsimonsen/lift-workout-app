@@ -11,8 +11,8 @@ import type {
 // Import JSON data directly
 import * as exerciseData from '@/data/exercises.json'
 import * as workoutTypesData from '@/data/workout-types.json'
-import * as workoutTemplatesData from '@/data/workout-templates.json'
-import * as workoutSessionsData from '@/data/workout-sessions.json'
+import * as workoutTemplatesData from '@/Test/workout-templates-example.json'
+import * as workoutSessionsData from '@/Test/workout-sessions-example.json'
 
 // Console logging utility
 const logJSONAccess = (operation: string, details?: any) => {

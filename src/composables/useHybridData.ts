@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useWorkoutData } from './useWorkoutData' // For static data (JSON)
+import { useWorkoutData } from '../Test/useWorkoutData-test' // For static data (JSON)
 import { useSupabaseData } from './useSupabaseData' // For user data (Supabase)
 
 // Console logging utility

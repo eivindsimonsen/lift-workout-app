@@ -121,7 +121,7 @@
                      <div 
                        v-for="(exercise, index) in group" 
                        :key="exercise.exerciseId"
-                       class="text-sm text-dark-200 pl-2"
+                       class="text-sm text-dark-200"
                      >
                        <span class="truncate">{{ exercise.name }}</span>
                      </div>
