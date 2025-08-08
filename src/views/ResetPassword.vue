@@ -129,10 +129,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '@/lib/supabase'
+import { useSupabase } from '@/composables/useSupabase'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const router = useRouter()
+const { supabase } = useSupabase()
 const { showError, handleAuthError } = useErrorHandler()
 
 // Form data

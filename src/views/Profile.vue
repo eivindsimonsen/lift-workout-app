@@ -151,11 +151,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
-import { supabase } from '@/lib/supabase'
+import { useSupabase } from '@/composables/useSupabase'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const router = useRouter()
 const workoutData = useHybridData()
+const { supabase } = useSupabase()
 const { showError, handleAuthError } = useErrorHandler()
 
 // Form data

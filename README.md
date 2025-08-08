@@ -8,7 +8,7 @@ Treningsloggen handler om å alltid ta neste steg — neste repetisjon. Det er e
 
 ## ✨ Funksjoner
 
-- **Dashboard**: Oversikt over siste økter, totalvolum og raske handlinger
+- **Økter**: Oversikt over siste økter, totalvolum og raske handlinger
 - **Ny Økt**: Enkel registrering av treningsøkter med øvelser, sett og repetisjoner
 - **Historikk**: Søk og filtrer gjennom alle tidligere økter
 - **Statistikk**: Se progresjon over tid med grafer og analyser
@@ -61,7 +61,7 @@ npm run build
 
 ### Registrere en ny økt
 
-1. Klikk på "Start Økt" på dashboard eller naviger til "Ny Økt"
+1. Klikk på "Start Økt" på økter-siden eller naviger til "Ny Økt"
 2. Fyll ut øktdetaljer (navn, varighet)
 3. Legg til øvelser ved å klikke "Legg til øvelse"
 4. For hver øvelse, legg til sett med reps og vekt

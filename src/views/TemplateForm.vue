@@ -16,7 +16,7 @@
 
     <div v-if="isEditing && !template" class="text-center py-12">
       <p class="text-dark-300">Økt ikke funnet</p>
-      <router-link to="/" class="btn-primary mt-4">Tilbake til Dashboard</router-link>
+              <router-link to="/" class="btn-primary mt-4">Tilbake til Økter</router-link>
     </div>
 
     <!-- Template Form -->

@@ -1,5 +1,5 @@
 import { ref, computed, onMounted } from 'vue'
-import { supabase } from '@/lib/supabase'
+import { useSupabase } from './useSupabase'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { 
   WorkoutTemplate, 
@@ -22,6 +22,8 @@ let supabaseDataInstance: ReturnType<typeof createSupabaseData> | null = null
 let isInitializing = false
 
 const createSupabaseData = () => {
+  const { supabase } = useSupabase()
+  
   // State (only user data)
   const templates = ref<WorkoutTemplate[]>([])
   const sessions = ref<WorkoutSession[]>([])

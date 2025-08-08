@@ -178,11 +178,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '@/lib/supabase'
+import { useSupabase } from '@/composables/useSupabase'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useSignupProtection } from '@/composables/useSignupProtection'
 
 const router = useRouter()
+const { supabase } = useSupabase()
 const { showError, handleAuthError } = useErrorHandler()
 const { isRecentlySignedUp, markSignupAttempt, clearSignupAttempt } = useSignupProtection()
 
@@ -204,7 +205,7 @@ const showConfirmPassword = ref(false)
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (session?.user) {
-    // User is already logged in, redirect to dashboard
+    // User is already logged in, redirect to økter
     router.push('/')
   } else {
     // Check if we have remembered credentials
@@ -375,7 +376,7 @@ const handleLogin = async () => {
 
       // Keep loading state active during redirect to prevent double header
       // The loading state will be cleared when the component unmounts
-      // Redirect to dashboard
+      // Redirect to økter
       router.push('/')
     }
   } catch (error: any) {

@@ -2,8 +2,8 @@
   <div>
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-white mb-2">Dashboard</h1>
-      <p class="text-dark-300">Oversikt over dine treningsøkter og aktiviteter</p>
+      <h1 class="text-3xl font-bold text-white mb-2">Økter</h1>
+      <p class="text-dark-300">Oversikt over dine treningsøkter</p>
     </div>
 
                                                    <!-- Active Workout Sessions -->

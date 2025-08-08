@@ -259,7 +259,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
-import { supabase } from '@/lib/supabase'
+import { useSupabase } from '@/composables/useSupabase'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'

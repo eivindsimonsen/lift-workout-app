@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { supabase } from '@/lib/supabase'
-import Dashboard from '@/views/Dashboard.vue'
+import { useSupabase } from '@/composables/useSupabase'
+import Økter from '@/views/Økter.vue'
 import History from '@/views/History.vue'
 import Stats from '@/views/Stats.vue'
 import Login from '@/views/Login.vue'
@@ -15,7 +15,7 @@ import Exercises from '@/views/Exercises.vue'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
+    { path: '/', name: 'Økter', component: Økter, meta: { requiresAuth: true } },
     { path: '/history', name: 'History', component: History, meta: { requiresAuth: true } },
     { path: '/stats', name: 'Stats', component: Stats, meta: { requiresAuth: true } },
     { path: '/profile', name: 'Profile', component: Profile, meta: { requiresAuth: true } },
@@ -27,7 +27,7 @@ const router = createRouter({
     { path: '/session/:id', name: 'SessionDetails', component: SessionDetails, meta: { requiresAuth: true } },
     { path: '/exercise/:id', name: 'ExerciseDetail', component: ExerciseDetail, meta: { requiresAuth: true } },
     { path: '/exercises', name: 'Exercises', component: Exercises, meta: { requiresAuth: true } },
-    // Catch all route - redirect to login if not authenticated, dashboard if authenticated
+    // Catch all route - redirect to login if not authenticated, økter if authenticated
     {
       path: '/:pathMatch(.*)*',
       redirect: '/login'
@@ -41,6 +41,7 @@ const router = createRouter({
 // Navigation guard
 router.beforeEach(async (to, from, next) => {
   // Get current session
+  const { supabase } = useSupabase()
   const { data: { session } } = await supabase.auth.getSession()
   const isAuthenticated = !!session
 
@@ -53,7 +54,7 @@ router.beforeEach(async (to, from, next) => {
     next('/login')
   } else if (to.path === '/login' && isAuthenticated) {
     // User is authenticated and trying to access login page
-    // Redirect to dashboard
+    // Redirect to økter
     next('/')
   } else {
     // Allow navigation
