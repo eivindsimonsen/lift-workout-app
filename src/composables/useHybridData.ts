@@ -25,12 +25,7 @@ export const useHybridData = () => {
     }
   })
 
-  const getExercisesByWorkoutType = computed(() => {
-    return (workoutType: string) => {
-      logHybridAccess('Get exercises by type', workoutType)
-      return staticData.getExercisesByWorkoutType.value(workoutType)
-    }
-  })
+
 
   const getTemplatesByType = computed(() => {
     return (workoutType: string) => {
@@ -48,13 +43,12 @@ export const useHybridData = () => {
 
   return {
     // Static data from JSON
-    exercises: staticData.exercises,
     workoutTypes: staticData.workoutTypes,
-    getExercisesByWorkoutType,
     getWorkoutType,
     getWorkoutTypeColor,
 
     // User data from Supabase
+    exercises: userData.exercises,
     templates: userData.templates,
     sessions: userData.sessions,
     isLoading: userData.isLoading,
@@ -81,6 +75,9 @@ export const useHybridData = () => {
     completeWorkoutSession: userData.completeWorkoutSession,
     markSessionAsActive: userData.markSessionAsActive,
     deleteWorkoutSession: userData.deleteWorkoutSession,
+    addExercise: userData.addExercise,
+    deleteExercise: userData.deleteExercise,
+    updateExercise: userData.updateExercise,
     signOut: userData.signOut,
     cleanup: userData.cleanup
   }

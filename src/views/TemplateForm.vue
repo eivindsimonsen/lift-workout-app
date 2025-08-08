@@ -6,17 +6,17 @@
         <h1 class="text-3xl font-bold text-white mb-2">{{ isEditing ? 'Rediger Økt' : 'Opprett Ny Økt' }}</h1>
         <p class="text-dark-300">{{ isEditing ? 'Endre treningsøkten din' : 'Lag en ny treningsøkt' }}</p>
       </div>
-             <router-link 
-         to="/" 
-         class="btn-secondary"
-       >
-         Avbryt
-       </router-link>
+      <router-link 
+        to="/" 
+        class="btn-secondary"
+      >
+        Avbryt
+      </router-link>
     </div>
 
     <div v-if="isEditing && !template" class="text-center py-12">
       <p class="text-dark-300">Økt ikke funnet</p>
-              <router-link to="/" class="btn-primary mt-4">Tilbake til Økter</router-link>
+      <router-link to="/" class="btn-primary mt-4">Tilbake til Økter</router-link>
     </div>
 
     <!-- Template Form -->
@@ -111,23 +111,23 @@
         </div>
       </div>
 
-             <!-- Actions -->
-       <div class="flex gap-3">
-         <button 
-           v-if="isEditing"
-           @click="deleteTemplate"
-           type="button"
-           class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
-         >
-           Slett økt
-         </button>
-         <button 
-           type="submit"
-           class="flex-1 btn-primary"
-         >
-           {{ isEditing ? 'Oppdater Økt' : 'Opprett Økt' }}
-         </button>
-       </div>
+      <!-- Actions -->
+      <div class="flex gap-3">
+        <button 
+          v-if="isEditing"
+          @click="deleteTemplate"
+          type="button"
+          class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+        >
+          Slett økt
+        </button>
+        <button 
+          type="submit"
+          class="flex-1 btn-primary"
+        >
+          {{ isEditing ? 'Oppdater Økt' : 'Opprett Økt' }}
+        </button>
+      </div>
     </form>
   </div>
 </template>
@@ -159,10 +159,7 @@ const workoutTypes = computed(() => {
 })
 
 const availableExercises = computed(() => {
-  if (!templateForm.value.workoutType) {
-    return workoutData.exercises.value
-  }
-  return workoutData.getExercisesByWorkoutType.value(templateForm.value.workoutType)
+  return workoutData.exercises.value
 })
 
 // Methods

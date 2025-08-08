@@ -107,12 +107,82 @@ export interface Database {
           updated_at?: string
         }
       }
+      exercises: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          muscle_groups: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          muscle_groups?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          muscle_groups?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }
 
 // Singleton instance
 let supabaseInstance: any = null
+
+// Mock client for development/testing
+const createMockClient = () => ({
+  auth: {
+    signUp: async () => ({ 
+      error: { message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' } 
+    }),
+    signInWithPassword: async () => ({ 
+      error: { message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' } 
+    }),
+    signOut: async () => ({ 
+      data: { user: null, session: null },
+      error: null
+    }),
+    updateUser: async () => ({ 
+      error: { message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' } 
+    }),
+    resetPasswordForEmail: async () => ({ 
+      error: { message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' } 
+    }),
+    getSession: async () => ({ data: { session: null }, error: null }),
+    onAuthStateChange: () => ({ 
+      data: { subscription: { unsubscribe: () => {} } } 
+    }),
+    setSession: async () => ({ 
+      error: { message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' } 
+    })
+  },
+  from: () => ({
+    insert: async () => ({ 
+      error: { message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' } 
+    }),
+    select: async () => ({ 
+      data: [], 
+      error: { message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' } 
+    }),
+    update: async () => ({ 
+      error: { message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' } 
+    }),
+    delete: async () => ({ 
+      error: { message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' } 
+    })
+  })
+})
 
 export const useSupabase = () => {
   const isInitialized = ref(false)
@@ -122,90 +192,32 @@ export const useSupabase = () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-    // Initialize Supabase client
+    console.log('🔧 Supabase config check:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseAnonKey,
+      url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'missing',
+      key: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'missing'
+    })
+
     if (supabaseUrl && supabaseAnonKey) {
+      // Initialize Supabase client
       supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
           flowType: 'pkce',
-          // Add rate limiting to prevent duplicate requests
           storageKey: 'treningsloggen-auth'
         }
       })
       isInitialized.value = true
+      console.log('✅ Supabase client initialized successfully')
     } else {
+      // Use mock client for missing configuration
       console.warn('⚠️ Missing Supabase environment variables. Using mock client.')
       console.warn('Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env.local file')
       
-      // Create a mock client for missing configuration
-      const mockClient = {
-        auth: {
-          signUp: async () => ({ 
-            error: { 
-              message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-            } 
-          }),
-          signInWithPassword: async () => ({ 
-            error: { 
-              message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-            } 
-          }),
-          signOut: async () => ({ 
-            data: { user: null, session: null },
-            error: null // Return success for logout even in mock mode
-          }),
-          updateUser: async () => ({ 
-            error: { 
-              message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-            } 
-          }),
-          resetPasswordForEmail: async () => ({ 
-            error: { 
-              message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-            } 
-          }),
-          getSession: async () => ({ data: { session: null }, error: null }),
-          onAuthStateChange: () => ({ 
-            data: { 
-              subscription: { 
-                unsubscribe: () => {} 
-              } 
-            } 
-          }),
-          setSession: async () => ({ 
-            error: { 
-              message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-            } 
-          })
-        },
-        from: () => ({
-          insert: async () => ({ 
-            error: { 
-              message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-            } 
-          }),
-          select: async () => ({ 
-            data: [], 
-            error: { 
-              message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-            } 
-          }),
-          update: async () => ({ 
-            error: { 
-              message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-            } 
-          }),
-          delete: async () => ({ 
-            error: { 
-              message: 'Database er ikke tilgjengelig. Vennligst prøv igjen senere.' 
-            } 
-          })
-        })
-      }
-      
-      supabaseInstance = mockClient
+      supabaseInstance = createMockClient()
       error.value = 'Supabase ikke konfigurert'
     }
   }

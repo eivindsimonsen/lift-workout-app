@@ -1,3 +1,4 @@
+// Core workout interfaces
 export interface Exercise {
   id: string
   name: string
@@ -21,6 +22,7 @@ export interface Workout {
   totalVolume?: number
 }
 
+// Statistics and analytics
 export interface WorkoutStats {
   totalWorkouts: number
   totalVolume: number
@@ -29,7 +31,7 @@ export interface WorkoutStats {
   weeklyProgress: Array<{ week: string; volume: number }>
 }
 
-// New interfaces for workout templates and exercise database
+// Exercise database and categorization
 export interface ExerciseData {
   id: string
   name: string
@@ -45,6 +47,7 @@ export interface WorkoutType {
   color: string
 }
 
+// Template system
 export interface WorkoutTemplate {
   id: string
   name: string
@@ -61,6 +64,7 @@ export interface ExerciseTemplate {
   weight?: number
 }
 
+// Session management
 export interface WorkoutSession {
   id: string
   templateId: string

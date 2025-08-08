@@ -78,18 +78,18 @@
                         <p class="text-dark-300 text-xs">{{ currentUser?.email }}</p>
                       </div>
                       
-                                             <router-link 
-                         to="/profile"
-                         data-action="profile"
-                         class="w-full text-left px-4 py-2 text-sm text-dark-300 hover:text-white hover:bg-dark-600 transition-colors"
-                       >
-                         <div class="flex items-center space-x-2">
-                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                           </svg>
-                           <span>Profil</span>
-                         </div>
-                       </router-link>
+                      <router-link 
+                        to="/profile"
+                        data-action="profile"
+                        class="w-full text-left px-4 py-2 text-sm text-dark-300 hover:text-white hover:bg-dark-600 transition-colors"
+                      >
+                        <div class="flex items-center space-x-2">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <span>Profil</span>
+                        </div>
+                      </router-link>
                       
                       <button 
                         @click="handleSignOut"
@@ -199,15 +199,15 @@
               <span class="text-xs">Statistikk</span>
             </router-link>
             
-                         <router-link 
-               to="/profile"
-               class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-             >
-               <div class="w-6 h-6 mb-1 bg-primary-500 rounded-full flex items-center justify-center">
-                 <span class="text-white text-xs font-medium">{{ userInitials }}</span>
-               </div>
-               <span class="text-xs">Profil</span>
-             </router-link>
+            <router-link 
+              to="/profile"
+              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+            >
+              <div class="w-6 h-6 mb-1 bg-primary-500 rounded-full flex items-center justify-center">
+                <span class="text-white text-xs font-medium">{{ userInitials }}</span>
+              </div>
+              <span class="text-xs">Profil</span>
+            </router-link>
           </div>
         </nav>
 
@@ -243,17 +243,13 @@
             </button>
           </div>
         </nav>
-
-        
       </div>
     </div>
   </ErrorBoundary>
    
-       <!-- Global Error Toast -->
-    <ErrorToast />
-    
-
-  </template>
+  <!-- Global Error Toast -->
+  <ErrorToast />
+</template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
@@ -269,19 +265,16 @@ const router = useRouter()
 const workoutData = useHybridData()
 const { showError, handleAuthError } = useErrorHandler()
 
-// Authentication state
+// State
 const showUserMenu = ref(false)
-const hasInitialized = ref(false) // Track if app has been initialized
+const hasInitialized = ref(false)
 const sessionCheckInterval = ref<NodeJS.Timeout | null>(null)
 
-
-
-// Check if we're in a workout session
+// Computed properties
 const isWorkoutSession = computed(() => {
   return route.path.startsWith('/workout/') && route.params.id
 })
 
-// Workout progress for the progress bar
 const workoutProgress = computed(() => {
   if (!isWorkoutSession.value || !route.params.id) {
     return { completedSets: 0, totalSets: 0, percentage: 0 }
@@ -307,17 +300,9 @@ const workoutProgress = computed(() => {
   return { completedSets, totalSets, percentage }
 })
 
-// Check if workout can be completed (100% progress)
-// Note: We now allow completion regardless of progress, but show confirmation
-const canCompleteWorkout = computed(() => {
-  return true // Always allow completion
-})
-
-// Computed properties
 const isAuthenticated = computed(() => workoutData.isAuthenticated.value)
 const currentUser = computed(() => workoutData.currentUser.value)
 const isLoading = computed(() => {
-  // Only show loading if we haven't initialized yet and are actually loading
   return !hasInitialized.value && workoutData.isLoading.value
 })
 
@@ -339,27 +324,15 @@ const toggleUserMenu = () => {
 
 const handleSignOut = async () => {
   try {
-
-    
-    // Close menus immediately to prevent UI issues
     showUserMenu.value = false
-    
-    // Add a small delay to ensure UI updates before logout
     await new Promise(resolve => setTimeout(resolve, 100))
-    
     await workoutData.signOut()
-    
-    // Force navigation to login page
-
     router.push('/login')
   } catch (error) {
     console.error('Error during sign out:', error)
-    // Even if there's an error, try to redirect to login
     router.push('/login')
   }
 }
-
-
 
 const handleSaveWorkout = async () => {
   if (!isWorkoutSession.value || !route.params.id) return
@@ -367,7 +340,6 @@ const handleSaveWorkout = async () => {
   try {
     const sessionId = route.params.id as string
     await workoutData.markSessionAsActive(sessionId)
-    // Don't show error message on success - just redirect
     router.push('/')
   } catch (error: any) {
     handleAuthError(error)
@@ -388,13 +360,9 @@ const handleCompleteWorkout = async () => {
   }
 }
 
-
-
-// Close user menu when clicking outside
 const handleClickOutside = (event: Event) => {
   const target = event.target as Element
   
-  // Don't close if clicking on logout button or profile button
   if (target.closest('[data-action="logout"]') || target.closest('[data-action="profile"]')) {
     return
   }
@@ -404,78 +372,17 @@ const handleClickOutside = (event: Event) => {
   }
 }
 
-// Lifecycle
-onMounted(async () => {
-  document.addEventListener('click', handleClickOutside)
-  
-  // Initialize authentication first
-  await workoutData.initializeAuth()
-  
-  // Add focus/blur handlers to help with tab switching issues
-  const handleFocus = () => {
-
-    // Re-check authentication state when window gains focus
-    if (workoutData.isAuthenticated.value && workoutData.currentUser.value) {
-      // Force a session check to ensure state is fresh
-      workoutData.loadData()
-    }
-  }
-  
-  const handleBlur = () => {
-
-    // Optional: could add cleanup here if needed
-  }
-  
-  window.addEventListener('focus', handleFocus)
-  window.addEventListener('blur', handleBlur)
-  
-  // Store handlers for cleanup
-  ;(window as any).__appFocusHandler = handleFocus
-  ;(window as any).__appBlurHandler = handleBlur
-
-  // Start periodic session check
-  startSessionCheck()
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-  
-  // Clean up focus/blur handlers
-  if (typeof window !== 'undefined') {
-    const focusHandler = (window as any).__appFocusHandler
-    const blurHandler = (window as any).__appBlurHandler
-    
-    if (focusHandler) {
-      window.removeEventListener('focus', focusHandler)
-      delete (window as any).__appFocusHandler
-    }
-    
-    if (blurHandler) {
-      window.removeEventListener('blur', blurHandler)
-      delete (window as any).__appBlurHandler
-    }
-  }
-  
-  // Clean up Supabase data event listeners
-  workoutData.cleanup()
-  stopSessionCheck()
-})
-
-// Periodic session check to prevent app from becoming unresponsive
+// Session management
 const startSessionCheck = () => {
-  // Clear any existing interval
   if (sessionCheckInterval.value) {
     clearInterval(sessionCheckInterval.value)
   }
   
-  // Check session every 30 seconds to ensure app stays responsive
   sessionCheckInterval.value = setInterval(() => {
     if (workoutData.isAuthenticated.value && workoutData.currentUser.value) {
-  
-      // This will trigger a session refresh if needed
       workoutData.loadData()
     }
-  }, 30000) // 30 seconds
+  }, 30000)
 }
 
 const stopSessionCheck = () => {
@@ -485,16 +392,47 @@ const stopSessionCheck = () => {
   }
 }
 
+// Lifecycle
+onMounted(async () => {
+  document.addEventListener('click', handleClickOutside)
+  
+  await workoutData.initializeAuth()
+  
+  const handleFocus = () => {
+    if (workoutData.isAuthenticated.value && workoutData.currentUser.value) {
+      workoutData.loadData()
+    }
+  }
+  
+  window.addEventListener('focus', handleFocus)
+  ;(window as any).__appFocusHandler = handleFocus
 
+  startSessionCheck()
+})
 
-// Watch for authentication state to mark app as initialized
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  
+  if (typeof window !== 'undefined') {
+    const focusHandler = (window as any).__appFocusHandler
+    
+    if (focusHandler) {
+      window.removeEventListener('focus', focusHandler)
+      delete (window as any).__appFocusHandler
+    }
+  }
+  
+  workoutData.cleanup()
+  stopSessionCheck()
+})
+
+// Watchers
 watch(isAuthenticated, (newValue) => {
   if (newValue || !workoutData.isLoading.value) {
     hasInitialized.value = true
   }
 }, { immediate: true })
 
-// Also watch loading state
 watch(() => workoutData.isLoading.value, (newValue) => {
   if (!newValue) {
     hasInitialized.value = true

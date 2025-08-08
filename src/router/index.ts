@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useSupabase } from '@/composables/useSupabase'
+
+// View imports
 import Økter from '@/views/Økter.vue'
 import History from '@/views/History.vue'
 import Stats from '@/views/Stats.vue'
@@ -12,27 +14,30 @@ import Profile from '@/views/Profile.vue'
 import ExerciseDetail from '@/views/ExerciseDetail.vue'
 import Exercises from '@/views/Exercises.vue'
 
+// Route configuration
+const routes = [
+  { path: '/', name: 'Økter', component: Økter, meta: { requiresAuth: true } },
+  { path: '/history', name: 'History', component: History, meta: { requiresAuth: true } },
+  { path: '/stats', name: 'Stats', component: Stats, meta: { requiresAuth: true } },
+  { path: '/profile', name: 'Profile', component: Profile, meta: { requiresAuth: true } },
+  { path: '/login', name: 'Login', component: Login, meta: { requiresAuth: false } },
+  { path: '/reset-password', name: 'ResetPassword', component: ResetPassword, meta: { requiresAuth: false } },
+  { path: '/workout/:id', name: 'WorkoutSession', component: WorkoutSession, meta: { requiresAuth: true } },
+  { path: '/template/create', name: 'CreateTemplate', component: TemplateForm, meta: { requiresAuth: true } },
+  { path: '/template/edit/:id', name: 'EditTemplate', component: TemplateForm, meta: { requiresAuth: true } },
+  { path: '/session/:id', name: 'SessionDetails', component: SessionDetails, meta: { requiresAuth: true } },
+  { path: '/exercise/:id', name: 'ExerciseDetail', component: ExerciseDetail, meta: { requiresAuth: true } },
+  { path: '/exercises', name: 'Exercises', component: Exercises, meta: { requiresAuth: true } },
+  // Catch all route - redirect to login if not authenticated, økter if authenticated
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/login'
+  }
+]
+
 const router = createRouter({
   history: createWebHistory(),
-  routes: [
-    { path: '/', name: 'Økter', component: Økter, meta: { requiresAuth: true } },
-    { path: '/history', name: 'History', component: History, meta: { requiresAuth: true } },
-    { path: '/stats', name: 'Stats', component: Stats, meta: { requiresAuth: true } },
-    { path: '/profile', name: 'Profile', component: Profile, meta: { requiresAuth: true } },
-    { path: '/login', name: 'Login', component: Login, meta: { requiresAuth: false } },
-    { path: '/reset-password', name: 'ResetPassword', component: ResetPassword, meta: { requiresAuth: false } },
-    { path: '/workout/:id', name: 'WorkoutSession', component: WorkoutSession, meta: { requiresAuth: true } },
-    { path: '/template/create', name: 'CreateTemplate', component: TemplateForm, meta: { requiresAuth: true } },
-    { path: '/template/edit/:id', name: 'EditTemplate', component: TemplateForm, meta: { requiresAuth: true } },
-    { path: '/session/:id', name: 'SessionDetails', component: SessionDetails, meta: { requiresAuth: true } },
-    { path: '/exercise/:id', name: 'ExerciseDetail', component: ExerciseDetail, meta: { requiresAuth: true } },
-    { path: '/exercises', name: 'Exercises', component: Exercises, meta: { requiresAuth: true } },
-    // Catch all route - redirect to login if not authenticated, økter if authenticated
-    {
-      path: '/:pathMatch(.*)*',
-      redirect: '/login'
-    }
-  ],
+  routes,
   scrollBehavior(to, from, savedPosition) {
     return { top: 0 }
   }
@@ -40,7 +45,6 @@ const router = createRouter({
 
 // Navigation guard
 router.beforeEach(async (to, from, next) => {
-  // Get current session
   const { supabase } = useSupabase()
   const { data: { session } } = await supabase.auth.getSession()
   const isAuthenticated = !!session
@@ -50,11 +54,9 @@ router.beforeEach(async (to, from, next) => {
 
   if (requiresAuth && !isAuthenticated) {
     // User is not authenticated and trying to access protected route
-    // Redirect to login
     next('/login')
   } else if (to.path === '/login' && isAuthenticated) {
     // User is authenticated and trying to access login page
-    // Redirect to økter
     next('/')
   } else {
     // Allow navigation
