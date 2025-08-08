@@ -167,7 +167,6 @@ const { showError, handleAuthError } = useErrorHandler()
 
 // State
 const hasInitialized = ref(false)
-const sessionCheckInterval = ref<NodeJS.Timeout | null>(null)
 
 // Computed properties
 const isWorkoutSession = computed(() => {
@@ -237,25 +236,7 @@ const handleCompleteWorkout = async () => {
 
 
 
-// Session management
-const startSessionCheck = () => {
-  if (sessionCheckInterval.value) {
-    clearInterval(sessionCheckInterval.value)
-  }
-  
-  sessionCheckInterval.value = setInterval(() => {
-    if (workoutData.isAuthenticated.value && workoutData.currentUser.value) {
-      workoutData.loadData()
-    }
-  }, 30000)
-}
-
-const stopSessionCheck = () => {
-  if (sessionCheckInterval.value) {
-    clearInterval(sessionCheckInterval.value)
-    sessionCheckInterval.value = null
-  }
-}
+// Session management - Removed automatic interval to prevent unnecessary data reloading
 
 // Lifecycle
 onMounted(async () => {
@@ -269,8 +250,6 @@ onMounted(async () => {
   
   window.addEventListener('focus', handleFocus)
   ;(window as any).__appFocusHandler = handleFocus
-
-  startSessionCheck()
 })
 
 onUnmounted(() => {
@@ -284,7 +263,6 @@ onUnmounted(() => {
   }
   
   workoutData.cleanup()
-  stopSessionCheck()
 })
 
 // Watchers

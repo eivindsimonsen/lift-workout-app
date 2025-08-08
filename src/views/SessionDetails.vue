@@ -77,7 +77,12 @@
             :key="exercise.exerciseId"
             class="bg-dark-700 rounded-lg p-4"
           >
-            <h4 class="font-medium text-white mb-3">{{ exercise.name }}</h4>
+            <h4 
+              class="font-medium text-white mb-3 cursor-pointer hover:text-primary-400 transition-colors"
+              @click="viewExercise(exercise.exerciseId)"
+            >
+              {{ exercise.name }}
+            </h4>
             
             <div class="space-y-2">
               <div 
@@ -161,6 +166,10 @@ const deleteSession = () => {
     workoutData.deleteWorkoutSession(session.value.id)
     router.push('/history')
   }
+}
+
+const viewExercise = (exerciseId: string) => {
+  router.push(`/exercise/${exerciseId}`)
 }
 
 // Lifecycle

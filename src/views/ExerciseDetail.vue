@@ -170,14 +170,20 @@ const performances = computed(() => {
       if (sessionExercise) {
         sessionExercise.sets.forEach(set => {
           if (set.isCompleted && set.weight && set.reps) {
-            allPerformances.push({
-              id: `${session.id}-${set.id}`,
-              weight: set.weight,
-              reps: set.reps,
-              volume: set.weight * set.reps,
-              date: session.date,
-              sessionName: session.templateName
-            })
+            // Ensure weight and reps are valid numbers
+            const weight = Number(set.weight)
+            const reps = Number(set.reps)
+            
+            if (!isNaN(weight) && isFinite(weight) && !isNaN(reps) && isFinite(reps) && weight > 0 && reps > 0) {
+              allPerformances.push({
+                id: `${session.id}-${set.id}`,
+                weight: weight,
+                reps: reps,
+                volume: weight * reps,
+                date: session.date,
+                sessionName: session.templateName
+              })
+            }
           }
         })
       }
@@ -210,7 +216,14 @@ const weeklyData = computed(() => {
   // Convert to array and get best performance per week
   return Object.entries(weeklyPerformances)
     .map(([weekKey, weekPerformances]) => {
-      const bestPerformance = weekPerformances.reduce((best, current) => {
+      // Filter out invalid performances
+      const validPerformances = weekPerformances.filter(p => 
+        p.weight && !isNaN(p.weight) && isFinite(p.weight)
+      )
+      
+      if (validPerformances.length === 0) return null
+      
+      const bestPerformance = validPerformances.reduce((best, current) => {
         return current.weight > best.weight ? current : best
       })
       
@@ -221,6 +234,7 @@ const weeklyData = computed(() => {
         date: new Date(weekKey)
       }
     })
+    .filter(week => week !== null) // Remove null entries
     .sort((a, b) => new Date(a.weekKey).getTime() - new Date(b.weekKey).getTime())
     .slice(-8) // Last 8 weeks
 })
@@ -228,10 +242,22 @@ const weeklyData = computed(() => {
 const lineChartPoints = computed(() => {
   if (weeklyData.value.length === 0) return ''
   
-  const maxWeight = Math.max(...weeklyData.value.map(w => w.weight))
-  const points = weeklyData.value.map((week, index) => {
-    const x = (index / (weeklyData.value.length - 1)) * 80 + 10 // 10-90% of width
+  // Filter out invalid weight values and ensure we have valid numbers
+  const validData = weeklyData.value.filter(w => w.weight && !isNaN(w.weight) && isFinite(w.weight))
+  if (validData.length === 0) return ''
+  
+  const maxWeight = Math.max(...validData.map(w => w.weight))
+  if (maxWeight <= 0) return ''
+  
+  const points = validData.map((week, index) => {
+    const x = (index / (validData.length - 1)) * 80 + 10 // 10-90% of width
     const y = 90 - ((week.weight / maxWeight) * 80) // 10-90% of height, inverted
+    
+    // Ensure x and y are valid numbers
+    if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
+      return '10,90' // Fallback to bottom-left
+    }
+    
     return `${x},${y}`
   })
   
@@ -241,17 +267,38 @@ const lineChartPoints = computed(() => {
 const lineChartPointsArray = computed(() => {
   if (weeklyData.value.length === 0) return []
   
-  const maxWeight = Math.max(...weeklyData.value.map(w => w.weight))
-  return weeklyData.value.map((week, index) => {
-    const x = (index / (weeklyData.value.length - 1)) * 80 + 10
+  // Filter out invalid weight values and ensure we have valid numbers
+  const validData = weeklyData.value.filter(w => w.weight && !isNaN(w.weight) && isFinite(w.weight))
+  if (validData.length === 0) return []
+  
+  const maxWeight = Math.max(...validData.map(w => w.weight))
+  if (maxWeight <= 0) return []
+  
+  return validData.map((week, index) => {
+    const x = (index / (validData.length - 1)) * 80 + 10
     const y = 90 - ((week.weight / maxWeight) * 80)
+    
+    // Ensure x and y are valid numbers
+    if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
+      return { x: 10, y: 90 } // Fallback to bottom-left
+    }
+    
     return { x, y }
   })
 })
 
 const maxWeight = computed(() => {
   if (performances.value.length === 0) return 100
-  return Math.max(...performances.value.map(p => p.weight))
+  
+  // Filter out invalid weight values
+  const validWeights = performances.value
+    .map(p => p.weight)
+    .filter(weight => weight && !isNaN(weight) && isFinite(weight))
+  
+  if (validWeights.length === 0) return 100
+  
+  const max = Math.max(...validWeights)
+  return isNaN(max) || !isFinite(max) ? 100 : max
 })
 
 const totalSessions = computed(() => {
