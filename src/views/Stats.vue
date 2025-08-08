@@ -127,63 +127,76 @@
         <div 
           v-for="exercise in workoutData.workoutStats.value.mostUsedExercises" 
           :key="exercise.name"
-          class="flex items-center gap-4"
+          class="flex items-center justify-between p-3 bg-dark-700 rounded-lg"
         >
-          <div class="flex-1 text-sm text-dark-300">{{ exercise.name }}</div>
-          <div class="flex-1 bg-dark-700 rounded-full h-4 overflow-hidden">
-            <div
-              class="bg-gradient-to-r from-primary-500 to-primary-600 h-full rounded-full transition-all duration-500"
-              :style="{ width: `${getExerciseUsagePercentage(exercise.count)}%` }"
-            ></div>
+          <div class="flex-1 text-sm text-white font-medium">{{ exercise.name }}</div>
+          <div class="text-primary-500 font-bold">{{ exercise.count }} ganger</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Best Performance by Exercise -->
+    <div class="card">
+      <h3 class="text-lg font-semibold text-white mb-6">Beste Prestasjoner</h3>
+      <div class="space-y-4">
+        <div 
+          v-for="exercise in bestPerformances" 
+          :key="exercise.name"
+          class="flex items-center justify-between p-3 bg-dark-700 rounded-lg"
+        >
+          <div class="flex-1">
+            <div class="text-sm text-white font-medium">{{ exercise.name }}</div>
+            <div class="text-xs text-dark-300">{{ exercise.date }}</div>
           </div>
-          <div class="w-16 text-right text-sm font-medium text-white">
-            {{ exercise.count }}
+          <div class="text-right">
+            <div class="text-primary-500 font-bold">{{ exercise.weight }} kg</div>
+            <div class="text-xs text-dark-300">{{ exercise.reps }} reps</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Recent Activity -->
+    <!-- Workout Consistency -->
     <div class="card">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold text-white">Siste Aktivitet</h3>
-        <router-link 
-          to="/history" 
-          class="text-primary-500 hover:text-primary-400 text-sm font-medium"
-        >
-          Se alle
-        </router-link>
+      <h3 class="text-lg font-semibold text-white mb-6">Treningskonsistens</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="text-center p-4 bg-dark-700 rounded-lg">
+          <div class="text-2xl font-bold text-primary-500 mb-1">{{ currentStreak }}</div>
+          <div class="text-xs text-dark-300">Dager på rad</div>
+        </div>
+        <div class="text-center p-4 bg-dark-700 rounded-lg">
+          <div class="text-2xl font-bold text-primary-500 mb-1">{{ longestStreak }}</div>
+          <div class="text-xs text-dark-300">Lengste streak</div>
+        </div>
+        <div class="text-center p-4 bg-dark-700 rounded-lg">
+          <div class="text-2xl font-bold text-primary-500 mb-1">{{ averageWorkoutsPerWeek }}</div>
+          <div class="text-xs text-dark-300">Økter/uke</div>
+        </div>
+        <div class="text-center p-4 bg-dark-700 rounded-lg">
+          <div class="text-2xl font-bold text-primary-500 mb-1">{{ consistencyPercentage }}%</div>
+          <div class="text-xs text-dark-300">Konsistens</div>
+        </div>
       </div>
+    </div>
 
-      <div v-if="workoutData.recentSessions.value.length === 0" class="text-center py-8">
-        <p class="text-dark-300">Ingen aktivitet ennå</p>
-      </div>
-
-      <div v-else class="space-y-4">
+    <!-- Volume by Muscle Group -->
+    <div class="card">
+      <h3 class="text-lg font-semibold text-white mb-6">Volum per Muskelgruppe</h3>
+      <div class="space-y-4">
         <div 
-          v-for="session in workoutData.recentSessions.value" 
-          :key="session.id"
-          class="flex items-center justify-between p-4 bg-dark-700 rounded-lg"
+          v-for="group in muscleGroupStats" 
+          :key="group.name"
+          class="flex items-center gap-4"
         >
-          <div class="flex-1">
-            <h4 class="font-medium text-white">{{ session.templateName }}</h4>
-            <p class="text-sm text-dark-300">
-              {{ formatDate(session.date) }} • {{ session.duration }} min
-            </p>
+          <div class="w-20 text-sm text-dark-300">{{ group.name }}</div>
+          <div class="flex-1 bg-dark-700 rounded-full h-4 overflow-hidden">
+            <div
+              class="bg-gradient-to-r from-primary-500 to-primary-600 h-full rounded-full transition-all duration-500"
+              :style="{ width: `${getMuscleGroupPercentage(group.volume)}%` }"
+            ></div>
           </div>
-          <div class="flex items-center gap-3">
-            <span class="text-primary-500 font-medium">
-              {{ formatNumber(session.totalVolume || 0) }} kg
-            </span>
-            <span 
-              class="px-2 py-1 rounded-full text-xs font-medium"
-              :style="{ 
-                backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
-                color: getWorkoutTypeColor(session.workoutType)
-              }"
-            >
-              {{ getWorkoutTypeName(session.workoutType) }}
-            </span>
+          <div class="w-16 text-right text-sm font-medium text-white">
+            {{ formatNumber(group.volume) }}
           </div>
         </div>
       </div>
@@ -195,10 +208,10 @@
       <div class="space-y-4">
         <div class="p-4 bg-gradient-to-r from-primary-500/20 to-primary-600/20 rounded-lg border border-primary-500/30">
           <p class="text-white font-medium mb-2">Neste repetisjon</p>
-                     <p class="text-dark-200 text-sm">
-             Du har fullført {{ workoutData.completedSessions.value.length }} økter med totalt {{ formatNumber(workoutData.totalVolume.value) }} kg volum. 
-             Hold deg konsistent og se resultatene komme!
-           </p>
+          <p class="text-dark-200 text-sm">
+            Du har fullført {{ workoutData.completedSessions.value.length }} økter med totalt {{ formatNumber(workoutData.totalVolume.value) }} kg volum. 
+            Hold deg konsistent og se resultatene komme!
+          </p>
         </div>
         <div class="text-center">
           <p class="text-2xl font-bold text-primary-500 mb-1">
@@ -241,6 +254,134 @@ const workoutTypeStats = computed(() => {
   })).filter(stat => stat.count > 0)
 })
 
+const bestPerformances = computed(() => {
+  const performances: { [key: string]: { name: string; weight: number; reps: number; date: string; volume: number } } = {}
+  
+  workoutData.completedSessions.value.forEach(session => {
+    session.exercises.forEach(exercise => {
+      exercise.sets.forEach(set => {
+        if (set.isCompleted && set.weight && set.reps) {
+          const volume = set.weight * set.reps
+          const exerciseId = exercise.exerciseId
+          
+          if (!performances[exerciseId] || volume > performances[exerciseId].volume) {
+            performances[exerciseId] = {
+              name: exercise.name,
+              weight: set.weight,
+              reps: set.reps,
+              date: formatDate(session.date),
+              volume: volume
+            }
+          }
+        }
+      })
+    })
+  })
+  
+  return Object.values(performances)
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, 5)
+})
+
+const muscleGroupStats = computed(() => {
+  const groupVolumes: { [key: string]: number } = {}
+  
+  workoutData.completedSessions.value.forEach(session => {
+    session.exercises.forEach(exercise => {
+      // Get exercise data to find muscle groups
+      const exerciseData = workoutData.exercises.value.find(e => e.id === exercise.exerciseId)
+      const muscleGroups = exerciseData?.muscleGroups || []
+      
+      exercise.sets.forEach(set => {
+        if (set.isCompleted && set.weight && set.reps) {
+          const volume = set.weight * set.reps
+          muscleGroups.forEach((group: string) => {
+            groupVolumes[group] = (groupVolumes[group] || 0) + volume
+          })
+        }
+      })
+    })
+  })
+  
+  return Object.entries(groupVolumes)
+    .map(([name, volume]) => ({ name, volume }))
+    .sort((a, b) => b.volume - a.volume)
+})
+
+const currentStreak = computed(() => {
+  return getCurrentStreak()
+})
+
+const longestStreak = computed(() => {
+  if (workoutData.completedSessions.value.length === 0) return 0
+  
+  const sortedSessions = [...workoutData.completedSessions.value]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  
+  let maxStreak = 0
+  let currentStreak = 0
+  let lastDate: Date | null = null
+  
+  for (const session of sortedSessions) {
+    const sessionDate = new Date(session.date)
+    sessionDate.setHours(0, 0, 0, 0)
+    
+    if (lastDate) {
+      const daysDiff = Math.floor((sessionDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+      if (daysDiff === 1) {
+        currentStreak++
+      } else {
+        maxStreak = Math.max(maxStreak, currentStreak)
+        currentStreak = 1
+      }
+    } else {
+      currentStreak = 1
+    }
+    
+    lastDate = sessionDate
+  }
+  
+  return Math.max(maxStreak, currentStreak)
+})
+
+const averageWorkoutsPerWeek = computed(() => {
+  if (workoutData.completedSessions.value.length === 0) return 0
+  
+  const sortedSessions = [...workoutData.completedSessions.value]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  
+  if (sortedSessions.length < 2) return 1
+  
+  const firstDate = new Date(sortedSessions[0].date)
+  const lastDate = new Date(sortedSessions[sortedSessions.length - 1].date)
+  const weeksDiff = Math.ceil((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 7))
+  
+  return weeksDiff > 0 ? Math.round((sortedSessions.length / weeksDiff) * 10) / 10 : sortedSessions.length
+})
+
+const consistencyPercentage = computed(() => {
+  if (workoutData.completedSessions.value.length === 0) return 0
+  
+  const sortedSessions = [...workoutData.completedSessions.value]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  
+  if (sortedSessions.length < 2) return 100
+  
+  const firstDate = new Date(sortedSessions[0].date)
+  const lastDate = new Date(sortedSessions[sortedSessions.length - 1].date)
+  const totalDays = Math.ceil((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24))
+  
+  // Count days with workouts
+  const workoutDays = new Set()
+  sortedSessions.forEach(session => {
+    const date = new Date(session.date)
+    date.setHours(0, 0, 0, 0)
+    workoutDays.add(date.getTime())
+  })
+  
+  return totalDays > 0 ? Math.round((workoutDays.size / totalDays) * 100) : 100
+})
+
 // Methods
 const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('no-NO').format(Math.round(num))
@@ -269,11 +410,7 @@ const getWeeklyProgressPercentage = (volume: number): number => {
   return Math.round((volume / maxVolume) * 100)
 }
 
-const getExerciseUsagePercentage = (count: number): number => {
-  const maxCount = Math.max(...workoutData.workoutStats.value.mostUsedExercises.map(e => e.count))
-  if (maxCount === 0) return 0
-  return Math.round((count / maxCount) * 100)
-}
+
 
 const getCurrentStreak = (): number => {
   if (workoutData.completedSessions.value.length === 0) return 0
@@ -299,5 +436,11 @@ const getCurrentStreak = (): number => {
   }
   
   return streak
+}
+
+const getMuscleGroupPercentage = (volume: number): number => {
+  const maxVolume = Math.max(...muscleGroupStats.value.map(group => group.volume))
+  if (maxVolume === 0) return 0
+  return Math.round((volume / maxVolume) * 100)
 }
 </script> 

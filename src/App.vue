@@ -103,9 +103,9 @@
               to="/profile"
               class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
             >
-              <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+              <div class="w-6 h-6 mb-1 bg-primary-500 rounded-full flex items-center justify-center">
+                <span class="text-white text-xs font-medium">{{ userInitials }}</span>
+              </div>
               <span class="text-xs">Profil</span>
             </router-link>
           </div>
@@ -202,6 +202,21 @@ const isAuthenticated = computed(() => workoutData.isAuthenticated.value)
 const currentUser = computed(() => workoutData.currentUser.value)
 const isLoading = computed(() => {
   return !hasInitialized.value && workoutData.isLoading.value
+})
+
+const userInitials = computed(() => {
+  if (!currentUser.value?.email) return ''
+  
+  // Extract name from email or use email
+  const name = currentUser.value.user_metadata?.name || currentUser.value.email.split('@')[0]
+  
+  // Split name into parts and get initials
+  const nameParts = name.split(' ')
+  if (nameParts.length >= 2) {
+    return (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+  } else {
+    return name.substring(0, 2).toUpperCase()
+  }
 })
 
 
