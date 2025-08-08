@@ -17,7 +17,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <h1 class="text-2xl font-bold text-white">
-                  <span class="text-primary-500">Treningsloggen</span>
+                  <span class="text-primary-500">Fremgang</span>
                 </h1>
                 <p class="text-sm text-dark-300">Full kontroll over treningsøktene dine</p>
               </div>
@@ -29,7 +29,14 @@
                   class="text-dark-300 hover:text-white transition-colors"
                   active-class="nav-link-active"
                 >
-                  Dashboard
+                  Økter
+                </router-link>
+                <router-link 
+                  to="/exercises" 
+                  class="text-dark-300 hover:text-white transition-colors"
+                  active-class="nav-link-active"
+                >
+                  Øvelser
                 </router-link>
                 <router-link 
                   to="/history" 
@@ -156,7 +163,18 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
               </svg>
-              <span class="text-xs">Hjem</span>
+              <span class="text-xs">Økter</span>
+            </router-link>
+            
+            <router-link 
+              to="/exercises" 
+              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+              :class="{ 'nav-link-active': $route.path === '/exercises' }"
+            >
+              <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              <span class="text-xs">Øvelser</span>
             </router-link>
             
             <router-link 

@@ -9,6 +9,8 @@ import WorkoutSession from '@/views/WorkoutSession.vue'
 import TemplateForm from '@/views/TemplateForm.vue'
 import SessionDetails from '@/views/SessionDetails.vue'
 import Profile from '@/views/Profile.vue'
+import ExerciseDetail from '@/views/ExerciseDetail.vue'
+import Exercises from '@/views/Exercises.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -23,6 +25,8 @@ const router = createRouter({
     { path: '/template/create', name: 'CreateTemplate', component: TemplateForm, meta: { requiresAuth: true } },
     { path: '/template/edit/:id', name: 'EditTemplate', component: TemplateForm, meta: { requiresAuth: true } },
     { path: '/session/:id', name: 'SessionDetails', component: SessionDetails, meta: { requiresAuth: true } },
+    { path: '/exercise/:id', name: 'ExerciseDetail', component: ExerciseDetail, meta: { requiresAuth: true } },
+    { path: '/exercises', name: 'Exercises', component: Exercises, meta: { requiresAuth: true } },
     // Catch all route - redirect to login if not authenticated, dashboard if authenticated
     {
       path: '/:pathMatch(.*)*',

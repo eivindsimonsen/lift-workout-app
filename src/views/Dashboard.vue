@@ -107,56 +107,25 @@
 
                                        <!-- Exercise Preview -->
            <div class="mb-6 flex-grow">
-             <!-- Categorized Exercises -->
-             <div v-if="!expandedTemplates.has(template.id)">
-               <div class="space-y-3">
+             <div class="grid grid-cols-2 gap-1">
+               <template v-if="!expandedTemplates.has(template.id)">
                  <div 
-                   v-for="(exercises, muscleGroup) in getCategorizedExercises(template.exercises.slice(0, 6))" 
-                   :key="muscleGroup"
-                   class="space-y-1"
+                   v-for="exercise in template.exercises.slice(0, 6)" 
+                   :key="exercise.exerciseId"
+                   class="text-sm text-dark-200"
                  >
-                   <div class="text-xs font-medium text-primary-400 uppercase tracking-wide">
-                     {{ getMuscleGroupName(muscleGroup) }}
-                   </div>
-                   <div class="grid grid-cols-2 gap-1">
-                     <div 
-                       v-for="exercise in exercises" 
-                       :key="exercise.exerciseId"
-                       class="text-sm text-dark-200"
-                     >
-                       {{ exercise.name }}
-                     </div>
-                   </div>
+                   {{ exercise.name }}
                  </div>
-               </div>
-               
-               <div v-if="template.exercises.length > 6" class="text-xs text-dark-400 mt-3">
-                 +{{ template.exercises.length - 6 }} flere øvelser
-               </div>
-             </div>
-             
-             <!-- Expanded View -->
-             <div v-else>
-               <div class="space-y-3">
+               </template>
+               <template v-else>
                  <div 
-                   v-for="(exercises, muscleGroup) in getCategorizedExercises(template.exercises)" 
-                   :key="muscleGroup"
-                   class="space-y-1"
+                   v-for="exercise in template.exercises" 
+                   :key="exercise.exerciseId"
+                   class="text-sm text-dark-200"
                  >
-                   <div class="text-xs font-medium text-primary-400 uppercase tracking-wide">
-                     {{ getMuscleGroupName(muscleGroup) }}
-                   </div>
-                   <div class="grid grid-cols-2 gap-1">
-                     <div 
-                       v-for="exercise in exercises" 
-                       :key="exercise.exerciseId"
-                       class="text-sm text-dark-200"
-                     >
-                       {{ exercise.name }}
-                     </div>
-                   </div>
+                   {{ exercise.name }}
                  </div>
-               </div>
+               </template>
              </div>
              
              <button 
@@ -186,59 +155,6 @@
                </div>
      </div>
 
-      
-
-     <!-- Recent Completed Workouts -->
-    <div class="mt-8 card">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-semibold text-white">Siste Fullførte Økter</h2>
-        <router-link 
-          to="/history" 
-          class="text-primary-500 hover:text-primary-400 text-sm font-medium"
-        >
-          Se alle
-        </router-link>
-      </div>
-
-      <div v-if="recentSessions.length === 0" class="text-center py-8">
-        <p class="text-dark-300">Ingen fullførte økter ennå</p>
-      </div>
-
-      <div v-else class="space-y-4">
-        <div 
-          v-for="session in recentSessions" 
-          :key="session.id"
-          @click="viewSession(session.id)"
-          class="flex items-center justify-between p-4 bg-dark-700 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors"
-        >
-          <div class="flex-1">
-            <h3 class="font-medium text-white">{{ session.templateName }}</h3>
-            <p class="text-sm text-dark-300">
-              {{ formatDate(session.date) }} • {{ session.duration }} min
-            </p>
-            <p class="text-xs text-dark-400">
-              {{ session.exercises.length }} øvelser • {{ formatNumber(session.totalVolume || 0) }} kg
-            </p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-primary-500 font-medium">
-              {{ formatNumber(session.totalVolume || 0) }} kg
-            </span>
-                         <span 
-               class="px-3 py-2 rounded-full text-sm font-medium"
-               :style="{ 
-                 backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
-                 color: getWorkoutTypeColor(session.workoutType)
-               }"
-             >
-               {{ getWorkoutTypeName(session.workoutType) }}
-             </span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
   </div>
 </template>
 
@@ -262,9 +178,7 @@ const activeSessions = computed(() => {
   return workoutData.sessions.value.filter(session => !session.isCompleted)
 })
 
-const recentSessions = computed(() => {
-  return workoutData.recentSessions.value
-})
+
 
 
 
@@ -313,10 +227,6 @@ const startWorkout = async (templateId: string) => {
   }
 }
 
-const viewSession = (sessionId: string) => {
-  router.push(`/session/${sessionId}`)
-}
-
 const continueWorkout = (sessionId: string) => {
   router.push(`/workout/${sessionId}`)
 }
@@ -329,50 +239,7 @@ const toggleExpanded = (templateId: string) => {
   }
 }
 
-// Helper function to categorize exercises by muscle group
-const getCategorizedExercises = (exercises: any[]) => {
-  const categorized: { [key: string]: any[] } = {}
-  
-  exercises.forEach(exercise => {
-    // Get exercise data from workoutData.exercises
-    const exerciseData = workoutData.exercises.value.find(e => e.id === exercise.exerciseId)
-    if (exerciseData && exerciseData.muscleGroups) {
-      // Use the first muscle group as the primary category
-      const primaryMuscleGroup = exerciseData.muscleGroups[0]
-      if (!categorized[primaryMuscleGroup]) {
-        categorized[primaryMuscleGroup] = []
-      }
-      categorized[primaryMuscleGroup].push(exercise)
-    } else {
-      // Fallback category for exercises without muscle group data
-      if (!categorized['other']) {
-        categorized['other'] = []
-      }
-      categorized['other'].push(exercise)
-    }
-  })
-  
-  return categorized
-}
 
-// Helper function to get Norwegian muscle group names
-const getMuscleGroupName = (muscleGroup: string | number): string => {
-  const muscleGroupNames: { [key: string]: string } = {
-    'bryst': 'Bryst',
-    'triceps': 'Triceps',
-    'skuldre': 'Skuldre',
-    'rygg': 'Rygg',
-    'biceps': 'Biceps',
-    'quadriceps': 'Quadriceps',
-    'glutes': 'Glutes',
-    'hamstrings': 'Hamstrings',
-    'calves': 'Legger',
-    'core': 'Core',
-    'other': 'Andre'
-  }
-  
-  return muscleGroupNames[String(muscleGroup)] || String(muscleGroup)
-}
 
 
 

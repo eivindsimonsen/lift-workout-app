@@ -24,7 +24,16 @@
         class="card"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-white">{{ exercise.name }}</h3>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-white">{{ exercise.name }}</h3>
+            <!-- Last Performance -->
+            <div v-if="getLastPerformance(exercise.exerciseId)" class="mt-1">
+              <p class="text-xs text-dark-400">
+                Sist: {{ getLastPerformance(exercise.exerciseId)?.weight }}kg × {{ getLastPerformance(exercise.exerciseId)?.reps }} reps
+                <span class="text-dark-500">• {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
+              </p>
+            </div>
+          </div>
           <div class="flex items-center gap-3">
             <span class="text-sm text-dark-300">
               {{ getCompletedSets(exercise) }}/{{ exercise.sets.length }} sett
@@ -417,6 +426,48 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
 
 const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('no-NO').format(Math.round(num))
+}
+
+const formatDate = (date: Date): string => {
+  return new Intl.DateTimeFormat('no-NO', {
+    day: 'numeric',
+    month: 'short'
+  }).format(date)
+}
+
+const getLastPerformance = (exerciseId: string) => {
+  // Get all completed sessions
+  const completedSessions = workoutData.sessions.value.filter(session => session.isCompleted)
+  
+  // Find the most recent session that contains this exercise
+  for (const session of completedSessions) {
+    const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
+    if (exercise) {
+      // Find the best set (highest weight × reps)
+      let bestSet: any = null
+      let bestVolume = 0
+      
+      exercise.sets.forEach(set => {
+        if (set.isCompleted && set.weight && set.reps) {
+          const volume = set.weight * set.reps
+          if (volume > bestVolume) {
+            bestVolume = volume
+            bestSet = set
+          }
+        }
+      })
+      
+      if (bestSet) {
+        return {
+          weight: bestSet.weight,
+          reps: bestSet.reps,
+          date: session.date
+        }
+      }
+    }
+  }
+  
+  return null
 }
 
 const handleCompleteWorkout = () => {

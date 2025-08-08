@@ -33,16 +33,17 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
-      <button 
-        v-if="selectedWorkoutType"
-        @click="selectedWorkoutType = ''"
-        class="inline-flex items-center gap-1 px-2 py-1 bg-primary-500/20 text-primary-400 rounded-full text-xs hover:bg-primary-500/30 transition-colors"
-      >
-        Type: {{ getWorkoutTypeName(selectedWorkoutType) }}
-        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      <template v-for="typeId in selectedTypes.value" :key="typeId">
+        <button 
+          @click="removeType(typeId)"
+          class="inline-flex items-center gap-1 px-2 py-1 bg-primary-500/20 text-primary-400 rounded-full text-xs hover:bg-primary-500/30 transition-colors"
+        >
+          Type: {{ getWorkoutTypeName(typeId) }}
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </template>
       <button 
         @click="clearAllFilters"
         class="text-xs text-dark-400 hover:text-white transition-colors"
@@ -136,20 +137,31 @@
       
       <!-- Workout Type Filter -->
       <div>
-        <label class="block text-sm font-medium text-white mb-2">Økt Type</label>
-        <select 
-          v-model="selectedWorkoutType" 
-          class="input-field w-full"
-        >
-          <option value="">Alle typer</option>
-          <option 
+        <label class="block text-sm font-medium text-white mb-2">Økt Typer</label>
+        <div class="space-y-2">
+          <div 
             v-for="type in workoutData.workoutTypes.value" 
-            :key="type.id" 
-            :value="type.id"
+            :key="type.id"
+            class="flex items-center gap-2"
           >
-            {{ type.name }}
-          </option>
-        </select>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox"
+                :checked="selectedTypes.value.includes(type.id)"
+                @change="(e: Event) => {
+                  const target = e.target as HTMLInputElement
+                  if (target.checked) {
+                    addType(type.id)
+                  } else {
+                    removeType(type.id)
+                  }
+                }"
+                class="form-checkbox h-4 w-4 text-primary-500 rounded bg-dark-600 border-dark-500"
+              >
+              <span class="text-dark-200">{{ type.name }}</span>
+            </label>
+          </div>
+        </div>
       </div>
       
       <!-- Sort By -->
@@ -186,7 +198,8 @@ const workoutData = useHybridData()
 
 // State
 const searchQuery = ref('')
-const selectedWorkoutType = ref('')
+const selectedTypes = ref<{ value: string[] }>({ value: [] })
+const selectedWorkoutTypes = computed(() => ({ data: new Set(selectedTypes.value.value) }))
 const sortBy = ref('date')
 const showFilterModal = ref(false)
 
@@ -201,10 +214,10 @@ const filteredSessions = computed(() => {
     )
   }
 
-  // Filter by workout type
-  if (selectedWorkoutType.value) {
+  // Filter by workout types
+  if (selectedWorkoutTypes.value.data.size > 0) {
     sessions = sessions.filter(session =>
-      session.workoutType === selectedWorkoutType.value
+      selectedWorkoutTypes.value.data.has(session.workoutType)
     )
   }
 
@@ -239,7 +252,7 @@ const filteredSessions = computed(() => {
 })
 
 const hasActiveFilters = computed(() => {
-  return searchQuery.value || selectedWorkoutType.value
+  return searchQuery.value || selectedWorkoutTypes.value.data.size > 0
 })
 
 // Methods
@@ -274,10 +287,19 @@ const getTotalSets = (session: WorkoutSession): number => {
 
 
 
+const addType = (typeId: string) => {
+  selectedTypes.value.value = [...selectedTypes.value.value, typeId]
+}
+
+const removeType = (typeId: string) => {
+  selectedTypes.value.value = selectedTypes.value.value.filter(id => id !== typeId)
+}
+
 const clearAllFilters = () => {
   searchQuery.value = ''
-  selectedWorkoutType.value = ''
+  selectedTypes.value.value = []
   sortBy.value = 'date'
+  showFilterModal.value = false
 }
 
 
