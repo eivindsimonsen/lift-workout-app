@@ -93,10 +93,7 @@
                 <span class="text-dark-300">Sett {{ exercise.sets.indexOf(set) + 1 }}:</span>
                 <div class="flex items-center gap-4">
                   <span class="text-white">{{ set.reps }} reps</span>
-                  <span v-if="set.weight" class="text-white">{{ set.weight }} kg</span>
-                  <span v-if="set.weight && set.reps" class="text-primary-500 font-medium">
-                    {{ set.weight * set.reps }} kg
-                  </span>
+                  <span v-if="set.weight" class="text-primary-500 font-medium">{{ set.weight }} kg</span>
                 </div>
               </div>
             </div>
