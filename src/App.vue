@@ -11,6 +11,56 @@
 
       <!-- App content when loaded -->
       <div v-else>
+        <!-- Desktop Top Header (hidden on mobile) -->
+        <header v-if="isAuthenticated" class="hidden md:block sticky top-0 z-40 bg-dark-900/80 backdrop-blur border-b border-dark-700">
+          <div class="container mx-auto px-4 h-14 flex items-center justify-between">
+            <router-link to="/" class="text-white font-semibold tracking-wide">
+              Treningsloggen
+            </router-link>
+
+            <nav class="flex items-center gap-6">
+              <router-link 
+                to="/" 
+                class="text-dark-300 hover:text-white transition-colors"
+                :class="{ 'nav-link-active': $route.path === '/' }"
+              >
+                Økter
+              </router-link>
+
+              <router-link 
+                to="/exercises" 
+                class="text-dark-300 hover:text-white transition-colors"
+                :class="{ 'nav-link-active': $route.path === '/exercises' || $route.path.startsWith('/exercise/') }"
+              >
+                Øvelser
+              </router-link>
+
+              <router-link 
+                to="/history" 
+                class="text-dark-300 hover:text-white transition-colors"
+                :class="{ 'nav-link-active': $route.path === '/history' || $route.path.startsWith('/session/') }"
+              >
+                Historikk
+              </router-link>
+
+              <router-link 
+                to="/stats" 
+                class="text-dark-300 hover:text-white transition-colors"
+                :class="{ 'nav-link-active': $route.path === '/stats' }"
+              >
+                Statistikk
+              </router-link>
+            </nav>
+
+            <router-link to="/profile" class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+                <span class="text-white text-sm font-medium">{{ userInitials }}</span>
+              </div>
+              <span class="text-dark-200 hover:text-white transition-colors">Profil</span>
+            </router-link>
+          </div>
+        </header>
+
         <!-- Main content -->
         <main :class="isAuthenticated ? `container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-24 md:pb-8'}` : ''">
           <router-view />
