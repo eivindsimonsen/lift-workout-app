@@ -91,10 +91,10 @@
         </div>
       </div>
 
-      <!-- Weekly Volume Chart -->
+      <!-- One Rep Max Progression -->
       <div>
         <h4 class="text-md font-medium text-white mb-4">One Rep Max Progresjon</h4>
-        <div class="space-y-2">
+        <div v-if="oneRepMaxProgression.length > 0" class="space-y-2">
           <div 
             v-for="max in oneRepMaxProgression" 
             :key="max.exercise"
@@ -111,6 +111,9 @@
               </div>
             </div>
           </div>
+        </div>
+        <div v-else class="bg-dark-700 rounded-lg p-4 text-sm text-dark-300">
+          For å logge 1RM: fullfør et sett med 1 repetisjon på en øvelse.
         </div>
       </div>
     </div>
@@ -139,25 +142,40 @@
         </div>
       </div>
 
-      <!-- Training Calendar Heatmap -->
+      <!-- Training Calendar (Monthly) -->
       <div class="mt-6">
-        <h4 class="text-md font-medium text-white mb-4">Treningskalender</h4>
-        <div class="grid grid-cols-7 gap-1 max-w-md">
-          <div 
-            v-for="day in trainingCalendar" 
-            :key="day.date"
-            class="w-8 h-8 rounded-sm transition-colors"
-            :class="getCalendarDayClass(day.trained)"
-            :title="`${day.date}: ${day.trained ? 'Trenet' : 'Ikke trent'}`"
-          ></div>
+        <h4 class="text-md font-medium text-white">Treningskalender</h4>
+        <div class="flex items-center gap-2 mt-2 mb-4">
+          <button @click="changeMonth(-1)" class="px-2 py-1 bg-dark-700 hover:bg-dark-600 rounded text-sm text-white">Forrige</button>
+          <div class="text-sm text-dark-200 w-40 text-center capitalize">{{ monthLabel }}</div>
+          <button v-if="canGoNext" @click="changeMonth(1)" class="px-2 py-1 bg-dark-700 hover:bg-dark-600 rounded text-sm text-white">Neste</button>
         </div>
+
+        <!-- Weekday Labels -->
+        <div class="grid grid-cols-7 gap-1 text-xs text-dark-300 mb-1">
+          <div v-for="wd in weekDayLabels" :key="wd" class="text-center">{{ wd }}</div>
+        </div>
+
+        <!-- Month Grid -->
+        <div class="grid grid-cols-7 gap-1">
+          <template v-for="(week, wi) in monthlyCalendar" :key="wi">
+            <div 
+              v-for="day in week" 
+              :key="day.key"
+              class="aspect-square rounded-sm border border-dark-700 flex items-center justify-center text-xs select-none"
+              :class="getMonthlyDayClass(day)"
+              :title="`${formatDate(day.date)}: ${day.trained ? 'Trenet' : 'Ikke trent'}`"
+            >
+              <span>{{ day.date.getDate() }}</span>
+            </div>
+          </template>
+        </div>
+
         <div class="flex items-center gap-4 mt-3 text-xs text-dark-300">
           <span>Ikke trent</span>
-          <div class="flex gap-1">
-            <div class="w-3 h-3 bg-dark-700 rounded-sm"></div>
-            <div class="w-3 h-3 bg-primary-500 rounded-sm"></div>
-          </div>
+          <div class="w-3 h-3 bg-dark-700 rounded-sm"></div>
           <span>Trent</span>
+          <div class="w-3 h-3 bg-primary-500 rounded-sm"></div>
         </div>
       </div>
     </div>
@@ -213,7 +231,7 @@
             v-for="achievement in achievements" 
             :key="achievement.id"
             class="text-center p-3 bg-dark-700 rounded-lg"
-            :class="{ 'border-2 border-primary-500': achievement.earned }"
+            :class="{ 'border-2 border-primary-500': achievement.earned, 'opacity-50': !achievement.earned }"
           >
             <div class="text-2xl mb-1">{{ achievement.icon }}</div>
             <div class="text-xs text-white font-medium">{{ achievement.title }}</div>
@@ -222,20 +240,22 @@
         </div>
       </div>
 
-      <!-- Progress to Next Goal -->
+      <!-- Volume Progress (Total volume toward next milestone) -->
       <div>
-        <h4 class="text-md font-medium text-white mb-4">Neste Mål</h4>
-        <div class="bg-dark-700 rounded-lg p-4">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm text-white">{{ nextGoal.title }}</span>
-            <span class="text-sm text-primary-500">{{ nextGoal.progress }}/{{ nextGoal.target }}</span>
+        <h4 class="text-md font-medium text-white mb-1">Volum</h4>
+        <p class="text-xs text-dark-300 mb-4">Totalvolum er summen av vekt × reps i alle fullførte økter.</p>
+        <div class="bg-dark-700 rounded-lg p-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-white">Neste mål: {{ formatNumber(volumeProgress.nextTarget) }} kg</span>
+            <span class="text-sm text-primary-500">{{ formatNumber(volumeProgress.current) }} / {{ formatNumber(volumeProgress.nextTarget) }} kg</span>
           </div>
           <div class="w-full bg-dark-600 rounded-full h-2">
             <div 
               class="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full transition-all duration-500"
-              :style="{ width: `${nextGoal.percentage}%` }"
+              :style="{ width: `${volumeProgress.percentage}%` }"
             ></div>
           </div>
+          <div v-if="volumeProgress.isMax" class="text-xs text-dark-300">Du har nådd høyeste milepæl. Rått!</div>
         </div>
       </div>
     </div>
@@ -451,6 +471,92 @@ const getCalendarDayClass = (trained: boolean): string => {
   return 'bg-primary-500 rounded-sm'
 }
 
+// Monthly calendar state
+import { ref } from 'vue'
+const currentMonth = ref(new Date())
+const monthOffset = ref(0)
+
+const monthLabel = computed(() => {
+  return new Intl.DateTimeFormat('no-NO', { month: 'long', year: 'numeric' }).format(currentMonth.value)
+})
+
+const canGoNext = computed(() => monthOffset.value < 0)
+
+const weekDayLabels = computed(() => {
+  // Monday first
+  const base = [] as string[]
+  const formatter = new Intl.DateTimeFormat('no-NO', { weekday: 'short' })
+  // Build week starting Monday
+  const monday = new Date(2020, 5, 1) // arbitrary Monday (June 1, 2020 is Monday)
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    base.push(formatter.format(d))
+  }
+  return base
+})
+
+type MonthlyDay = { date: Date; trained: boolean; inCurrentMonth: boolean; key: string }
+
+const monthlyCalendar = computed(() => {
+  const firstOfMonth = new Date(currentMonth.value.getFullYear(), currentMonth.value.getMonth(), 1)
+  const lastOfMonth = new Date(currentMonth.value.getFullYear(), currentMonth.value.getMonth() + 1, 0)
+
+  // Determine start on Monday
+  const start = new Date(firstOfMonth)
+  const day = (firstOfMonth.getDay() + 6) % 7 // 0 Monday ... 6 Sunday
+  start.setDate(firstOfMonth.getDate() - day)
+
+  // End at Sunday of the last week
+  const end = new Date(lastOfMonth)
+  const endDay = (lastOfMonth.getDay() + 6) % 7
+  end.setDate(lastOfMonth.getDate() + (6 - endDay))
+
+  // Build a Set of trained days for quick lookup
+  const trainedDays = new Set<number>()
+  workoutData.completedSessions.value.forEach(session => {
+    const d = new Date(session.date)
+    d.setHours(0, 0, 0, 0)
+    trainedDays.add(d.getTime())
+  })
+
+  const weeks: MonthlyDay[][] = []
+  let cursor = new Date(start)
+  while (cursor <= end) {
+    const week: MonthlyDay[] = []
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(cursor)
+      dayDate.setHours(0, 0, 0, 0)
+      const inCurrentMonth = dayDate.getMonth() === currentMonth.value.getMonth()
+      const trained = trainedDays.has(dayDate.getTime())
+      week.push({
+        date: new Date(dayDate),
+        trained,
+        inCurrentMonth,
+        key: `${dayDate.getFullYear()}-${dayDate.getMonth()}-${dayDate.getDate()}`
+      })
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    weeks.push(week)
+  }
+  return weeks
+})
+
+const getMonthlyDayClass = (day: MonthlyDay): string => {
+  const base = day.inCurrentMonth ? '' : 'opacity-40'
+  const fill = day.trained ? 'bg-primary-500 text-white' : 'bg-dark-700 text-dark-300'
+  return `${base} ${fill}`
+}
+
+const changeMonth = (delta: number) => {
+  // Prevent navigating to future months beyond current month
+  if (delta > 0 && monthOffset.value >= 0) return
+  const next = new Date(currentMonth.value)
+  next.setMonth(currentMonth.value.getMonth() + delta)
+  currentMonth.value = next
+  monthOffset.value += delta
+}
+
 const getMuscleGroupPercentage = (volume: number): number => {
   const maxVolume = Math.max(...muscleGroupStats.value.map(group => group.volume))
   if (maxVolume === 0) return 0
@@ -578,37 +684,100 @@ const trainingTypeBalance = computed(() => {
   }))
 })
 
+type Achievement = { id: string; icon: string; title: string; description: string; earned: boolean }
+
 const achievements = computed(() => {
-  const achievements: { id: string; icon: string; title: string; description: string; earned: boolean }[] = []
+  const sessions = workoutData.completedSessions.value
+  const totalSessions = sessions.length
 
-  // Example achievements (replace with actual logic)
-  if (currentStreak.value >= 30) {
-    achievements.push({ id: 'streak-30', icon: '⚡️', title: '30 Dagers Streak', description: 'Du har holdt 30 dager på rad!', earned: true })
-  }
-  if (totalReps.value >= 1000) {
-    achievements.push({ id: 'reps-1000', icon: '💪', title: '1000 Reps', description: 'Du har fullført 1000 reps!', earned: true })
-  }
-  if (totalSets.value >= 500) {
-    achievements.push({ id: 'sets-500', icon: '⚙️', title: '500 Sets', description: 'Du har fullført 500 sets!', earned: true })
-  }
-  if (consistencyPercentage.value >= 90) {
-    achievements.push({ id: 'consistency-90', icon: '🎯', title: '90% Konsistens', description: 'Du har 90% konsistens i treningsplanen!', earned: true })
-  }
+  // Metrics
+  const uniqueExerciseIds = new Set<string>()
+  sessions.forEach(s => s.exercises.forEach(e => uniqueExerciseIds.add(e.exerciseId)))
 
-  return achievements
+  const oneRmExercises = new Set<string>()
+  sessions.forEach(s => s.exercises.forEach(e => e.sets.forEach(set => {
+    if (set.isCompleted && set.weight && set.reps === 1) {
+      oneRmExercises.add(e.exerciseId)
+    }
+  })))
+
+  let morningCount = 0
+  let nightCount = 0
+  sessions.forEach(s => {
+    const h = new Date(s.date).getHours()
+    if (h >= 5 && h < 9) morningCount++
+    if (h >= 20 && h <= 23) nightCount++
+  })
+
+  const trainedMonths = new Set<string>()
+  sessions.forEach(s => {
+    const d = new Date(s.date)
+    trainedMonths.add(`${d.getFullYear()}-${d.getMonth()}`)
+  })
+
+  const now = new Date()
+  const mondayOfThisWeek = new Date(now)
+  const dayIdx = (now.getDay() + 6) % 7
+  mondayOfThisWeek.setDate(now.getDate() - dayIdx)
+  mondayOfThisWeek.setHours(0, 0, 0, 0)
+  const sundayOfThisWeek = new Date(mondayOfThisWeek)
+  sundayOfThisWeek.setDate(mondayOfThisWeek.getDate() + 6)
+  sundayOfThisWeek.setHours(23, 59, 59, 999)
+  const workoutsThisWeek = sessions.filter(s => {
+    const d = new Date(s.date)
+    return d >= mondayOfThisWeek && d <= sundayOfThisWeek
+  })
+
+  const distribution = muscleGroupDistribution.value
+  const topShare = distribution.reduce((m, g) => Math.max(m, g.percentage), 0)
+  const groupsAbove15 = distribution.filter(g => g.percentage >= 15).length
+
+  const all: Achievement[] = [
+    { id: 'first-workout', icon: '🎬', title: 'Første økt', description: 'Du fullførte din første økt!', earned: totalSessions >= 1 },
+    { id: 'workouts-10', icon: '🔟', title: '10 økter', description: 'To-sifret antall økter!', earned: totalSessions >= 10 },
+    { id: 'workouts-50', icon: '🏅', title: '50 økter', description: 'Solid mengde arbeid!', earned: totalSessions >= 50 },
+    { id: 'workouts-100', icon: '🥇', title: '100 økter', description: 'Tresifret — imponerende!', earned: totalSessions >= 100 },
+
+    { id: 'sets-500', icon: '⚙️', title: '500 sets', description: 'Du har fullført 500 sets!', earned: totalSets.value >= 500 },
+    { id: 'sets-2000', icon: '⚙️', title: '2000 sets', description: 'Maskineri i arbeid!', earned: totalSets.value >= 2000 },
+    { id: 'reps-1000', icon: '💪', title: '1000 reps', description: 'Fire siffer med reps!', earned: totalReps.value >= 1000 },
+    { id: 'reps-5000', icon: '💪', title: '5000 reps', description: 'Fem siffer med reps!', earned: totalReps.value >= 5000 },
+
+    { id: 'streak-7', icon: '🔥', title: '7 dagers streak', description: 'En uke på rad!', earned: currentStreak.value >= 7 },
+    { id: 'streak-30', icon: '⚡️', title: '30 dagers streak', description: 'Du har holdt 30 dager på rad!', earned: currentStreak.value >= 30 },
+    { id: 'streak-14-best', icon: '🏁', title: 'Lengste streak 14+', description: 'Sterk kontinuitet!', earned: longestStreak.value >= 14 },
+    { id: 'consistency-90', icon: '🎯', title: '90% konsistens', description: 'Nesten hver dag i perioden!', earned: consistencyPercentage.value >= 90 },
+
+    { id: '1rm-first', icon: '🧱', title: 'Første 1RM', description: 'Du har logget en 1RM‑økt (1 rep).', earned: oneRmExercises.size >= 1 },
+    { id: '1rm-5-exercises', icon: '🏋️', title: '1RM på 5 øvelser', description: 'Bred styrketesting!', earned: oneRmExercises.size >= 5 },
+
+    { id: 'variety-10', icon: '🧩', title: 'Variasjon 10+', description: 'Du har trent 10 forskjellige øvelser.', earned: uniqueExerciseIds.size >= 10 },
+    { id: 'variety-20', icon: '🧩', title: 'Variasjon 20+', description: 'Bredt øvelsesutvalg!', earned: uniqueExerciseIds.size >= 20 },
+
+    { id: 'balanced-training', icon: '⚖️', title: 'Balansert trening', description: 'God fordeling mellom muskelgrupper.', earned: (distribution.length >= 3 && topShare <= 40 && groupsAbove15 >= 3) },
+
+    { id: 'week-3plus', icon: '📅', title: '3+ økter denne uken', description: 'Stødig rytme!', earned: workoutsThisWeek.length >= 3 },
+
+    { id: 'morning-trainer', icon: '🌅', title: 'Morgenhelt', description: '5 økter før kl 09.', earned: morningCount >= 5 },
+    { id: 'night-owl', icon: '🌙', title: 'Nattugle', description: '5 økter etter kl 20.', earned: nightCount >= 5 },
+
+    { id: 'months-6', icon: '🗓️', title: '6 aktive måneder', description: 'Halvt år med aktivitet!', earned: trainedMonths.size >= 6 },
+    { id: 'months-12', icon: '🗓️', title: '12 aktive måneder', description: 'Et helt år med trening!', earned: trainedMonths.size >= 12 }
+  ]
+
+  return all
 })
 
-const nextGoal = computed(() => {
-  const currentVolume = workoutData.totalVolume.value
-  const targetVolume = 10000 // Example target
-  const progress = Math.min(currentVolume, targetVolume)
-  const percentage = Math.round((progress / targetVolume) * 100)
+type VolumeProgress = { current: number; nextTarget: number; percentage: number; isMax: boolean }
 
-  if (percentage >= 100) {
-    return { title: 'Mål oppnådd!', progress: progress, target: targetVolume, percentage: 100 }
-  }
-
-  return { title: 'Neste mål: 10000 kg volum', progress: progress, target: targetVolume, percentage: percentage }
+const volumeProgress = computed<VolumeProgress>(() => {
+  const current = Math.max(0, Math.round(workoutData.totalVolume.value))
+  const targets = [5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000]
+  const nextTarget = targets.find(t => current < t) ?? targets[targets.length - 1]
+  const isMax = current >= targets[targets.length - 1]
+  const denominator = isMax ? current || 1 : nextTarget
+  const percentage = Math.min(100, Math.round((current / denominator) * 100))
+  return { current, nextTarget, percentage, isMax }
 })
 
 const getCurrentStreak = (): number => {

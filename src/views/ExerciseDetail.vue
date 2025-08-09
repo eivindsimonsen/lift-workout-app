@@ -107,15 +107,97 @@
         </div>
       </div>
 
-      <!-- Recent Performances -->
+      <!-- PR-tavle -->
+      <div class="card">
+        <h3 class="text-lg font-semibold text-white mb-4">PR‑tavle</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div 
+            v-for="rep in repTargets" 
+            :key="rep" 
+            class="bg-dark-700 rounded-lg p-3 text-center"
+          >
+            <div class="text-xs text-dark-300 mb-1">{{ rep }} ×</div>
+            <div class="text-xl font-bold text-primary-500">{{ prBoard[rep]?.weight ?? '-' }}<span v-if="prBoard[rep]?.weight">kg</span></div>
+            <div class="text-xs text-dark-400" v-if="prBoard[rep]?.date">{{ formatDate(prBoard[rep].date) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estimert 1RM (Epley) -->
+      <div class="card">
+        <h3 class="text-lg font-semibold text-white mb-4">Estimert 1RM (Epley)</h3>
+        <div class="h-64 relative">
+          <div class="absolute inset-0 flex items-end justify-between">
+            <div class="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-dark-400">
+              <span>{{ estimatedMax1RM }}kg</span>
+              <span>{{ Math.round(estimatedMax1RM * 0.75) }}kg</span>
+              <span>{{ Math.round(estimatedMax1RM * 0.5) }}kg</span>
+              <span>{{ Math.round(estimatedMax1RM * 0.25) }}kg</span>
+              <span>0kg</span>
+            </div>
+            <div class="flex-1 ml-8 relative">
+              <div class="absolute inset-0 flex flex-col justify-between">
+                <div class="border-t border-dark-600"></div>
+                <div class="border-t border-dark-600"></div>
+                <div class="border-t border-dark-600"></div>
+                <div class="border-t border-dark-600"></div>
+                <div class="border-t border-dark-600"></div>
+              </div>
+              <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <polyline :points="estimatedLineChartPoints" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <circle v-for="(point, idx) in estimatedLineChartPointsArray" :key="idx" :cx="point.x" :cy="point.y" r="3" fill="#F97316" stroke="#1E293B" stroke-width="1" />
+              </svg>
+            </div>
+          </div>
+          <div class="absolute bottom-0 left-8 right-0 flex justify-between text-xs text-dark-400">
+            <span v-for="(week, index) in estimated1RMWeeklyData" :key="index" class="text-center">Uke {{ week.weekNumber }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Intensitet og Volumtrend -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="card">
+          <h3 class="text-lg font-semibold text-white mb-4">Intensitet</h3>
+          <div class="text-xs text-dark-300 mb-2">Snitt kg/rep per uke</div>
+          <div class="space-y-2">
+            <div v-for="w in weeklyIntensityData" :key="w.weekKey" class="flex items-center justify-between bg-dark-700 rounded p-2">
+              <span class="text-dark-300">Uke {{ w.weekNumber }}</span>
+              <span class="text-white font-medium">{{ Math.round(w.intensity) }} kg/rep</span>
+            </div>
+            <div v-if="weeklyIntensityData.length === 0" class="text-dark-300 text-sm">Ingen data ennå</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="text-lg font-semibold text-white mb-4">Volumtopp og trend</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-dark-300">Beste uke</span>
+              <span class="text-white font-medium">{{ volumeWeekStats.bestWeek.volume }} kg (Uke {{ volumeWeekStats.bestWeek.weekNumber }})</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-dark-300">Beste måned</span>
+              <span class="text-white font-medium">{{ formatNumber(volumeWeekStats.bestMonth.volume) }} kg ({{ volumeWeekStats.bestMonth.label }})</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-dark-300">4‑ukers trend</span>
+              <span :class="volumeWeekStats.trendDelta >= 0 ? 'text-green-400' : 'text-red-400'">
+                {{ volumeWeekStats.trendDelta >= 0 ? '+' : '' }}{{ Math.round(volumeWeekStats.trendDelta) }}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Performances (last 3 sets) -->
       <div class="card">
         <h3 class="text-lg font-semibold text-white mb-4">Siste prestasjoner</h3>
-        <div v-if="performances.length === 0" class="text-center py-8">
+        <div v-if="recentPerformances.length === 0" class="text-center py-8">
           <p class="text-dark-300">Ingen data ennå</p>
         </div>
         <div v-else class="space-y-3">
           <div 
-            v-for="performance in performances" 
+            v-for="performance in recentPerformances" 
             :key="performance.id"
             class="flex items-center justify-between p-3 bg-dark-700 rounded-lg"
           >
@@ -135,6 +217,34 @@
                 {{ performance.sessionName }}
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reps- og settsammensetning -->
+      <div class="card">
+        <h3 class="text-lg font-semibold text-white mb-4">Reps- og settsammensetning</h3>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="w-24 text-xs text-dark-300">Styrke (1–5)</div>
+            <div class="flex-1 h-2 bg-dark-700 rounded">
+              <div class="h-2 rounded bg-primary-500" :style="{ width: repRangeDistribution.strength + '%' }"></div>
+            </div>
+            <div class="w-10 text-right text-xs text-white">{{ repRangeDistribution.strength }}%</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-24 text-xs text-dark-300">Hypertrofi (6–12)</div>
+            <div class="flex-1 h-2 bg-dark-700 rounded">
+              <div class="h-2 rounded bg-primary-500/80" :style="{ width: repRangeDistribution.hypertrophy + '%' }"></div>
+            </div>
+            <div class="w-10 text-right text-xs text-white">{{ repRangeDistribution.hypertrophy }}%</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-24 text-xs text-dark-300">Utholdenhet (13+)</div>
+            <div class="flex-1 h-2 bg-dark-700 rounded">
+              <div class="h-2 rounded bg-primary-500/60" :style="{ width: repRangeDistribution.endurance + '%' }"></div>
+            </div>
+            <div class="w-10 text-right text-xs text-white">{{ repRangeDistribution.endurance }}%</div>
           </div>
         </div>
       </div>
@@ -191,8 +301,11 @@ const performances = computed(() => {
   
   return allPerformances
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 10)
+    .slice(0, 200)
 })
+
+// Recent last 3 sets
+const recentPerformances = computed(() => performances.value.slice(0, 3))
 
 // Weekly progression data
 const weeklyData = computed(() => {
@@ -237,6 +350,151 @@ const weeklyData = computed(() => {
     .filter(week => week !== null) // Remove null entries
     .sort((a, b) => new Date(a.weekKey).getTime() - new Date(b.weekKey).getTime())
     .slice(-8) // Last 8 weeks
+})
+
+// PR board (best weight for exact rep counts)
+type PRItem = { weight: number; date: Date }
+const repTargets = [1, 3, 4, 6, 8, 10, 12, 14]
+const prBoard = computed<Record<number, PRItem | undefined>>(() => {
+  const targets = repTargets
+  const best: Record<number, PRItem | undefined> = {}
+  performances.value.forEach(p => {
+    if (!p.reps || !p.weight) return
+    if (targets.includes(p.reps)) {
+      const existing = best[p.reps]
+      if (!existing || p.weight > existing.weight) {
+        best[p.reps] = { weight: p.weight, date: new Date(p.date) }
+      }
+    }
+  })
+  return best
+})
+
+// Estimated 1RM (Epley) progression per week
+const estimated1RMWeeklyData = computed(() => {
+  if (performances.value.length === 0) return []
+  const byWeek: { [key: string]: { weekNumber: number; ests: number[]; date: Date } } = {}
+  performances.value.forEach(p => {
+    const d = new Date(p.date)
+    const weekStart = new Date(d)
+    weekStart.setDate(d.getDate() - d.getDay())
+    const key = weekStart.toISOString().split('T')[0]
+    const est = p.weight * (1 + (p.reps || 0) / 30)
+    if (!isFinite(est) || isNaN(est)) return
+    if (!byWeek[key]) byWeek[key] = { weekNumber: getWeekNumber(weekStart), ests: [], date: weekStart }
+    byWeek[key].ests.push(est)
+  })
+  const arr = Object.values(byWeek).map(w => ({
+    weekKey: w.date.toISOString(),
+    weekNumber: w.weekNumber,
+    value: Math.max(...w.ests)
+  })).sort((a, b) => new Date(a.weekKey).getTime() - new Date(b.weekKey).getTime()).slice(-8)
+  return arr
+})
+
+const estimatedMax1RM = computed(() => {
+  if (estimated1RMWeeklyData.value.length === 0) return 100
+  return Math.round(Math.max(...estimated1RMWeeklyData.value.map(w => w.value)))
+})
+
+const estimatedLineChartPoints = computed(() => {
+  if (estimated1RMWeeklyData.value.length === 0) return ''
+  const data = estimated1RMWeeklyData.value
+  const maxVal = Math.max(...data.map(w => w.value))
+  if (maxVal <= 0) return ''
+  const pts = data.map((w, i) => {
+    const x = (i / (data.length - 1)) * 80 + 10
+    const y = 90 - ((w.value / maxVal) * 80)
+    if (!isFinite(x) || !isFinite(y)) return '10,90'
+    return `${x},${y}`
+  })
+  return pts.join(' ')
+})
+
+const estimatedLineChartPointsArray = computed(() => {
+  if (estimated1RMWeeklyData.value.length === 0) return []
+  const data = estimated1RMWeeklyData.value
+  const maxVal = Math.max(...data.map(w => w.value))
+  if (maxVal <= 0) return []
+  return data.map((w, i) => {
+    const x = (i / (data.length - 1)) * 80 + 10
+    const y = 90 - ((w.value / maxVal) * 80)
+    if (!isFinite(x) || !isFinite(y)) return { x: 10, y: 90 }
+    return { x, y }
+  })
+})
+
+// Weekly intensity: sum(weight*reps)/sum(reps)
+const weeklyIntensityData = computed(() => {
+  if (performances.value.length === 0) return []
+  const byWeek: { [key: string]: { weekNumber: number; vol: number; reps: number; date: Date } } = {}
+  performances.value.forEach(p => {
+    const d = new Date(p.date)
+    const weekStart = new Date(d)
+    weekStart.setDate(d.getDate() - d.getDay())
+    const key = weekStart.toISOString().split('T')[0]
+    if (!byWeek[key]) byWeek[key] = { weekNumber: getWeekNumber(weekStart), vol: 0, reps: 0, date: weekStart }
+    byWeek[key].vol += p.weight * (p.reps || 0)
+    byWeek[key].reps += (p.reps || 0)
+  })
+  return Object.values(byWeek)
+    .map(w => ({ weekKey: w.date.toISOString(), weekNumber: w.weekNumber, intensity: w.reps > 0 ? w.vol / w.reps : 0 }))
+    .sort((a, b) => new Date(a.weekKey).getTime() - new Date(b.weekKey).getTime())
+})
+
+// Volume best week/month and 4-week rolling trend
+const volumeWeekStats = computed(() => {
+  const byWeek: { label: string; weekNumber: number; volume: number; weekStart: Date }[] = []
+  const byMonth: { label: string; volume: number }[] = []
+  const weekMap: { [k: string]: number } = {}
+  const monthMap: { [k: string]: number } = {}
+  performances.value.forEach(p => {
+    const d = new Date(p.date)
+    // week
+    const ws = new Date(d)
+    ws.setDate(d.getDate() - d.getDay())
+    ws.setHours(0, 0, 0, 0)
+    const wKey = ws.toISOString()
+    weekMap[wKey] = (weekMap[wKey] || 0) + p.weight * (p.reps || 0)
+    // month
+    const mKey = `${d.getFullYear()}-${d.getMonth()}`
+    monthMap[mKey] = (monthMap[mKey] || 0) + p.weight * (p.reps || 0)
+  })
+  Object.entries(weekMap).forEach(([k, v]) => {
+    const d = new Date(k)
+    byWeek.push({ label: k, weekNumber: getWeekNumber(d), volume: Math.round(v), weekStart: d })
+  })
+  Object.entries(monthMap).forEach(([k, v]) => {
+    const [y, m] = k.split('-').map(Number)
+    const label = new Intl.DateTimeFormat('no-NO', { month: 'short', year: 'numeric' }).format(new Date(y, m, 1))
+    byMonth.push({ label, volume: Math.round(v) })
+  })
+  const bestWeek = byWeek.sort((a, b) => b.volume - a.volume)[0] || { label: '', weekNumber: 0, volume: 0, weekStart: new Date() }
+  const bestMonth = byMonth.sort((a, b) => b.volume - a.volume)[0] || { label: '', volume: 0 }
+
+  // rolling 4 weeks vs previous 4 weeks
+  const sortedWeeks = Object.entries(weekMap)
+    .map(([k, v]) => ({ date: new Date(k), volume: v }))
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+  const last4 = sortedWeeks.slice(-4).reduce((s, x) => s + x.volume, 0)
+  const prev4 = sortedWeeks.slice(-8, -4).reduce((s, x) => s + x.volume, 0)
+  const trendDelta = prev4 > 0 ? ((last4 - prev4) / prev4) * 100 : 0
+  return { bestWeek: { weekNumber: bestWeek.weekNumber, volume: Math.round(bestWeek.volume) }, bestMonth, trendDelta }
+})
+
+// Rep range distribution
+const repRangeDistribution = computed(() => {
+  let strength = 0, hypertrophy = 0, endurance = 0, totalSetsCount = 0
+  performances.value.forEach(p => {
+    if (!p.reps) return
+    totalSetsCount++
+    if (p.reps <= 5) strength++
+    else if (p.reps <= 12) hypertrophy++
+    else endurance++
+  })
+  if (totalSetsCount === 0) return { strength: 0, hypertrophy: 0, endurance: 0 }
+  const pct = (n: number) => Math.round((n / totalSetsCount) * 100)
+  return { strength: pct(strength), hypertrophy: pct(hypertrophy), endurance: pct(endurance) }
 })
 
 const lineChartPoints = computed(() => {
@@ -418,6 +676,10 @@ const formatDate = (date: Date): string => {
     day: 'numeric',
     month: 'short'
   }).format(date)
+}
+
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('no-NO').format(Math.round(num))
 }
 
 
