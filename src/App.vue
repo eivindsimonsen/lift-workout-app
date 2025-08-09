@@ -62,7 +62,7 @@
         </header>
 
         <!-- Main content -->
-        <main :class="isAuthenticated ? `container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-24 md:pb-8'}` : ''">
+        <main :class="isAuthenticated ? `container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-32 md:pb-8'}` : ''">
           <router-view />
         </main>
 

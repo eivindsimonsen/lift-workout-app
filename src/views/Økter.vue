@@ -59,7 +59,7 @@
     </div>
 
     <!-- Workout Templates Section -->
-    <div class="mt-8">
+    <div class="mt-8 pb-24 md:pb-0">
       <div class="mb-4">
         <h2 class="text-xl font-semibold text-white">Treningsøkter</h2>
       </div>
