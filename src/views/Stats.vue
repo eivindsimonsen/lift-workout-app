@@ -746,7 +746,7 @@ const achievements = computed(() => {
     { id: 'streak-7', icon: '🔥', title: '7 dagers streak', description: 'En uke på rad!', earned: currentStreak.value >= 7 },
     { id: 'streak-30', icon: '⚡️', title: '30 dagers streak', description: 'Du har holdt 30 dager på rad!', earned: currentStreak.value >= 30 },
     { id: 'streak-14-best', icon: '🏁', title: 'Lengste streak 14+', description: 'Sterk kontinuitet!', earned: longestStreak.value >= 14 },
-    { id: 'consistency-90', icon: '🎯', title: '90% konsistens', description: 'Nesten hver dag i perioden!', earned: consistencyPercentage.value >= 90 },
+    { id: 'volume-1m', icon: '🏆', title: '1 000 000 kg totalvolum', description: 'En million kilo løftet!', earned: Math.round(workoutData.totalVolume.value) >= 1000000 },
 
     { id: '1rm-first', icon: '🧱', title: 'Første 1RM', description: 'Du har logget en 1RM‑økt (1 rep).', earned: oneRmExercises.size >= 1 },
     { id: '1rm-5-exercises', icon: '🏋️', title: '1RM på 5 øvelser', description: 'Bred styrketesting!', earned: oneRmExercises.size >= 5 },
