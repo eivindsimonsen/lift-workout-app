@@ -1,1 +1,0 @@
-    cancelText: 'Avbryt'
