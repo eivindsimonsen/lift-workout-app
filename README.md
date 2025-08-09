@@ -1,63 +1,117 @@
 # Treningsloggen
 
-En treningslogg bygget med Vue 3 (Composition API) og TypeScript. Appen gjør det enkelt å registrere økter, følge progresjon og se meningsfulle statistikker – med fokus på konsistens og styrkeutvikling.
+En moderne treningslogg bygget med Vue 3 (Composition API) og TypeScript. Appen gjør det enkelt å registrere økter, følge progresjon og se meningsfulle statistikker – med fokus på konsistens, styrkeutvikling og en clean UI/UX.
 
-## Hva appen gjør
-- Registrer økter med øvelser og sett (reps/vekt)
-- Se «Sist»‑hint per øvelse i aktive økter (reps × kg) for raskt å matche/forbedre
-- Øvelsesliste med 1RM (one‑rep max) per øvelse
-- Detaljside for øvelse med graf over fremgang og 1RM som personlig rekord
-- Historikk over fullførte økter
-- Statistikkside med totaler, vaner (streaks/kalender), fordeling og motivasjon
+## Innhold
+- Hva appen tilbyr
+- Arkitektur og teknisk oversikt
+- Data og modellering (Supabase)
+- Viktige skjermer og funksjoner
+- Statistikk og innsikt
+- Kom i gang (lokalt og Supabase)
+- Kodeprinsipper og struktur
+- Bidrag og kreditering
 
-## Hovedfunksjoner
-- Økter: Start/fortsett aktive økter, legg til øvelser og sett
-- Øvelser: Kategorisert liste, redigering, 1RM‑oversikt
-- Historikk: Filtrer/les oppsummering av tidligere økter
-- Statistikk: Fremgang over tid, vaner, fordeling og prestasjoner
-- Mobilfokus: Nederste navigasjon og rene visninger
+## Hva appen tilbyr
+- Økter: Start/fortsett aktive økter, legg inn sett med reps og vekt. «Sist»-hint i aktive økter gjør det lett å matche/forbedre tidligere prestasjon.
+- Øvelser: Kategorisert liste (Bryst, Rygg, Ben, Armer, Skuldre) med tydelige handlinger (rediger/slett) og 1RM‑oversikt per øvelse.
+- Øvelsesdetaljer: PR‑tavle (1, 3, 4, 6, 8, 10, 12, 14 reps), estimert 1RM‑graf (Epley), intensitet per uke (kg per rep), volumtopp og 4‑ukers trend, siste prestasjoner.
+- Historikk: Fullførte økter med filtrering og detaljer.
+- Statistikk: Totaler (sets/reps), vaner (kalender/streaks), fordeling/balanse, prestasjoner og volumprogresjon.
+- Profil: Grunninfo/telefon oppdateres separat fra passord. Abonnementseksjon (visuell) med «Oppgrader til Plus» CTA.
 
-## Teknologi
-- Vue 3 + Composition API (TypeScript)
-- Vite, TailwindCSS
-- Supabase (autentisering og brukerdata)
+## Arkitektur og teknisk oversikt
+- Språk/rammeverk: Vue 3 + Composition API (TypeScript)
+- Bygg/verktøy: Vite, TailwindCSS
+- Navigasjon: Vue Router
+- Data: Supabase (Auth + Postgres) med RLS
+- Mønstre: composables for dataflyt og integrasjoner (`src/composables/`)
+- Styling: Utility‑first med Tailwind og gjenbrukbare klasser (f.eks. `btn-primary`, `card`)
 
-## Kjør lokalt
-1) Installer avhengigheter:
+### Viktige composables
+- `useHybridData`: samler og eksponerer applikasjonsdata (øvelser, økter, maler, typer, statistikksummer) og domeneoperasjoner (les/skriv).
+- `useSupabase`: initialisering av Supabase‑klient.
+- `useSupabaseData` (hvis tilstede): spesifikke spørringer/transformasjoner mot Supabase.
+
+### Navigasjon og layout
+- Mobil: fast bunnnavigasjon med aktive tilstander (inkluderer detaljsider via `startsWith('/session/')` og `startsWith('/exercise/')`). «Profil» viser brukerinitialer.
+- Desktop: sticky header med horisontal navigasjon og profil.
+
+## Data og modellering (Supabase)
+Tabeller og RLS settes opp via `supabase-setup/`:
+- `users`: koblet til `auth.users`, inneholder e‑post, navn, telefon og enkel abonnementsstatus.
+- `workout_templates`: brukerens øktmaler. Felt `exercises` lagres som JSONB.
+- `workout_sessions`: fullførte/aktive økter. JSONB for `exercises`, `total_volume`, `duration`, `is_completed` m.m.
+- `exercises`: brukerens øvelser med `muscle_groups` (TEXT[]) og `updated_at`‑trigger.
+
+RLS: Alle tabeller er sikret slik at brukeren kun ser/opererer på egne rader (`auth.uid() = user_id` / `id`). Indekser finnes på sentrale felt for ytelse (f.eks. `user_id`, `date`).
+
+## Viktige skjermer og funksjoner
+- `Økter` (`src/views/Økter.vue`): dashboard for å starte nye økter og fortsette aktive.
+- `Øvelser` (`src/views/Exercises.vue`): kompakt liste med tydelige handlinger og klikkbarhet til detaljer. Piltips indikerer at kortene er trykkbare.
+- `Øvelse` detalj (`src/views/ExerciseDetail.vue`):
+  - PR‑tavle: beste for rep‑mål 1/3/4/6/8/10/12/14 (eksakt)
+  - Estimert 1RM (Epley): 1RM ≈ vekt × (1 + reps/30), graf per uke
+  - Intensitet per uke: sum(vekt×reps)/sum(reps)
+  - Volumtopp og trend: beste uke/måned + 4‑ukers glidende snitt vs forrige 4 uker
+  - Siste prestasjoner: tre siste sett
+- `Historikk` (`src/views/History.vue`): liste over fullførte økter.
+- `Statistikk` (`src/views/Stats.vue`):
+  - Oversikt: Total Sets, Total Reps, antall fullførte økter, snitt varighet
+  - Fremgang over tid: PR‑kort og One‑Rep‑Max progresjon (top 5)
+  - Treningsvaner: kalender (måned), streaks, økter/uke
+  - Fordeling/balanse: muskelgrupper og typestatistikk
+  - Prestasjoner: synlige badges (grå til oppnådd), inkl. «1 000 000 kg totalvolum», ukevaner (3+), m.m.
+  - Volum: én progressbar mot neste milepæl (5k → 10k → 25k → 50k → 100k → 250k → 500k → 1M)
+- `Profil` (`src/views/Profile.vue`): skjema for profilinfo (eget «Oppdater profil»), og eget kort for passord (eget «Oppdater passord»). Abonnement/Plus som visuell seksjon.
+
+### Inndata og datakvalitet
+- Inputs i aktive økter er håndtert uten `v-model.number` for robust parsing (bruker eksplisitt `@input`/`@blur`, `Number/parseFloat/parseInt`).
+- Tunnel for riktige tall helt til lagring (og ved henting re‑kalkuleres volum for konsistens).
+
+## Kom i gang
+1) Installer avhengigheter
 ```bash
 npm install
 ```
-2) Start utviklingsserver:
+2) Kjør lokalt
 ```bash
 npm run dev
 ```
 3) Åpne `http://localhost:5173`
 
-## Supabase
-Appen bruker Supabase for autentisering og brukerens data. Se `supabase-setup/` for komplett steg‑for‑steg oppsett, ferdige SQL‑filer (opprette tabeller, seed av norske øvelser) og tips for free‑tier.
+### Supabase‑oppsett
+Les `supabase-setup/README.md` for trinnvis guide. Kortversjon:
+1. Opprett Supabase‑prosjekt og legg inn env:
+```
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
+2. Kjør SQL i denne rekkefølgen i Supabase SQL Editor:
+   - `01_users.sql`
+   - `02_workout_templates.sql`
+   - `03_workout_sessions.sql`
+   - `04_exercises.sql`
 
-Kortversjon:
-- Opprett prosjekt i Supabase
-- Sett `VITE_SUPABASE_URL` og `VITE_SUPABASE_ANON_KEY` i `.env.local`
-- Kjør relevante SQL‑skript fra `supabase-setup/`
-
-## Mappestruktur (utdrag)
+## Kodeprinsipper og struktur
 ```
 src/
-  components/
-  views/
-  composables/
-  router/
-  types/
-supabase-setup/
-  create_exercises_table.sql
-  fix_exercises_table.sql
-  update_users_table.sql
-  SEED_exercises_no.sql
-  README.md
+  components/      # Gjenbrukbare komponenter
+  views/           # Sider (ruter)
+  composables/     # Data/forretningslogikk (Supabase, hybridlagring, utils)
+  router/          # Vue Router
+  types/           # TypeScript‑typer
 ```
+- TypeScript over alt; eksplisitte typer på eksporterte APIer og funksjoner
+- Lesbarhet > «smarte» oneliners; tydelige variabelnavn
+- Tidlig retur i logikk, håndter edge cases først
+- Unngå dype nestinger, foretrekk mindre, rene funksjoner
 
-## Bidrag
-Dette er et personlig prosjekt, men innspill er velkomne.
+## Testing og kvalitet
+- ESLint/Volar‑støtte i editor
+- Enkel testkode finnes under `src/Test/` som eksempel; utvid etter behov.
 
-— Ta neste steg mot dine mål 💪 
+## Kreditering
+- Laget av prosjektets eier. Åpne issues/idéer tas imot – se `supabase-setup/` og kommentarer i kildekoden for videre utvikling.
+
+— Ta neste steg mot dine mål 💪
