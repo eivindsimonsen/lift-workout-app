@@ -8,7 +8,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
           </svg>
         </div>
-        <h1 class="text-3xl font-bold text-white">{{ exercise?.name }}</h1>
+        <h1 class="text-2xl font-bold text-white">{{ exercise?.name }}</h1>
       </div>
       <router-link 
         to="/exercises" 

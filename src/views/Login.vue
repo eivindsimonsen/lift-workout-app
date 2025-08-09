@@ -12,7 +12,7 @@
     <div v-else class="flex items-center justify-center px-4 flex-1 min-h-screen">
       <div class="w-full max-w-md">
         <div class="text-center mb-8">
-          <h1 class="text-3xl font-bold text-white mb-2">
+          <h1 class="text-2xl font-bold text-white mb-2">
             {{ isRegistering ? 'Registrer deg' : 'Logg inn' }}
           </h1>
           <p class="text-dark-300">
@@ -184,7 +184,7 @@ import { useSignupProtection } from '@/composables/useSignupProtection'
 
 const router = useRouter()
 const { supabase } = useSupabase()
-const { showError, handleAuthError } = useErrorHandler()
+const { showError, showSuccess, handleAuthError } = useErrorHandler()
 const { isRecentlySignedUp, markSignupAttempt, clearSignupAttempt } = useSignupProtection()
 
 // Form data
@@ -335,7 +335,7 @@ const handleRegister = async () => {
     }
 
     // Show success message and switch to login mode
-    showError('Registrering vellykket! Sjekk din e-post for bekreftelse.')
+    showSuccess('Registrering vellykket! Sjekk din e-post for bekreftelse.')
     
     // Clear form and switch to login mode
     clearForm()
@@ -401,7 +401,7 @@ const forgotPassword = async () => {
     } else {
       // Show success message
       errorMessage.value = ''
-      showError('Tilbakestillingslenke sendt til din e-post! Sjekk innboksen din og følg lenken for å tilbakestille passordet.')
+      showSuccess('Tilbakestillingslenke sendt til din e-post! Sjekk innboksen din og følg lenken for å tilbakestille passordet.')
     }
   } catch (error: any) {
     console.error('Password reset error:', error)

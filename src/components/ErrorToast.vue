@@ -37,13 +37,22 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
             <svg
-              v-else
+              v-else-if="error.type === 'info'"
               class="w-5 h-5 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <svg
+              v-else
+              class="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
           </div>
           
@@ -63,7 +72,7 @@
               </details>
             </div>
             
-            <div v-if="errorId" class="mt-1">
+            <div v-if="errorId && error.type === 'error'" class="mt-1">
               <p class="text-xs text-white/80">
                 Feil-ID: {{ errorId }}
               </p>
@@ -153,9 +162,11 @@ const toastClasses = computed(() => {
     case 'warning':
       return 'bg-yellow-500 border-yellow-500'
     case 'info':
-      return 'bg-blue-500 border-blue-500'
+      return 'bg-green-500 border-green-500'
+    case 'success':
+      return 'bg-green-500 border-green-500'
     default:
-      return 'bg-red-500 border-red-500'
+      return 'bg-green-500 border-green-500'
   }
 })
 
@@ -168,6 +179,8 @@ const textClasses = computed(() => {
     case 'warning':
       return 'text-white'
     case 'info':
+      return 'text-white'
+    case 'success':
       return 'text-white'
     default:
       return 'text-white'

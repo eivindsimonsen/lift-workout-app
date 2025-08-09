@@ -4,7 +4,7 @@ interface AppError {
   message: string
   details?: string
   stack?: string
-  type?: 'error' | 'warning' | 'info'
+  type?: 'error' | 'warning' | 'info' | 'success'
 }
 
 // Global error state
@@ -101,6 +101,16 @@ const showInfo = (message: string, details?: string): void => {
   errorId.value = generateErrorId()
 }
 
+// Show success
+const showSuccess = (message: string, details?: string): void => {
+  globalError.value = {
+    message,
+    details,
+    type: 'success'
+  }
+  errorId.value = generateErrorId()
+}
+
 // Handle async operations with error catching
 const withErrorHandling = async <T>(
   operation: () => Promise<T>,
@@ -131,6 +141,7 @@ export function useErrorHandler() {
     showError,
     showWarning,
     showInfo,
+    showSuccess,
     withErrorHandling
   }
 } 

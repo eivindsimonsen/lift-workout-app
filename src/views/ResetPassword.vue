@@ -18,7 +18,7 @@
     <div class="flex items-center justify-center px-4 flex-1 mt-8">
       <div class="w-full max-w-md">
         <div class="text-center mb-8">
-          <h1 class="text-3xl font-bold text-white mb-2">
+          <h1 class="text-2xl font-bold text-white mb-2">
             Tilbakestill passord
           </h1>
           <p class="text-dark-300">

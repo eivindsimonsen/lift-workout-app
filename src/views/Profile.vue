@@ -8,7 +8,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
         </div>
-        <h1 class="text-3xl font-bold text-white">Brukerprofil</h1>
+        <h1 class="text-2xl font-bold text-white">Brukerprofil</h1>
       </div>
     </div>
 
@@ -137,7 +137,7 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 const router = useRouter()
 const workoutData = useHybridData()
 const { supabase } = useSupabase()
-const { showError, handleAuthError } = useErrorHandler()
+const { showError, showSuccess, showWarning, handleAuthError } = useErrorHandler()
 
 // Form data
 const profileName = ref('')
@@ -254,12 +254,12 @@ const updateBasicProfile = async () => {
           console.error('Error updating subscription data:', subscriptionError)
         }
 
-               // Show success message using toast
-        showError('Profil oppdatert!')
+        // Show success message using toast
+        showSuccess('Profil oppdatert!')
 
            } else {
         // No changes made
-        showError('Ingen endringer å oppdatere')
+        showWarning('Ingen endringer å oppdatere')
       }
      } catch (error: any) {
      console.error('Error updating profile:', error)
@@ -304,7 +304,7 @@ const updatePassword = async () => {
       return
     }
 
-    showError('Passord oppdatert!')
+    showSuccess('Passord oppdatert!')
     currentPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
