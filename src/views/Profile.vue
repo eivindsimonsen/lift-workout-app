@@ -72,7 +72,6 @@
             <input v-model="confirmPassword" type="password" class="input-field w-full" placeholder="Bekreft ditt nye passord" />
           </div>
         </div>
-        <p class="text-xs text-dark-400">La feltene stå tomme hvis du ikke vil endre passord</p>
         <div class="flex justify-end">
           <button type="button" class="btn-secondary" :disabled="isUpdatingPassword" @click="updatePassword">
             <span v-if="isUpdatingPassword" class="flex items-center gap-2">

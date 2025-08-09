@@ -13,12 +13,11 @@
          </div>
          <button 
            @click="showAddForm = true"
-           class="btn-primary px-6 py-3 text-base font-medium flex items-center gap-2 whitespace-nowrap"
+           class="btn-primary px-4 py-3 text-base font-medium flex items-center gap-2 whitespace-nowrap"
          >
            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
            </svg>
-           Legg til
          </button>
        </div>
      </div>
@@ -54,10 +53,10 @@
         v-for="category in categories" 
         :key="category"
       >
-        <!-- Category Header -->
-        <div class="mb-6">
-          <h2 class="text-2xl font-bold text-white">{{ getCategoryName(category) }}</h2>
-          <div class="mt-2 border-b border-dark-600"></div>
+        <!-- Category Header (compact) -->
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold text-dark-200 uppercase tracking-wide">{{ getCategoryName(category) }}</h2>
+          <div class="mt-2 border-b border-dark-700"></div>
         </div>
 
         <!-- Exercise Grid -->
@@ -66,26 +65,31 @@
             v-for="exercise in getExercisesByCategory(category)" 
             :key="exercise.id"
             @click="viewExercise(exercise.id)"
-            class="bg-dark-700 rounded-lg p-4 border border-dark-600 hover:border-primary-500/50 transition-colors cursor-pointer hover:bg-dark-600"
+            class="group bg-dark-700 rounded-lg p-3 border border-dark-600 hover:border-primary-500/50 transition-colors cursor-pointer hover:bg-dark-600"
           >
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="font-medium text-white">{{ exercise.name }}</h3>
+            <div class="flex items-center justify-between h-10">
+              <div class="flex items-center gap-2">
+                <h3 class="font-medium text-white truncate">{{ exercise.name }}</h3>
+                <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
               <div class="flex items-center gap-2">
                 <button 
                   @click.stop="editExercise(exercise)"
-                  class="text-dark-400 hover:text-primary-400 transition-colors p-1"
+                  class="w-9 h-9 grid place-items-center rounded-md bg-primary-500/20 text-primary-300 hover:bg-primary-500 hover:text-white transition-colors"
                   title="Rediger øvelse"
                 >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </button>
                 <button 
                   @click.stop="deleteExercise(exercise.id)"
-                  class="text-dark-400 hover:text-red-400 transition-colors p-1"
+                  class="w-9 h-9 grid place-items-center rounded-md bg-red-500/20 text-red-300 hover:bg-red-500 hover:text-white transition-colors"
                   title="Slett øvelse"
                 >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
@@ -94,11 +98,7 @@
             
             
             
-            <div v-if="exercise.lastPerformance" class="space-y-1">
-              <p class="text-sm text-dark-300">
-                Sist: {{ exercise.lastPerformance.weight }}kg × {{ exercise.lastPerformance.reps }} reps
-              </p>
-            </div>
+            <!-- Removed 'Sist' for compact list -->
             
             <!-- One Rep Max -->
             <div v-if="exercise.oneRepMax > 0" class="space-y-1">
@@ -107,9 +107,7 @@
               </p>
             </div>
             
-            <div v-if="!exercise.lastPerformance && exercise.oneRepMax === 0" class="text-sm text-dark-400">
-              Ingen data ennå
-            </div>
+            
           </div>
         </div>
       </div>
