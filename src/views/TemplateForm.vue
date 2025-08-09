@@ -70,38 +70,28 @@
           <div 
             v-for="(exercise, index) in templateForm.exercises" 
             :key="index"
-            class="bg-dark-700 rounded-lg p-4"
+            class="bg-dark-700 rounded-lg p-4 relative"
           >
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="font-medium text-white">Øvelse {{ index + 1 }}</h4>
-              <button 
-                @click="removeExercise(index)"
-                type="button"
-                class="text-dark-400 hover:text-red-400 transition-colors p-1"
-                title="Slett øvelse"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+            <div class="flex items-center mb-3 pr-6">
+              <h4 class="font-medium text-white leading-none">Øvelse {{ index + 1 }}</h4>
             </div>
+            <button 
+              @click="removeExercise(index)"
+              type="button"
+              class="absolute top-4 right-4 text-dark-400 hover:text-red-400 transition-colors p-1"
+              title="Slett øvelse"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
             
             <div>
-              <label class="block text-xs text-dark-300 mb-1">Øvelse</label>
-              <select 
+              <label class="block text-xs text-dark-300 mb-2">Øvelse</label>
+              <ExerciseSelector 
+                :exercises="availableExercises"
                 v-model="exercise.exerciseId"
-                required
-                class="input-field w-full text-sm"
-              >
-                <option value="">Velg øvelse</option>
-                <option 
-                  v-for="ex in availableExercises" 
-                  :key="ex.id" 
-                  :value="ex.id"
-                >
-                  {{ ex.name }}
-                </option>
-              </select>
+              />
             </div>
           </div>
           
@@ -142,6 +132,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutTemplate, ExerciseTemplate } from '@/types/workout'
+import ExerciseSelector from '@/components/ExerciseSelector.vue'
 
 const router = useRouter()
 const route = useRoute()

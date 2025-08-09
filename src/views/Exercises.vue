@@ -62,13 +62,13 @@
             @click="viewExercise(exercise.id)"
             class="group bg-dark-700 rounded-lg p-3 border border-dark-600 hover:border-primary-500/50 transition-colors cursor-pointer hover:bg-dark-600 overflow-hidden"
           >
-            <div class="flex items-center justify-between h-10">
-              <div class="flex items-center gap-2 min-w-0 flex-1">
+            <div class="flex items-center h-10">
+              <div class="min-w-0 flex-1">
                 <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.name }}</h3>
-                <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
               </div>
+              <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
             </div>
           </div>
         </div>
@@ -94,13 +94,13 @@
               @click="viewExercise(exercise.id)"
               class="group bg-dark-700 rounded-lg p-3 border border-dark-600 hover:border-primary-500/50 transition-colors cursor-pointer hover:bg-dark-600 overflow-hidden"
             >
-              <div class="flex items-center justify-between h-10">
-                <div class="flex items-center gap-2 min-w-0 flex-1">
+              <div class="flex items-center h-10">
+                <div class="min-w-0 flex-1">
                   <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.name }}</h3>
-                  <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
                 </div>
+                <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
               </div>
             </div>
           </div>
