@@ -205,7 +205,6 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
-import { useSupabase } from '@/composables/useSupabase'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
@@ -213,7 +212,7 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 const route = useRoute()
 const router = useRouter()
 const workoutData = useHybridData()
-const { showError, handleAuthError } = useErrorHandler()
+const { handleAuthError } = useErrorHandler()
 
 // State
 const hasInitialized = ref(false)
