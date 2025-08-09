@@ -1,7 +1,7 @@
 <template>
   <div>
          <!-- Header -->
-     <div class="mb-8">
+      <div class="mb-6">
        <div class="flex items-center justify-between">
          <div class="flex items-center gap-3">
            <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
@@ -11,16 +11,23 @@
            </div>
            <h1 class="text-2xl font-bold text-white">Øvelser</h1>
          </div>
-         <button 
-           @click="showAddForm = true"
-           class="btn-primary px-4 py-3 text-base font-medium flex items-center gap-2 whitespace-nowrap"
-         >
-           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-           </svg>
-         </button>
        </div>
      </div>
+
+      <!-- Search -->
+      <div class="mb-6">
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="input-field w-full pl-10 text-base"
+            placeholder="Søk etter øvelse..."
+          />
+        </div>
+      </div>
 
     <!-- Loading State -->
     <div v-if="isLoading" class="flex items-center justify-center py-12">
@@ -38,88 +45,70 @@
         </svg>
       </div>
       <p class="text-dark-300 mb-2">Ingen øvelser funnet</p>
-      <p class="text-dark-400 mb-4 text-sm">Du må legge til øvelser før du kan se dem her</p>
-             <button @click="showAddForm = true" class="btn-primary px-6 py-3 text-base font-medium flex items-center gap-2 mx-auto">
-         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-         </svg>
-         Legg til øvelse
-       </button>
+      <p class="text-dark-400 mb-4 text-sm">Prøv igjen senere.</p>
     </div>
 
-    <!-- Exercises by Category -->
+    <!-- Exercises by Category OR Search Results -->
     <div v-else class="space-y-12">
-      <div 
-        v-for="category in categories" 
-        :key="category"
-      >
-        <!-- Category Header (compact) -->
-        <div class="mb-4">
-          <h2 class="text-lg font-semibold text-dark-200 uppercase tracking-wide">{{ getCategoryName(category) }}</h2>
-          <div class="mt-2 border-b border-dark-700"></div>
+      <!-- Search results -->
+      <div v-if="hasSearch">
+        <div v-if="searchResults.length === 0" class="text-center py-12">
+          <p class="text-dark-300">Ingen treff</p>
         </div>
-
-        <!-- Exercise Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div 
-            v-for="exercise in getExercisesByCategory(category)" 
+        <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+          <div
+            v-for="exercise in searchResults"
             :key="exercise.id"
             @click="viewExercise(exercise.id)"
-            class="group bg-dark-700 rounded-lg p-3 border border-dark-600 hover:border-primary-500/50 transition-colors cursor-pointer hover:bg-dark-600"
+            class="group bg-dark-700 rounded-lg p-3 border border-dark-600 hover:border-primary-500/50 transition-colors cursor-pointer hover:bg-dark-600 overflow-hidden"
           >
             <div class="flex items-center justify-between h-10">
-              <div class="flex items-center gap-2">
-                <h3 class="font-medium text-white truncate">{{ exercise.name }}</h3>
+              <div class="flex items-center gap-2 min-w-0 flex-1">
+                <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.name }}</h3>
                 <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
               </div>
-              <div class="flex items-center gap-2">
-                <button 
-                  @click.stop="editExercise(exercise)"
-                  class="w-9 h-9 grid place-items-center rounded-md bg-primary-500/20 text-primary-300 hover:bg-primary-500 hover:text-white transition-colors"
-                  title="Rediger øvelse"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-                <button 
-                  @click.stop="deleteExercise(exercise.id)"
-                  class="w-9 h-9 grid place-items-center rounded-md bg-red-500/20 text-red-300 hover:bg-red-500 hover:text-white transition-colors"
-                  title="Slett øvelse"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
             </div>
-            
-            
-            
-            <!-- Removed 'Sist' for compact list -->
-            
-            <!-- One Rep Max -->
-            <div v-if="exercise.oneRepMax > 0" class="space-y-1">
-              <p class="text-sm text-dark-300">
-                1RM: {{ exercise.oneRepMax }}kg × 1 rep
-              </p>
-            </div>
-            
-            
           </div>
         </div>
       </div>
+
+      <!-- Grouped by category (default) -->
+      <template v-else>
+        <div 
+          v-for="category in categories" 
+          :key="category"
+        >
+          <!-- Category Header (compact) -->
+          <div class="mb-4">
+            <h2 class="text-lg font-semibold text-dark-200 uppercase tracking-wide">{{ getCategoryName(category) }}</h2>
+            <div class="mt-2 border-b border-dark-700"></div>
+          </div>
+
+          <!-- Exercise Grid -->
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+            <div 
+              v-for="exercise in getExercisesByCategory(category)" 
+              :key="exercise.id"
+              @click="viewExercise(exercise.id)"
+              class="group bg-dark-700 rounded-lg p-3 border border-dark-600 hover:border-primary-500/50 transition-colors cursor-pointer hover:bg-dark-600 overflow-hidden"
+            >
+              <div class="flex items-center justify-between h-10">
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                  <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.name }}</h3>
+                  <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
 
-    <!-- Exercise Form Modal -->
-    <ExerciseForm
-      v-if="showAddForm || editingExercise"
-      :exercise="editingExercise"
-      @close="closeForm"
-      @save="handleSaveExercise"
-    />
+    
   </div>
 </template>
 
@@ -127,17 +116,22 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
-import ExerciseForm from '@/components/ExerciseForm.vue'
 
 const router = useRouter()
 const workoutData = useHybridData()
 
-// State
-const showAddForm = ref(false)
-const editingExercise = ref<any>(null)
+// Search
+const searchQuery = ref('')
+const hasSearch = computed(() => searchQuery.value.trim().length > 0)
+const flatExercises = computed(() => workoutData.exercises.value || [])
+const searchResults = computed(() => {
+  if (!hasSearch.value) return []
+  const q = searchQuery.value.trim().toLowerCase()
+  return flatExercises.value.filter((e: any) => e.name.toLowerCase().includes(q))
+})
 
 // Muscle group order for categorization
-const muscleGroupOrder = ['Bryst', 'Rygg', 'Ben', 'Armer', 'Skuldre']
+const muscleGroupOrder = ['Bryst', 'Rygg', 'Ben', 'Armer', 'Skuldre', 'Kjerne']
 
 // Computed properties
 const isLoading = computed(() => workoutData.isLoading.value)
@@ -246,37 +240,7 @@ const getExercisesByCategory = (muscleGroup: string) => {
   return allExercises.value?.filter(exercise => exercise.muscleGroups?.includes(muscleGroup)) || []
 }
 
-const editExercise = (exercise: any) => {
-  editingExercise.value = exercise
-}
-
-const deleteExercise = async (exerciseId: string) => {
-  if (confirm('Er du sikker på at du vil slette denne øvelsen?')) {
-    await workoutData.deleteExercise(exerciseId)
-  }
-}
-
 const viewExercise = (exerciseId: string) => {
   router.push(`/exercise/${exerciseId}`)
-}
-
-const closeForm = () => {
-  showAddForm.value = false
-  editingExercise.value = null
-}
-
-const handleSaveExercise = async (exerciseData: {
-  name: string
-  muscleGroups: string[]
-}) => {
-  if (editingExercise.value) {
-    // Update existing exercise
-    await workoutData.updateExercise(editingExercise.value.id, exerciseData)
-  } else {
-    // Add new exercise
-    await workoutData.addExercise(exerciseData)
-  }
-  
-  closeForm()
 }
 </script>

@@ -24,10 +24,6 @@ Kopier innholdet i hver fil til Supabase SQL Editor og kjør – eller last opp 
    - Oppretter `workout_sessions` (økter per bruker)
    - Indekser på `user_id`, `date` og `template_id` + RLS/policyer
 
-4. `04_exercises.sql` (øvelser per bruker)
-   - Oppretter `exercises`-tabellen (brukers egne øvelser) med RLS og triggere for `updated_at`
-   - OBS: Denne fila dropper eksisterende `exercises` før den oppretter på nytt (destruktiv). Kjør hvis du vil starte på nytt eller migrere til riktig struktur.
-
 Alle filene er idempotente: de bruker `IF NOT EXISTS` for å unngå feil ved re‑kjøring.
 
 ## 2) Om tabellene
@@ -63,6 +59,3 @@ ON CONFLICT (id) DO NOTHING;
 - `01_users.sql`: Oppretter `users` + RLS
 - `02_workout_templates.sql`: Oppretter `workout_templates` + indeks + RLS
 - `03_workout_sessions.sql`: Oppretter `workout_sessions` + indekser + RLS
-- `04_exercises.sql`: Oppretter `exercises` + indekser + RLS + `updated_at`‑trigger (destruktiv/resetter tabellen)
-
-

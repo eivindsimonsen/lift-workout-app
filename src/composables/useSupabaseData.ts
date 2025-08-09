@@ -123,71 +123,8 @@ const createSupabaseData = () => {
         }
       })
 
-      // Load exercises for the current user
-      const { data: exercisesData, error: exercisesError } = await supabase
-        .from('exercises')
-        .select('*')
-        .eq('user_id', currentUser.value.id)
-        .order('name', { ascending: true })
-      
-      if (exercisesError) throw exercisesError
-      
-      logSupabaseAccess('Get exercises', `${exercisesData.length} exercises`)
-      exercises.value = exercisesData.map((exercise: any) => {
-        // Handle both old and new data structures
-        let muscleGroups = exercise.muscle_groups || []
-        
-        // If this is an old exercise with detailed muscle groups, map them to simplified ones
-        if (muscleGroups.length > 0) {
-          const muscleGroupMapping: { [key: string]: string } = {
-            'chest': 'chest',
-            'bryst': 'chest',
-            'back': 'back',
-            'rygg': 'back',
-            'shoulders': 'shoulders',
-            'skuldre': 'shoulders',
-            'biceps': 'arms',
-            'triceps': 'arms',
-            'arms': 'arms',
-            'armer': 'arms',
-            'quadriceps': 'legs',
-            'hamstrings': 'legs',
-            'glutes': 'legs',
-            'calves': 'legs',
-            'ben': 'legs',
-            'legs': 'legs',
-            'forearms': 'arms',
-            'core': 'arms' // Map core to arms for now
-          }
-          
-          // Map old detailed muscle groups to new simplified ones
-          const mappedGroups = muscleGroups.map((group: string) => 
-            muscleGroupMapping[group.toLowerCase()] || group
-          )
-          
-          // Remove duplicates and keep only the simplified groups, but convert to Norwegian display names
-          const simplifiedGroups = [...new Set(mappedGroups)].filter(group => 
-            ['chest', 'back', 'legs', 'arms', 'shoulders'].includes(group)
-          )
-          
-          // Convert to Norwegian display names
-          const norwegianMapping: { [key: string]: string } = {
-            'chest': 'Bryst',
-            'back': 'Rygg',
-            'legs': 'Ben',
-            'arms': 'Armer',
-            'shoulders': 'Skuldre'
-          }
-          
-          muscleGroups = simplifiedGroups.map(group => norwegianMapping[group] || group)
-        }
-        
-        return {
-          id: exercise.id,
-          name: exercise.name,
-          muscleGroups: muscleGroups
-        }
-      })
+      // Exercises are no longer loaded from Supabase; they come from JSON via useHybridData
+      exercises.value = []
       
     } catch (error: any) {
       console.error('❌ Error loading Supabase data:', error)
@@ -847,127 +784,19 @@ const createSupabaseData = () => {
   }
 
   // Exercise management functions
-  const addExercise = async (exercise: {
-    name: string
-    muscleGroups: string[]
-  }) => {
-    if (!currentUser.value) {
-      return null
-    }
-
-    try {
-      // Ensure user profile exists before adding exercise
-      await ensureUserProfile()
-      
-      const { data, error } = await supabase
-        .from('exercises')
-        .insert({
-          user_id: currentUser.value.id,
-          name: exercise.name,
-          muscle_groups: exercise.muscleGroups || []
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      const newExercise = {
-        id: data.id,
-        name: data.name,
-        muscleGroups: data.muscle_groups || []
-      }
-
-      // Update local state
-      const existingIndex = exercises.value.findIndex(e => e.id === data.id)
-      if (existingIndex >= 0) {
-        exercises.value[existingIndex] = newExercise
-      } else {
-        exercises.value.push(newExercise)
-      }
-
-      // Sort exercises by name
-      exercises.value.sort((a, b) => a.name.localeCompare(b.name))
-
-      logSupabaseAccess('Add/Update exercise', exercise.name)
-      return newExercise
-    } catch (error: any) {
-      console.error('❌ Error adding exercise:', error)
-      const { handleAuthError } = useErrorHandler()
-      handleAuthError(error)
-      return null
-    }
+  const addExercise = async (_exercise: { name: string; muscleGroups: string[] }) => {
+    // No-op: exercises are managed via static JSON
+    return null
   }
 
-  const deleteExercise = async (exerciseId: string) => {
-    if (!currentUser.value) {
-      console.warn('⚠️ No user logged in, cannot delete exercise')
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('exercises')
-        .delete()
-        .eq('id', exerciseId)
-        .eq('user_id', currentUser.value.id)
-
-      if (error) throw error
-
-      // Remove from local state
-      exercises.value = exercises.value.filter(exercise => exercise.id !== exerciseId)
-      
-      logSupabaseAccess('Delete exercise', exerciseId)
-    } catch (error: any) {
-      console.error('❌ Error deleting exercise:', error)
-      const { handleAuthError } = useErrorHandler()
-      handleAuthError(error)
-    }
+  const deleteExercise = async (_exerciseId: string) => {
+    // No-op: exercises are managed via static JSON
+    return
   }
 
-  const updateExercise = async (exerciseId: string, updates: {
-    name?: string
-    muscleGroups?: string[]
-  }) => {
-    if (!currentUser.value) {
-      console.warn('⚠️ No user logged in, cannot update exercise')
-      return null
-    }
-
-    try {
-      const updateData: any = {}
-      if (updates.name !== undefined) updateData.name = updates.name
-      if (updates.muscleGroups !== undefined) updateData.muscle_groups = updates.muscleGroups
-
-      const { data, error } = await supabase
-        .from('exercises')
-        .update(updateData)
-        .eq('id', exerciseId)
-        .eq('user_id', currentUser.value.id)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      const updatedExercise = {
-        id: data.id,
-        name: data.name,
-        muscleGroups: data.muscle_groups || []
-      }
-
-      // Update local state
-      const existingIndex = exercises.value.findIndex(e => e.id === data.id)
-      if (existingIndex >= 0) {
-        exercises.value[existingIndex] = updatedExercise
-      }
-
-      logSupabaseAccess('Update exercise', data.name)
-      return updatedExercise
-    } catch (error: any) {
-      console.error('❌ Error updating exercise:', error)
-      const { handleAuthError } = useErrorHandler()
-      handleAuthError(error)
-      return null
-    }
+  const updateExercise = async (_exerciseId: string, _updates: { name?: string; muscleGroups?: string[] }) => {
+    // No-op: exercises are managed via static JSON
+    return null
   }
 
   return {

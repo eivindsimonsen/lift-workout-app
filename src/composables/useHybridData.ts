@@ -48,7 +48,7 @@ export const useHybridData = () => {
     getWorkoutTypeColor,
 
     // User data from Supabase
-    exercises: userData.exercises,
+    exercises: staticData.exercises,
     templates: userData.templates,
     sessions: userData.sessions,
     isLoading: userData.isLoading,
@@ -75,9 +75,10 @@ export const useHybridData = () => {
     completeWorkoutSession: userData.completeWorkoutSession,
     markSessionAsActive: userData.markSessionAsActive,
     deleteWorkoutSession: userData.deleteWorkoutSession,
-    addExercise: userData.addExercise,
-    deleteExercise: userData.deleteExercise,
-    updateExercise: userData.updateExercise,
+    // Exercises are now static from JSON; CRUD is intentionally a no-op
+    addExercise: () => { /* no-op */ },
+    deleteExercise: () => { /* no-op */ },
+    updateExercise: () => { /* no-op */ },
     signOut: userData.signOut,
     cleanup: userData.cleanup
   }

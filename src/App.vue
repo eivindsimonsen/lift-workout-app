@@ -67,7 +67,7 @@
         </main>
 
         <!-- Desktop Workout Session Actions - only show if in workout session -->
-        <div v-if="isAuthenticated && isWorkoutSession" class="hidden md:block fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
+        <div v-if="isAuthenticated && isWorkoutSession" class="hidden md:block fixed bottom-[-1px] left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pb-[env(safe-area-inset-bottom)]">
           <!-- Progress Bar as border-top -->
           <div class="w-full h-1 bg-dark-600">
             <div 
@@ -102,7 +102,7 @@
         </div>
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
-        <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
+        <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-[-1px] left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pb-[env(safe-area-inset-bottom)]">
           <div class="flex justify-around">
             <router-link 
               to="/" 
@@ -162,7 +162,7 @@
         </nav>
 
         <!-- Workout Session Navigation - only show if in workout session -->
-        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
+        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-[-1px] left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pb-[env(safe-area-inset-bottom)]">
           <!-- Progress Bar as border-top -->
           <div class="w-full h-1 bg-dark-600">
             <div 

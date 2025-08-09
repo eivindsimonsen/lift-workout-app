@@ -106,9 +106,9 @@
            <div class="text-dark-300">• Treningskalender og streaks</div>
            <div class="text-dark-300">• Eksporter data (Plus)</div>
          </div>
-         <div class="flex justify-end mt-4">
-           <button type="button" class="bg-primary-500 hover:bg-primary-600 text-white px-5 py-2 rounded-lg transition-colors">Oppgrader til Plus</button>
-         </div>
+          <div class="flex justify-end mt-4">
+            <button type="button" class="bg-primary-500 text-white px-5 py-2 rounded-lg transition-colors opacity-50 cursor-not-allowed" disabled title="Kommer snart">Oppgrader til Plus</button>
+          </div>
        </div>
      </div>
 

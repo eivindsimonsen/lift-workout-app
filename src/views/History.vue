@@ -101,10 +101,10 @@
           </div>
           <div class="flex items-center gap-4 flex-shrink-0">
             <div class="text-right">
-              <p class="text-lg font-bold text-primary-500">
-                {{ formatNumber(session.totalVolume || 0) }}
+              <p class="text-sm font-semibold text-primary-500 whitespace-nowrap tabular-nums">
+                {{ formatNumber(session.totalVolume || 0) }} kg
               </p>
-              <p class="text-xs text-dark-400">kg</p>
+              <p class="text-[10px] text-dark-400 leading-tight">Total volum</p>
             </div>
             <svg class="w-5 h-5 text-dark-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />

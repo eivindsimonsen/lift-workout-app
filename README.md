@@ -91,7 +91,6 @@ VITE_SUPABASE_ANON_KEY=...
    - `01_users.sql`
    - `02_workout_templates.sql`
    - `03_workout_sessions.sql`
-   - `04_exercises.sql`
 
 ## Kodeprinsipper og struktur
 ```
