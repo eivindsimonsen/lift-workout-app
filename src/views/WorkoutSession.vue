@@ -316,8 +316,7 @@ const availableExercises = computed(() => {
 
 // Methods
 const getWorkoutTypeName = (typeId: string): string => {
-  const type = workoutData.getWorkoutType.value(typeId)
-  return type?.name || typeId
+  return workoutData.getWorkoutType.value(typeId)
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
@@ -336,6 +335,9 @@ const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number
   
   // Update the weight value immediately for display
   session.value.exercises[exerciseIndex].sets[setIndex].weight = value === '' ? 0 : parseFloat(value) || 0
+  
+  // Update completion status in real-time for progress bar
+  updateSetCompletion(exerciseIndex, setIndex)
 }
 
 const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
@@ -360,6 +362,9 @@ const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) 
   
   // Update the reps value immediately for display
   session.value.exercises[exerciseIndex].sets[setIndex].reps = value === '' ? 0 : parseInt(value) || 0
+  
+  // Update completion status in real-time for progress bar
+  updateSetCompletion(exerciseIndex, setIndex)
 }
 
 const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) => {

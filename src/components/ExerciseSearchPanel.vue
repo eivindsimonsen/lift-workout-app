@@ -49,11 +49,11 @@
           <span class="text-white">{{ ex.name }}</span>
           <div class="flex gap-1 flex-wrap justify-end">
             <span
-              v-if="getPrimaryMuscleGroup(ex)"
+              v-if="ex.category"
               class="px-2 py-1 text-xs font-medium rounded-full bg-dark-600"
-              :style="{ color: getMuscleGroupColor(getPrimaryMuscleGroup(ex)!) }"
+              :style="{ color: getMuscleGroupColor(ex.category) }"
             >
-              {{ getPrimaryMuscleGroup(ex) }}
+              {{ ex.category }}
             </span>
           </div>
         </button>
@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
 
 interface ExerciseItem {
@@ -86,22 +86,19 @@ const emit = defineEmits<{
 }>()
 
 const title = computed(() => props.title || 'Velg øvelse')
-const isOpen: Ref<boolean> = ref(props.isOpen)
-watch(() => props.isOpen, v => isOpen.value = v)
-
 const onClose = () => emit('close')
 
-// search
+// search and filters
 const query = ref('')
+const selectedMuscleGroups = ref<string[]>([])
+
+// Reset when opening
 watch(() => props.isOpen, (open) => {
   if (open) {
     query.value = ''
     selectedMuscleGroups.value = []
   }
 })
-
-// muscle group filters
-const selectedMuscleGroups = ref<string[]>([])
 
 // Get all available muscle groups from exercises (only main categories)
 const availableMuscleGroups = computed(() => {
@@ -185,8 +182,6 @@ const getMuscleGroupColor = (muscleGroup: string): string => {
     'Skuldre': '#8b5cf6',   // Lilla
     'Armer': '#f59e0b',     // Gul
     'Kjerne': '#ef4444',    // Rød
-    'Legger': '#06b6d4',    // Cyan
-    'Underarmer': '#f59e0b' // Gul (samme som Armer)
   }
   return colors[muscleGroup] || '#6b7280' // Grå som fallback
 }

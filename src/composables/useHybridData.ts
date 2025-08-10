@@ -1,31 +1,36 @@
-import { computed } from 'vue'
-import { useWorkoutData } from '../Test/useWorkoutData-test' // For static data (JSON)
+import { computed, ref } from 'vue'
 import { useSupabaseData } from './useSupabaseData' // For user data (Supabase)
+import * as exercisesData from '@/data/exercises.json'
+import * as workoutTypesData from '@/data/workout-types.json'
 
 // Console logging utility
 const logHybridAccess = (operation: string, details?: any) => {
   const timestamp = new Date().toLocaleTimeString('no-NO')
-
 }
 
 export const useHybridData = () => {
-  const staticData = useWorkoutData() // JSON files for static data
   const userData = useSupabaseData() // Supabase for user data
+  
+  // Load exercises from JSON file
+  const exercises = ref(exercisesData.exercises)
+  
+  // Load workout types from JSON file
+  const workoutTypes = ref(workoutTypesData.workoutTypes)
 
-  // Combined computed properties
+  // Helper functions for workout types
   const getWorkoutTypeColor = computed(() => {
     return (id: string) => {
-      return staticData.getWorkoutTypeColor.value(id)
+      const workoutType = workoutTypes.value.find((wt: any) => wt.id === id)
+      return workoutType?.color || '#6b7280'
     }
   })
 
   const getWorkoutType = computed(() => {
     return (id: string) => {
-      return staticData.getWorkoutType.value(id)
+      const workoutType = workoutTypes.value.find((wt: any) => wt.id === id)
+      return workoutType?.name || id
     }
   })
-
-
 
   const getTemplatesByType = computed(() => {
     return (workoutType: string) => {
@@ -42,18 +47,18 @@ export const useHybridData = () => {
   })
 
   return {
-    // Static data from JSON
-    workoutTypes: staticData.workoutTypes,
+    // User data from Supabase
+    workoutTypes,
     getWorkoutType,
     getWorkoutTypeColor,
-
-    // User data from Supabase
-    exercises: staticData.exercises,
     templates: userData.templates,
     sessions: userData.sessions,
     isLoading: userData.isLoading,
     currentUser: userData.currentUser,
     isAuthenticated: userData.isAuthenticated,
+
+    // Exercise data from JSON file
+    exercises,
 
     // Combined computed properties
     completedSessions: userData.completedSessions,
@@ -75,10 +80,6 @@ export const useHybridData = () => {
     completeWorkoutSession: userData.completeWorkoutSession,
     markSessionAsActive: userData.markSessionAsActive,
     deleteWorkoutSession: userData.deleteWorkoutSession,
-    // Exercises are now static from JSON; CRUD is intentionally a no-op
-    addExercise: () => { /* no-op */ },
-    deleteExercise: () => { /* no-op */ },
-    updateExercise: () => { /* no-op */ },
     signOut: userData.signOut,
     cleanup: userData.cleanup
   }

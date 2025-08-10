@@ -1,13 +1,9 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useSupabase } from './useSupabase'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { 
   WorkoutTemplate, 
-  ExerciseTemplate, 
   WorkoutSession, 
-  WorkoutExercise, 
-  WorkoutSet,
-  ExerciseData,
   WorkoutType 
 } from '@/types/workout'
 
@@ -27,7 +23,6 @@ const createSupabaseData = () => {
   // State (only user data)
   const templates = ref<WorkoutTemplate[]>([])
   const sessions = ref<WorkoutSession[]>([])
-  const exercises = ref<any[]>([])
   const isLoading = ref(false)
   const currentUser = ref<any>(null)
   const isAuthenticated = ref(false)
@@ -123,8 +118,8 @@ const createSupabaseData = () => {
         }
       })
 
-      // Exercises are no longer loaded from Supabase; they come from JSON via useHybridData
-      exercises.value = []
+      // Note: Exercises are loaded from exercises.json, not from Supabase
+      logSupabaseAccess('Get exercises', 'Loaded from exercises.json')
       
     } catch (error: any) {
       console.error('❌ Error loading Supabase data:', error)
@@ -783,27 +778,12 @@ const createSupabaseData = () => {
     sessions.value = sessions.value.filter(s => s.id !== sessionId)
   }
 
-  // Exercise management functions
-  const addExercise = async (_exercise: { name: string; muscleGroups: string[] }) => {
-    // No-op: exercises are managed via static JSON
-    return null
-  }
 
-  const deleteExercise = async (_exerciseId: string) => {
-    // No-op: exercises are managed via static JSON
-    return
-  }
-
-  const updateExercise = async (_exerciseId: string, _updates: { name?: string; muscleGroups?: string[] }) => {
-    // No-op: exercises are managed via static JSON
-    return null
-  }
 
   return {
     // State (only user data)
     templates,
     sessions,
-    exercises,
     isLoading,
     currentUser,
     isAuthenticated,
@@ -828,9 +808,6 @@ const createSupabaseData = () => {
     completeWorkoutSession,
     markSessionAsActive,
     deleteWorkoutSession,
-    addExercise,
-    deleteExercise,
-    updateExercise,
     signOut,
     initializeAuth,
     resetState,
