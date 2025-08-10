@@ -27,15 +27,13 @@
               <input v-model="profileEmail" type="email" class="input-field w-full bg-dark-600" placeholder="din@email.com" disabled />
               <p class="text-xs text-dark-400 mt-1">E-post kan ikke endres</p>
             </div>
-          </div>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-semibold text-white mb-4">Kontaktinformasjon</h3>
-          <div>
-            <label class="block text-sm font-medium text-white mb-2">Mobilnummer</label>
-            <input v-model="phoneNumber" type="tel" class="input-field w-full" placeholder="+47 123 45 678" />
-            <p class="text-xs text-dark-400 mt-1">Valgfritt - brukes for gjenoppretting av konto</p>
+            <div>
+              <div>
+                <label class="block text-sm font-medium text-white mb-2">Mobilnummer</label>
+                <input v-model="phoneNumber" type="tel" class="input-field w-full" placeholder="+47 123 45 678" />
+                <p class="text-xs text-dark-400 mt-1">Valgfritt - brukes for gjenoppretting av konto</p>
+              </div>
+            </div>
           </div>
         </div>
 

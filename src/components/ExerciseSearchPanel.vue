@@ -16,6 +16,26 @@
         />
       </div>
 
+      <!-- Muscle Group Filters -->
+      <div class="space-y-2">
+        <h4 class="text-sm font-medium text-white">Filtrer etter muskelgruppe:</h4>
+        <div class="flex flex-wrap gap-2">
+          <label
+            v-for="muscleGroup in availableMuscleGroups"
+            :key="muscleGroup"
+            class="flex items-center gap-2 cursor-pointer"
+          >
+            <input
+              v-model="selectedMuscleGroups"
+              type="checkbox"
+              :value="muscleGroup"
+              class="w-4 h-4 text-dark-600 bg-dark-700 border-dark-600 rounded focus:ring-dark-500 focus:ring-2"
+            />
+            <span class="text-sm text-white">{{ muscleGroup }}</span>
+          </label>
+        </div>
+      </div>
+
       <!-- Results -->
       <div v-if="filteredResults.length === 0" class="text-sm text-dark-300 py-4">Ingen treff</div>
       <div v-else class="space-y-1">
@@ -74,7 +94,26 @@ const onClose = () => emit('close')
 // search
 const query = ref('')
 watch(() => props.isOpen, (open) => {
-  if (open) query.value = ''
+  if (open) {
+    query.value = ''
+    selectedMuscleGroups.value = []
+  }
+})
+
+// muscle group filters
+const selectedMuscleGroups = ref<string[]>([])
+
+// Get all available muscle groups from exercises (only main categories)
+const availableMuscleGroups = computed(() => {
+  const mainCategories = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
+  const groups = new Set<string>()
+  props.exercises.forEach(ex => {
+    if (ex.category && mainCategories.includes(ex.category)) {
+      groups.add(ex.category)
+    }
+  })
+  // Return in the specific order we want
+  return mainCategories.filter(category => groups.has(category))
 })
 
 const norm = (s: string) => (s || '')
@@ -106,11 +145,21 @@ const ALIASES: Record<string, string[]> = {
 }
 
 const filteredResults = computed(() => {
+  let exercises = props.exercises
+  
+  // Filter by selected muscle groups (using category field)
+  if (selectedMuscleGroups.value.length > 0) {
+    exercises = exercises.filter(ex => {
+      return ex.category && selectedMuscleGroups.value.includes(ex.category)
+    })
+  }
+  
+  // Filter by search query
   const raw = query.value.trim()
   const tokens = raw ? raw.split(/\s+/).map(t => norm(t)).filter(Boolean) : []
-  if (!tokens.length) return props.exercises
+  if (!tokens.length) return exercises
   
-  return props.exercises.filter((ex) => {
+  return exercises.filter((ex) => {
     const name = norm(ex.name)
     const category = norm(ex.category || '')
     const groups = (ex.muscleGroups || []).map(g => norm(g)).join(' ')
