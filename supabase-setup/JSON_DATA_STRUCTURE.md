@@ -9,9 +9,13 @@ Denne filen dokumenterer hvordan data håndteres i Next Rep Workout App, inklude
 - `workout-types.json` - Treningsøvelse-typer (push, pull, legs)
 
 ### **Supabase Tabeller (Brukerdata)**
-- `users` - Brukerinformasjon
+- `user_preferences` - Brukerpreferanser og abonnement
 - `workout_templates` - Treningsøvelse-maler
 - `workout_sessions` - Treningsøkter
+
+### **Supabase Auth (Brukerprofildata)**
+- `auth.users` - Standard brukerautentisering
+- `auth.users.user_metadata` - Navn, telefon og andre profildata
 
 ---
 
@@ -95,15 +99,18 @@ Denne filen dokumenterer hvordan data håndteres i Next Rep Workout App, inklude
 
 ## 👥 **Brukere (Supabase)**
 
-**Tabell:** `users`
+**Tabell:** `user_preferences`
 
 **SQL Schema:**
 ```sql
-CREATE TABLE users (
+CREATE TABLE user_preferences (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
+  supabase_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  subscription_type TEXT DEFAULT 'free',
+  subscription_status TEXT DEFAULT 'active',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_login TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ```
 
@@ -111,11 +118,16 @@ CREATE TABLE users (
 ```json
 {
   "id": "uuid-string",
-  "email": "user@example.com",
+  "supabase_id": "auth-user-uuid",
+  "subscription_type": "free",
+  "subscription_status": "active",
   "created_at": "2024-01-01T00:00:00Z",
-  "updated_at": "2024-01-01T00:00:00Z"
+  "updated_at": "2024-01-01T00:00:00Z",
+  "last_login": "2024-01-01T00:00:00Z"
 }
 ```
+
+**Viktig:** Profilinformasjon (navn, e-post, telefon) lagres i Supabase Auth (`auth.users` og `user_metadata`), ikke i `user_preferences`.
 
 ---
 
@@ -127,11 +139,11 @@ CREATE TABLE users (
 ```sql
 CREATE TABLE workout_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES user_preferences(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  description TEXT,
-  workout_type TEXT REFERENCES workout_types(id),
+  workout_type TEXT NOT NULL,
   exercises JSONB NOT NULL,
+  is_default BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -141,9 +153,8 @@ CREATE TABLE workout_templates (
 ```json
 {
   "id": "uuid-string",
-  "user_id": "user-uuid",
+  "user_id": "user-preferences-uuid",
   "name": "Push Day",
-  "description": "Bryst, skuldre og triceps",
   "workout_type": "push",
   "exercises": [
     {
@@ -154,6 +165,7 @@ CREATE TABLE workout_templates (
       "rest_time": 120
     }
   ],
+  "is_default": false,
   "created_at": "2024-01-01T00:00:00Z",
   "updated_at": "2024-01-01T00:00:00Z"
 }
@@ -180,13 +192,17 @@ CREATE TABLE workout_templates (
 ```sql
 CREATE TABLE workout_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES user_preferences(id) ON DELETE CASCADE,
   template_id UUID REFERENCES workout_templates(id) ON DELETE SET NULL,
-  name TEXT NOT NULL,
-  status TEXT DEFAULT 'active',
-  started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  completed_at TIMESTAMP WITH TIME ZONE,
-  exercises JSONB NOT NULL
+  template_name TEXT NOT NULL,
+  workout_type TEXT NOT NULL,
+  date TIMESTAMP WITH TIME ZONE NOT NULL,
+  duration INTEGER DEFAULT 0,
+  total_volume INTEGER DEFAULT 0,
+  exercises JSONB NOT NULL,
+  is_completed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ```
 
@@ -194,12 +210,13 @@ CREATE TABLE workout_sessions (
 ```json
 {
   "id": "uuid-string",
-  "user_id": "user-uuid",
+  "user_id": "user-preferences-uuid",
   "template_id": "template-uuid",
-  "name": "Push Day - 15.01.2024",
-  "status": "completed",
-  "started_at": "2024-01-15T10:00:00Z",
-  "completed_at": "2024-01-15T11:30:00Z",
+  "template_name": "Push Day",
+  "workout_type": "push",
+  "date": "2024-01-15T10:00:00Z",
+  "duration": 5400,
+  "total_volume": 12000,
   "exercises": [
     {
       "exercise_id": "bench-press",
@@ -213,7 +230,10 @@ CREATE TABLE workout_sessions (
         }
       ]
     }
-  ]
+  ],
+  "is_completed": true,
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T11:30:00Z"
 }
 ```
 
@@ -227,11 +247,6 @@ CREATE TABLE workout_sessions (
   "notes": "string"            // Notater (valgfritt)
 }
 ```
-
-**Status Verdier:**
-- `"active"` - Økten er pågående
-- `"completed"` - Økten er fullført
-- `"paused"` - Økten er satt på pause
 
 ---
 
@@ -249,7 +264,9 @@ const newTemplate = {
 // Start ny økt
 const newSession = {
   template_id: "template-uuid",
-  name: "Template Navn - Dato",
+  template_name: "Template Navn",
+  workout_type: "push",
+  date: new Date().toISOString(),
   exercises: [...]
 }
 ```
@@ -307,12 +324,14 @@ await supabase
 1. **Øvelser** lastes fra `exercises.json` (statisk data)
 2. **Treningsøvelse-typer** lastes fra `workout-types.json` (statisk data)
 3. **Brukerdata** (templates, økter) lagres i Supabase
+4. **Profildata** (navn, e-post, telefon) lagres i Supabase Auth
 
 ### **Sikkerhet**
 - Alle UUID-er genereres automatisk av Supabase
 - Timestamps oppdateres automatisk
 - Foreign key constraints sikrer dataintegritet
 - Alle brukerdata er isolert med `user_id` foreign key
+- RLS (Row Level Security) sikrer at brukere kun kan aksessere sin egen data
 
 ### **JSONB-felter**
 - `exercises` i templates og økter bruker JSONB for fleksibilitet
@@ -322,3 +341,9 @@ await supabase
 - **Viktig:** Det finnes ingen `exercises` tabell i Supabase
 - Alle øvelser kommer fra `exercises.json`
 - Dette gjør appen enklere å vedlikeholde og oppdatere
+
+### **Brukerpreferanser vs Profildata**
+- **`user_preferences`**: Lagrer app-spesifikke preferanser (abonnement, innstillinger)
+- **`auth.users`**: Standard Supabase Auth for innlogging og e-post
+- **`auth.users.user_metadata`**: Lagrer navn, telefon og andre profildata
+- Dette gir bedre separasjon av ansvar og enklere datamodell
