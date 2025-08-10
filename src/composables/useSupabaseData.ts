@@ -30,23 +30,19 @@ const createSupabaseData = () => {
 
   // Load data from Supabase (only user data)
   const loadData = async () => {
-    
-    
-          if (!currentUser.value) {
-        return
-      }
+    if (!currentUser.value) {
+      return
+    }
 
     // Prevent multiple simultaneous calls
     if (isLoading.value) {
       return
     }
-
     isLoading.value = true
     
     // Add timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
       if (isLoading.value) {
-        console.warn('⚠️ Data loading timeout, resetting loading state')
         isLoading.value = false
       }
     }, 10000) // 10 second timeout
@@ -61,8 +57,10 @@ const createSupabaseData = () => {
         .select('*')
         .eq('user_id', currentUser.value.id)
       
-      if (templatesError) throw templatesError
-      
+      if (templatesError) {
+        console.error('Error loading templates:', templatesError)
+        throw templatesError
+      }
       logSupabaseAccess('Get templates', `${templatesData.length} templates`)
       templates.value = templatesData.map((template: any) => ({
         id: template.id,
@@ -79,8 +77,10 @@ const createSupabaseData = () => {
         .eq('user_id', currentUser.value.id)
         .order('date', { ascending: false })
       
-      if (sessionsError) throw sessionsError
-      
+      if (sessionsError) {
+        console.error('Error loading sessions:', sessionsError)
+        throw sessionsError
+      }
       logSupabaseAccess('Get sessions', `${sessionsData.length} sessions`)
       sessions.value = sessionsData.map((session: any) => {
         
@@ -95,8 +95,8 @@ const createSupabaseData = () => {
         })) || []
         
         // Recalculate total volume based on corrected weights
-        const recalculatedTotalVolume = exercises.reduce((exerciseTotal, exercise) => {
-          const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
+        const recalculatedTotalVolume = exercises.reduce((exerciseTotal: number, exercise: any) => {
+          const exerciseVolume = exercise.sets.reduce((setTotal: number, set: any) => {
             if (set.isCompleted && set.weight && set.reps) {
               return setTotal + (set.weight * set.reps)
             }
@@ -122,7 +122,7 @@ const createSupabaseData = () => {
       logSupabaseAccess('Get exercises', 'Loaded from exercises.json')
       
     } catch (error: any) {
-      console.error('❌ Error loading Supabase data:', error)
+      console.error('Error loading Supabase data:', error)
       // Use error handler to show user-friendly error
       const { showError } = useErrorHandler()
       showError('Kunne ikke laste data fra databasen. Prøv å oppdatere siden.')
@@ -132,16 +132,18 @@ const createSupabaseData = () => {
     }
   }
 
-  // Ensure user profile exists in users table
+
+
+  // Ensure user preferences exist in user_preferences table
   const ensureUserProfile = async () => {
     if (!currentUser.value) {
       return
     }
-
+    
     try {
-      // Check if user profile exists
+      // Check if user preferences exist
       const { data: existingUser, error: selectError } = await supabase
-        .from('users')
+        .from('user_preferences')
         .select('id')
         .eq('id', currentUser.value.id)
         .single()
@@ -149,16 +151,13 @@ const createSupabaseData = () => {
       if (selectError) {
         // Check if the error is due to no rows found (PGRST116) or other issues
         if (selectError.code === 'PGRST116' || selectError.message?.includes('No rows found')) {
-          // User profile doesn't exist, create it
+          // User preferences don't exist, create them
       
           const { error: insertError } = await supabase
-            .from('users')
+            .from('user_preferences')
             .insert({
               id: currentUser.value.id,
               supabase_id: currentUser.value.id,
-              email: currentUser.value.email,
-              name: currentUser.value.user_metadata?.name || null,
-              phone: currentUser.value.user_metadata?.phone || null,
               subscription_type: 'free',
               subscription_status: 'active'
             })
@@ -168,23 +167,27 @@ const createSupabaseData = () => {
           if (insertError) {
             // Check if it's a duplicate key error (user already exists)
             if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
-          
+              // User preferences already exist, skipping insert
             } else {
-              console.error('Error creating user profile:', insertError)
+              // Check if this is a table not found error
+              if (insertError.message?.includes('relation "user_preferences" does not exist')) {
+                throw new Error('user_preferences table does not exist. Please run the database migration.')
+              }
+              
               throw insertError
             }
-          } else {
-        
           }
         } else {
-          console.error('Error checking user profile:', selectError)
+          // Check if this is a table not found error
+          if (selectError.message?.includes('relation "user_preferences" does not exist')) {
+            throw new Error('user_preferences table does not exist. Please run the database migration.')
+          }
+          
           throw selectError
         }
-      } else {
-    
       }
     } catch (error) {
-      console.error('Error ensuring user profile:', error)
+      console.error('Error ensuring user preferences:', error)
       throw error
     }
   }
@@ -228,7 +231,6 @@ const createSupabaseData = () => {
           sessions.value = []
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           // Handle token refresh on mobile
-      
           currentUser.value = session.user
           isAuthenticated.value = true
         }
@@ -245,7 +247,6 @@ const createSupabaseData = () => {
               if (session?.user) {
                 // If we have a session but no current user, or user ID changed, update
                 if (!currentUser.value || session.user.id !== currentUser.value.id) {
-              
                   currentUser.value = session.user
                   isAuthenticated.value = true
                   loadData()

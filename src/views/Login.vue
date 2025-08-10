@@ -308,14 +308,12 @@ const handleRegister = async () => {
   }
 
   if (data.user) {
-    // Create user profile in our users table
+    // Create user preferences in our user_preferences table
     const { error: profileError } = await supabase
-      .from('users')
+      .from('user_preferences')
       .insert({
         id: data.user.id,
         supabase_id: data.user.id,
-        email: email.value,
-        name: name.value,
         subscription_type: 'free',
         subscription_status: 'active'
       })
@@ -327,9 +325,9 @@ const handleRegister = async () => {
       if (profileError.code === '23505' || profileError.message?.includes('duplicate key')) {
     
       } else {
-        console.error('Error creating user profile:', profileError)
+        console.error('Error creating user preferences:', profileError)
         // Show error message to user
-        errorMessage.value = 'Registrering fullført, men det oppstod en feil med brukerprofilen. Prøv å logge inn.'
+        errorMessage.value = 'Registrering fullført, men det oppstod en feil med brukerinnstillingene. Prøv å logge inn.'
         return
       }
     }

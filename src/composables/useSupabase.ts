@@ -5,29 +5,32 @@ import { ref } from 'vue'
 export interface Database {
   public: {
     Tables: {
-      users: {
+      user_preferences: {
         Row: {
           id: string
           supabase_id: string | null
-          email: string
-          name: string | null
+          subscription_type: string
+          subscription_status: string
           created_at: string
+          updated_at: string
           last_login: string | null
         }
         Insert: {
           id?: string
           supabase_id?: string | null
-          email: string
-          name?: string | null
+          subscription_type?: string
+          subscription_status?: string
           created_at?: string
+          updated_at?: string
           last_login?: string | null
         }
         Update: {
           id?: string
           supabase_id?: string | null
-          email?: string
-          name?: string | null
+          subscription_type?: string
+          subscription_status?: string
           created_at?: string
+          updated_at?: string
           last_login?: string | null
         }
       }
@@ -107,32 +110,7 @@ export interface Database {
           updated_at?: string
         }
       }
-      exercises: {
-        Row: {
-          id: string
-          user_id: string
-          name: string
-          muscle_groups: string[]
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          name: string
-          muscle_groups?: string[]
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          name?: string
-          muscle_groups?: string[]
-          created_at?: string
-          updated_at?: string
-        }
-      }
+
     }
   }
 }

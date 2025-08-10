@@ -24,8 +24,8 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-white mb-2">E-post</label>
-              <input v-model="profileEmail" type="email" class="input-field w-full bg-dark-600" placeholder="din@email.com" disabled />
-              <p class="text-xs text-dark-400 mt-1">E-post kan ikke endres</p>
+              <input v-model="profileEmail" type="email" class="input-field w-full" placeholder="din@email.com" />
+              <p class="text-xs text-dark-400 mt-1">Endre e-postadresse og klikk "Oppdater profil" for å lagre endringen</p>
             </div>
             <div>
               <div>
@@ -171,7 +171,6 @@
       </button>
     </div>
 
-    
   </div>
 </template>
 
@@ -220,25 +219,48 @@ const currentSubscription = computed(() => {
 const initializeProfileData = async () => {
   const user = workoutData.currentUser.value
   if (user) {
-    profileName.value = user.user_metadata?.name || ''
-    profileEmail.value = user.email || ''
-    phoneNumber.value = user.user_metadata?.phone || ''
-    
-    // Load subscription data from database
-    try {
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('subscription_type, subscription_status')
-        .eq('id', user.id)
-        .single()
-      
-      if (!error && userData) {
-        subscriptionType.value = userData.subscription_type || 'free'
-        subscriptionStatus.value = userData.subscription_status || 'active'
+          // Load user data from user_preferences table in Supabase (subscription info only)
+      try {
+        const { data: userData, error } = await supabase
+          .from('user_preferences')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+        
+        if (!error && userData) {
+          // Update form fields with data from user_preferences table (subscription only)
+          // Profile data (name, email, phone) comes from Supabase Auth
+          profileName.value = user.user_metadata?.name || ''
+          profileEmail.value = user.email || '' // Always use auth email (verification required for changes)
+          phoneNumber.value = user.user_metadata?.phone || ''
+          subscriptionType.value = userData.subscription_type || 'free'
+          subscriptionStatus.value = userData.subscription_status || 'active'
+        } else {
+          // No database record found, use auth data and create preferences record
+          profileName.value = user.user_metadata?.name || ''
+          profileEmail.value = user.email || '' // Always use auth email (verification required for changes)
+          phoneNumber.value = user.user_metadata?.phone || ''
+          subscriptionType.value = 'free'
+          subscriptionStatus.value = 'active'
+          
+          // The ensureUserProfile function in useSupabaseData will create the record
+          // when loadData() is called, so we don't need to do it here
+          // But we can trigger it manually to ensure consistency
+          try {
+            await workoutData.loadData()
+          } catch (loadError) {
+            // Handle load error silently
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user preferences from database:', error)
+        // Fallback to auth user data
+        profileName.value = user.user_metadata?.name || ''
+        profileEmail.value = user.email || '' // Always use auth email
+        phoneNumber.value = user.user_metadata?.phone || ''
+        subscriptionType.value = 'free'
+        subscriptionStatus.value = 'active'
       }
-    } catch (error) {
-      console.error('Error loading subscription data:', error)
-    }
   }
 }
 
@@ -249,72 +271,105 @@ const updateBasicProfile = async () => {
   isUpdatingProfile.value = true
 
   try {
-    const updates: any = {}
     const user = workoutData.currentUser.value
+    
+    // Check if we have changes to save
+    const currentName = profileName.value.trim()
+    const currentPhone = phoneNumber.value.trim()
+    const currentEmail = profileEmail.value.trim()
+    
+    // Check if any changes were made
+    const hasNameChange = currentName !== (user.user_metadata?.name || '')
+    const hasPhoneChange = currentPhone !== (user.user_metadata?.phone || '')
+    const hasEmailChange = currentEmail !== user.email
+    const hasSubscriptionChange = subscriptionType.value !== 'free' || subscriptionStatus.value !== 'active'
+    
+    if (!hasNameChange && !hasPhoneChange && !hasEmailChange && !hasSubscriptionChange) {
+      showWarning('Ingen endringer å oppdatere')
+      return
+    }
+    
+    // Update user_preferences table in Supabase (subscription info only)
+    const { error: profileError } = await supabase
+      .from('user_preferences')
+      .upsert({
+        id: user.id,
+        supabase_id: user.id,
+        subscription_type: subscriptionType.value,
+        subscription_status: subscriptionStatus.value,
+        updated_at: new Date().toISOString()
+      })
 
-         // Update name and phone if changed
-     const hasNameChange = profileName.value !== user.user_metadata?.name
-     const hasPhoneChange = phoneNumber.value !== user.user_metadata?.phone
-     
-     if (hasNameChange || hasPhoneChange) {
-       updates.data = { 
-         name: profileName.value,
-         phone: phoneNumber.value
-       }
-     }
+    if (profileError) {
+      console.error('Error updating user preferences in database:', profileError)
+      handleAuthError({ message: 'Kunne ikke oppdatere brukerinnstillinger i database' })
+      return
+    }
 
-         // Apply updates if any
-     if (Object.keys(updates).length > 0) {
-       const { error } = await supabase.auth.updateUser(updates)
-       
-       if (error) {
-         handleAuthError(error)
-         return
-       }
-
-               // Update user profile in database if needed
-        if (updates.data) {
-          const { error: profileError } = await supabase
-            .from('users')
-            .upsert({
-              id: user.id,
-              name: profileName.value,
-              phone: phoneNumber.value,
-              updated_at: new Date().toISOString()
-            })
-
-          if (profileError) {
-            console.error('Error updating profile in database:', profileError)
+    // Update Supabase Auth user metadata and email if changed
+    if (hasNameChange || hasPhoneChange) {
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { 
+          name: currentName,
+          phone: currentPhone
+        }
+      })
+      
+      if (authError) {
+        console.error('Error updating auth user metadata:', authError)
+        handleAuthError({ message: 'Kunne ikke oppdatere navn/telefon i Supabase Auth' })
+        return
+      } else {
+        // Update the local user object to reflect changes immediately
+        if (workoutData.currentUser.value) {
+          workoutData.currentUser.value.user_metadata = {
+            ...workoutData.currentUser.value.user_metadata,
+            name: currentName,
+            phone: currentPhone
           }
         }
-
-        // Update subscription data in database
-        const { error: subscriptionError } = await supabase
-          .from('users')
-          .update({
-            subscription_type: subscriptionType.value,
-            subscription_status: subscriptionStatus.value,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id)
-
-        if (subscriptionError) {
-          console.error('Error updating subscription data:', subscriptionError)
+        
+        // Force a refresh of the current user to get the latest metadata
+        const { data: { user: refreshedUser }, error: refreshError } = await supabase.auth.getUser()
+        if (!refreshError && refreshedUser) {
+          // Update the current user with refreshed data
+          workoutData.currentUser.value = refreshedUser
         }
-
-        // Show success message using toast
-        showSuccess('Profil oppdatert!')
-
-           } else {
-        // No changes made
-        showWarning('Ingen endringer å oppdatere')
       }
-     } catch (error: any) {
-     console.error('Error updating profile:', error)
-     handleAuthError(error)
-   } finally {
-     isUpdatingProfile.value = false
-   }
+    }
+    
+    if (hasEmailChange) {
+      const { error: emailError } = await supabase.auth.updateUser({
+        email: currentEmail
+      })
+      
+      if (emailError) {
+        console.error('Error updating auth email:', emailError)
+        handleAuthError({ message: 'Kunne ikke oppdatere e-postadresse. Prøv igjen senere.' })
+        return
+      }
+    }
+
+    // Show success message
+    if (hasEmailChange) {
+      showSuccess('Profil oppdatert! Sjekk din nye e-postadresse for verifiseringslenke. E-postadressen vil bli oppdatert etter verifisering.')
+      
+      // Note: After email verification, the user should log out and log back in
+      // or we should trigger a sync of the user_preferences table with the new email
+      // For now, we'll show a message about this
+    } else {
+      showSuccess('Profil oppdatert!')
+    }
+    
+    // Refresh profile data to ensure consistency
+    await initializeProfileData()
+    
+  } catch (error: any) {
+    console.error('Error updating profile:', error)
+    handleAuthError(error)
+  } finally {
+    isUpdatingProfile.value = false
+  }
 }
 
 // Update password only
@@ -363,7 +418,6 @@ const updatePassword = async () => {
     isUpdatingPassword.value = false
   }
 }
-
 
 // Sign out
 const handleSignOut = async () => {

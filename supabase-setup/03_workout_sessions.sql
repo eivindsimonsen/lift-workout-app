@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS workout_sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES user_preferences(id) ON DELETE CASCADE,
   template_id UUID REFERENCES workout_templates(id) ON DELETE SET NULL,
   template_name TEXT NOT NULL,
   workout_type TEXT NOT NULL,
