@@ -88,79 +88,72 @@
      <!-- Subscription / Plus (visual only for now) -->
      <div class="card">
        <h3 class="text-lg font-semibold text-white mb-4">Abonnement</h3>
-       <div class="bg-gradient-to-br from-dark-700 to-dark-800 rounded-xl p-6 border border-dark-600/50 shadow-lg">
-         <div class="flex items-center justify-between mb-6">
-           <div class="flex items-center gap-3">
-             <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
-               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-               </svg>
-             </div>
-             <div>
-               <p class="text-xl font-bold text-white">{{ currentSubscription.label }}</p>
-               <p class="text-sm text-dark-300">{{ currentSubscription.description }}</p>
-             </div>
+       <div class="bg-dark-700 rounded-lg p-4">
+         <div class="flex items-center justify-between mb-4">
+           <div>
+             <p class="text-lg font-bold text-white">{{ currentSubscription.label }}</p>
+             <p class="text-sm text-dark-300">{{ currentSubscription.description }}</p>
            </div>
-           <span class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg">
+           <span class="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-green-500 text-white">
              <div class="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
              {{ subscriptionStatus === 'active' ? 'Aktiv' : 'Inaktiv' }}
            </span>
          </div>
          
-         <div class="space-y-4">
-           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div class="flex items-center gap-3 p-3 bg-dark-600/30 rounded-lg border border-dark-500/20 hover:bg-dark-600/50 transition-colors">
-               <div class="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
-                 <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         <div class="space-y-3">
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+             <div class="flex items-center gap-3 p-2 bg-dark-600/30 rounded-lg">
+               <div class="w-6 h-6 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                 <svg class="w-3 h-3 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                  </svg>
                </div>
-               <span class="text-white text-sm font-medium">Ubegrensede økter</span>
+               <span class="text-white text-sm">Ubegrensede økter</span>
              </div>
              
-             <div class="flex items-center gap-3 p-3 bg-dark-600/30 rounded-lg border border-dark-500/20 hover:bg-dark-600/50 transition-colors">
-               <div class="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
-                 <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <div class="flex items-center gap-3 p-2 bg-dark-600/30 rounded-lg">
+               <div class="w-6 h-6 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                 <svg class="w-3 h-3 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                  </svg>
                </div>
-               <span class="text-white text-sm font-medium">Tilgang til alle øvelser</span>
+               <span class="text-white text-sm">Tilgang til alle øvelser</span>
              </div>
              
-             <div class="flex items-center gap-3 p-3 bg-dark-600/30 rounded-lg border border-dark-500/20 hover:bg-dark-600/50 transition-colors">
-               <div class="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
-                 <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <div class="flex items-center gap-3 p-2 bg-dark-600/30 rounded-lg">
+               <div class="w-6 h-6 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                 <svg class="w-3 h-3 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                  </svg>
                </div>
-               <span class="text-white text-sm font-medium">Full stats oversikt på alle økter</span>
+               <span class="text-white text-sm">Full stats oversikt på alle økter</span>
              </div>
              
-             <div class="flex items-center gap-3 p-3 bg-dark-600/30 rounded-lg border border-dark-500/20 hover:bg-dark-600/50 transition-colors">
-               <div class="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
-                 <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <div class="flex items-center gap-3 p-2 bg-dark-600/30 rounded-lg">
+               <div class="w-6 h-6 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                 <svg class="w-3 h-3 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                  </svg>
                </div>
-               <span class="text-white text-sm font-medium">Full historikk på alle gjennomførte økter</span>
+               <span class="text-white text-sm">Full historikk på alle gjennomførte økter</span>
              </div>
              
-             <div class="flex items-center gap-3 p-3 bg-dark-600/30 rounded-lg border border-dark-500/20 hover:bg-dark-600/50 transition-colors">
-               <div class="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
-                 <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <div class="flex items-center gap-3 p-2 bg-dark-600/30 rounded-lg">
+               <div class="w-6 h-6 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                 <svg class="w-3 h-3 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                  </svg>
                </div>
-               <span class="text-white text-sm font-medium">Treningsmaler og øvelsesøk</span>
+               <span class="text-white text-sm">Treningsmaler og øvelsesøk</span>
              </div>
              
-             <div class="flex items-center gap-3 p-3 bg-dark-600/30 rounded-lg border border-dark-500/20 hover:bg-dark-600/50 transition-colors">
-               <div class="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
-                 <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <div class="flex items-center gap-3 p-2 bg-dark-600/30 rounded-lg">
+               <div class="w-6 h-6 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                 <svg class="w-3 h-3 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                  </svg>
                </div>
-               <span class="text-white text-sm font-medium">1RM‑progresjon og PR‑tavle</span>
+               <span class="text-white text-sm">1RM‑progresjon og PR‑tavle</span>
              </div>
            </div>
          </div>
