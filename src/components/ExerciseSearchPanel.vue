@@ -17,20 +17,26 @@
       </div>
 
       <!-- Results -->
-      <div v-if="groupedResults.length === 0" class="text-sm text-dark-300 py-4">Ingen treff</div>
-      <div v-else>
-        <div v-for="(section, idx) in groupedResults" :key="section.group" :class="{ 'mt-4': idx > 0 }">
-          <div class="px-1 py-2 text-[11px] uppercase text-dark-400 tracking-wide sticky top-0 z-30 bg-dark-800 border-b border-dark-700">{{ section.group }}</div>
-          <button
-            v-for="ex in section.items"
-            :key="ex.id"
-            type="button"
-            class="w-full text-left px-3 py-2 rounded-md hover:bg-dark-700 text-sm z-0 relative"
-            @click="selectExercise(ex)"
-          >
-            {{ ex.name }}
-          </button>
-        </div>
+      <div v-if="filteredResults.length === 0" class="text-sm text-dark-300 py-4">Ingen treff</div>
+      <div v-else class="space-y-1">
+        <button
+          v-for="ex in filteredResults"
+          :key="ex.id"
+          type="button"
+          class="w-full text-left px-3 py-3 rounded-md hover:bg-dark-700 text-sm z-0 relative flex items-center justify-between group"
+          @click="selectExercise(ex)"
+        >
+          <span class="text-white">{{ ex.name }}</span>
+          <div class="flex gap-1 flex-wrap justify-end">
+            <span
+              v-if="getPrimaryMuscleGroup(ex)"
+              class="px-2 py-1 text-xs font-medium rounded-full bg-dark-600"
+              :style="{ color: getMuscleGroupColor(getPrimaryMuscleGroup(ex)!) }"
+            >
+              {{ getPrimaryMuscleGroup(ex) }}
+            </span>
+          </div>
+        </button>
       </div>
     </div>
   </SlideOver>
@@ -99,12 +105,11 @@ const ALIASES: Record<string, string[]> = {
   pull: ['pull', 'rygg', 'biceps'],
 }
 
-type GroupSection = { group: string; items: ExerciseItem[] }
-
-const filtered = computed(() => {
+const filteredResults = computed(() => {
   const raw = query.value.trim()
   const tokens = raw ? raw.split(/\s+/).map(t => norm(t)).filter(Boolean) : []
   if (!tokens.length) return props.exercises
+  
   return props.exercises.filter((ex) => {
     const name = norm(ex.name)
     const category = norm(ex.category || '')
@@ -115,24 +120,27 @@ const filtered = computed(() => {
       const candidates = (ALIASES[t] || [t]).map(a => norm(a))
       return candidates.some(a => a && haystack.includes(a))
     })
-  })
+  }).sort((x, y) => x.name.localeCompare(y.name, 'no'))
 })
 
-const groupedResults = computed<GroupSection[]>(() => {
-  const items = filtered.value
-  if (!items.length) return []
-  const groups = new Map<string, ExerciseItem[]>()
-  for (const ex of items) {
-    const key = ex.category || 'Annet'
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key)!.push(ex)
+const getPrimaryMuscleGroup = (exercise: ExerciseItem): string | null => {
+  // Return the first muscle group, or category as fallback
+  return exercise.muscleGroups?.[0] || exercise.category || null
+}
+
+const getMuscleGroupColor = (muscleGroup: string): string => {
+  const colors: Record<string, string> = {
+    'Bryst': '#f97316',      // Oransje
+    'Rygg': '#3b82f6',      // Blå
+    'Ben': '#10b981',       // Grønn
+    'Skuldre': '#8b5cf6',   // Lilla
+    'Armer': '#f59e0b',     // Gul
+    'Kjerne': '#ef4444',    // Rød
+    'Legger': '#06b6d4',    // Cyan
+    'Underarmer': '#f59e0b' // Gul (samme som Armer)
   }
-  const order = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
-  const byOrder = (a: string, b: string) => order.indexOf(a) - order.indexOf(b)
-  return Array.from(groups.entries())
-    .sort((a, b) => byOrder(a[0], b[0]))
-    .map(([group, items]) => ({ group, items: items.sort((x, y) => x.name.localeCompare(y.name, 'no')) }))
-})
+  return colors[muscleGroup] || '#6b7280' // Grå som fallback
+}
 
 const selectExercise = (ex: ExerciseItem) => {
   emit('select', ex.id)

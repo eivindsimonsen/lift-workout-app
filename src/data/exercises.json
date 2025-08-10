@@ -32,7 +32,7 @@
     { "id": "hammer-curls", "name": "Hammer curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer", "Underarmer"] },
     { "id": "preacher-curls", "name": "Preacher curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
     { "id": "concentration-curls", "name": "Konsentrasjonscurl", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "tricep-dips", "name": "Dips (triceps)", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer", "Bryst"] },
+    { "id": "tricep-dips", "name": "Dips (triceps)", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
     { "id": "tricep-pushdowns", "name": "Pushdown i kabel", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
     { "id": "skull-crushers", "name": "Skull crushers", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
     { "id": "overhead-tricep-extension", "name": "Overhead tricep extension", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
