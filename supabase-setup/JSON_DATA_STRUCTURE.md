@@ -1,40 +1,61 @@
-# JSON Data Structure for Supabase
+# JSON Data Structure for Next Rep Workout App
 
-Denne filen dokumenterer JSON-strukturen for data som sendes til og hentes fra Supabase i Next Rep Workout App.
+Denne filen dokumenterer hvordan data håndteres i Next Rep Workout App, inkludert både lokale JSON-filer og Supabase-tabeller.
 
-## 📊 **Data Typer**
+## 📊 **Data Kilder**
 
-### 1. **Users (Brukere)**
-```sql
--- Tabell: users
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
+### **Lokale JSON-filer (Statisk Data)**
+- `exercises.json` - Alle tilgjengelige øvelser
+- `workout-types.json` - Treningsøvelse-typer (push, pull, legs)
+
+### **Supabase Tabeller (Brukerdata)**
+- `users` - Brukerinformasjon
+- `workout_templates` - Treningsøvelse-maler
+- `workout_sessions` - Treningsøkter
+
+---
+
+## 🏋️ **Øvelser (exercises.json)**
+
+**Filplassering:** `src/data/exercises.json`
 
 **JSON Struktur:**
 ```json
 {
-  "id": "uuid-string",
-  "email": "user@example.com",
-  "created_at": "2024-01-01T00:00:00Z",
-  "updated_at": "2024-01-01T00:00:00Z"
+  "id": "bench-press",
+  "name": "Benkpress",
+  "category": "Bryst",
+  "workoutTypes": ["push"],
+  "muscleGroups": ["Bryst", "Triceps", "Skuldre"]
 }
 ```
 
-### 2. **Workout Types (Treningsøvelse-typer)**
-```sql
--- Tabell: workout_types
-CREATE TABLE workout_types (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  color TEXT NOT NULL
-);
-```
+**Kategorier (category):**
+- `"Bryst"` - Brystmuskulatur
+- `"Rygg"` - Ryggmuskulatur  
+- `"Ben"` - Benmuskulatur
+- `"Skuldre"` - Skuldermuskulatur
+- `"Armer"` - Armmuskulatur
+- `"Kjerne"` - Kjerne/core
+
+**Workout Types:**
+- `"push"` - Push-øvelser (bryst, skuldre, triceps)
+- `"pull"` - Pull-øvelser (rygg, biceps)
+- `"legs"` - Ben-øvelser (quadriceps, hamstrings, glutes)
+
+**Muscle Groups:**
+- `"Bryst"` - Pectoralis major/minor
+- `"Rygg"` - Latissimus dorsi, trapezius
+- `"Ben"` - Quadriceps, hamstrings, glutes
+- `"Skuldre"` - Deltoids
+- `"Armer"` - Biceps, triceps, forearms
+- `"Kjerne"` - Abs, obliques, lower back
+
+---
+
+## 🎨 **Treningsøvelse-typer (workout-types.json)**
+
+**Filplassering:** `src/data/workout-types.json`
 
 **JSON Struktur:**
 ```json
@@ -70,53 +91,40 @@ CREATE TABLE workout_types (
 ]
 ```
 
-### 3. **Exercises (Øvelser)**
+---
+
+## 👥 **Brukere (Supabase)**
+
+**Tabell:** `users`
+
+**SQL Schema:**
 ```sql
--- Tabell: exercises
-CREATE TABLE exercises (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  category TEXT,
-  workout_types TEXT[],
-  muscle_groups TEXT[]
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ```
 
 **JSON Struktur:**
 ```json
 {
-  "id": "bench-press",
-  "name": "Benkpress",
-  "category": "Bryst",
-  "workout_types": ["push"],
-  "muscle_groups": ["Bryst", "Triceps", "Skuldre"]
+  "id": "uuid-string",
+  "email": "user@example.com",
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
 }
 ```
 
-**Kategorier (category):**
-- `"Bryst"` - Brystmuskulatur
-- `"Rygg"` - Ryggmuskulatur  
-- `"Ben"` - Benmuskulatur
-- `"Skuldre"` - Skuldermuskulatur
-- `"Armer"` - Armmuskulatur
-- `"Kjerne"` - Kjerne/core
+---
 
-**Workout Types:**
-- `"push"` - Push-øvelser
-- `"pull"` - Pull-øvelser
-- `"legs"` - Ben-øvelser
+## 📋 **Treningsøvelse-maler (Supabase)**
 
-**Muscle Groups:**
-- `"Bryst"` - Pectoralis major/minor
-- `"Rygg"` - Latissimus dorsi, trapezius
-- `"Ben"` - Quadriceps, hamstrings, glutes
-- `"Skuldre"` - Deltoids
-- `"Armer"` - Biceps, triceps, forearms
-- `"Kjerne"` - Abs, obliques, lower back
+**Tabell:** `workout_templates`
 
-### 4. **Workout Templates (Treningsøvelse-maler)**
+**SQL Schema:**
 ```sql
--- Tabell: workout_templates
 CREATE TABLE workout_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -144,13 +152,6 @@ CREATE TABLE workout_templates (
       "reps": 8,
       "weight": 80,
       "rest_time": 120
-    },
-    {
-      "exercise_id": "shoulder-press",
-      "sets": 3,
-      "reps": 10,
-      "weight": 50,
-      "rest_time": 90
     }
   ],
   "created_at": "2024-01-01T00:00:00Z",
@@ -161,7 +162,7 @@ CREATE TABLE workout_templates (
 **Exercise Template Struktur:**
 ```json
 {
-  "exercise_id": "string",     // Referanse til exercise.id
+  "exercise_id": "string",     // Referanse til exercise.id fra exercises.json
   "sets": "number",            // Antall sett
   "reps": "number",            // Antall repetisjoner
   "weight": "number",          // Vekt i kg
@@ -169,9 +170,14 @@ CREATE TABLE workout_templates (
 }
 ```
 
-### 5. **Workout Sessions (Treningsøkter)**
+---
+
+## 🏃 **Treningsøkter (Supabase)**
+
+**Tabell:** `workout_sessions`
+
+**SQL Schema:**
 ```sql
--- Tabell: workout_sessions
 CREATE TABLE workout_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -204,13 +210,6 @@ CREATE TABLE workout_sessions (
           "weight": 80,
           "completed": true,
           "notes": "Felt bra"
-        },
-        {
-          "set_number": 2,
-          "reps": 6,
-          "weight": 80,
-          "completed": true,
-          "notes": "Tungt"
         }
       ]
     }
@@ -234,75 +233,92 @@ CREATE TABLE workout_sessions (
 - `"completed"` - Økten er fullført
 - `"paused"` - Økten er satt på pause
 
+---
+
 ## 🔄 **CRUD Operasjoner**
 
 ### **Create (Opprett)**
 ```typescript
-// Opprett ny øvelse
-const newExercise = {
-  id: "new-exercise",
-  name: "Ny Øvelse",
-  category: "Bryst",
-  workout_types: ["push"],
-  muscle_groups: ["Bryst", "Triceps"]
-}
-
 // Opprett ny template
 const newTemplate = {
   name: "Ny Template",
   workout_type: "push",
   exercises: [...]
 }
+
+// Start ny økt
+const newSession = {
+  template_id: "template-uuid",
+  name: "Template Navn - Dato",
+  exercises: [...]
+}
 ```
 
 ### **Read (Les)**
 ```typescript
-// Hent alle øvelser
-const exercises = await supabase
-  .from('exercises')
-  .select('*')
-
 // Hent templates for en bruker
 const templates = await supabase
   .from('workout_templates')
+  .select('*')
+  .eq('user_id', userId)
+
+// Hent økter for en bruker
+const sessions = await supabase
+  .from('workout_sessions')
   .select('*')
   .eq('user_id', userId)
 ```
 
 ### **Update (Oppdater)**
 ```typescript
-// Oppdater øvelse
-await supabase
-  .from('exercises')
-  .update({ name: "Oppdatert Navn" })
-  .eq('id', exerciseId)
-
 // Oppdater template
 await supabase
   .from('workout_templates')
   .update({ exercises: newExercises })
   .eq('id', templateId)
+
+// Oppdater økt
+await supabase
+  .from('workout_sessions')
+  .update({ exercises: updatedExercises })
+  .eq('id', sessionId)
 ```
 
 ### **Delete (Slett)**
 ```typescript
-// Slett øvelse
-await supabase
-  .from('exercises')
-  .delete()
-  .eq('id', exerciseId)
-
 // Slett template
 await supabase
   .from('workout_templates')
   .delete()
   .eq('id', templateId)
+
+// Slett økt
+await supabase
+  .from('workout_sessions')
+  .delete()
+  .eq('id', sessionId)
 ```
 
-## 📝 **Notater**
+---
 
+## 📝 **Viktige Notater**
+
+### **Dataflyt**
+1. **Øvelser** lastes fra `exercises.json` (statisk data)
+2. **Treningsøvelse-typer** lastes fra `workout-types.json` (statisk data)
+3. **Brukerdata** (templates, økter) lagres i Supabase
+
+### **Sikkerhet**
 - Alle UUID-er genereres automatisk av Supabase
 - Timestamps oppdateres automatisk
 - Foreign key constraints sikrer dataintegritet
-- JSONB-felter tillater fleksible datastrukturer
 - Alle brukerdata er isolert med `user_id` foreign key
+
+### **JSONB-felter**
+- `exercises` i templates og økter bruker JSONB for fleksibilitet
+- Dette tillater komplekse datastrukturer uten å endre databaseskjemaet
+
+### **Ingen Exercises-tabell**
+- **Viktig:** Det finnes ingen `exercises` tabell i Supabase
+- Alle øvelser kommer fra `exercises.json`
+- Dette gjør appen enklere å vedlikeholde og oppdatere
