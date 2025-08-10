@@ -18,14 +18,14 @@
 
       <!-- Results -->
       <div v-if="groupedResults.length === 0" class="text-sm text-dark-300 py-4">Ingen treff</div>
-      <div v-else class="space-y-4">
-        <div v-for="section in groupedResults" :key="section.group">
-          <div class="px-1 py-2 text-[11px] uppercase text-dark-400 tracking-wide sticky top-0 bg-dark-800">{{ section.group }}</div>
+      <div v-else>
+        <div v-for="(section, idx) in groupedResults" :key="section.group" :class="{ 'mt-4': idx > 0 }">
+          <div class="px-1 py-2 text-[11px] uppercase text-dark-400 tracking-wide sticky top-0 z-30 bg-dark-800 border-b border-dark-700">{{ section.group }}</div>
           <button
             v-for="ex in section.items"
             :key="ex.id"
             type="button"
-            class="w-full text-left px-3 py-2 rounded-md hover:bg-dark-700 text-sm"
+            class="w-full text-left px-3 py-2 rounded-md hover:bg-dark-700 text-sm z-0 relative"
             @click="selectExercise(ex)"
           >
             {{ ex.name }}

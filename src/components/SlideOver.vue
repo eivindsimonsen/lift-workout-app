@@ -13,7 +13,7 @@
           aria-modal="true"
         >
           <!-- Header -->
-          <div class="flex items-center justify-between px-4 py-3 border-b border-dark-700">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-dark-700 sticky top-0 z-40 bg-dark-800">
             <h3 class="text-white font-semibold text-base">{{ title }}</h3>
             <button type="button" class="text-dark-400 hover:text-white" @click="onClose" aria-label="Lukk">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,7 +23,7 @@
           </div>
 
           <!-- Body -->
-          <div class="flex-1 overflow-y-auto px-4 py-3">
+          <div class="flex-1 overflow-y-auto px-4 py-3 relative">
             <slot />
           </div>
 

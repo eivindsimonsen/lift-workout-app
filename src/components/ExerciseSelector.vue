@@ -16,7 +16,7 @@
       <div v-if="groupedFiltered.length === 0" class="p-3 text-sm text-dark-300">Ingen treff</div>
       <template v-else>
         <div v-for="section in groupedFiltered" :key="section.group">
-          <div class="px-3 py-2 text-[11px] uppercase text-dark-400 tracking-wide sticky top-0 bg-dark-800">{{ section.group }}</div>
+          <div class="px-3 py-2 text-[11px] uppercase text-dark-400 tracking-wide sticky top-0 z-10 bg-dark-800 border-b border-dark-700">{{ section.group }}</div>
           <button
             v-for="ex in section.items"
             :key="ex.id"
