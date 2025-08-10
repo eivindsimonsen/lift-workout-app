@@ -127,21 +127,37 @@
 
                  <!-- Add Exercise Button -->
             <div class="card">
-              <button 
-                @click="showAddExerciseModal = true"
-                :disabled="availableExercises.length === 0"
-                class="w-full btn-secondary py-3 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span v-if="availableExercises.length === 0">
-                  Alle øvelser lagt til
-                </span>
-                <span v-else>
-                  + Legg til øvelse
-                </span>
-              </button>
+              <div class="hidden md:block">
+                <button 
+                  @click="showAddExerciseModal = true"
+                  :disabled="availableExercises.length === 0"
+                  class="w-full btn-secondary py-3 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span v-if="availableExercises.length === 0">
+                    Alle øvelser lagt til
+                  </span>
+                  <span v-else>
+                    + Legg til øvelse
+                  </span>
+                </button>
+              </div>
+              <div class="md:hidden">
+                <button 
+                  @click="openMobileAddExercise()"
+                  :disabled="availableExercises.length === 0"
+                  class="w-full btn-secondary py-3 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span v-if="availableExercises.length === 0">
+                    Alle øvelser lagt til
+                  </span>
+                  <span v-else>
+                    + Legg til øvelse
+                  </span>
+                </button>
+              </div>
             </div>
 
-            <!-- Add Exercise Modal -->
+            <!-- Add Exercise Modal (desktop) -->
             <div v-if="showAddExerciseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div class="bg-dark-800 rounded-lg p-6 w-full max-w-md mx-4">
                 <div class="flex items-center justify-between mb-4">
@@ -199,6 +215,15 @@
               </div>
             </div>
 
+            <!-- Mobile Exercise Picker -->
+            <ExerciseSearchPanel
+              :is-open="isMobileExercisePanelOpen"
+              :exercises="availableExercises"
+              title="Velg øvelse"
+              @close="closeMobileAddExercise"
+              @select="handleAddExerciseFromPanel"
+            />
+
      <!-- Summary -->
      <div class="card">
        <h3 class="text-lg font-semibold text-white mb-4">Sammendrag</h3>
@@ -226,11 +251,12 @@
  </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { WorkoutSession } from '@/types/workout'
+import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -242,6 +268,7 @@ const session = ref<WorkoutSession | null>(null)
 const startTime = ref<Date | null>(null)
 const showAddExerciseModal = ref(false)
 const newExerciseId = ref('')
+const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
 
 // Computed
 const completedSets = computed(() => {
@@ -452,6 +479,20 @@ const addExerciseToSession = () => {
   // Reset form and close modal
   newExerciseId.value = ''
   showAddExerciseModal.value = false
+}
+
+const openMobileAddExercise = () => {
+  isMobileExercisePanelOpen.value = true
+}
+
+const closeMobileAddExercise = () => {
+  isMobileExercisePanelOpen.value = false
+}
+
+const handleAddExerciseFromPanel = (exerciseId: string) => {
+  newExerciseId.value = exerciseId
+  addExerciseToSession()
+  isMobileExercisePanelOpen.value = false
 }
 
 const removeExercise = (index: number) => {

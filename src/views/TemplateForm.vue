@@ -88,10 +88,26 @@
             
             <div>
               <label class="block text-xs text-dark-300 mb-2">Øvelse</label>
-              <ExerciseSelector 
-                :exercises="availableExercises"
-                v-model="exercise.exerciseId"
-              />
+              <!-- Desktop selector -->
+              <div class="hidden md:block">
+                <ExerciseSelector 
+                  :exercises="availableExercises"
+                  v-model="exercise.exerciseId"
+                />
+              </div>
+              <!-- Mobile slide-over trigger -->
+              <div class="md:hidden">
+                <button
+                  type="button"
+                  class="input-field w-full flex items-center justify-between"
+                  @click="openMobilePicker(index)"
+                >
+                  <span>{{ getExerciseName(exercise.exerciseId) || 'Velg øvelse' }}</span>
+                  <svg class="w-4 h-4 text-dark-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
           
@@ -124,15 +140,25 @@
         </button>
       </div>
     </form>
+    
+    <!-- Mobile Exercise Picker -->
+    <ExerciseSearchPanel
+      :is-open="isMobileExercisePanelOpen"
+      :exercises="availableExercises"
+      title="Velg øvelse"
+      @close="closeMobilePicker"
+      @select="handleSelectExercise"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, type Ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutTemplate, ExerciseTemplate } from '@/types/workout'
 import ExerciseSelector from '@/components/ExerciseSelector.vue'
+import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -157,6 +183,32 @@ const workoutTypes = computed(() => {
 const availableExercises = computed(() => {
   return workoutData.exercises.value
 })
+
+const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
+const activeExerciseIndex: Ref<number | null> = ref(null)
+
+const openMobilePicker = (index: number) => {
+  activeExerciseIndex.value = index
+  isMobileExercisePanelOpen.value = true
+}
+
+const closeMobilePicker = () => {
+  isMobileExercisePanelOpen.value = false
+}
+
+const handleSelectExercise = (exerciseId: string) => {
+  if (activeExerciseIndex.value === null) return
+  const idx = activeExerciseIndex.value
+  if (!templateForm.value.exercises[idx]) return
+  templateForm.value.exercises[idx].exerciseId = exerciseId
+  isMobileExercisePanelOpen.value = false
+}
+
+const getExerciseName = (id: string): string => {
+  if (!id) return ''
+  const ex = workoutData.exercises.value.find(e => e.id === id)
+  return ex?.name || ''
+}
 
 // Methods
 const addExercise = () => {
