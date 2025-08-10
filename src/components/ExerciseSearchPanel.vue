@@ -19,6 +19,11 @@
       <!-- Muscle Group Filters -->
       <div class="space-y-2">
         <h4 class="text-sm font-medium text-white">Filtrer etter muskelgruppe:</h4>
+        <div v-if="props.workoutType && getDefaultMuscleGroups(props.workoutType).length > 0" class="mb-2">
+          <p class="text-xs text-primary-400">
+            Automatisk valgt basert på {{ workoutTypes.find((t: any) => t.id === props.workoutType)?.name || props.workoutType }}:
+          </p>
+        </div>
         <div class="flex flex-wrap gap-2">
           <label
             v-for="muscleGroup in availableMuscleGroups"
@@ -32,6 +37,7 @@
               class="w-4 h-4 text-dark-600 bg-dark-700 border-dark-600 rounded focus:ring-dark-500 focus:ring-2"
             />
             <span class="text-sm text-white">{{ muscleGroup }}</span>
+            
           </label>
         </div>
       </div>
@@ -65,6 +71,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
+import * as workoutTypesData from '@/data/workout-types.json'
 
 interface ExerciseItem {
   id: string
@@ -78,6 +85,7 @@ const props = defineProps<{
   isOpen: boolean
   exercises: ExerciseItem[]
   title?: string
+  workoutType?: string
 }>()
 
 const emit = defineEmits<{
@@ -96,7 +104,12 @@ const selectedMuscleGroups = ref<string[]>([])
 watch(() => props.isOpen, (open) => {
   if (open) {
     query.value = ''
-    selectedMuscleGroups.value = []
+    // Auto-select muscle groups based on workout type
+    if (props.workoutType) {
+      selectedMuscleGroups.value = getDefaultMuscleGroups(props.workoutType)
+    } else {
+      selectedMuscleGroups.value = []
+    }
   }
 })
 
@@ -189,6 +202,22 @@ const getMuscleGroupColor = (muscleGroup: string): string => {
 const selectExercise = (ex: ExerciseItem) => {
   emit('select', ex.id)
 }
+
+// Function to get default muscle groups based on workout type
+const getDefaultMuscleGroups = (workoutType: string): string[] => {
+  const muscleGroupMap: Record<string, string[]> = {
+    'push': ['Bryst', 'Skuldre', 'Armer'],
+    'pull': ['Rygg', 'Armer'],
+    'legs': ['Ben'],
+    'upper': ['Bryst', 'Rygg', 'Skuldre', 'Armer'],
+    'lower': ['Ben'],
+    'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
+  }
+  
+  return muscleGroupMap[workoutType] || []
+}
+
+const workoutTypes = computed(() => workoutTypesData.workoutTypes)
 </script>
 
 

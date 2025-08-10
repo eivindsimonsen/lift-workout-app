@@ -219,6 +219,7 @@
             <ExerciseSearchPanel
               :is-open="isMobileExercisePanelOpen"
               :exercises="availableExercises"
+              :workout-type="session?.workoutType"
               title="Velg øvelse"
               @close="closeMobileAddExercise"
               @select="handleAddExerciseFromPanel"

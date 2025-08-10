@@ -145,6 +145,7 @@
     <ExerciseSearchPanel
       :is-open="isMobileExercisePanelOpen"
       :exercises="availableExercises"
+      :workout-type="templateForm.workoutType"
       title="Velg øvelse"
       @close="closeMobilePicker"
       @select="handleSelectExercise"
