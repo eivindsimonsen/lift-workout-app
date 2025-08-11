@@ -86,6 +86,8 @@ const ALIASES: Record<string, string[]> = {
   arms: ['arms', 'arm', 'armer', 'biceps', 'triceps', 'forearms', 'underarmer'],
   kjerne: ['kjerne', 'core', 'mage', 'abs'],
   core: ['core', 'kjerne', 'mage', 'abs'],
+  annet: ['annet', 'custom', 'other', 'egen'],
+  custom: ['custom', 'annet', 'other', 'egen'],
   push: ['push', 'bryst', 'skuldre', 'triceps'],
   pull: ['pull', 'rygg', 'biceps'],
 }
@@ -124,8 +126,8 @@ const groupedFiltered = computed<GroupSection[]>(() => {
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(ex)
   }
-  // Sort groups in the typical order
-  const order = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
+  // Sort groups in the typical order, including "Annet" at the end
+  const order = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne', 'Annet']
   const byOrder = (a: string, b: string) => order.indexOf(a) - order.indexOf(b)
   return Array.from(groups.entries())
     .sort((a, b) => byOrder(a[0], b[0]))

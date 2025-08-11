@@ -150,6 +150,8 @@ const ALIASES: Record<string, string[]> = {
   arms: ['arms', 'arm', 'armer', 'biceps', 'triceps', 'forearms', 'underarmer'],
   kjerne: ['kjerne', 'core', 'mage', 'abs'],
   core: ['core', 'kjerne', 'mage', 'abs'],
+  annet: ['annet', 'custom', 'other', 'egen'],
+  custom: ['custom', 'annet', 'other', 'egen'],
   push: ['push', 'bryst', 'skuldre', 'triceps'],
   pull: ['pull', 'rygg', 'biceps'],
 }
@@ -157,9 +159,15 @@ const ALIASES: Record<string, string[]> = {
 const filteredResults = computed(() => {
   let exercises = props.exercises
   
-  // Filter by selected muscle groups (using category field)
+  // Always include "Annet øvelse" regardless of filters
+  const customExercise = exercises.find(ex => ex.id === 'custom-exercise')
+  
+  // Filter by selected muscle groups (using category field) for other exercises
   if (selectedMuscleGroups.value.length > 0) {
     exercises = exercises.filter(ex => {
+      // Always include custom exercise
+      if (ex.id === 'custom-exercise') return true
+      // Filter other exercises by muscle group
       return ex.category && selectedMuscleGroups.value.includes(ex.category)
     })
   }
@@ -170,6 +178,9 @@ const filteredResults = computed(() => {
   if (!tokens.length) return exercises
   
   return exercises.filter((ex) => {
+    // Always include custom exercise in search results
+    if (ex.id === 'custom-exercise') return true
+    
     const name = norm(ex.name)
     const category = norm(ex.category || '')
     const groups = (ex.muscleGroups || []).map(g => norm(g)).join(' ')
@@ -195,6 +206,7 @@ const getMuscleGroupColor = (muscleGroup: string): string => {
     'Skuldre': '#8b5cf6',   // Lilla
     'Armer': '#f59e0b',     // Gul
     'Kjerne': '#ef4444',    // Rød
+    'Annet': '#6b7280',    // Grå
   }
   return colors[muscleGroup] || '#6b7280' // Grå som fallback
 }
