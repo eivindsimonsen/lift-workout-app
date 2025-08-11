@@ -59,7 +59,6 @@ const createSupabaseData = () => {
         name: template.name,
         workoutType: template.workout_type,
         exercises: template.exercises,
-        isDefault: template.is_default,
       }));
 
       // Load sessions for the current user
@@ -424,7 +423,6 @@ const createSupabaseData = () => {
           name: template.name,
           workout_type: template.workoutType,
           exercises: template.exercises,
-          is_default: template.isDefault,
         })
         .select()
         .single();
@@ -439,7 +437,6 @@ const createSupabaseData = () => {
         name: data.name,
         workoutType: data.workout_type,
         exercises: data.exercises,
-        isDefault: data.is_default,
       });
     } catch (error) {
       console.error("Error in addTemplate:", error);

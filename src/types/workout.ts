@@ -53,7 +53,6 @@ export interface WorkoutTemplate {
   name: string;
   workoutType: string;
   exercises: ExerciseTemplate[];
-  isDefault?: boolean;
 }
 
 export interface ExerciseTemplate {
