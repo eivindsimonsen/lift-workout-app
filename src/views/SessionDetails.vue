@@ -3,19 +3,16 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
-          <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <router-link 
+          to="/history" 
+          class="inline-flex items-center justify-center w-10 h-10 bg-[#3F302A] hover:bg-[#4A3A32] rounded-lg transition-colors"
+        >
+          <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
-        </div>
+        </router-link>
         <h1 class="text-2xl font-bold text-white">Økt Detaljer</h1>
       </div>
-      <router-link 
-        to="/history" 
-        class="btn-secondary"
-      >
-        Tilbake
-      </router-link>
     </div>
 
     <div v-if="!session" class="text-center py-12">

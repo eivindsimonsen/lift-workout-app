@@ -1,21 +1,18 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
+    <div class="mb-6">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
-          <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+        <router-link 
+          to="/exercises" 
+          class="inline-flex items-center justify-center w-10 h-10 bg-[#3F302A] hover:bg-[#4A3A32] rounded-lg transition-colors"
+        >
+          <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
-        </div>
+        </router-link>
         <h1 class="text-2xl font-bold text-white">{{ exercise?.name }}</h1>
       </div>
-      <router-link 
-        to="/exercises" 
-        class="btn-secondary"
-      >
-        Tilbake
-      </router-link>
     </div>
 
     <div v-if="exercise" class="space-y-6">
@@ -247,6 +244,18 @@
             <div class="w-10 text-right text-xs text-white">{{ repRangeDistribution.endurance }}%</div>
           </div>
         </div>
+      </div>
+      <!-- Google Search Button -->
+      <div class="mb-6 flex justify-end">
+        <button 
+          @click="openGoogleSearch"
+          class="btn-primary flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          Åpne i Google
+        </button>
       </div>
     </div>
 
@@ -671,6 +680,14 @@ const lastWorkout = computed(() => {
 })
 
 // Methods
+const openGoogleSearch = () => {
+  if (exercise.value?.name) {
+    const searchQuery = encodeURIComponent(`${exercise.value.name} strength training exercise`)
+    const googleSearchUrl = `https://www.google.com/search?q=${searchQuery}&tbm=isch`
+    window.open(googleSearchUrl, '_blank')
+  }
+}
+
 const formatDate = (date: Date): string => {
   return new Intl.DateTimeFormat('no-NO', {
     day: 'numeric',
