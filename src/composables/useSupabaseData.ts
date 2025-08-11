@@ -47,7 +47,7 @@ const createSupabaseData = () => {
       await ensureUserProfile();
 
       // Load templates for the current user
-      const { data: templatesData, error: templatesError } = await supabase.from("workout_templates").select("*").eq("user_id", currentUser.value.id);
+      const { data: templatesData, error: templatesError } = await supabase.from("workout_templates").select("*").eq("user_id", currentUser.value.id).order("created_at", { ascending: true });
 
       if (templatesError) {
         console.error("Error loading templates:", templatesError);
