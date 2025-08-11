@@ -6,6 +6,7 @@
         <div class="text-center">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
           <p class="text-dark-300">Laster...</p>
+          <p class="text-sm text-dark-400 mt-2">Venter på autentisering...</p>
         </div>
       </div>
 
@@ -250,7 +251,8 @@ const workoutProgress = computed(() => {
 const isAuthenticated = computed(() => workoutData.isAuthenticated.value)
 const currentUser = computed(() => workoutData.currentUser.value)
 const isLoading = computed(() => {
-  return !hasInitialized.value && workoutData.isLoading.value
+  // Show loading while initializing auth or while loading data
+  return !hasInitialized.value || workoutData.isLoading.value
 })
 
 const userInitials = computed(() => {
@@ -304,7 +306,12 @@ const handleCompleteWorkout = async () => {
 
 // Lifecycle
 onMounted(async () => {
-  await workoutData.initializeAuth()
+  try {
+    await workoutData.initializeAuth()
+  } catch (error) {
+    console.error("Error initializing auth:", error)
+    // Don't fail the entire app initialization
+  }
   
   const handleFocus = () => {
     if (workoutData.isAuthenticated.value && workoutData.currentUser.value) {
@@ -333,6 +340,11 @@ onUnmounted(() => {
 watch(isAuthenticated, (newValue) => {
   if (newValue || !workoutData.isLoading.value) {
     hasInitialized.value = true
+  }
+  
+  // Redirect to login if not authenticated and not on login page
+  if (!newValue && route.path !== '/login' && route.path !== '/reset-password') {
+    router.push('/login')
   }
 }, { immediate: true })
 

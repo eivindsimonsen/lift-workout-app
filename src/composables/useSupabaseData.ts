@@ -24,7 +24,7 @@ const createSupabaseData = () => {
   const isInitialized = ref(false); // Add initialization guard
 
   // Load data from Supabase (only user data)
-  const loadData = async () => {
+  const loadData = async (retryCount = 0) => {
     if (!currentUser.value) {
       return;
     }
@@ -34,6 +34,9 @@ const createSupabaseData = () => {
       return;
     }
     isLoading.value = true;
+
+    // Add retry logic for better reliability
+    const maxRetries = 2;
 
     // Add timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
@@ -110,7 +113,21 @@ const createSupabaseData = () => {
       logSupabaseAccess("Get exercises", "Loaded from exercises.json");
     } catch (error: any) {
       console.error("Error loading Supabase data:", error);
-      // Use error handler to show user-friendly error
+
+      // Retry logic for better reliability
+      if (retryCount < maxRetries) {
+        console.log(`🔄 Retrying data load (attempt ${retryCount + 1}/${maxRetries})`);
+        isLoading.value = false;
+        clearTimeout(timeoutId);
+
+        // Wait a bit before retrying
+        setTimeout(() => {
+          loadData(retryCount + 1);
+        }, 1000 * (retryCount + 1)); // Exponential backoff
+        return;
+      }
+
+      // Use error handler to show user-friendly error after max retries
       const { showError } = useErrorHandler();
       showError("Kunne ikke laste data fra databasen. Prøv å oppdatere siden.");
     } finally {
@@ -183,16 +200,30 @@ const createSupabaseData = () => {
     isInitializing = true;
     isInitialized.value = true;
 
+    // Add a small delay to ensure Supabase is fully initialized
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     try {
       // Get initial session
       const {
         data: { session },
+        error: sessionError,
       } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("Error getting initial session:", sessionError);
+        // Don't throw here, just log the error
+      }
 
       if (session?.user) {
         currentUser.value = session.user;
         isAuthenticated.value = true;
-        await loadData();
+        try {
+          await loadData();
+        } catch (loadError) {
+          console.error("Error loading initial data:", loadError);
+          // Don't fail auth initialization if data loading fails
+        }
       }
 
       // Listen for auth changes (only set up once)
@@ -223,17 +254,24 @@ const createSupabaseData = () => {
             // Always check session when page becomes visible to ensure state is fresh
             supabase.auth
               .getSession()
-              .then(({ data: { session } }: any) => {
+              .then(({ data: { session }, error }: any) => {
+                if (error) {
+                  console.error("📱 Error getting session on visibility change:", error);
+                  return;
+                }
+
                 if (session?.user) {
                   // If we have a session but no current user, or user ID changed, update
                   if (!currentUser.value || session.user.id !== currentUser.value.id) {
                     currentUser.value = session.user;
                     isAuthenticated.value = true;
-                    loadData();
+                    // Only load data if we don't already have it
+                    if (templates.value.length === 0 && sessions.value.length === 0) {
+                      loadData();
+                    }
                   }
                 } else if (currentUser.value) {
                   // If we have a current user but no session, user was logged out
-
                   currentUser.value = null;
                   isAuthenticated.value = false;
                   templates.value = [];

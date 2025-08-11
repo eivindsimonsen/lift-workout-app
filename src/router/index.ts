@@ -43,26 +43,52 @@ const router = createRouter({
   },
 });
 
-// Navigation guard
+// Navigation guard with improved authentication handling
 router.beforeEach(async (to: any, from: any, next: any) => {
   const { supabase } = useSupabase();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const isAuthenticated = !!session;
 
-  // Check if route requires authentication
-  const requiresAuth = to.meta.requiresAuth !== false; // Default to true unless explicitly set to false
+  try {
+    // Check if route requires authentication
+    const requiresAuth = to.meta.requiresAuth !== false; // Default to true unless explicitly set to false
 
-  if (requiresAuth && !isAuthenticated) {
-    // User is not authenticated and trying to access protected route
+    if (!requiresAuth) {
+      // Public routes - allow access
+      next();
+      return;
+    }
+
+    // For protected routes, check authentication
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error) {
+      console.error("Auth check error:", error);
+      // On error, redirect to login
+      next("/login");
+      return;
+    }
+
+    const isAuthenticated = !!session;
+
+    if (isAuthenticated) {
+      // User is authenticated - allow access
+      next();
+    } else {
+      // User is not authenticated - redirect to login
+      next("/login");
+    }
+
+    // Handle case where authenticated user tries to access login page
+    if (to.path === "/login" && isAuthenticated) {
+      next("/");
+      return;
+    }
+  } catch (error) {
+    console.error("Navigation guard error:", error);
+    // On any unexpected error, redirect to login
     next("/login");
-  } else if (to.path === "/login" && isAuthenticated) {
-    // User is authenticated and trying to access login page
-    next("/");
-  } else {
-    // Allow navigation
-    next();
   }
 });
 
