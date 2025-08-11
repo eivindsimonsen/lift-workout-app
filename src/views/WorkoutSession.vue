@@ -242,7 +242,8 @@
             <p class="text-sm text-dark-300">Varighet</p>
           </div>
         </div>
-     </div>
+        
+      </div>
 
 
 
@@ -252,7 +253,7 @@
  </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, type Ref } from 'vue'
+import { ref, computed, onMounted, type Ref, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useErrorHandler } from '@/composables/useErrorHandler'
@@ -270,6 +271,9 @@ const startTime = ref<Date | null>(null)
 const showAddExerciseModal = ref(false)
 const newExerciseId = ref('')
 const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
+
+// Debounce timer for saving
+let saveTimeout: NodeJS.Timeout | null = null
 
 // Computed
 const completedSets = computed(() => {
@@ -315,6 +319,8 @@ const availableExercises = computed(() => {
   return workoutData.exercises.value.filter(exercise => !existingExerciseIds.includes(exercise.id))
 })
 
+
+
 // Methods
 const getWorkoutTypeName = (typeId: string): string => {
   return workoutData.getWorkoutType.value(typeId)
@@ -334,8 +340,9 @@ const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number
   const target = event.target as HTMLInputElement
   const value = target.value
   
-  // Update the weight value immediately for display
-  session.value.exercises[exerciseIndex].sets[setIndex].weight = value === '' ? 0 : parseFloat(value) || 0
+  // Always store as number, never as string
+  const weight = value === '' ? 0 : parseFloat(value) || 0
+  session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
   
   // Update completion status in real-time for progress bar
   updateSetCompletion(exerciseIndex, setIndex)
@@ -361,8 +368,9 @@ const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) 
   const target = event.target as HTMLInputElement
   const value = target.value
   
-  // Update the reps value immediately for display
-  session.value.exercises[exerciseIndex].sets[setIndex].reps = value === '' ? 0 : parseInt(value) || 0
+  // Always store as number, never as string
+  const reps = value === '' ? 0 : parseInt(value) || 0
+  session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
   
   // Update completion status in real-time for progress bar
   updateSetCompletion(exerciseIndex, setIndex)
@@ -387,7 +395,7 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   
   const set = session.value.exercises[exerciseIndex].sets[setIndex]
   
-    // Ensure weight and reps are numbers
+  // Ensure weight and reps are numbers
   if (typeof set.weight === 'string') {
     set.weight = parseFloat(set.weight) || 0
   }
@@ -405,13 +413,40 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   
   if (set.isCompleted !== isCompleted) {
     set.isCompleted = isCompleted
-    
-    // Auto-save session
-    workoutData.updateWorkoutSession(session.value.id, {
-      exercises: session.value.exercises
-    })
   }
+  
+  // Always save when values change, not just when completion status changes
+  saveSessionChanges()
 }
+
+const saveSessionChanges = () => {
+  if (!session.value) return
+  
+  // Clear existing timeout
+  if (saveTimeout) {
+    clearTimeout(saveTimeout)
+  }
+  
+  // Debounce the save operation to avoid too many API calls
+  saveTimeout = setTimeout(() => {
+    // Ensure all data is properly formatted before saving
+    const formattedExercises = session.value!.exercises.map(exercise => ({
+      ...exercise,
+      sets: exercise.sets.map(set => ({
+        ...set,
+        weight: Number(set.weight) || 0,
+        reps: Number(set.reps) || 0
+      }))
+    }))
+    
+    // Auto-save session with formatted data
+    workoutData.updateWorkoutSession(session.value!.id, {
+      exercises: formattedExercises
+    })
+  }, 500) // 500ms delay
+}
+
+
 
 const addSet = (exerciseIndex: number) => {
   if (!session.value) return
@@ -432,10 +467,8 @@ const addSet = (exerciseIndex: number) => {
   
   exercise.sets.push(newSet)
   
-  // Auto-save session
-  workoutData.updateWorkoutSession(session.value.id, {
-    exercises: session.value.exercises
-  })
+  // Auto-save session using the new function
+  saveSessionChanges()
 }
 
 const addExerciseToSession = () => {
@@ -477,10 +510,8 @@ const addExerciseToSession = () => {
   // Add the exercise to the session
   session.value.exercises.push(newExercise)
   
-  // Update the session in the store
-  workoutData.updateWorkoutSession(session.value.id, {
-    exercises: session.value.exercises
-  })
+  // Update the session in the store using the new function
+  saveSessionChanges()
 
   // Reset form and close modal
   newExerciseId.value = ''
@@ -506,10 +537,8 @@ const removeExercise = (index: number) => {
   
   session.value.exercises.splice(index, 1)
   
-  // Update the session in the store
-  workoutData.updateWorkoutSession(session.value.id, {
-    exercises: session.value.exercises
-  })
+  // Update the session in the store using the new function
+  saveSessionChanges()
 }
 
 const removeSet = (exerciseIndex: number, setIndex: number) => {
@@ -521,20 +550,16 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   if (exercise.sets.length <= 1) {
     session.value.exercises.splice(exerciseIndex, 1)
     
-    // Update the session in the store
-    workoutData.updateWorkoutSession(session.value.id, {
-      exercises: session.value.exercises
-    })
+    // Update the session in the store using the new function
+    saveSessionChanges()
     return
   }
   
   // Otherwise, just remove the set
   exercise.sets.splice(setIndex, 1)
   
-  // Update the session in the store
-  workoutData.updateWorkoutSession(session.value.id, {
-    exercises: session.value.exercises
-  })
+  // Update the session in the store using the new function
+  saveSessionChanges()
 }
 
 const formatNumber = (num: number): string => {
@@ -613,5 +638,66 @@ onMounted(() => {
   
   session.value = foundSession
   startTime.value = new Date(foundSession.date)
+  
+  // Add visibility change listener to refresh data when user returns to tab
+  const handleVisibilityChange = () => {
+    if (document.hidden && session.value) {
+      // Save data immediately when user leaves the tab
+      saveSessionChanges()
+    } else if (!document.hidden && session.value) {
+      // Refresh data when user returns to tab
+      const updatedSession = workoutData.getSessionById.value(session.value.id)
+      if (updatedSession) {
+        session.value = updatedSession
+      }
+    }
+  }
+  
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  
+  // Add beforeunload listener to save data when user refreshes or closes tab
+  const handleBeforeUnload = () => {
+    if (session.value) {
+      // Save data immediately when user refreshes or closes tab
+      saveSessionChanges()
+    }
+  }
+  
+  window.addEventListener('beforeunload', handleBeforeUnload)
+  
+  // Add periodic save to ensure data is not lost
+  const periodicSaveInterval = setInterval(() => {
+    if (session.value) {
+      saveSessionChanges()
+    }
+  }, 30000) // Save every 30 seconds
+  
+  // Cleanup visibility listener on unmount
+  onUnmounted(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.removeEventListener('beforeunload', handleBeforeUnload)
+    clearInterval(periodicSaveInterval)
+    if (saveTimeout) {
+      clearTimeout(saveTimeout)
+    }
+  })
 })
+
+// Watch for route changes to refresh session data
+watch(() => route.params.id, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    // Save current session before navigating away
+    if (session.value && oldId) {
+      saveSessionChanges()
+    }
+    // Load new session
+    const foundSession = workoutData.getSessionById.value(newId as string)
+    if (foundSession) {
+      session.value = foundSession
+      startTime.value = new Date(foundSession.date)
+    }
+  }
+})
+
+
 </script> 

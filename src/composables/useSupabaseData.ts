@@ -578,6 +578,12 @@ const createSupabaseData = () => {
     logSupabaseAccess("Update session", sessionId);
 
     if (updates.exercises) {
+      console.log("💾 Updating session exercises:", {
+        sessionId,
+        exercises: updates.exercises,
+        timestamp: new Date().toISOString(),
+      });
+
       // Ensure all weights and reps are numbers before saving
       updates.exercises.forEach((exercise: any, index: number) => {
         exercise.sets.forEach((set: any, setIndex: number) => {
@@ -594,6 +600,8 @@ const createSupabaseData = () => {
           set.reps = Number(set.reps) || 0;
         });
       });
+
+      console.log("✅ Exercises formatted for save:", updates.exercises);
     }
 
     try {
@@ -615,9 +623,22 @@ const createSupabaseData = () => {
         throw error;
       }
 
+      console.log("✅ Session updated in database successfully");
+
       const index = sessions.value.findIndex((s) => s.id === sessionId);
       if (index !== -1) {
-        sessions.value[index] = { ...sessions.value[index], ...updates };
+        // Deep merge the exercises to ensure all data is preserved
+        if (updates.exercises) {
+          sessions.value[index].exercises = updates.exercises;
+        }
+        // Update other fields
+        Object.assign(sessions.value[index], updates);
+
+        console.log("✅ Local state updated:", {
+          sessionId,
+          exercises: sessions.value[index].exercises,
+          timestamp: new Date().toISOString(),
+        });
       } else {
         console.warn("⚠️ Session not found in local state for update");
       }
