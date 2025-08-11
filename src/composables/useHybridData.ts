@@ -1,50 +1,51 @@
-import { computed, ref } from 'vue'
-import { useSupabaseData } from './useSupabaseData' // For user data (Supabase)
-import * as exercisesData from '@/data/exercises.json'
-import * as workoutTypesData from '@/data/workout-types.json'
+import { computed, ref } from "vue";
+import { useSupabaseData } from "./useSupabaseData"; // For user data (Supabase)
+import * as exercisesData from "@/data/exercises.json";
+import * as workoutTypesData from "@/data/workout-types.json";
+import type { WorkoutType, ExerciseData } from "@/types/workout";
 
 // Console logging utility
-const logHybridAccess = (operation: string, details?: any) => {
-  const timestamp = new Date().toLocaleTimeString('no-NO')
-}
+const logHybridAccess = (operation: string, details?: unknown) => {
+  const timestamp = new Date().toLocaleTimeString("no-NO");
+};
 
 export const useHybridData = () => {
-  const userData = useSupabaseData() // Supabase for user data
-  
+  const userData = useSupabaseData(); // Supabase for user data
+
   // Load exercises from JSON file
-  const exercises = ref(exercisesData.exercises)
-  
+  const exercises = ref<ExerciseData[]>(exercisesData.exercises);
+
   // Load workout types from JSON file
-  const workoutTypes = ref(workoutTypesData.workoutTypes)
+  const workoutTypes = ref<WorkoutType[]>(workoutTypesData.workoutTypes);
 
   // Helper functions for workout types
   const getWorkoutTypeColor = computed(() => {
-    return (id: string) => {
-      const workoutType = workoutTypes.value.find((wt: any) => wt.id === id)
-      return workoutType?.color || '#6b7280'
-    }
-  })
+    return (id: string): string => {
+      const workoutType = workoutTypes.value.find((wt: WorkoutType) => wt.id === id);
+      return workoutType?.color || "#6b7280";
+    };
+  });
 
   const getWorkoutType = computed(() => {
-    return (id: string) => {
-      const workoutType = workoutTypes.value.find((wt: any) => wt.id === id)
-      return workoutType?.name || id
-    }
-  })
+    return (id: string): string => {
+      const workoutType = workoutTypes.value.find((wt: WorkoutType) => wt.id === id);
+      return workoutType?.name || id;
+    };
+  });
 
   const getTemplatesByType = computed(() => {
     return (workoutType: string) => {
-      logHybridAccess('Get templates by type', workoutType)
-      return userData.getTemplatesByType.value(workoutType)
-    }
-  })
+      logHybridAccess("Get templates by type", workoutType);
+      return userData.getTemplatesByType.value(workoutType);
+    };
+  });
 
   const getSessionById = computed(() => {
     return (id: string) => {
-      logHybridAccess('Get session by id', id)
-      return userData.getSessionById.value(id)
-    }
-  })
+      logHybridAccess("Get session by id", id);
+      return userData.getSessionById.value(id);
+    };
+  });
 
   return {
     // User data from Supabase
@@ -81,6 +82,6 @@ export const useHybridData = () => {
     markSessionAsActive: userData.markSessionAsActive,
     deleteWorkoutSession: userData.deleteWorkoutSession,
     signOut: userData.signOut,
-    cleanup: userData.cleanup
-  }
-} 
+    cleanup: userData.cleanup,
+  };
+};

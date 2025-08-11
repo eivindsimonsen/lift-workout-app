@@ -452,8 +452,7 @@ const formatDate = (date: Date): string => {
 }
 
 const getWorkoutTypeName = (typeId: string): string => {
-  const type = workoutData.getWorkoutType.value(typeId)
-  return type?.name || typeId
+  return workoutData.getWorkoutType.value(typeId)
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
