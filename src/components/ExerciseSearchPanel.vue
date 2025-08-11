@@ -210,7 +210,7 @@ const getDefaultMuscleGroups = (workoutType: string): string[] => {
     'pull': ['Rygg', 'Armer'],
     'legs': ['Ben'],
     'upper': ['Bryst', 'Rygg', 'Skuldre', 'Armer'],
-    'lower': ['Ben'],
+    'lower': ['Ben', 'Kjerne'],
     'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
   }
   
