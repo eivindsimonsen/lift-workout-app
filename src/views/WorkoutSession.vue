@@ -12,16 +12,45 @@
     <div v-else>
       <!-- Header -->
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-white">{{ session?.templateName }}</h1>
-        <span 
-          class="inline-block px-3 py-1 text-sm font-medium rounded-full"
-          :style="{ 
-            backgroundColor: getWorkoutTypeColor(session?.workoutType || '') + '20',
-            color: getWorkoutTypeColor(session?.workoutType || '')
-          }"
-        >
-          {{ getWorkoutTypeName(session?.workoutType || '') }}
-        </span>
+        <div class="flex items-center gap-3">
+          <router-link 
+            to="/" 
+            class="inline-flex items-center justify-center w-10 h-10 bg-[#3F302A] hover:bg-[#4A3A32] rounded-lg transition-colors"
+          >
+            <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </router-link>
+          <h1 class="text-2xl font-bold text-white">{{ session?.templateName }}</h1>
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- Unsaved changes indicator -->
+          <div v-if="hasUnsavedChanges" class="flex items-center gap-2 text-yellow-400 text-sm">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            <span>Ulagrede endringer</span>
+          </div>
+          <span 
+            class="inline-block px-3 py-1 text-sm font-medium rounded-full"
+            :style="{ 
+              backgroundColor: getWorkoutTypeColor(session?.workoutType || '') + '20',
+              color: getWorkoutTypeColor(session?.workoutType || '')
+            }"
+          >
+            {{ getWorkoutTypeName(session?.workoutType || '') }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Success message -->
+      <div v-if="showSaveSuccess" class="mt-4 p-3 bg-green-600 bg-opacity-20 border border-green-500 rounded-lg">
+        <div class="flex items-center gap-2 text-green-400 text-sm">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 01-1.414-1.414L9 10.586 7.707 9.293a1 1 0 01-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          <span>Lagring velykket!</span>
+        </div>
       </div>
 
       <!-- Exercises -->
@@ -133,6 +162,24 @@
         </div>
       </div>
 
+      <!-- Instructions -->
+      <div class="card mt-4 bg-blue-600 bg-opacity-10 border border-blue-500 border-opacity-30">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+          <div class="text-sm text-blue-300">
+            <p class="font-medium mb-1">Tips for å bruke økten:</p>
+            <ul class="space-y-1 text-blue-200">
+              <li>• Fyll ut reps og vekt for hvert sett</li>
+              <li>• Klikk "Lagre" nederst på siden når du vil lagre endringene (eller bruk Ctrl+S)</li>
+              <li>• Du kan legge til nye sett med "+ Legg til sett"</li>
+              <li>• Økten lagres automatisk når du forlater siden</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <!-- Add Exercise Button -->
       <div class="card mt-6">
         <div class="hidden md:block">
@@ -235,7 +282,6 @@
 
       <!-- Summary -->
       <div class="card mt-6">
-        <h3 class="text-lg font-semibold text-white mb-4">Sammendrag</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="text-center">
             <p class="text-2xl font-bold text-primary-500">{{ completedSets }} av {{ totalSets }}</p>
@@ -274,9 +320,10 @@ const startTime = ref<Date | null>(null)
 const showAddExerciseModal = ref(false)
 const newExerciseId = ref('')
 const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
+const hasUnsavedChanges = ref(false)
+const isSaving = ref(false)
+const showSaveSuccess = ref(false)
 
-// Debounce timer for saving
-let saveTimeout: NodeJS.Timeout | null = null
 
 // Computed
 const completedSets = computed(() => {
@@ -349,6 +396,9 @@ const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number
   
   // Update completion status in real-time for progress bar
   updateSetCompletion(exerciseIndex, setIndex)
+  
+  // Mark as having unsaved changes
+  hasUnsavedChanges.value = true
 }
 
 const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
@@ -361,8 +411,11 @@ const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number)
   const weight = value === '' ? 0 : parseFloat(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
   
-  // Update completion status and save
+  // Update completion status
   updateSetCompletion(exerciseIndex, setIndex)
+  
+  // Mark as having unsaved changes
+  hasUnsavedChanges.value = true
 }
 
 const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) => {
@@ -377,6 +430,9 @@ const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) 
   
   // Update completion status in real-time for progress bar
   updateSetCompletion(exerciseIndex, setIndex)
+  
+  // Mark as having unsaved changes
+  hasUnsavedChanges.value = true
 }
 
 const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
@@ -389,8 +445,11 @@ const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) =
   const reps = value === '' ? 0 : parseInt(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
   
-  // Update completion status and save
+  // Update completion status
   updateSetCompletion(exerciseIndex, setIndex)
+  
+  // Mark as having unsaved changes
+  hasUnsavedChanges.value = true
 }
 
 const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
@@ -418,22 +477,18 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
     set.isCompleted = isCompleted
   }
   
-  // Always save when values change, not just when completion status changes
-  saveSessionChanges()
+  // Don't auto-save anymore - just mark as having unsaved changes
+  // The user will manually save when ready
 }
 
-const saveSessionChanges = () => {
-  if (!session.value) return
+const saveSessionChanges = async () => {
+  if (!session.value || !hasUnsavedChanges.value) return
   
-  // Clear existing timeout
-  if (saveTimeout) {
-    clearTimeout(saveTimeout)
-  }
+  isSaving.value = true
   
-  // Debounce the save operation to avoid too many API calls
-  saveTimeout = setTimeout(() => {
+  try {
     // Ensure all data is properly formatted before saving
-    const formattedExercises = session.value!.exercises.map(exercise => ({
+    const formattedExercises = session.value.exercises.map(exercise => ({
       ...exercise,
       sets: exercise.sets.map(set => ({
         ...set,
@@ -442,14 +497,26 @@ const saveSessionChanges = () => {
       }))
     }))
     
-    // Auto-save session with formatted data
-    workoutData.updateWorkoutSession(session.value!.id, {
+    // Save session with formatted data
+    await workoutData.updateWorkoutSession(session.value.id, {
       exercises: formattedExercises
     })
-  }, 500) // 500ms delay
+    
+    // Clear unsaved changes flag
+    hasUnsavedChanges.value = false
+    showSaveSuccess.value = true
+    setTimeout(() => {
+      showSaveSuccess.value = false
+    }, 3000) // Hide after 3 seconds
+    
+    console.log('✅ Session saved successfully')
+  } catch (error) {
+    console.error('❌ Error saving session:', error)
+    // Keep the unsaved changes flag so user can retry
+  } finally {
+    isSaving.value = false
+  }
 }
-
-
 
 const addSet = (exerciseIndex: number) => {
   if (!session.value) return
@@ -470,8 +537,8 @@ const addSet = (exerciseIndex: number) => {
   
   exercise.sets.push(newSet)
   
-  // Auto-save session using the new function
-  saveSessionChanges()
+  // Mark as having unsaved changes instead of auto-saving
+  hasUnsavedChanges.value = true
 }
 
 const addExerciseToSession = () => {
@@ -513,8 +580,8 @@ const addExerciseToSession = () => {
   // Add the exercise to the session
   session.value.exercises.push(newExercise)
   
-  // Update the session in the store using the new function
-  saveSessionChanges()
+  // Mark as having unsaved changes instead of auto-saving
+  hasUnsavedChanges.value = true
 
   // Reset form and close modal
   newExerciseId.value = ''
@@ -540,8 +607,8 @@ const removeExercise = (index: number) => {
   
   session.value.exercises.splice(index, 1)
   
-  // Update the session in the store using the new function
-  saveSessionChanges()
+  // Mark as having unsaved changes instead of auto-saving
+  hasUnsavedChanges.value = true
 }
 
 const removeSet = (exerciseIndex: number, setIndex: number) => {
@@ -553,16 +620,16 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   if (exercise.sets.length <= 1) {
     session.value.exercises.splice(exerciseIndex, 1)
     
-    // Update the session in the store using the new function
-    saveSessionChanges()
+    // Mark as having unsaved changes instead of auto-saving
+    hasUnsavedChanges.value = true
     return
   }
   
   // Otherwise, just remove the set
   exercise.sets.splice(setIndex, 1)
   
-  // Update the session in the store using the new function
-  saveSessionChanges()
+  // Mark as having unsaved changes instead of auto-saving
+  hasUnsavedChanges.value = true
 }
 
 const formatNumber = (num: number): string => {
@@ -611,6 +678,17 @@ const getLastPerformance = (exerciseId: string) => {
   return null
 }
 
+// Communicate save state to App.vue
+const updateAppSaveState = () => {
+  const updateEvent = new CustomEvent('updateAppSaveState', {
+    detail: { 
+      hasUnsavedChanges: hasUnsavedChanges.value,
+      isSaving: isSaving.value 
+    }
+  })
+  window.dispatchEvent(updateEvent)
+}
+
 const handleCompleteWorkout = () => {
   if (confirm('Er du sikker på at du vil avslutte økten?')) {
     completeWorkout()
@@ -622,7 +700,7 @@ const completeWorkout = async () => {
   
   try {
     await workoutData.completeWorkoutSession(session.value.id)
-    router.push('/history')
+    router.push(`/session/${session.value.id}`)
   } catch (error: any) {
     handleAuthError(error)
   }
@@ -668,62 +746,69 @@ onMounted(async () => {
   session.value = foundSession
   startTime.value = new Date(foundSession.date)
   
-  // Add visibility change listener to refresh data when user returns to tab
-  const handleVisibilityChange = () => {
-    if (document.hidden && session.value) {
-      // Save data immediately when user leaves the tab
-      saveSessionChanges()
-    } else if (!document.hidden && session.value) {
-      // Refresh data when user returns to tab
-      const updatedSession = workoutData.getSessionById.value(session.value.id)
-      if (updatedSession) {
-        session.value = updatedSession
+  // Initial state update to App.vue
+  updateAppSaveState()
+  
+  // Add keyboard shortcut for saving (Ctrl+S)
+  const handleKeydown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+      event.preventDefault()
+      if (hasUnsavedChanges.value && !isSaving.value) {
+        saveSessionChanges()
       }
     }
   }
   
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-  
-  // Add beforeunload listener to save data when user refreshes or closes tab
-  const handleBeforeUnload = () => {
-    if (session.value) {
-      // Save data immediately when user refreshes or closes tab
+  // Listen for save event from App.vue
+  const handleSaveEvent = (event: CustomEvent) => {
+    if (event.detail.sessionId === session.value?.id && hasUnsavedChanges.value && !isSaving.value) {
       saveSessionChanges()
     }
   }
   
+  // Watch for changes in save state and communicate to App.vue
+  watch([hasUnsavedChanges, isSaving], () => {
+    updateAppSaveState()
+  })
+  
+  // Add beforeunload listener to warn about unsaved changes
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (hasUnsavedChanges.value) {
+      event.preventDefault()
+      event.returnValue = 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
+      return 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
+    }
+  }
+  
+  window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
   window.addEventListener('beforeunload', handleBeforeUnload)
   
-  // Add periodic save to ensure data is not lost
-  const periodicSaveInterval = setInterval(() => {
-    if (session.value) {
-      saveSessionChanges()
-    }
-  }, 30000) // Save every 30 seconds
-  
-  // Cleanup visibility listener on unmount
+  // Cleanup on unmount
   onUnmounted(() => {
-    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.removeEventListener('keydown', handleKeydown)
+    window.removeEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
     window.removeEventListener('beforeunload', handleBeforeUnload)
-    clearInterval(periodicSaveInterval)
-    if (saveTimeout) {
-      clearTimeout(saveTimeout)
-    }
   })
 })
 
-// Watch for route changes to refresh session data
-watch(() => route.params.id, (newId, oldId) => {
+// Watch for route changes to warn about unsaved changes
+watch(() => route.params.id, async (newId, oldId) => {
   if (newId && newId !== oldId) {
-    // Save current session before navigating away
-    if (session.value && oldId) {
-      saveSessionChanges()
+    // Check if there are unsaved changes before navigating away
+    if (hasUnsavedChanges.value) {
+      const shouldLeave = confirm('Du har ulagrede endringer. Vil du lagre dem først?')
+      if (shouldLeave) {
+        await saveSessionChanges()
+      }
     }
+    
     // Load new session
     const foundSession = workoutData.getSessionById.value(newId as string)
     if (foundSession) {
       session.value = foundSession
       startTime.value = new Date(foundSession.date)
+      hasUnsavedChanges.value = false // Reset for new session
     }
   }
 })

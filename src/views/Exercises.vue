@@ -29,6 +29,39 @@
         </div>
       </div>
 
+      <!-- Active Exercises Section -->
+      <div v-if="!hasSearch && activeExercises.length > 0" class="mb-8">
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Aktive øvelser
+          </h2>
+          <p class="text-sm text-dark-300">Øvelser du bruker i dine økter</p>
+          <div class="mt-2 border-b border-dark-700"></div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div 
+            v-for="exercise in activeExercises" 
+            :key="exercise.id"
+            @click="viewExercise(exercise.id)"
+            class="group bg-primary-500/10 border border-primary-500/20 rounded-lg p-3 hover:border-primary-500/40 transition-colors cursor-pointer hover:bg-primary-500/20 overflow-hidden"
+          >
+            <div class="flex items-center h-10">
+              <div class="min-w-0 flex-1">
+                <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.name }}</h3>
+                <p class="text-xs text-primary-400 mt-1">{{ exercise.totalSessions }} økter</p>
+              </div>
+              <svg class="w-4 h-4 text-primary-400 group-hover:text-primary-300 transition-colors pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
     <!-- Loading State -->
     <div v-if="isLoading" class="flex items-center justify-center py-12">
       <div class="text-center">
@@ -209,6 +242,31 @@ const allExercises = computed(() => {
 
   // Sort exercises by name within each category
   return exercises.sort((a, b) => a.name.localeCompare(b.name, 'no'))
+})
+
+// Active exercises - exercises that are used in workout templates or sessions
+const activeExercises = computed(() => {
+  // Get exercises that are used in any workout template or session
+  const activeExerciseIds = new Set<string>()
+  
+  // Check workout templates
+  workoutData.templates.value?.forEach(template => {
+    template.exercises?.forEach(exercise => {
+      activeExerciseIds.add(exercise.exerciseId)
+    })
+  })
+  
+  // Check workout sessions (both active and completed)
+  workoutData.sessions.value?.forEach(session => {
+    session.exercises?.forEach(exercise => {
+      activeExerciseIds.add(exercise.exerciseId)
+    })
+  })
+  
+  // Filter exercises to only show active ones
+  return allExercises.value
+    .filter(exercise => activeExerciseIds.has(exercise.id))
+    .sort((a, b) => b.totalSessions - a.totalSessions) // Sort by most used first
 })
 
 const categories = computed(() => {

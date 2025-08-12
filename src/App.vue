@@ -82,12 +82,16 @@
             <div class="flex gap-3 max-w-md mx-auto">
               <button 
                 @click="handleSaveWorkout"
-                class="flex-1 bg-dark-600 hover:bg-dark-500 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                :disabled="!hasUnsavedChanges || isSaving"
+                class="flex-1 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                :class="hasUnsavedChanges && !isSaving ? 'bg-dark-700 hover:bg-dark-600' : 'bg-dark-800 cursor-not-allowed'"
+                data-save-button
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg v-if="!isSaving" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                 </svg>
-                Lagre
+                <div v-else class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>{{ isSaving ? 'Lagrer...' : 'Lagre' }}</span>
               </button>
               <button 
                 @click="handleCompleteWorkout"
@@ -176,12 +180,16 @@
           <div class="flex gap-3 p-4">
             <button 
               @click="handleSaveWorkout"
-              class="flex-1 bg-dark-600 hover:bg-dark-500 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              :disabled="!hasUnsavedChanges || isSaving"
+              class="flex-1 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="hasUnsavedChanges && !isSaving ? 'bg-dark-700 hover:bg-dark-600' : 'bg-dark-800 cursor-not-allowed'"
+              data-save-button
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg v-if="!isSaving" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
               </svg>
-              Lagre
+              <div v-else class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span>{{ isSaving ? 'Lagrer...' : 'Lagre' }}</span>
             </button>
             <button 
               @click="handleCompleteWorkout"
@@ -217,6 +225,8 @@ const { handleAuthError } = useErrorHandler()
 
 // State
 const hasInitialized = ref(false)
+const hasUnsavedChanges = ref(false)
+const isSaving = ref(false)
 
 // Computed properties
 const isWorkoutSession = computed(() => {
@@ -278,10 +288,40 @@ const handleSaveWorkout = async () => {
   if (!isWorkoutSession.value || !route.params.id) return
 
   try {
-    const sessionId = route.params.id as string
-    await workoutData.markSessionAsActive(sessionId)
-    router.push('/')
+    isSaving.value = true
+    
+    // Emit a custom event that WorkoutSession.vue can listen to
+    const saveEvent = new CustomEvent('saveWorkoutSession', {
+      detail: { sessionId: route.params.id }
+    })
+    window.dispatchEvent(saveEvent)
+    
+    // Wait a bit to show the loading state
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Show success state temporarily
+    const saveButton = document.querySelector('[data-save-button]') as HTMLButtonElement
+    if (saveButton) {
+      const originalText = saveButton.innerHTML
+      saveButton.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        Lagring velykket
+      `
+      saveButton.disabled = true
+      saveButton.classList.add('bg-green-600', 'hover:bg-green-600')
+      
+      setTimeout(() => {
+        saveButton.innerHTML = originalText
+        saveButton.disabled = false
+        saveButton.classList.remove('bg-green-600', 'hover:bg-green-600')
+        isSaving.value = false
+        hasUnsavedChanges.value = false
+      }, 2000)
+    }
   } catch (error: any) {
+    isSaving.value = false
     handleAuthError(error)
   }
 }
@@ -293,7 +333,7 @@ const handleCompleteWorkout = async () => {
     try {
       const sessionId = route.params.id as string
       await workoutData.completeWorkoutSession(sessionId)
-      router.push('/history')
+      router.push(`/session/${sessionId}`)
     } catch (error: any) {
       handleAuthError(error)
     }
@@ -321,6 +361,42 @@ onMounted(async () => {
   
   window.addEventListener('focus', handleFocus)
   ;(window as any).__appFocusHandler = handleFocus
+
+  // Add keyboard shortcut for saving (Ctrl+S)
+  const handleKeydown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+      event.preventDefault()
+      if (hasUnsavedChanges.value && !isSaving.value) {
+        handleSaveWorkout()
+      }
+    }
+  }
+  
+  // Listen for save state updates from WorkoutSession.vue
+  const handleSaveStateUpdate = (event: CustomEvent) => {
+    hasUnsavedChanges.value = event.detail.hasUnsavedChanges
+    isSaving.value = event.detail.isSaving
+  }
+  
+  // Add beforeunload listener to warn about unsaved changes
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (hasUnsavedChanges.value) {
+      event.preventDefault()
+      event.returnValue = 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
+      return 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
+    }
+  }
+  
+  window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('updateAppSaveState', handleSaveStateUpdate as EventListener)
+  window.addEventListener('beforeunload', handleBeforeUnload)
+  
+  // Cleanup on unmount
+  onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown)
+    window.removeEventListener('updateAppSaveState', handleSaveStateUpdate as EventListener)
+    window.removeEventListener('beforeunload', handleBeforeUnload)
+  })
 })
 
 onUnmounted(() => {
