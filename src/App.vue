@@ -78,12 +78,12 @@
           </div>
           
           <!-- Action Buttons -->
-          <div class="container mx-auto px-4 py-4">
+          <div class="container mx-auto px-4 py-3.5">
             <div class="flex gap-3 max-w-md mx-auto">
               <button 
                 @click="handleSaveWorkout"
                 :disabled="!hasUnsavedChanges || isSaving"
-                class="flex-1 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex-1 text-white py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 :class="hasUnsavedChanges && !isSaving ? 'bg-dark-700 hover:bg-dark-600' : 'bg-dark-800 cursor-not-allowed'"
                 data-save-button
               >
@@ -95,7 +95,7 @@
               </button>
               <button 
                 @click="handleCompleteWorkout"
-                class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -111,7 +111,7 @@
           <div class="flex justify-around">
             <router-link 
               to="/" 
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+              class="flex flex-col items-center py-2.5 px-4 text-dark-300 hover:text-white transition-colors"
               :class="{ 'nav-link-active': $route.path === '/' || $route.path.startsWith('/workout/') || $route.path.startsWith('/template/') }"
             >
               <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,7 +123,7 @@
             
             <router-link 
               to="/exercises" 
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+              class="flex flex-col items-center py-2.5 px-4 text-dark-300 hover:text-white transition-colors"
               :class="{ 'nav-link-active': $route.path === '/exercises' || $route.path.startsWith('/exercise/') }"
             >
               <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,7 +134,7 @@
             
             <router-link 
               to="/history" 
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+              class="flex flex-col items-center py-2.5 px-4 text-dark-300 hover:text-white transition-colors"
               :class="{ 'nav-link-active': $route.path === '/history' || $route.path.startsWith('/session/') }"
             >
               <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,7 +145,7 @@
             
             <router-link 
               to="/stats" 
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+              class="flex flex-col items-center py-2.5 px-4 text-dark-300 hover:text-white transition-colors"
               :class="{ 'nav-link-active': $route.path === '/stats' }"
             >
               <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +156,7 @@
             
             <router-link 
               to="/profile"
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+              class="flex flex-col items-center py-2.5 px-4 text-dark-300 hover:text-white transition-colors"
             >
               <div class="w-6 h-6 mb-1 bg-primary-500 rounded-full flex items-center justify-center">
                 <span class="text-white text-xs font-medium">{{ userInitials }}</span>
@@ -177,11 +177,11 @@
           </div>
           
           <!-- Action Buttons -->
-          <div class="flex gap-3 p-4">
+          <div class="flex gap-3 p-3.5">
             <button 
               @click="handleSaveWorkout"
               :disabled="!hasUnsavedChanges || isSaving"
-              class="flex-1 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="flex-1 text-white py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               :class="hasUnsavedChanges && !isSaving ? 'bg-dark-700 hover:bg-dark-600' : 'bg-dark-800 cursor-not-allowed'"
               data-save-button
             >
@@ -193,7 +193,7 @@
             </button>
             <button 
               @click="handleCompleteWorkout"
-              class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />

@@ -7,11 +7,11 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
+          ref="searchInput"
           v-model="query"
           type="text"
           class="input-field w-full pl-10 text-base"
           placeholder="Søk etter øvelse..."
-          autofocus
           @keydown.escape.prevent="onClose"
         />
       </div>
@@ -55,11 +55,11 @@
           <span class="text-white">{{ ex.name }}</span>
           <div class="flex gap-1 flex-wrap justify-end">
             <span
-              v-if="ex.category"
+              v-if="getPrimaryMuscleGroup(ex)"
               class="px-2 py-1 text-xs font-medium rounded-full bg-dark-600"
-              :style="{ color: getMuscleGroupColor(ex.category) }"
+              :style="{ color: getMuscleGroupColor(getPrimaryMuscleGroup(ex) || '') }"
             >
-              {{ ex.category }}
+              {{ getPrimaryMuscleGroup(ex) }}
             </span>
           </div>
         </button>
@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
 import * as workoutTypesData from '@/data/workout-types.json'
 
@@ -99,9 +99,10 @@ const onClose = () => emit('close')
 // search and filters
 const query = ref('')
 const selectedMuscleGroups = ref<string[]>([])
+const searchInput = ref<HTMLInputElement>()
 
 // Reset when opening
-watch(() => props.isOpen, (open) => {
+watch(() => props.isOpen, async (open) => {
   if (open) {
     query.value = ''
     // Auto-select muscle groups based on workout type
@@ -110,6 +111,12 @@ watch(() => props.isOpen, (open) => {
     } else {
       selectedMuscleGroups.value = []
     }
+    
+    // Focus the search input after the slide-over is fully rendered
+    await nextTick()
+    if (searchInput.value) {
+      searchInput.value.focus()
+    }
   }
 })
 
@@ -117,85 +124,75 @@ watch(() => props.isOpen, (open) => {
 const availableMuscleGroups = computed(() => {
   const mainCategories = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
   const groups = new Set<string>()
+  
   props.exercises.forEach(ex => {
+    // Add category if it exists and is a main category
     if (ex.category && mainCategories.includes(ex.category)) {
       groups.add(ex.category)
     }
+    
+    // Add muscle groups if they exist and are main categories
+    if (ex.muscleGroups) {
+      ex.muscleGroups.forEach(group => {
+        if (mainCategories.includes(group)) {
+          groups.add(group)
+        }
+      })
+    }
   })
+  
   // Return in the specific order we want
   return mainCategories.filter(category => groups.has(category))
 })
 
-const norm = (s: string) => (s || '')
-  .toLowerCase()
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/[‑–—−]/g, '-')
-  .replace(/[^a-z0-9æøå\-\s]/g, ' ')
-  .replace(/\s+/g, ' ')
-  .trim()
-
-const ALIASES: Record<string, string[]> = {
-  bryst: ['bryst', 'chest'],
-  chest: ['chest', 'bryst'],
-  rygg: ['rygg', 'back'],
-  back: ['back', 'rygg'],
-  ben: ['ben', 'bein', 'legs', 'leg', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'legger'],
-  bein: ['ben', 'bein', 'legs', 'leg', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'legger'],
-  legs: ['legs', 'leg', 'ben', 'bein', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'legger'],
-  skuldre: ['skuldre', 'skulder', 'shoulders', 'shoulder', 'delts', 'deltoid'],
-  skulder: ['skuldre', 'skulder', 'shoulders', 'shoulder', 'delts', 'deltoid'],
-  shoulders: ['shoulders', 'shoulder', 'skuldre', 'skulder', 'delts', 'deltoid'],
-  armer: ['armer', 'arm', 'arms', 'biceps', 'triceps', 'forearms', 'underarmer'],
-  arms: ['arms', 'arm', 'armer', 'biceps', 'triceps', 'forearms', 'underarmer'],
-  kjerne: ['kjerne', 'core', 'mage', 'abs'],
-  core: ['core', 'kjerne', 'mage', 'abs'],
-  annet: ['annet', 'custom', 'other', 'egen'],
-  custom: ['custom', 'annet', 'other', 'egen'],
-  push: ['push', 'bryst', 'skuldre', 'triceps'],
-  pull: ['pull', 'rygg', 'biceps'],
-}
-
 const filteredResults = computed(() => {
   let exercises = props.exercises
   
-  // Always include "Annet øvelse" regardless of filters
-  const customExercise = exercises.find(ex => ex.id === 'custom-exercise')
+  // Remove duplicates based on name (keep the first occurrence)
+  const uniqueExercises = exercises.filter((exercise, index, self) => 
+    index === self.findIndex(e => e.name === exercise.name)
+  )
   
-  // Filter by selected muscle groups (using category field) for other exercises
+  // Always include "Annet øvelse" regardless of filters
+  const customExercise = uniqueExercises.find(ex => ex.id === 'custom-exercise')
+  
+  // Filter by selected muscle groups (using both category and muscleGroups fields)
   if (selectedMuscleGroups.value.length > 0) {
-    exercises = exercises.filter(ex => {
+    exercises = uniqueExercises.filter(ex => {
       // Always include custom exercise
       if (ex.id === 'custom-exercise') return true
-      // Filter other exercises by muscle group
-      return ex.category && selectedMuscleGroups.value.includes(ex.category)
+      
+      // Check if exercise matches any selected muscle group
+      const hasMatchingCategory = ex.category && selectedMuscleGroups.value.includes(ex.category)
+      const hasMatchingMuscleGroup = ex.muscleGroups && ex.muscleGroups.some(group => 
+        selectedMuscleGroups.value.includes(group)
+      )
+      
+      return hasMatchingCategory || hasMatchingMuscleGroup
     })
+  } else {
+    exercises = uniqueExercises
   }
   
-  // Filter by search query
-  const raw = query.value.trim()
-  const tokens = raw ? raw.split(/\s+/).map(t => norm(t)).filter(Boolean) : []
-  if (!tokens.length) return exercises
+  // Filter by search query - only show exercises with search text in name
+  const searchText = query.value.trim().toLowerCase()
+  if (!searchText) return exercises
   
   return exercises.filter((ex) => {
     // Always include custom exercise in search results
     if (ex.id === 'custom-exercise') return true
     
-    const name = norm(ex.name)
-    const category = norm(ex.category || '')
-    const groups = (ex.muscleGroups || []).map(g => norm(g)).join(' ')
-    const types = (ex.workoutTypes || []).map(t => norm(t)).join(' ')
-    const haystack = norm(`${name} ${category} ${groups} ${types}`)
-    return tokens.every((t) => {
-      const candidates = (ALIASES[t] || [t]).map(a => norm(a))
-      return candidates.some(a => a && haystack.includes(a))
-    })
+    // Only include exercises where the name contains the search text
+    return ex.name.toLowerCase().includes(searchText)
   }).sort((x, y) => x.name.localeCompare(y.name, 'no'))
 })
 
 const getPrimaryMuscleGroup = (exercise: ExerciseItem): string | null => {
   // Return the first muscle group, or category as fallback
-  return exercise.muscleGroups?.[0] || exercise.category || null
+  if (exercise.muscleGroups && exercise.muscleGroups.length > 0) {
+    return exercise.muscleGroups[0]
+  }
+  return exercise.category || null
 }
 
 const getMuscleGroupColor = (muscleGroup: string): string => {
@@ -223,10 +220,16 @@ const getDefaultMuscleGroups = (workoutType: string): string[] => {
     'legs': ['Ben'],
     'upper': ['Bryst', 'Rygg', 'Skuldre', 'Armer'],
     'lower': ['Ben', 'Kjerne'],
-    'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
+    'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne'],
+    'bryst': ['Bryst'],
+    'rygg': ['Rygg'],
+    'ben': ['Ben'],
+    'skuldre': ['Skuldre'],
+    'armer': ['Armer'],
+    'kjerne': ['Kjerne']
   }
   
-  return muscleGroupMap[workoutType] || []
+  return muscleGroupMap[workoutType.toLowerCase()] || []
 }
 
 const workoutTypes = computed(() => workoutTypesData.workoutTypes)

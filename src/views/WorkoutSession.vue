@@ -162,24 +162,6 @@
         </div>
       </div>
 
-      <!-- Instructions -->
-      <div class="card mt-4 bg-blue-600 bg-opacity-10 border border-blue-500 border-opacity-30">
-        <div class="flex items-start gap-3">
-          <svg class="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-          </svg>
-          <div class="text-sm text-blue-300">
-            <p class="font-medium mb-1">Tips for å bruke økten:</p>
-            <ul class="space-y-1 text-blue-200">
-              <li>• Fyll ut reps og vekt for hvert sett</li>
-              <li>• Klikk "Lagre" nederst på siden når du vil lagre endringene (eller bruk Ctrl+S)</li>
-              <li>• Du kan legge til nye sett med "+ Legg til sett"</li>
-              <li>• Økten lagres automatisk når du forlater siden</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
       <!-- Add Exercise Button -->
       <div class="card mt-6">
         <div class="hidden md:block">
