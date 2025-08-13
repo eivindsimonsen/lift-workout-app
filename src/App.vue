@@ -12,7 +12,9 @@
 
       <!-- App content when loaded -->
       <div v-else>
-        <!-- Desktop Top Header (hidden on mobile) -->
+        <!-- Mobile Browser Blocker - Wraps entire app content -->
+        <MobileBrowserBanner>
+          <!-- Desktop Top Header (hidden on mobile) -->
         <header v-if="isAuthenticated" class="hidden md:block sticky top-0 z-40 bg-dark-900/80 backdrop-blur border-b border-dark-700">
           <div class="container mx-auto px-4 h-14 flex items-center justify-between">
             <router-link to="/" class="text-white font-semibold tracking-wide">
@@ -78,8 +80,7 @@
         <!-- PWA Install Prompt -->
         <PWAInstallPrompt />
         
-        <!-- Mobile Browser Blocker -->
-        <MobileBrowserBanner />
+
 
         <!-- Desktop Workout Session Actions - only show if in workout session -->
         <div v-if="isAuthenticated && isWorkoutSession" class="hidden md:block fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation">
@@ -216,6 +217,7 @@
             </button>
           </div>
         </nav>
+        </MobileBrowserBanner>
       </div>
     </div>
   </ErrorBoundary>

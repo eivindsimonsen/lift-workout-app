@@ -555,35 +555,3 @@
     }
   }
 }
-
-/* Mobile Browser Blocker Styles */
-@media not (display-mode: standalone) {
-  /* Full-screen blocker for mobile browsers - SIMPLE */
-  .mobile-browser-banner {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    z-index: 9999 !important;
-    background-color: #111827 !important; /* bg-dark-900 */
-    width: 100vw !important;
-    height: 100vh !important;
-    height: 100dvh !important;
-    overflow: hidden !important;
-    pointer-events: auto !important;
-  }
-
-  /* Prevent scrolling when blocker is active */
-  body:has(.mobile-browser-banner) {
-    overflow: hidden !important;
-  }
-
-  /* Hide app content when blocker is active */
-  .mobile-browser-banner ~ * {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
-}

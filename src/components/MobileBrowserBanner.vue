@@ -1,6 +1,7 @@
 <template>
-     <div v-if="showBlocker" class="mobile-browser-banner fixed inset-0 z-[9999] bg-dark-900 flex items-center justify-center overflow-hidden" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; z-index: 9999 !important; padding-top: 2rem !important; padding-bottom: 2rem !important;">
-         <div class="max-w-md w-full text-center px-6">
+  <!-- Mobile Browser Blocker - Full Screen -->
+  <div v-if="showBlocker" class="mobile-browser-banner fixed inset-0 z-[9999] bg-dark-900 flex items-center justify-center overflow-hidden px-6 py-8">
+    <div class="max-w-md w-full text-center">
       <!-- App Icon -->
       <div class="w-24 h-24 bg-primary-500 rounded-2xl mx-auto mb-8 flex items-center justify-center">
         <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -16,27 +17,27 @@
 
       <!-- Installation Instructions -->
       <div class="bg-dark-800 rounded-lg p-6 mb-8 border border-dark-700">
-        <h2 class="text-lg font-semibold text-white mb-4">For å bruke appen må du installere den</h2>
+        <h2 class="text-lg font-semibold text-white mb-4">For å få best mulig opplevelse må du installere appen</h2>
         
         <!-- iOS Safari Instructions -->
         <div v-if="isIOSSafari" class="text-left">
           <h3 class="font-medium text-white mb-3">På iPhone/iPad (Safari):</h3>
           <ol class="text-dark-300 space-y-2 text-sm">
             <li>1. Trykk på del-knappen (firkant med pil opp)</li>
-                         <li>2. Rull ned og trykk "Legg til på Hjem-skjerm"</li>
+            <li>2. Rull ned og trykk "Legg til på Hjem-skjerm"</li>
             <li>3. Trykk "Legg til" for å installere</li>
           </ol>
         </div>
 
-                 <!-- Chrome on iOS Instructions -->
-         <div v-else-if="isChromeOnIOS" class="text-left">
-           <h3 class="font-medium text-white mb-3">På iPhone/iPad (Chrome):</h3>
-           <ol class="text-dark-300 space-y-2 text-sm">
-             <li>1. Trykk på del-ikonet (firkant med pil opp) i URL-feltet</li>
-             <li>2. Velg "Legg til på Hjem-skjerm"</li>
-             <li>3. Trykk "Legg til" for å installere</li>
-           </ol>
-         </div>
+        <!-- Chrome on iOS Instructions -->
+        <div v-else-if="isChromeOnIOS" class="text-left">
+          <h3 class="font-medium text-white mb-3">På iPhone/iPad (Chrome):</h3>
+          <ol class="text-dark-300 space-y-2 text-sm">
+            <li>1. Trykk på del-ikonet (firkant med pil opp) i URL-feltet</li>
+            <li>2. Velg "Legg til på Hjem-skjerm"</li>
+            <li>3. Trykk "Legg til" for å installere</li>
+          </ol>
+        </div>
 
         <!-- Android Instructions -->
         <div v-else-if="isAndroid" class="text-left">
@@ -53,27 +54,25 @@
           <h3 class="font-medium text-white mb-3">Generelle instruksjoner:</h3>
           <ol class="text-dark-300 space-y-2 text-sm">
             <li>1. Finn del- eller menyknappen i nettleseren</li>
-                         <li>2. Se etter "Legg til på Hjem-skjerm" eller "Add to Home Screen"</li>
+            <li>2. Se etter "Legg til på Hjem-skjerm" eller "Add to Home Screen"</li>
             <li>3. Følg instruksjonene for å installere</li>
           </ol>
         </div>
       </div>
 
-                           <!-- Install Button for Android/Chrome/Edge -->
-        <button 
-          v-if="deferredPrompt"
-          @click="handleInstall"
-          class="w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-4 px-6 rounded-lg transition-colors mb-4"
-        >
-          Installer App
-        </button>
+      <!-- Install Button for Android/Chrome/Edge -->
+      <button 
+        v-if="deferredPrompt"
+        @click="handleInstall"
+        class="w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-4 px-6 rounded-lg transition-colors mb-4"
+      >
+        Installer App
+      </button>
 
-        
-
-        <!-- Additional Instructions for Android Users -->
-        <div v-if="isAndroid && deferredPrompt" class="text-center mb-4">
-          <p class="text-xs text-dark-400 mb-2">Eller følg manuelle instruksjoner ovenfor</p>
-        </div>
+      <!-- Additional Instructions for Android Users -->
+      <div v-if="isAndroid && deferredPrompt" class="text-center mb-4">
+        <p class="text-xs text-dark-400 mb-2">Eller følg manuelle instruksjoner ovenfor</p>
+      </div>
 
       <!-- Alternative Instructions -->
       <p class="text-xs text-dark-400">
@@ -81,10 +80,15 @@
       </p>
     </div>
   </div>
+
+  <!-- App Content - Only shown when blocker is NOT active -->
+  <div v-else>
+    <slot />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const showBlocker = ref(false)
 const deferredPrompt = ref<any>(null)
@@ -94,29 +98,20 @@ const isAndroid = ref(false)
 
 // Check if user is on mobile browser (not PWA)
 const isMobileBrowser = () => {
-  // Check if it's a mobile device
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  
-  // Check if it's NOT in PWA mode
   const isPWA = window.matchMedia('(display-mode: standalone)').matches
-  
   return isMobile && !isPWA
 }
 
 // Detect specific platform and browser combinations
 const detectPlatformAndBrowser = () => {
   const userAgent = navigator.userAgent
-  
-  // Check if it's iOS
   const isIOS = /iPad|iPhone|iPod/.test(userAgent)
   
   if (isIOS) {
-    // Check if it's Chrome on iOS
     isChromeOnIOS.value = /CriOS/.test(userAgent)
-    // Check if it's Safari on iOS
     isIOSSafari.value = /Safari/.test(userAgent) && !/CriOS|FxiOS|OPiOS|mercury/.test(userAgent)
   } else {
-    // Check if it's Android
     isAndroid.value = /Android/.test(userAgent)
   }
 }
@@ -129,7 +124,6 @@ const hasInstalledPWA = () => {
 // Handle PWA installation
 const handleInstall = async () => {
   if (deferredPrompt.value) {
-    // Chrome/Edge installation
     deferredPrompt.value.prompt()
     const { outcome } = await deferredPrompt.value.userChoice
     if (outcome === 'accepted') {
@@ -137,36 +131,7 @@ const handleInstall = async () => {
       showBlocker.value = false
     }
     deferredPrompt.value = null
-  } else {
-    // Show platform-specific instructions
-    if (isIOSSafari.value) {
-      showIOSInstructions()
-    } else {
-      showAndroidInstructions()
-    }
   }
-}
-
-// Show iOS-specific installation instructions
-const showIOSInstructions = () => {
-  const instructions = [
-    '1. Trykk på del-knappen (firkant med pil opp)',
-    '2. Rull ned og trykk "Legg til på Hjem-skjerm"',
-    '3. Trykk "Legg til" for å installere'
-  ]
-  
-  alert(`For å installere appen på iPhone/iPad:\n\n${instructions.join('\n')}`)
-}
-
-// Show Android-specific installation instructions
-const showAndroidInstructions = () => {
-  const instructions = [
-    '1. Trykk på menyknappen (tre prikker)',
-    '2. Velg "Legg til på startskjerm"',
-    '3. Trykk "Legg til" for å installere'
-  ]
-  
-  alert(`For å installere appen på Android:\n\n${instructions.join('\n')}`)
 }
 
 // Listen for PWA install prompt
@@ -183,32 +148,14 @@ const handleAppInstalled = () => {
 }
 
 onMounted(() => {
-  // Detect platform and browser combination
   detectPlatformAndBrowser()
   
-  // Show blocker if:
-  // 1. User is on mobile browser (not PWA)
-  // 2. User hasn't already installed it
   if (isMobileBrowser() && !hasInstalledPWA()) {
     showBlocker.value = true
   }
   
-  // Listen for PWA events
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.addEventListener('appinstalled', handleAppInstalled)
-})
-
-
-
-// Watch for blocker state changes and emit events
-watch(showBlocker, (newValue) => {
-  if (newValue) {
-    // Emit event when blocker is shown
-    window.dispatchEvent(new CustomEvent('mobile-browser-blocker-shown'))
-  } else {
-    // Emit event when blocker is hidden
-    window.dispatchEvent(new CustomEvent('mobile-browser-blocker-hidden'))
-  }
 })
 
 onUnmounted(() => {
