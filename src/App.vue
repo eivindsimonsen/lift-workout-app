@@ -63,7 +63,18 @@
         </header>
 
         <!-- Main content -->
-        <main :class="isAuthenticated ? `container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-32 md:pb-8'}` : ''" style="padding-top: calc(0.25rem + env(safe-area-inset-top));">
+        <PullToRefresh 
+          v-if="isAuthenticated"
+          @refresh="handlePullToRefresh"
+          :on-refresh="handlePullToRefresh"
+        >
+          <main :class="`container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-32 md:pb-8'}`" style="padding-top: calc(0.25rem + env(safe-area-inset-top));">
+            <router-view />
+          </main>
+        </PullToRefresh>
+        
+        <!-- Non-authenticated content -->
+        <main v-else>
           <router-view />
         </main>
 
@@ -224,6 +235,7 @@ import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt.vue'
 import OfflineIndicator from '@/components/OfflineIndicator.vue'
+import PullToRefresh from '@/components/PullToRefresh.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const route = useRoute()
@@ -345,6 +357,19 @@ const handleCompleteWorkout = async () => {
     } catch (error: any) {
       handleAuthError(error)
     }
+  }
+}
+
+const handlePullToRefresh = async () => {
+  try {
+    // Reload workout data
+    await workoutData.loadData()
+    
+    // Small delay to show the loading state
+    await new Promise(resolve => setTimeout(resolve, 500))
+  } catch (error: any) {
+    console.error('Pull to refresh failed:', error)
+    handleAuthError(error)
   }
 }
 
