@@ -467,31 +467,78 @@ watch(() => route.path, () => {
   nextTick(() => {
     // Reset scroll position when route changes
     
-    // Method 1: Reset window scroll position (works for browser version)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    // Check if we're in PWA mode
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches
     
-    // Method 2: Reset main content scroll position (works for PWA version)
-    if (mainContent.value) {
-      mainContent.value.scrollTop = 0
-    }
-    
-    // Method 3: Reset document body scroll position as additional fallback
-    if (document.body) {
-      document.body.scrollTop = 0
-    }
-    
-    // Method 4: Reset document documentElement scroll position (for some browsers)
-    if (document.documentElement) {
-      document.documentElement.scrollTop = 0
-    }
-    
-    // Method 5: Force scroll reset for PWA with touch scrolling
-    setTimeout(() => {
+    if (isPWA) {
+      // PWA-specific aggressive scroll reset
+      // Method 1: Force reset all possible scroll containers
       window.scrollTo({ top: 0, behavior: 'auto' })
+      
+      // Method 2: Reset main content with force
+      if (mainContent.value) {
+        mainContent.value.scrollTop = 0
+        mainContent.value.scrollLeft = 0
+      }
+      
+      // Method 3: Reset body with force
+      if (document.body) {
+        document.body.scrollTop = 0
+        document.body.scrollLeft = 0
+      }
+      
+      // Method 4: Reset documentElement with force
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0
+        document.documentElement.scrollLeft = 0
+      }
+      
+      // Method 5: Reset app container specifically
+      const appContainer = document.getElementById('app')
+      if (appContainer) {
+        appContainer.scrollTop = 0
+        appContainer.scrollLeft = 0
+      }
+      
+      // Method 6: Force scroll reset after a delay for PWA
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'auto' })
+        if (mainContent.value) {
+          mainContent.value.scrollTop = 0
+        }
+        // Force scroll reset on all containers again
+        [document.body, document.documentElement, appContainer].forEach(el => {
+          if (el) {
+            el.scrollTop = 0
+            el.scrollLeft = 0
+          }
+        })
+      }, 50)
+      
+      // Method 7: Additional reset after component is fully rendered
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'auto' })
+        if (mainContent.value) {
+          mainContent.value.scrollTop = 0
+        }
+      }, 200)
+      
+    } else {
+      // Browser version - use smooth scrolling
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      
       if (mainContent.value) {
         mainContent.value.scrollTop = 0
       }
-    }, 100)
+      
+      if (document.body) {
+        document.body.scrollTop = 0
+      }
+      
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0
+      }
+    }
   })
 })
 </script> 
