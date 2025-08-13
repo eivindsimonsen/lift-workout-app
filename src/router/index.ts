@@ -38,7 +38,23 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior(to: any, from: any, savedPosition: any) {
+  scrollBehavior(to, from, savedPosition) {
+    // Always scroll to top when navigating to a new route
+    if (to.path !== from.path) {
+      return { top: 0, behavior: "smooth" };
+    }
+
+    // If navigating to the same route with different params, also scroll to top
+    if (to.name === from.name && to.params !== from.params) {
+      return { top: 0, behavior: "smooth" };
+    }
+
+    // If there's a saved position (browser back/forward), restore it
+    if (savedPosition) {
+      return savedPosition;
+    }
+
+    // Default: scroll to top
     return { top: 0 };
   },
 });

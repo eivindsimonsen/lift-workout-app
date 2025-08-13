@@ -65,7 +65,13 @@
         </header>
 
                      <!-- Main content -->
-             <main v-if="isAuthenticated" :class="`container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-32 md:pb-8'}`" style="padding-top: calc(0.25rem + env(safe-area-inset-top));">
+             <main 
+               v-if="isAuthenticated" 
+               :key="route.path"
+               :class="`container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-32 md:pb-8'}`" 
+               style="padding-top: calc(0.25rem + env(safe-area-inset-top));"
+               ref="mainContent"
+             >
                <router-view />
              </main>
         
@@ -242,6 +248,9 @@ const route = useRoute()
 const router = useRouter()
 const workoutData = useHybridData()
 const { handleAuthError } = useErrorHandler()
+
+// Refs
+const mainContent = ref<HTMLElement>()
 
 // State
 const hasInitialized = ref(false)
@@ -451,4 +460,26 @@ watch(() => workoutData.isLoading.value, (newValue) => {
     hasInitialized.value = true
   }
 }, { immediate: true })
+
+// Watch for route changes to reset scroll position
+watch(() => route.path, () => {
+  // Reset scroll position when route changes
+  // Reset window scroll position (works for browser version)
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  
+  // Also reset main content scroll position (works for PWA version)
+  if (mainContent.value) {
+    mainContent.value.scrollTop = 0
+  }
+  
+  // Reset document body scroll position as additional fallback
+  if (document.body) {
+    document.body.scrollTop = 0
+  }
+  
+  // Reset document documentElement scroll position (for some browsers)
+  if (document.documentElement) {
+    document.documentElement.scrollTop = 0
+  }
+})
 </script> 
