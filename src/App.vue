@@ -67,6 +67,12 @@
           <router-view />
         </main>
 
+        <!-- Offline Indicator -->
+        <OfflineIndicator />
+        
+        <!-- PWA Install Prompt -->
+        <PWAInstallPrompt />
+
         <!-- Desktop Workout Session Actions - only show if in workout session -->
         <div v-if="isAuthenticated && isWorkoutSession" class="hidden md:block fixed bottom-[-1px] left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pb-[env(safe-area-inset-bottom)]">
           <!-- Progress Bar as border-top -->
@@ -216,6 +222,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
+import PWAInstallPrompt from '@/components/PWAInstallPrompt.vue'
+import OfflineIndicator from '@/components/OfflineIndicator.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const route = useRoute()
