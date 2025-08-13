@@ -558,20 +558,49 @@
 
 /* Mobile Browser Blocker Styles */
 @media not (display-mode: standalone) {
-  /* Full-screen blocker for mobile browsers */
+  /* Full-screen blocker for mobile browsers - UNSKAKELIG */
   .mobile-browser-banner {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9999;
-    background-color: #111827; /* bg-dark-900 */
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 9999 !important;
+    background-color: #111827 !important; /* bg-dark-900 */
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    pointer-events: auto !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -webkit-touch-callout: none !important;
   }
 
-  /* Hide app content when blocker is active */
+  /* Hide app content when blocker is active - AGGRESSIVT */
   .mobile-browser-banner ~ * {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Hide body and html content when blocker is shown */
+  body:has(.mobile-browser-banner) > *:not(.mobile-browser-banner),
+  html:has(.mobile-browser-banner) > *:not(.mobile-browser-banner) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Force hide all app content */
+  .mobile-browser-banner[style*="display: block"] ~ *,
+  .mobile-browser-banner[style*="display: block"] + * {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   /* Force hide bottom navigation when blocker is active - more aggressive approach */
