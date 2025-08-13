@@ -63,7 +63,7 @@
         </header>
 
         <!-- Main content -->
-        <main :class="isAuthenticated ? `container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-32 md:pb-8'}` : ''" style="padding-top: calc(2rem + env(safe-area-inset-top));">
+        <main :class="isAuthenticated ? `container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-32 md:pb-8'}` : ''" style="padding-top: calc(0.5rem + env(safe-area-inset-top));">
           <router-view />
         </main>
 
@@ -74,7 +74,7 @@
         <PWAInstallPrompt />
 
         <!-- Desktop Workout Session Actions - only show if in workout session -->
-        <div v-if="isAuthenticated && isWorkoutSession" class="hidden md:block fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
+        <div v-if="isAuthenticated && isWorkoutSession" class="hidden md:block fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50" style="padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));">
           <!-- Progress Bar as border-top -->
           <div class="w-full h-1 bg-dark-600">
             <div 
@@ -113,7 +113,7 @@
         </div>
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
-        <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
+        <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50" style="padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));">
           <div class="flex justify-around">
             <router-link 
               to="/" 
@@ -173,7 +173,7 @@
         </nav>
 
         <!-- Workout Session Navigation - only show if in workout session -->
-        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
+        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50" style="padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));">
           <!-- Progress Bar as border-top -->
           <div class="w-full h-1 bg-dark-600">
             <div 

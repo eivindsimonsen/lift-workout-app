@@ -25,10 +25,11 @@
   #app {
     min-height: 100vh;
     min-height: 100dvh; /* Dynamic viewport height for mobile */
-    padding-top: var(--safe-area-inset-top);
-    padding-bottom: var(--safe-area-inset-bottom);
-    padding-left: var(--safe-area-inset-left);
-    padding-right: var(--safe-area-inset-right);
+    /* Reduced safe area padding for better mobile layout */
+    padding-top: calc(var(--safe-area-inset-top) * 0.3);
+    padding-bottom: calc(var(--safe-area-inset-bottom) * 0.3);
+    padding-left: calc(var(--safe-area-inset-left) * 0.3);
+    padding-right: calc(var(--safe-area-inset-right) * 0.3);
   }
 
   /* Reset webkit styles for mobile */
@@ -136,11 +137,11 @@
   /* Mobile safe area adjustments */
   @supports (padding: max(0px)) {
     .safe-area-top {
-      padding-top: max(1rem, env(safe-area-inset-top));
+      padding-top: max(0.5rem, calc(env(safe-area-inset-top) * 0.3));
     }
 
     .safe-area-bottom {
-      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      padding-bottom: max(0.5rem, calc(env(safe-area-inset-bottom) * 0.3));
     }
   }
 
