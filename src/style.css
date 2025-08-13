@@ -203,7 +203,7 @@
   /* Bottom navigation positioning */
   .pwa-navigation {
     bottom: 0 !important;
-    padding-bottom: 0 !important;
+    padding-bottom: 0.75rem !important;
     margin-bottom: 0 !important;
   }
 
@@ -283,10 +283,10 @@
       overflow-x: hidden !important;
     }
 
-    /* Ensure no safe area insets are applied */
+    /* Ensure no safe area insets are applied, but add small padding for iPhone corners */
     nav.fixed.bottom-0,
     .pwa-navigation {
-      padding-bottom: env(safe-area-inset-bottom) !important;
+      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important;
       margin-bottom: 0 !important;
     }
   }
@@ -321,11 +321,11 @@
       min-height: 100dvh !important;
     }
 
-    /* Force navigation to absolute bottom */
+    /* Force navigation to absolute bottom with small padding for iPhone corners */
     nav.fixed.bottom-0,
     .pwa-navigation {
       bottom: 0 !important;
-      padding-bottom: 0 !important;
+      padding-bottom: 0.75rem !important;
       margin-bottom: 0 !important;
       position: fixed !important;
     }
