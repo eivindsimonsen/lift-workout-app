@@ -139,7 +139,29 @@
     }
 
     /* Ensure navigation is flush with bottom in PWA */
+    nav[style*="padding-bottom"],
     nav[style*="padding-bottom"] {
+      padding-bottom: 0px !important;
+    }
+
+    /* Target all navigation elements specifically */
+    nav.md\\:hidden.fixed.bottom-0,
+    nav.md\\:hidden.fixed.bottom-0[style*="padding-bottom"] {
+      padding-bottom: 0px !important;
+    }
+
+    /* Force remove any inline styles for bottom padding */
+    [style*="padding-bottom"] {
+      padding-bottom: 0px !important;
+    }
+
+    /* PWA Navigation - flush with bottom */
+    .pwa-navigation {
+      padding-bottom: 0px !important;
+    }
+
+    /* Ensure all bottom navigation is flush in PWA mode */
+    .pwa-navigation.md\\:hidden.fixed.bottom-0 {
       padding-bottom: 0px !important;
     }
   }

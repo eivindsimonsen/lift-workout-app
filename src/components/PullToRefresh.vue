@@ -45,8 +45,8 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  threshold: 120,
-  maxPullDistance: 160
+  threshold: 240, // Doubled from 120
+  maxPullDistance: 320 // Doubled from 160
 })
 
 const emit = defineEmits<{
@@ -68,6 +68,16 @@ const currentY = ref(0)
 const handleTouchStart = (e: TouchEvent) => {
   if (isRefreshing.value) return
   
+  // Check scroll position immediately when touch starts
+  const scrollTop = window.pageYOffset || 
+                   document.documentElement.scrollTop || 
+                   document.body.scrollTop || 0
+  
+  // Only allow pull-to-refresh if we're at the very top
+  if (scrollTop > 5) {
+    return // Don't even start tracking this touch
+  }
+  
   const touch = e.touches[0]
   startY.value = touch.clientY
   currentY.value = touch.clientY
@@ -79,18 +89,29 @@ const handleTouchMove = (e: TouchEvent) => {
   const touch = e.touches[0]
   currentY.value = touch.clientY
   
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+  // Get scroll position from multiple sources to be more reliable
+  const scrollTop = window.pageYOffset || 
+                   document.documentElement.scrollTop || 
+                   document.body.scrollTop || 0
   
-  // Only allow pull-to-refresh when at the top of the page
-  if (scrollTop <= 0 && currentY.value > startY.value) {
+  // Only allow pull-to-refresh when EXACTLY at the top of the page
+  // Add a small tolerance (5px) to account for rounding errors
+  if (scrollTop <= 5 && currentY.value > startY.value) {
     e.preventDefault()
     
     const distance = Math.min(currentY.value - startY.value, props.maxPullDistance)
     pullDistance.value = distance
     
-    if (distance > 0) {
+    // Only show pulling state after a small threshold to prevent accidental triggers
+    if (distance > 20) {
       isPulling.value = true
+    } else {
+      isPulling.value = false
     }
+  } else {
+    // Reset if not at top
+    isPulling.value = false
+    pullDistance.value = 0
   }
 }
 
