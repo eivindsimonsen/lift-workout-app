@@ -1,60 +1,74 @@
 <template>
-  <div>
-    <!-- Header -->
-    <div class="mb-8">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
-            <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
-            </svg>
+  <NetworkStatus />
+  <PWAInstallPrompt />
+  <PullToRefresh @refresh="handleRefresh" :on-refresh="handleRefresh">
+    <div>
+      <!-- Header -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-white">Økter</h1>
           </div>
-          <h1 class="text-2xl font-bold text-white">Økter</h1>
+          <router-link 
+            to="/template/create"
+            class="btn-primary inline-flex items-center gap-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </router-link>
         </div>
-        <router-link 
-          to="/template/create"
-          class="btn-primary inline-flex items-center gap-2"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-        </router-link>
       </div>
-    </div>
 
     <!-- Active Workout Sessions -->
     <div v-if="activeSessions.length > 0" class="mt-8">
       <h2 class="text-xl font-semibold text-white mb-4">Aktiv Økt</h2>
 
       <div class="space-y-4">
-        <div 
+        <SwipeableCard
           v-for="session in activeSessions" 
           :key="session.id"
-          @click="continueWorkout(session.id)"
-          class="flex items-center justify-between p-4 bg-dark-700 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors border-l-4 border-primary-500"
+          @delete="abandonWorkout(session.id)"
         >
-          <div class="flex-1">
-            <h3 class="font-medium text-white">{{ session.templateName }}</h3>
-            <p class="text-sm text-dark-300">
-              Startet {{ formatDate(session.date) }}
-            </p>
-            <p class="text-xs text-dark-400">
-              {{ session.exercises.length }} øvelser • Fortsett økt
-            </p>
+          <div 
+            @click="continueWorkout(session.id)"
+            class="flex items-center justify-between p-4 bg-dark-700 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors border-l-4 border-primary-500"
+          >
+            <div class="flex-1">
+              <h3 class="font-medium text-white">{{ session.templateName }}</h3>
+              <p class="text-sm text-dark-300">
+                Startet {{ formatDate(session.date) }}
+              </p>
+              <p class="text-xs text-dark-400">
+                {{ session.exercises.length }} øvelser • Fortsett økt
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span 
+                class="px-3 py-2 rounded-full text-sm font-medium"
+                :style="{ 
+                  backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
+                  color: getWorkoutTypeColor(session.workoutType)
+                }"
+              >
+                {{ getWorkoutTypeName(session.workoutType) }}
+              </span>
+              <button 
+                @click.stop="abandonWorkout(session.id)"
+                class="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-sm font-medium"
+                title="Avbryt økt"
+              >
+                Avbryt
+              </button>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span 
-              class="px-3 py-2 rounded-full text-sm font-medium"
-              :style="{ 
-                backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
-                color: getWorkoutTypeColor(session.workoutType)
-              }"
-            >
-              {{ getWorkoutTypeName(session.workoutType) }}
-            </span>
-          </div>
-        </div>
+        </SwipeableCard>
       </div>
     </div>
 
@@ -158,12 +172,17 @@
       </div>
     </div>
   </div>
+  </PullToRefresh>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
+import SwipeableCard from '@/components/SwipeableCard.vue'
+import PullToRefresh from '@/components/PullToRefresh.vue'
+import NetworkStatus from '@/components/NetworkStatus.vue'
+import PWAInstallPrompt from '@/components/PWAInstallPrompt.vue'
 
 const router = useRouter()
 const workoutData = useHybridData()
@@ -213,6 +232,40 @@ const startWorkout = async (templateId: string) => {
 
 const continueWorkout = (sessionId: string) => {
   router.push(`/workout/${sessionId}`)
+}
+
+const abandonWorkout = async (sessionId: string) => {
+  if (confirm('Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil markeres som fullført.')) {
+    try {
+      // Haptic feedback on mobile
+      if ('vibrate' in navigator) {
+        navigator.vibrate(100)
+      }
+      
+      await workoutData.abandonWorkoutSession(sessionId)
+      // Refresh data to update the UI
+      await workoutData.loadData()
+      
+      // Success feedback
+      if ('vibrate' in navigator) {
+        navigator.vibrate([50, 100, 50])
+      }
+    } catch (error) {
+      // Error feedback
+      if ('vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200])
+      }
+      alert('Kunne ikke avbryte økt. Prøv igjen.')
+    }
+  }
+}
+
+const handleRefresh = async () => {
+  try {
+    await workoutData.loadData()
+  } catch (error) {
+    console.error('Refresh failed:', error)
+  }
 }
 
 // Helper methods for exercise grouping

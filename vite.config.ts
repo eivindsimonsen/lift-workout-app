@@ -74,6 +74,11 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    host: "0.0.0.0", // Allow external connections
+    port: 5173,
+    https: false, // Back to HTTP for development
+  },
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),

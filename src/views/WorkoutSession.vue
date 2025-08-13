@@ -40,6 +40,14 @@
           >
             {{ getWorkoutTypeName(session?.workoutType || '') }}
           </span>
+          <!-- Abandon workout button -->
+          <button 
+            @click="handleAbandonWorkout"
+            class="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-sm font-medium"
+            title="Avbryt økt"
+          >
+            Avbryt økt
+          </button>
         </div>
       </div>
 
@@ -277,6 +285,21 @@
             <p class="text-2xl font-bold text-primary-500">{{ sessionDuration }}</p>
             <p class="text-sm text-dark-300">Varighet</p>
           </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="mt-6 flex gap-3 justify-center">
+          <button 
+            @click="handleCompleteWorkout"
+            :disabled="completedSets === 0"
+            class="btn-primary px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            :title="completedSets === 0 ? 'Du må ha minst ett fullført sett for å fullføre økten' : 'Fullfør økt'"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Fullfør økt
+          </button>
         </div>
       </div>
     </div>
@@ -672,8 +695,25 @@ const updateAppSaveState = () => {
 }
 
 const handleCompleteWorkout = () => {
-  if (confirm('Er du sikker på at du vil avslutte økten?')) {
+  if (confirm('Er du sikker på at du vil fullføre økten?')) {
     completeWorkout()
+  }
+}
+
+const handleAbandonWorkout = () => {
+  if (confirm('Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil markeres som fullført.')) {
+    abandonWorkout()
+  }
+}
+
+const abandonWorkout = async () => {
+  if (!session.value) return
+  
+  try {
+    await workoutData.abandonWorkoutSession(session.value.id)
+    router.push('/')
+  } catch (error: any) {
+    handleAuthError(error)
   }
 }
 

@@ -771,6 +771,40 @@ const createSupabaseData = () => {
     sessions.value = sessions.value.filter((s) => s.id !== sessionId);
   };
 
+  const abandonWorkoutSession = async (sessionId: string) => {
+    logSupabaseAccess("Abandon session", sessionId);
+
+    try {
+      // Mark the session as completed - this effectively "abandons" it
+      // The data is preserved but marked as finished
+      const { error } = await supabase
+        .from("workout_sessions")
+        .update({
+          is_completed: true,
+        })
+        .eq("id", sessionId);
+
+      if (error) {
+        console.error("Error abandoning session:", error);
+        throw error;
+      }
+
+      // Update local state
+      const sessionIndex = sessions.value.findIndex((s) => s.id === sessionId);
+      if (sessionIndex !== -1) {
+        sessions.value[sessionIndex] = {
+          ...sessions.value[sessionIndex],
+          isCompleted: true,
+        };
+      }
+
+      console.log("✅ Session abandoned successfully");
+    } catch (error) {
+      console.error("❌ Error abandoning session:", error);
+      throw error;
+    }
+  };
+
   return {
     // State (only user data)
     templates,
@@ -799,6 +833,7 @@ const createSupabaseData = () => {
     completeWorkoutSession,
     markSessionAsActive,
     deleteWorkoutSession,
+    abandonWorkoutSession,
     signOut,
     initializeAuth,
     resetState,

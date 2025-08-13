@@ -81,6 +81,7 @@ export const useHybridData = () => {
     completeWorkoutSession: userData.completeWorkoutSession,
     markSessionAsActive: userData.markSessionAsActive,
     deleteWorkoutSession: userData.deleteWorkoutSession,
+    abandonWorkoutSession: userData.abandonWorkoutSession,
     signOut: userData.signOut,
     cleanup: userData.cleanup,
   };
