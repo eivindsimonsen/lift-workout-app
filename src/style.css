@@ -184,8 +184,52 @@
       bottom: 0px !important;
       left: 0px !important;
       right: 0px !important;
-      padding-bottom: 0px !important;
+      padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)) !important;
       margin-bottom: 0px !important;
+    }
+  }
+
+  /* Browser-specific fixes - only apply when NOT in PWA mode */
+  @media not (display-mode: standalone) {
+    /* Remove extra spacing for browser view */
+    #app {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    /* Fix desktop sticky header - remove the top spacing */
+    header.sticky.top-0 {
+      top: 0 !important;
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+
+    /* Fix bottom navigation spacing in browser */
+    nav.fixed.bottom-0,
+    .pwa-navigation {
+      bottom: 0 !important;
+      margin-bottom: 0 !important;
+      padding-bottom: 0 !important;
+    }
+
+    /* Remove any safe area insets in browser mode */
+    body {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    /* Add top spacing to the main content area instead */
+    main {
+      padding-top: 1rem !important;
+    }
+
+    /* Target the mobile header content (the Økter title area) */
+    .container.mx-auto.px-4.py-8 {
+      padding-top: 1rem !important;
     }
   }
 
