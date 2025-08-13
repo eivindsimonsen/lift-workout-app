@@ -233,7 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
@@ -463,23 +463,35 @@ watch(() => workoutData.isLoading.value, (newValue) => {
 
 // Watch for route changes to reset scroll position
 watch(() => route.path, () => {
-  // Reset scroll position when route changes
-  // Reset window scroll position (works for browser version)
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-  
-  // Also reset main content scroll position (works for PWA version)
-  if (mainContent.value) {
-    mainContent.value.scrollTop = 0
-  }
-  
-  // Reset document body scroll position as additional fallback
-  if (document.body) {
-    document.body.scrollTop = 0
-  }
-  
-  // Reset document documentElement scroll position (for some browsers)
-  if (document.documentElement) {
-    document.documentElement.scrollTop = 0
-  }
+  // Use nextTick to ensure DOM is updated before scrolling
+  nextTick(() => {
+    // Reset scroll position when route changes
+    
+    // Method 1: Reset window scroll position (works for browser version)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    
+    // Method 2: Reset main content scroll position (works for PWA version)
+    if (mainContent.value) {
+      mainContent.value.scrollTop = 0
+    }
+    
+    // Method 3: Reset document body scroll position as additional fallback
+    if (document.body) {
+      document.body.scrollTop = 0
+    }
+    
+    // Method 4: Reset document documentElement scroll position (for some browsers)
+    if (document.documentElement) {
+      document.documentElement.scrollTop = 0
+    }
+    
+    // Method 5: Force scroll reset for PWA with touch scrolling
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'auto' })
+      if (mainContent.value) {
+        mainContent.value.scrollTop = 0
+      }
+    }, 100)
+  })
 })
 </script> 
