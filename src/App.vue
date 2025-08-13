@@ -77,6 +77,9 @@
         
         <!-- PWA Install Prompt -->
         <PWAInstallPrompt />
+        
+        <!-- Mobile Browser Blocker -->
+        <MobileBrowserBanner />
 
         <!-- Desktop Workout Session Actions - only show if in workout session -->
         <div v-if="isAuthenticated && isWorkoutSession" class="hidden md:block fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation">
@@ -229,6 +232,7 @@ import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt.vue'
 import OfflineIndicator from '@/components/OfflineIndicator.vue'
+import MobileBrowserBanner from '@/components/MobileBrowserBanner.vue'
 
 import { useErrorHandler } from '@/composables/useErrorHandler'
 

@@ -555,3 +555,57 @@
     }
   }
 }
+
+/* Mobile Browser Blocker Styles */
+@media not (display-mode: standalone) {
+  /* Full-screen blocker for mobile browsers */
+  .mobile-browser-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    background-color: #111827; /* bg-dark-900 */
+  }
+
+  /* Hide app content when blocker is active */
+  .mobile-browser-banner ~ * {
+    display: none !important;
+  }
+
+  /* Force hide bottom navigation when blocker is active - more aggressive approach */
+  .mobile-browser-banner ~ nav,
+  .mobile-browser-banner ~ .pwa-navigation,
+  nav.fixed.bottom-0,
+  .pwa-navigation {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Additional targeting for bottom navigation */
+  .mobile-browser-banner ~ * nav,
+  .mobile-browser-banner ~ * .pwa-navigation {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Nuclear option: Hide ALL navigation when blocker is shown */
+  body:has(.mobile-browser-banner) nav,
+  body:has(.mobile-browser-banner) .pwa-navigation {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Fallback: Target specific navigation classes */
+  .mobile-browser-banner[style*="display: block"] ~ nav,
+  .mobile-browser-banner[style*="display: block"] ~ .pwa-navigation {
+    display: none !important;
+  }
+}
