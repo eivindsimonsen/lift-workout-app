@@ -63,7 +63,7 @@
         </header>
 
                      <!-- Main content -->
-             <main :class="`container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-32 md:pb-8'}`" style="padding-top: calc(0.25rem + env(safe-area-inset-top));">
+             <main v-if="isAuthenticated" :class="`container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-32 md:pb-8'}`" style="padding-top: calc(0.25rem + env(safe-area-inset-top));">
                <router-view />
              </main>
         
