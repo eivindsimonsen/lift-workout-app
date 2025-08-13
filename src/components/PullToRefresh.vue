@@ -45,8 +45,8 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  threshold: 80,
-  maxPullDistance: 120
+  threshold: 120,
+  maxPullDistance: 160
 })
 
 const emit = defineEmits<{
