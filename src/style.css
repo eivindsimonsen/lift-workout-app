@@ -137,12 +137,14 @@
     .pwa-navigation {
       padding-bottom: 0px !important;
       bottom: 0px !important;
+      margin-bottom: 0px !important;
     }
 
     /* Target all fixed bottom navigation elements */
     nav.fixed.bottom-0 {
       padding-bottom: 0px !important;
       bottom: 0px !important;
+      margin-bottom: 0px !important;
     }
 
     /* Remove any safe area bottom padding in PWA */
@@ -159,6 +161,31 @@
     nav,
     .pwa-navigation {
       padding-bottom: 0px !important;
+    }
+
+    /* Remove phantom address bar space - this is the key fix! */
+    body {
+      padding-bottom: 0px !important;
+      margin-bottom: 0px !important;
+    }
+
+    /* Force the viewport to use full height without phantom address bar */
+    #app {
+      padding-bottom: 0px !important;
+      margin-bottom: 0px !important;
+      min-height: 100vh !important;
+      height: 100vh !important;
+    }
+
+    /* Ensure navigation is truly at the bottom */
+    nav.fixed.bottom-0,
+    .pwa-navigation {
+      position: fixed !important;
+      bottom: 0px !important;
+      left: 0px !important;
+      right: 0px !important;
+      padding-bottom: 0px !important;
+      margin-bottom: 0px !important;
     }
   }
 
@@ -177,12 +204,30 @@
   .pwa-navigation {
     bottom: 0 !important;
     padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
   }
 
   /* Ensure navigation elements are flush */
   nav.fixed.bottom-0 {
     bottom: 0 !important;
     padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Additional phantom address bar fixes */
+  @media (max-width: 768px) {
+    /* Force remove any bottom spacing that might be from phantom address bar */
+    nav.fixed.bottom-0,
+    .pwa-navigation {
+      margin-bottom: 0 !important;
+      padding-bottom: 0 !important;
+    }
+
+    /* Ensure the app container doesn't have phantom spacing */
+    #app {
+      padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+    }
   }
 
   /* Allow smaller checkboxes */
