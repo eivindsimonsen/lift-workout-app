@@ -230,6 +230,107 @@
     }
   }
 
+  /* iOS Safari specific fixes for bottom navigation */
+  @supports (-webkit-touch-callout: none) {
+    /* Target iOS Safari specifically */
+    nav.fixed.bottom-0,
+    .pwa-navigation {
+      bottom: 0 !important;
+      padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+      transform: translateY(0) !important;
+    }
+
+    /* Force the viewport to use full height on iOS */
+    #app {
+      min-height: 100vh !important;
+      height: 100vh !important;
+      padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    /* Ensure body doesn't have any iOS-specific spacing */
+    body {
+      padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+      min-height: 100vh !important;
+      height: 100vh !important;
+    }
+  }
+
+  /* Ultra-aggressive bottom positioning for PWA mode */
+  @media (display-mode: standalone) and (max-width: 768px) {
+    /* Force navigation to absolute bottom */
+    nav.fixed.bottom-0,
+    .pwa-navigation {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      transform: none !important;
+    }
+
+    /* Remove any remaining viewport spacing */
+    html,
+    body,
+    #app {
+      padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+      height: 100vh !important;
+      min-height: 100vh !important;
+      overflow-x: hidden !important;
+    }
+
+    /* Ensure no safe area insets are applied */
+    nav.fixed.bottom-0,
+    .pwa-navigation {
+      padding-bottom: env(safe-area-inset-bottom) !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  /* Nuclear option: Force everything to the bottom */
+  @media (display-mode: standalone) {
+    /* Use CSS custom properties for viewport height */
+    :root {
+      --vh: 1vh;
+    }
+
+    /* Force the app to use full viewport height */
+    #app {
+      height: calc(var(--vh, 1vh) * 100) !important;
+      min-height: calc(var(--vh, 1vh) * 100) !important;
+    }
+
+    /* Ensure navigation is at the very bottom */
+    nav.fixed.bottom-0,
+    .pwa-navigation {
+      bottom: 0 !important;
+      padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  /* iOS Safari viewport height fix */
+  @supports (-webkit-touch-callout: none) {
+    /* Use 100dvh (dynamic viewport height) for iOS */
+    #app {
+      height: 100dvh !important;
+      min-height: 100dvh !important;
+    }
+
+    /* Force navigation to absolute bottom */
+    nav.fixed.bottom-0,
+    .pwa-navigation {
+      bottom: 0 !important;
+      padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+      position: fixed !important;
+    }
+  }
+
   /* Allow smaller checkboxes */
   input[type="checkbox"] {
     min-height: auto;
