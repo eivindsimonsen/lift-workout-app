@@ -1,6 +1,6 @@
 <template>
-     <div v-if="showBlocker" class="fixed inset-0 z-[9999] bg-dark-900 flex items-center justify-center p-6" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; z-index: 9999 !important;">
-    <div class="max-w-md w-full text-center">
+     <div v-if="showBlocker" class="mobile-browser-banner fixed inset-0 z-[9999] bg-dark-900 flex items-center justify-center overflow-hidden" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; z-index: 9999 !important; padding-top: 2rem !important; padding-bottom: 2rem !important;">
+         <div class="max-w-md w-full text-center px-6">
       <!-- App Icon -->
       <div class="w-24 h-24 bg-primary-500 rounded-2xl mx-auto mb-8 flex items-center justify-center">
         <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,15 +68,7 @@
           Installer App
         </button>
 
-        <!-- Instructions Text for iOS Safari -->
-        <div v-else class="text-center mb-4">
-          <button 
-            @click="handleInstall"
-            class="text-primary-400 hover:text-primary-300 underline text-sm"
-          >
-            Vis installasjonsinstruksjoner
-          </button>
-        </div>
+        
 
         <!-- Additional Instructions for Android Users -->
         <div v-if="isAndroid && deferredPrompt" class="text-center mb-4">
@@ -213,40 +205,11 @@ watch(showBlocker, (newValue) => {
   if (newValue) {
     // Emit event when blocker is shown
     window.dispatchEvent(new CustomEvent('mobile-browser-blocker-shown'))
-    
-    // SECURITY: Prevent users from bypassing the blocker
-    preventBlockerBypass()
   } else {
     // Emit event when blocker is hidden
     window.dispatchEvent(new CustomEvent('mobile-browser-blocker-hidden'))
   }
 })
-
-// SECURITY: Prevent users from bypassing the blocker
-const preventBlockerBypass = () => {
-  // Disable right-click context menu
-  document.addEventListener('contextmenu', (e) => e.preventDefault())
-  
-  // Disable keyboard shortcuts
-  document.addEventListener('keydown', (e) => {
-    // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
-    if (e.key === 'F12' || 
-        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-        (e.ctrlKey && e.shiftKey && e.key === 'J') ||
-        (e.ctrlKey && e.key === 'u')) {
-      e.preventDefault()
-      return false
-    }
-  })
-  
-  // Disable text selection
-  document.body.style.userSelect = 'none'
-  document.body.style.webkitUserSelect = 'none'
-  
-  // Disable drag and drop
-  document.addEventListener('dragstart', (e) => e.preventDefault())
-  document.addEventListener('drop', (e) => e.preventDefault())
-}
 
 onUnmounted(() => {
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
