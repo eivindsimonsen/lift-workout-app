@@ -135,7 +135,7 @@
 
     /* Force bottom navigation to be flush with bottom in PWA */
     .pwa-navigation {
-      padding-bottom: 0px !important;
+      padding-bottom: 1.25rem !important;
       bottom: 0px !important;
       margin-bottom: 0px !important;
     }
@@ -244,14 +244,14 @@
     }
   }
 
-  /* Bottom navigation positioning */
+  /* Bottom navigation positioning - default (browser mode) */
   .pwa-navigation {
     bottom: 0 !important;
-    padding-bottom: 1.25rem !important;
+    padding-bottom: 0 !important;
     margin-bottom: 0 !important;
   }
 
-  /* Ensure navigation elements are flush */
+  /* Ensure navigation elements are flush in browser mode */
   nav.fixed.bottom-0 {
     bottom: 0 !important;
     padding-bottom: 0 !important;
