@@ -6,12 +6,36 @@
   body {
     @apply bg-dark-900 text-white font-sans;
   }
-  
+
+  /* PWA and mobile safe area handling */
+  :root {
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Ensure full height for PWA */
+  html,
+  body {
+    height: 100%;
+    overflow-x: hidden;
+  }
+
+  #app {
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile */
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+    padding-left: var(--safe-area-inset-left);
+    padding-right: var(--safe-area-inset-right);
+  }
+
   /* Reset webkit styles for mobile */
   * {
     -webkit-tap-highlight-color: transparent;
   }
-  
+
   /* Ensure buttons maintain their styles on mobile */
   button {
     -webkit-appearance: none;
@@ -27,9 +51,11 @@
     color: inherit;
     cursor: pointer;
   }
-  
+
   /* Ensure inputs maintain their styles on mobile */
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -41,7 +67,7 @@
     line-height: inherit;
     color: inherit;
   }
-  
+
   /* Fix for iOS Safari input styling */
   input[type="text"],
   input[type="number"],
@@ -55,7 +81,7 @@
     appearance: none;
     border-radius: 0;
   }
-  
+
   /* Fix for iOS Safari select styling */
   select {
     -webkit-appearance: none;
@@ -67,7 +93,7 @@
     background-size: 1em;
     padding-right: 2.5rem;
   }
-  
+
   /* Remove default focus styles and add custom ones */
   button:focus,
   input:focus,
@@ -75,13 +101,49 @@
   textarea:focus {
     outline: none;
   }
-  
+
   /* Ensure touch targets are large enough */
-  button, input, select, textarea {
+  button,
+  input,
+  select,
+  textarea {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
+  /* PWA-specific mobile optimizations */
+  @media (display-mode: standalone) {
+    /* Hide browser UI elements when in PWA mode */
+    body {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* Better touch scrolling */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Prevent zoom on input focus for iOS */
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"] {
+      font-size: 16px;
+    }
+  }
+
+  /* Mobile safe area adjustments */
+  @supports (padding: max(0px)) {
+    .safe-area-top {
+      padding-top: max(1rem, env(safe-area-inset-top));
+    }
+
+    .safe-area-bottom {
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+  }
+
   /* Allow smaller checkboxes */
   input[type="checkbox"] {
     min-height: auto;
@@ -98,14 +160,14 @@
     position: relative;
     transition: all 0.2s ease;
   }
-  
+
   input[type="checkbox"]:checked {
     background-color: #f97316; /* primary-500 */
     border-color: #f97316; /* primary-500 */
   }
-  
+
   input[type="checkbox"]:checked::after {
-    content: '';
+    content: "";
     position: absolute;
     left: 2px;
     top: 1px;
@@ -115,13 +177,13 @@
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
-  
+
   input[type="checkbox"]:focus {
     outline: none;
     ring: 2px;
     ring-color: #f97316; /* primary-500 */
   }
-  
+
   /* Fix for iOS Safari button text rendering */
   button {
     -webkit-font-smoothing: antialiased;
@@ -145,7 +207,7 @@
     -webkit-user-select: none;
     -webkit-touch-callout: none;
   }
-  
+
   .btn-secondary {
     @apply bg-dark-700 hover:bg-dark-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
     -webkit-appearance: none;
@@ -161,23 +223,23 @@
     -webkit-user-select: none;
     -webkit-touch-callout: none;
   }
-  
+
   .card {
     @apply bg-dark-800 rounded-lg p-6 border border-dark-700;
   }
-  
+
   /* Router link styling */
   a {
     text-decoration: none;
     color: inherit;
   }
-  
+
   router-link {
     display: block;
     text-decoration: none;
     color: inherit;
   }
-  
+
   .input-field {
     @apply bg-dark-700 border border-dark-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
     -webkit-appearance: none;
@@ -186,7 +248,7 @@
     border: 1px solid;
     font-size: 16px; /* Prevents zoom on iOS */
   }
-  
+
   /* Mobile-specific button styles */
   @media (max-width: 768px) {
     .btn-primary,
@@ -198,29 +260,32 @@
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
-    
+
     .input-field {
       min-height: 48px;
       font-size: 16px;
       padding: 12px 16px;
       -webkit-tap-highlight-color: transparent;
     }
-    
+
     /* Fix for iOS Safari button press states */
     .btn-primary:active,
     .btn-secondary:active {
       transform: scale(0.98);
       transition: transform 0.1s ease;
     }
-    
+
     /* Ensure proper text rendering on mobile */
-    input, select, textarea, button {
+    input,
+    select,
+    textarea,
+    button {
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
     }
   }
-  
+
   /* Additional fixes for specific mobile browsers */
   @supports (-webkit-touch-callout: none) {
     /* iOS Safari specific fixes */
@@ -231,7 +296,7 @@
       user-select: none;
     }
   }
-  
+
   /* Fix for Android Chrome */
   @media screen and (-webkit-min-device-pixel-ratio: 0) {
     .btn-primary,
@@ -240,22 +305,22 @@
       transform: translateZ(0);
     }
   }
-  
+
   /* Active navigation link styling */
   .nav-link-active {
     color: #f97316 !important; /* primary-500 color */
   }
-  
+
   /* Ensure active navigation links are properly colored on mobile */
   @media (max-width: 768px) {
     .nav-link-active {
       color: #f97316 !important;
     }
-    
+
     /* Override any conflicting styles for active navigation */
     router-link.nav-link-active,
     a.nav-link-active {
       color: #f97316 !important;
     }
   }
-} 
+}

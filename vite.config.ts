@@ -46,6 +46,10 @@ export default defineConfig({
         orientation: "portrait",
         scope: "/",
         start_url: "/",
+        display_override: ["standalone", "minimal-ui"],
+        edge_side_panel: {
+          preferred_width: 400,
+        },
         icons: [
           {
             src: "icon-192.png",
