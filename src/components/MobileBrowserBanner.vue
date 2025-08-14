@@ -151,7 +151,8 @@ onMounted(() => {
   detectPlatformAndBrowser()
   
   if (isMobileBrowser() && !hasInstalledPWA()) {
-    showBlocker.value = true
+    // showBlocker.value = true // TODO: Uncomment this when done testing
+    showBlocker.value = false
   }
   
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
