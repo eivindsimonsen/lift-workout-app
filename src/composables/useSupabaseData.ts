@@ -199,8 +199,29 @@ const createSupabaseData = () => {
 
           if (cachedData && !forceRefresh) {
             console.log("📱 Loading data from cache...");
-            templates.value = cachedData.templates;
-            sessions.value = cachedData.sessions;
+
+            // Convert date strings back to Date objects when loading from cache
+            const convertDates = (data: any[]): any[] => {
+              return data.map((item) => {
+                if (item && typeof item === "object") {
+                  // Convert session dates back to Date objects
+                  if (item.date && typeof item.date === "string") {
+                    item.date = new Date(item.date);
+                  }
+                  // Convert any other date fields that might exist
+                  if (item.created_at && typeof item.created_at === "string") {
+                    item.created_at = new Date(item.created_at);
+                  }
+                  if (item.updated_at && typeof item.updated_at === "string") {
+                    item.updated_at = new Date(item.updated_at);
+                  }
+                }
+                return item;
+              });
+            };
+
+            templates.value = cachedData.templates || [];
+            sessions.value = convertDates(cachedData.sessions || []);
             lastSyncTime.value = cachedData.lastSync;
 
             // If cache is fresh (less than 5 minutes old), don't sync
@@ -229,15 +250,56 @@ const createSupabaseData = () => {
           // If sync fails, try to use cached data if available
           if (cachedData) {
             console.log("📱 Using cached data due to sync failure");
-            templates.value = cachedData.templates;
-            sessions.value = cachedData.sessions;
+
+            // Convert date strings back to Date objects when using fallback cache
+            const convertDates = (data: any[]): any[] => {
+              return data.map((item) => {
+                if (item && typeof item === "object") {
+                  // Convert session dates back to Date objects
+                  if (item.date && typeof item.date === "string") {
+                    item.date = new Date(item.date);
+                  }
+                  // Convert any other date fields that might exist
+                  if (item.created_at && typeof item.created_at === "string") {
+                    item.created_at = new Date(item.created_at);
+                  }
+                  if (item.updated_at && typeof item.updated_at === "string") {
+                    item.updated_at = new Date(item.updated_at);
+                  }
+                }
+                return item;
+              });
+            };
+
+            templates.value = cachedData.templates || [];
+            sessions.value = convertDates(cachedData.sessions || []);
           }
         }
       } else {
         console.log("📱 Offline mode - using cached data");
         if (cachedData) {
-          templates.value = cachedData.templates;
-          sessions.value = cachedData.sessions;
+          // Convert date strings back to Date objects when using offline cache
+          const convertDates = (data: any[]): any[] => {
+            return data.map((item) => {
+              if (item && typeof item === "object") {
+                // Convert session dates back to Date objects
+                if (item.date && typeof item.date === "string") {
+                  item.date = new Date(item.date);
+                }
+                // Convert any other date fields that might exist
+                if (item.created_at && typeof item.created_at === "string") {
+                  item.created_at = new Date(item.created_at);
+                }
+                if (item.updated_at && typeof item.updated_at === "string") {
+                  item.updated_at = new Date(item.updated_at);
+                }
+              }
+              return item;
+            });
+          };
+
+          templates.value = cachedData.templates || [];
+          sessions.value = convertDates(cachedData.sessions || []);
         }
       }
     } catch (error) {
@@ -249,8 +311,29 @@ const createSupabaseData = () => {
           const cachedData = await indexedDB.getUserData(currentUser.value.id);
           if (cachedData) {
             console.log("📱 Fallback to cached data");
-            templates.value = cachedData.templates;
-            sessions.value = cachedData.sessions;
+
+            // Convert date strings back to Date objects when using fallback cache
+            const convertDates = (data: any[]): any[] => {
+              return data.map((item) => {
+                if (item && typeof item === "object") {
+                  // Convert session dates back to Date objects
+                  if (item.date && typeof item.date === "string") {
+                    item.date = new Date(item.date);
+                  }
+                  // Convert any other date fields that might exist
+                  if (item.created_at && typeof item.created_at === "string") {
+                    item.created_at = new Date(item.created_at);
+                  }
+                  if (item.updated_at && typeof item.updated_at === "string") {
+                    item.updated_at = new Date(item.updated_at);
+                  }
+                }
+                return item;
+              });
+            };
+
+            templates.value = cachedData.templates || [];
+            sessions.value = convertDates(cachedData.sessions || []);
           }
         } catch (cacheError) {
           console.error("❌ Cache fallback failed:", cacheError);
@@ -839,7 +922,41 @@ const createSupabaseData = () => {
   };
 
   const updateWorkoutSessionOffline = async (id: string, updates: Partial<WorkoutSession>) => {
-    const updatedSession = { ...sessions.value.find((s) => s.id === id), ...updates };
+    // Find the existing session
+    const existingSession = sessions.value.find((s) => s.id === id);
+    if (!existingSession) {
+      throw new Error(`Session with id ${id} not found`);
+    }
+
+    // Create a clean, non-reactive copy of the session
+    const cleanExistingSession = {
+      id: existingSession.id,
+      templateId: existingSession.templateId,
+      templateName: existingSession.templateName,
+      workoutType: existingSession.workoutType,
+      date: existingSession.date,
+      isCompleted: existingSession.isCompleted,
+      duration: existingSession.duration,
+      totalVolume: existingSession.totalVolume,
+      exercises: existingSession.exercises.map((exercise) => ({
+        exerciseId: exercise.exerciseId,
+        name: exercise.name,
+        sets: exercise.sets.map((set) => ({
+          id: set.id,
+          reps: Number(set.reps) || 0,
+          weight: Number(set.weight) || 0,
+          duration: set.duration,
+          distance: set.distance,
+          isCompleted: Boolean(set.isCompleted),
+        })),
+      })),
+    };
+
+    // Merge with updates
+    const updatedSession = { ...cleanExistingSession, ...updates };
+
+    console.log("🧹 Clean session data for IndexedDB:", updatedSession);
+
     return await saveWithOfflineSupport("session", updatedSession);
   };
 

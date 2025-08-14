@@ -80,12 +80,53 @@ export const useIndexedDB = () => {
       const transaction = db.transaction(["userData"], "readwrite");
       const store = transaction.objectStore("userData");
 
-      const userData: UserData = {
-        templates: data.templates || [],
-        sessions: data.sessions || [],
-        lastSync: data.lastSync || Date.now(),
-        user: data.user || null,
+      // Final data sanitization to ensure IndexedDB compatibility
+      const sanitizeData = (obj: any): any => {
+        if (obj === null || obj === undefined) return null;
+        if (typeof obj !== "object") return obj;
+        if (obj instanceof Date) return obj.toISOString();
+
+        if (Array.isArray(obj)) {
+          return obj.map((item) => sanitizeData(item));
+        }
+
+        const clean: any = {};
+        for (const [key, value] of Object.entries(obj)) {
+          // Skip Vue reactive properties and functions
+          if (key.startsWith("__v_") || typeof value === "function") {
+            continue;
+          }
+
+          // Skip undefined values
+          if (value === undefined) {
+            continue;
+          }
+
+          try {
+            // Test if this value can be serialized
+            JSON.stringify(value);
+            clean[key] = sanitizeData(value);
+          } catch {
+            // Skip non-serializable values
+            console.warn(`⚠️ Skipping non-serializable property: ${key}`, value);
+            continue;
+          }
+        }
+        return clean;
       };
+
+      const userData: UserData = {
+        templates: sanitizeData(data.templates) || [],
+        sessions: sanitizeData(data.sessions) || [],
+        lastSync: data.lastSync || Date.now(),
+        user: sanitizeData(data.user) || null,
+      };
+
+      console.log("🧹 Final sanitized data for IndexedDB:", {
+        templatesCount: userData.templates?.length || 0,
+        sessionsCount: userData.sessions?.length || 0,
+        userKeys: userData.user ? Object.keys(userData.user) : [],
+      });
 
       const request = store.put({ userId, ...userData });
 

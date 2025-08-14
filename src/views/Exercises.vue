@@ -236,57 +236,72 @@ const searchResults = computed(() => {
   if (!hasSearch.value) return []
   const q = searchQuery.value.trim().toLowerCase()
   
-  // Use the processed exercise structure to show variants properly
+  // Use the flattened exercises for consistent search results
   const results: any[] = []
+  const seenIds = new Set<string>() // Prevent duplicates
   
-  allExercises.value.forEach(exercise => {
-    if (exercise.variants && exercise.variants.length > 0) {
-      // For exercises with variants, search through variants
-      exercise.variants.forEach(variant => {
-        const fullName = `${exercise.name} - ${variant.name}`
-        if (fullName.toLowerCase().includes(q)) {
-          results.push({
-            id: variant.id,
-            name: fullName,
-            displayName: getVariantName(fullName), // Use variant name without prefix
-            category: exercise.muscleGroups?.[0] || '',
-            isVariant: true,
-            mainExercise: exercise.name,
-            // Include variant details directly
-            equipment: variant.equipment,
-            angle: variant.angle,
-            grip: variant.grip,
-            position: variant.position,
-            direction: variant.direction,
-            focus: variant.focus
-          })
-        }
+  workoutData.getFlattenedExercises.value.forEach(exercise => {
+    // Skip if we've already seen this exercise ID
+    if (seenIds.has(exercise.id)) {
+      return
+    }
+    
+    // Search in the exercise name
+    if (exercise.name.toLowerCase().includes(q)) {
+      seenIds.add(exercise.id)
+      results.push({
+        id: exercise.id,
+        name: exercise.name,
+        displayName: exercise.name,
+        category: exercise.category || '',
+        isVariant: false,
+        // Include exercise details
+        equipment: exercise.equipment,
+        angle: exercise.angle,
+        grip: exercise.grip,
+        position: exercise.position,
+        direction: exercise.direction,
+        focus: exercise.focus
       })
-    } else {
-      // For exercises without variants, search the main exercise name
-      if (exercise.name.toLowerCase().includes(q)) {
-        results.push({
-          id: exercise.id,
-          name: exercise.name,
-          displayName: exercise.name, // No prefix for exercises without variants
-          category: exercise.muscleGroups?.[0] || '',
-          isVariant: false
-        })
-      }
     }
   })
   
-  return results
+  // Also search in main exercises that might not be in flattened list
+  workoutData.exercises.value?.forEach(exercise => {
+    if (seenIds.has(exercise.id)) {
+      return
+    }
+    
+    // Search in the main exercise name
+    if (exercise.name.toLowerCase().includes(q)) {
+      seenIds.add(exercise.id)
+      results.push({
+        id: exercise.id,
+        name: exercise.name,
+        displayName: exercise.name,
+        category: exercise.muscleGroups?.[0] || '',
+        isVariant: false
+      })
+    }
+  })
+  
+  // Sort results by relevance (exact matches first, then partial matches)
+  return results.sort((a, b) => {
+    const aExact = a.name.toLowerCase() === q
+    const bExact = b.name.toLowerCase() === q
+    const aStartsWith = a.name.toLowerCase().startsWith(q)
+    const bStartsWith = b.name.toLowerCase().startsWith(q)
+    
+    if (aExact && !bExact) return -1
+    if (!aExact && bExact) return 1
+    if (aStartsWith && !bStartsWith) return -1
+    if (!aStartsWith && bStartsWith) return 1
+    
+    return a.name.localeCompare(b.name, 'no')
+  })
 })
 
-// Helper function to get variant name without the prefix (e.g., "Barbell Bench Press - Incline" -> "Incline")
-const getVariantName = (fullName: string): string => {
-  const parts = fullName.split(' - ')
-  if (parts.length > 1) {
-    return parts[1]
-  }
-  return fullName
-}
+
 
 // Muscle group order for categorization
 const muscleGroupOrder = ['Bryst', 'Rygg', 'Ben', 'Armer', 'Skuldre', 'Kjerne']

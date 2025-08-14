@@ -45,15 +45,7 @@
         </div>
       </div>
 
-      <!-- Success message -->
-      <div v-if="showSaveSuccess" class="mt-4 p-3 bg-green-600 bg-opacity-20 border border-green-500 rounded-lg">
-        <div class="flex items-center gap-2 text-green-400 text-sm">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 01-1.414-1.414L9 10.586 7.707 9.293a1 1 0 01-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-          </svg>
-          <span>{{ workoutData.isOnline.value ? 'Lagring velykket!' : 'Endringer lagret offline - vil synkroniseres når du er tilkoblet' }}</span>
-        </div>
-      </div>
+
 
       <!-- Network status indicator -->
       <div v-if="!workoutData.isOnline.value" class="mt-4 p-3 bg-yellow-600 bg-opacity-20 border border-yellow-500 rounded-lg">
@@ -331,7 +323,7 @@ const newExerciseId = ref('')
 const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
 const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
-const showSaveSuccess = ref(false)
+
 
 
 
@@ -406,9 +398,13 @@ const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number
   const target = event.target as HTMLInputElement
   const value = target.value
   
+  console.log('💪 Weight input:', { exerciseIndex, setIndex, value })
+  
   // Always store as number, never as string
   const weight = value === '' ? 0 : parseFloat(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
+  
+  console.log('💪 Weight stored:', weight)
   
   // Update completion status in real-time for progress bar
   updateSetCompletion(exerciseIndex, setIndex)
@@ -440,9 +436,13 @@ const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) 
   const target = event.target as HTMLInputElement
   const value = target.value
   
+  console.log('💪 Reps input:', { exerciseIndex, setIndex, value })
+  
   // Always store as number, never as string
   const reps = value === '' ? 0 : parseInt(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
+  
+  console.log('💪 Reps stored:', reps)
   
   // Update completion status in real-time for progress bar
   updateSetCompletion(exerciseIndex, setIndex)
@@ -498,45 +498,67 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   
   // Save immediately to IndexedDB for instant persistence
   if (!isSaving.value) {
-    saveSessionChanges()
+    try {
+      saveSessionChanges()
+    } catch (error) {
+      console.error('❌ Error in updateSetCompletion:', error)
+    }
   }
 }
 
 const saveSessionChanges = async () => {
   if (!session.value || !hasUnsavedChanges.value) return
   
+  console.log('💾 Starting to save session changes...')
   isSaving.value = true
   
   try {
-    // Use offline-first save function
+    // Create a clean, serializable copy of the exercises data
+    const cleanExercises = session.value.exercises.map(exercise => ({
+      exerciseId: exercise.exerciseId,
+      name: exercise.name,
+      sets: exercise.sets.map(set => ({
+        id: set.id,
+        reps: Number(set.reps) || 0,
+        weight: Number(set.weight) || 0,
+        duration: set.duration,
+        distance: set.distance,
+        isCompleted: Boolean(set.isCompleted)
+      }))
+    }))
+    
+    console.log('💾 Clean exercises data:', cleanExercises)
+    
+    // Use offline-first save function with clean data
+    console.log('💾 Calling updateWorkoutSessionOffline with session ID:', session.value.id)
     const result = await workoutData.updateWorkoutSessionOffline(session.value.id, {
-      exercises: session.value.exercises
+      exercises: cleanExercises
     })
+    
+    console.log('💾 Save result:', result)
     
     // Check if the result indicates offline mode
     if (result && typeof result === 'object' && 'offline' in result && result.offline) {
       console.log('📱 Changes saved offline, will sync when online')
-      // Show offline indicator
-      showSaveSuccess.value = true
-      setTimeout(() => {
-        showSaveSuccess.value = false
-      }, 3000)
     } else {
       console.log('✅ Session saved and synced successfully')
-      showSaveSuccess.value = true
-      setTimeout(() => {
-        showSaveSuccess.value = false
-      }, 3000)
     }
     
     // Clear unsaved changes flag
     hasUnsavedChanges.value = false
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error saving session:', error)
+    console.error('❌ Error details:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack || 'No stack trace',
+      sessionId: session.value?.id,
+      exercisesCount: session.value?.exercises?.length
+    })
     // Keep the unsaved changes flag so user can retry
   } finally {
     isSaving.value = false
+    console.log('💾 Save operation completed')
   }
 }
 
