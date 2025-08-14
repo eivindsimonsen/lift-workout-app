@@ -1,268 +1,2073 @@
 {
   "exercises": [
-    { "id": "bench-press", "name": "Barbell Bench Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer", "Skuldre"] },
-    { "id": "incline-bench-press", "name": "Incline Barbell Bench Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "decline-bench-press", "name": "Decline Barbell Bench Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer"] },
-    { "id": "dumbbell-bench-press", "name": "Dumbbell Bench Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "incline-dumbbell-press", "name": "Incline Dumbbell Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "dumbbell-flyes", "name": "Dumbbell Flyes", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst"] },
-    { "id": "cable-flyes", "name": "Cable Flyes", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst"] },
-    { "id": "push-ups", "name": "Push-ups", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "dips-chest", "name": "Dips (Chest)", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer"] },
-    { "id": "dumbbell-pullovers", "name": "Dumbbell Pullovers", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Rygg"] },
-    { "id": "cable-crossover", "name": "Cable Crossover", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst"] },
-    { "id": "pec-deck", "name": "Pec Deck Machine", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst"] },
-    { "id": "incline-cable-flyes", "name": "Incline Cable Flyes", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst"] },
-    { "id": "decline-push-ups", "name": "Decline Push-ups", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer"] },
-    { "id": "seated-chest-press", "name": "Seated Chest Press Machine", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "smith-machine-bench-press", "name": "Smith Machine Bench Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "resistance-band-push-ups", "name": "Resistance Band Push-ups", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "medicine-ball-chest-pass", "name": "Medicine Ball Chest Pass", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "landmine-press", "name": "Landmine Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "smith-machine-incline-press", "name": "Smith Machine Incline Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "smith-machine-decline-press", "name": "Smith Machine Decline Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "cable-chest-press", "name": "Cable Chest Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "machine-chest-press", "name": "Machine Chest Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "pec-deck-flyes", "name": "Pec Deck Flyes", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst"] },
-    { "id": "guillotine-press", "name": "Guillotine Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre"] },
-    { "id": "reverse-grip-bench-press", "name": "Reverse Grip Bench Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer"] },
-    { "id": "floor-press", "name": "Floor Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer"] },
-    { "id": "squeeze-press", "name": "Dumbbell Squeeze Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer"] },
-    { "id": "wide-grip-bench-press", "name": "Wide Grip Bench Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst"] },
-    { "id": "close-grip-bench-press", "name": "Close Grip Bench Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Triceps"] },
-    { "id": "isometric-bench-hold", "name": "Isometric Bench Press Hold", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "plate-press", "name": "Plate Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer"] },
-    { "id": "kneeling-landmine-press", "name": "Kneeling Landmine Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre"] },
-    { "id": "banded-bench-press", "name": "Banded Bench Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer"] },
-    { "id": "single-arm-cable-press", "name": "Single Arm Cable Chest Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre", "Armer"] },
-    { "id": "archer-push-up", "name": "Archer Push-up", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer", "Skuldre"] },
-    { "id": "explosive-push-up", "name": "Explosive Push-up", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer", "Skuldre"] },
-    { "id": "spoto-press", "name": "Spoto Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Armer"] },
-    { "id": "smith-machine-guillotine-press", "name": "Smith Machine Guillotine Press", "category": "Bryst", "workoutTypes": ["push", "upper"], "muscleGroups": ["Bryst", "Skuldre"] },
+    {
+      "id": "bench-press",
+      "name": "Bench Press",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Armer", "Skuldre"],
+      "variants": [
+        {
+          "id": "barbell-bench-press",
+          "name": "Barbell Bench Press",
+          "equipment": "barbell",
+          "angle": "flat"
+        },
+        {
+          "id": "incline-barbell-bench-press",
+          "name": "Incline Barbell Bench Press",
+          "equipment": "barbell",
+          "angle": "incline"
+        },
+        {
+          "id": "decline-barbell-bench-press",
+          "name": "Decline Barbell Bench Press",
+          "equipment": "barbell",
+          "angle": "decline"
+        },
+        {
+          "id": "dumbbell-bench-press",
+          "name": "Dumbbell Bench Press",
+          "equipment": "dumbbell",
+          "angle": "flat"
+        },
+        {
+          "id": "incline-dumbbell-press",
+          "name": "Incline Dumbbell Press",
+          "equipment": "dumbbell",
+          "angle": "incline"
+        },
+        {
+          "id": "wide-grip-bench-press",
+          "name": "Wide Grip Bench Press",
+          "equipment": "barbell",
+          "grip": "wide",
+          "angle": "flat"
+        },
+        {
+          "id": "close-grip-bench-press",
+          "name": "Close Grip Bench Press",
+          "equipment": "barbell",
+          "grip": "close",
+          "angle": "flat"
+        },
+        {
+          "id": "reverse-grip-bench-press",
+          "name": "Reverse Grip Bench Press",
+          "equipment": "barbell",
+          "grip": "reverse",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "smith-machine-bench-press",
+      "name": "Smith Machine Bench Press",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Armer", "Skuldre"],
+      "variants": [
+        {
+          "id": "smith-machine-bench-press",
+          "name": "Smith Machine Bench Press",
+          "equipment": "smith-machine",
+          "angle": "flat"
+        },
+        {
+          "id": "smith-machine-incline-press",
+          "name": "Smith Machine Incline Press",
+          "equipment": "smith-machine",
+          "angle": "incline"
+        },
+        {
+          "id": "smith-machine-decline-press",
+          "name": "Smith Machine Decline Press",
+          "equipment": "smith-machine",
+          "angle": "decline"
+        }
+      ]
+    },
+    {
+      "id": "guillotine-press",
+      "name": "Guillotine Press",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Skuldre"],
+      "variants": [
+        {
+          "id": "guillotine-press",
+          "name": "Guillotine Press",
+          "equipment": "barbell",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "floor-press",
+      "name": "Floor Press",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Armer"],
+      "variants": [
+        {
+          "id": "floor-press",
+          "name": "Floor Press",
+          "equipment": "barbell",
+          "angle": "floor"
+        }
+      ]
+    },
+    {
+      "id": "spoto-press",
+      "name": "Spoto Press",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Armer"],
+      "variants": [
+        {
+          "id": "spoto-press",
+          "name": "Spoto Press",
+          "equipment": "barbell",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "landmine-press",
+      "name": "Landmine Press",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "landmine-press",
+          "name": "Landmine Press",
+          "equipment": "landmine",
+          "angle": "flat"
+        },
+        {
+          "id": "kneeling-landmine-press",
+          "name": "Kneeling Landmine Press",
+          "equipment": "landmine",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "banded-bench-press",
+      "name": "Banded Bench Press",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Armer"],
+      "variants": [
+        {
+          "id": "banded-bench-press",
+          "name": "Banded Bench Press",
+          "equipment": "barbell",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "plate-press",
+      "name": "Plate Press",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Armer"],
+      "variants": [
+        {
+          "id": "plate-press",
+          "name": "Plate Press",
+          "equipment": "plate",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "isometric-bench-hold",
+      "name": "Isometric Bench Press Hold",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "isometric-bench-hold",
+          "name": "Isometric Bench Press Hold",
+          "equipment": "barbell",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "dumbbell-flyes",
+      "name": "Dumbbell Flyes",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst"],
+      "variants": [
+        {
+          "id": "dumbbell-flyes",
+          "name": "Dumbbell Flyes",
+          "equipment": "dumbbell",
+          "angle": "flat"
+        },
+        {
+          "id": "incline-dumbbell-flyes",
+          "name": "Incline Dumbbell Flyes",
+          "equipment": "dumbbell",
+          "angle": "incline"
+        },
+        {
+          "id": "decline-dumbbell-flyes",
+          "name": "Decline Dumbbell Flyes",
+          "equipment": "dumbbell",
+          "angle": "decline"
+        }
+      ]
+    },
+    {
+      "id": "cable-flyes",
+      "name": "Cable Flyes",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst"],
+      "variants": [
+        {
+          "id": "cable-flyes",
+          "name": "Cable Flyes",
+          "equipment": "cable",
+          "angle": "flat"
+        },
+        {
+          "id": "incline-cable-flyes",
+          "name": "Incline Cable Flyes",
+          "equipment": "cable",
+          "angle": "incline"
+        },
+        {
+          "id": "cable-crossover",
+          "name": "Cable Crossover",
+          "equipment": "cable",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "pec-deck",
+      "name": "Pec Deck Machine",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst"],
+      "variants": [
+        {
+          "id": "pec-deck",
+          "name": "Pec Deck Machine",
+          "equipment": "machine",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "dumbbell-pullovers",
+      "name": "Dumbbell Pullovers",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Rygg"],
+      "variants": [
+        {
+          "id": "dumbbell-pullovers",
+          "name": "Dumbbell Pullovers",
+          "equipment": "dumbbell",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "push-ups",
+      "name": "Push-ups",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "push-ups",
+          "name": "Push-ups",
+          "equipment": "bodyweight",
+          "angle": "flat"
+        },
+        {
+          "id": "decline-push-ups",
+          "name": "Decline Push-ups",
+          "equipment": "bodyweight",
+          "angle": "decline"
+        },
+        {
+          "id": "incline-push-ups",
+          "name": "Incline Push-ups",
+          "equipment": "bodyweight",
+          "angle": "incline"
+        },
+        {
+          "id": "diamond-push-ups",
+          "name": "Diamond Push-ups",
+          "equipment": "bodyweight",
+          "grip": "diamond",
+          "angle": "flat"
+        },
+        {
+          "id": "archer-push-up",
+          "name": "Archer Push-up",
+          "equipment": "bodyweight",
+          "angle": "flat"
+        },
+        {
+          "id": "explosive-push-up",
+          "name": "Explosive Push-up",
+          "equipment": "bodyweight",
+          "angle": "flat"
+        },
+        {
+          "id": "resistance-band-push-ups",
+          "name": "Resistance Band Push-ups",
+          "equipment": "resistance-band",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "dips",
+      "name": "Dips",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Armer"],
+      "variants": [
+        {
+          "id": "dips-chest",
+          "name": "Dips (Chest)",
+          "equipment": "parallel-bars",
+          "focus": "chest"
+        },
+        {
+          "id": "tricep-dips",
+          "name": "Tricep Dips",
+          "equipment": "parallel-bars",
+          "focus": "triceps"
+        },
+        {
+          "id": "bench-dips",
+          "name": "Bench Dips",
+          "equipment": "bench",
+          "focus": "triceps"
+        }
+      ]
+    },
+    {
+      "id": "machine-press",
+      "name": "Machine Press",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "seated-chest-press",
+          "name": "Seated Chest Press Machine",
+          "equipment": "machine",
+          "angle": "flat"
+        },
+        {
+          "id": "cable-chest-press",
+          "name": "Cable Chest Press",
+          "equipment": "cable",
+          "angle": "flat"
+        },
+        {
+          "id": "machine-chest-press",
+          "name": "Machine Chest Press",
+          "equipment": "machine",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
+      "id": "other-chest",
+      "name": "Other Chest Exercises",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "medicine-ball-chest-pass",
+          "name": "Medicine Ball Chest Pass",
+          "equipment": "medicine-ball",
+          "angle": "flat"
+        },
+        {
+          "id": "single-arm-cable-press",
+          "name": "Single Arm Cable Chest Press",
+          "equipment": "cable",
+          "angle": "flat"
+        },
+        {
+          "id": "squeeze-press",
+          "name": "Dumbbell Squeeze Press",
+          "equipment": "dumbbell",
+          "angle": "flat"
+        }
+      ]
+    },
 
-    { "id": "overhead-press", "name": "Military Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "dumbbell-shoulder-press", "name": "Dumbbell Shoulder Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "barbell-shoulder-press", "name": "Barbell Shoulder Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "lateral-raises", "name": "Lateral Raises", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre"] },
-    { "id": "front-raises", "name": "Front Raises", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre"] },
-    { "id": "rear-delt-flyes", "name": "Reverse Flyes (Rear Deltoid)", "category": "Skuldre", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Skuldre", "Rygg"] },
-    { "id": "face-pulls", "name": "Face Pulls", "category": "Skuldre", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Skuldre", "Rygg"] },
-    { "id": "arnold-press", "name": "Arnold Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "upright-rows", "name": "Upright Rows", "category": "Skuldre", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "shrugs", "name": "Shoulder Shrugs", "category": "Skuldre", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Skuldre"] },
-    { "id": "cable-lateral-raises", "name": "Cable Lateral Raises", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre"] },
-    { "id": "reverse-pec-deck", "name": "Reverse Pec Deck", "category": "Skuldre", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Skuldre", "Rygg"] },
-    { "id": "pike-push-ups", "name": "Pike Push-ups", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "handstand-push-ups", "name": "Handstand Push-ups", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "cable-rear-delt-flyes", "name": "Cable Rear Delt Flyes", "category": "Skuldre", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Skuldre", "Rygg"] },
-    { "id": "bent-over-lateral-raises", "name": "Bent Over Lateral Raises", "category": "Skuldre", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Skuldre"] },
-    { "id": "cable-front-raises", "name": "Cable Front Raises", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre"] },
-    { "id": "plate-front-raises", "name": "Plate Front Raises", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre"] },
-    { "id": "z-press", "name": "Z-Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "bradford-press", "name": "Bradford Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "seated-overhead-press", "name": "Seated Overhead Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "landmine-press-shoulders", "name": "Landmine Press (Shoulders)", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "push-press", "name": "Push Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer", "Kjerne"] },
-    { "id": "single-arm-dumbbell-press", "name": "Single Arm Dumbbell Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer", "Kjerne"] },
-    { "id": "single-arm-landmine-press", "name": "Single Arm Landmine Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer", "Kjerne"] },
-    { "id": "scaption", "name": "Scaption Raise", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Rotator cuff"] },
-    { "id": "cuban-press", "name": "Cuban Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Rotator cuff"] },
-    { "id": "overhead-cable-press", "name": "Overhead Cable Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "overhead-plate-hold", "name": "Overhead Plate Hold", "category": "Skuldre", "workoutTypes": ["static", "upper"], "muscleGroups": ["Skuldre", "Kjerne"] },
-    { "id": "farmers-carry", "name": "Farmer's Carry", "category": "Skuldre", "workoutTypes": ["carry", "full-body"], "muscleGroups": ["Skuldre", "Kjerne", "Armer"] },
-    { "id": "overhead-carry", "name": "Overhead Carry", "category": "Skuldre", "workoutTypes": ["carry", "full-body"], "muscleGroups": ["Skuldre", "Kjerne"] },
-    { "id": "waiter-carry", "name": "Waiter Carry", "category": "Skuldre", "workoutTypes": ["carry", "upper"], "muscleGroups": ["Skuldre", "Kjerne"] },
-    { "id": "prone-rear-delt-raises", "name": "Prone Rear Delt Raises", "category": "Skuldre", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Skuldre"] },
-    { "id": "banded-lateral-raises", "name": "Banded Lateral Raises", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre"] },
-    { "id": "banded-front-raises", "name": "Banded Front Raises", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre"] },
-    { "id": "reverse-cable-crossover", "name": "Reverse Cable Crossover", "category": "Skuldre", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Skuldre", "Rygg"] },
-    { "id": "machine-shoulder-press", "name": "Machine Shoulder Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "smith-machine-shoulder-press", "name": "Smith Machine Shoulder Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
-    { "id": "neutral-grip-dumbbell-press", "name": "Neutral Grip Dumbbell Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
+    {
+      "id": "shoulder-press",
+      "name": "Shoulder Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "overhead-press",
+          "name": "Military Press",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "dumbbell-shoulder-press",
+          "name": "Dumbbell Shoulder Press",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "barbell-shoulder-press",
+          "name": "Barbell Shoulder Press",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "seated-overhead-press",
+          "name": "Seated Overhead Press",
+          "equipment": "barbell",
+          "position": "seated"
+        }
+      ]
+    },
+    {
+      "id": "arnold-press",
+      "name": "Arnold Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "arnold-press",
+          "name": "Arnold Press",
+          "equipment": "dumbbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "z-press",
+      "name": "Z-Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "z-press",
+          "name": "Z-Press",
+          "equipment": "barbell",
+          "position": "seated"
+        }
+      ]
+    },
+    {
+      "id": "bradford-press",
+      "name": "Bradford Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "bradford-press",
+          "name": "Bradford Press",
+          "equipment": "barbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "push-press",
+      "name": "Push Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer", "Kjerne"],
+      "variants": [
+        {
+          "id": "push-press",
+          "name": "Push Press",
+          "equipment": "barbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "landmine-press-shoulders",
+      "name": "Landmine Press (Shoulders)",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "landmine-press-shoulders",
+          "name": "Landmine Press (Shoulders)",
+          "equipment": "landmine",
+          "position": "standing"
+        },
+        {
+          "id": "single-arm-landmine-press",
+          "name": "Single Arm Landmine Press",
+          "equipment": "landmine",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "single-arm-dumbbell-press",
+      "name": "Single Arm Dumbbell Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer", "Kjerne"],
+      "variants": [
+        {
+          "id": "single-arm-dumbbell-press",
+          "name": "Single Arm Dumbbell Press",
+          "equipment": "dumbbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "scaption",
+      "name": "Scaption Raise",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Rotator cuff"],
+      "variants": [
+        {
+          "id": "scaption",
+          "name": "Scaption Raise",
+          "equipment": "dumbbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "cuban-press",
+      "name": "Cuban Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Rotator cuff"],
+      "variants": [
+        {
+          "id": "cuban-press",
+          "name": "Cuban Press",
+          "equipment": "dumbbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "overhead-cable-press",
+      "name": "Overhead Cable Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "overhead-cable-press",
+          "name": "Overhead Cable Press",
+          "equipment": "cable",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "machine-shoulder-press",
+      "name": "Machine Shoulder Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "machine-shoulder-press",
+          "name": "Machine Shoulder Press",
+          "equipment": "machine",
+          "position": "seated"
+        }
+      ]
+    },
+    {
+      "id": "smith-machine-shoulder-press",
+      "name": "Smith Machine Shoulder Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "smith-machine-shoulder-press",
+          "name": "Smith Machine Shoulder Press",
+          "equipment": "smith-machine",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "neutral-grip-dumbbell-press",
+      "name": "Neutral Grip Dumbbell Press",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "neutral-grip-dumbbell-press",
+          "name": "Neutral Grip Dumbbell Press",
+          "equipment": "dumbbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "shoulder-raises",
+      "name": "Shoulder Raises",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Skuldre"],
+      "variants": [
+        {
+          "id": "lateral-raises",
+          "name": "Lateral Raises",
+          "equipment": "dumbbell",
+          "direction": "lateral"
+        },
+        {
+          "id": "front-raises",
+          "name": "Front Raises",
+          "equipment": "dumbbell",
+          "direction": "front"
+        },
+        {
+          "id": "cable-lateral-raises",
+          "name": "Cable Lateral Raises",
+          "equipment": "cable",
+          "direction": "lateral"
+        },
+        {
+          "id": "cable-front-raises",
+          "name": "Cable Front Raises",
+          "equipment": "cable",
+          "direction": "front"
+        },
+        {
+          "id": "plate-front-raises",
+          "name": "Plate Front Raises",
+          "equipment": "plate",
+          "direction": "front"
+        },
+        {
+          "id": "bent-over-lateral-raises",
+          "name": "Bent Over Lateral Raises",
+          "equipment": "dumbbell",
+          "direction": "lateral"
+        },
+        {
+          "id": "banded-lateral-raises",
+          "name": "Banded Lateral Raises",
+          "equipment": "resistance-band",
+          "direction": "lateral"
+        },
+        {
+          "id": "banded-front-raises",
+          "name": "Banded Front Raises",
+          "equipment": "resistance-band",
+          "direction": "front"
+        }
+      ]
+    },
+    {
+      "id": "rear-delt",
+      "name": "Rear Deltoid",
+      "category": "Skuldre",
+      "workoutTypes": ["pull", "upper"],
+      "muscleGroups": ["Skuldre", "Rygg"],
+      "variants": [
+        {
+          "id": "rear-delt-flyes",
+          "name": "Reverse Flyes (Rear Deltoid)",
+          "equipment": "dumbbell",
+          "position": "bent-over"
+        },
+        {
+          "id": "face-pulls",
+          "name": "Face Pulls",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "reverse-pec-deck",
+          "name": "Reverse Pec Deck",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "cable-rear-delt-flyes",
+          "name": "Cable Rear Delt Flyes",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "prone-rear-delt-raises",
+          "name": "Prone Rear Delt Raises",
+          "equipment": "dumbbell",
+          "position": "prone"
+        },
+        {
+          "id": "reverse-cable-crossover",
+          "name": "Reverse Cable Crossover",
+          "equipment": "cable",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "other-shoulder",
+      "name": "Other Shoulder Exercises",
+      "category": "Skuldre",
+      "workoutTypes": ["push", "pull", "upper"],
+      "muscleGroups": ["Skuldre", "Armer", "Kjerne"],
+      "variants": [
+        {
+          "id": "upright-rows",
+          "name": "Upright Rows",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "shrugs",
+          "name": "Shoulder Shrugs",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "pike-push-ups",
+          "name": "Pike Push-ups",
+          "equipment": "bodyweight",
+          "position": "pike"
+        },
+        {
+          "id": "handstand-push-ups",
+          "name": "Handstand Push-ups",
+          "equipment": "bodyweight",
+          "position": "handstand"
+        },
+        {
+          "id": "overhead-plate-hold",
+          "name": "Overhead Plate Hold",
+          "equipment": "plate",
+          "position": "standing"
+        },
+        {
+          "id": "farmers-carry",
+          "name": "Farmer's Carry",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "overhead-carry",
+          "name": "Overhead Carry",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "waiter-carry",
+          "name": "Waiter Carry",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "prone-y-raises",
+          "name": "Prone Y-Raises",
+          "equipment": "bodyweight",
+          "position": "prone"
+        },
+        {
+          "id": "prone-t-raises",
+          "name": "Prone T-Raises",
+          "equipment": "bodyweight",
+          "position": "prone"
+        },
+        {
+          "id": "prone-w-raises",
+          "name": "Prone W-Raises",
+          "equipment": "bodyweight",
+          "position": "prone"
+        }
+      ]
+    },
 
-    { "id": "pull-ups", "name": "Pull-ups", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "chin-ups", "name": "Chin-ups", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "barbell-rows", "name": "Barbell Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "t-bar-rows", "name": "T-Bar Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "dumbbell-rows", "name": "Single-Arm Dumbbell Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "lat-pulldown", "name": "Lat Pulldown", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "close-grip-lat-pulldown", "name": "Close Grip Lat Pulldown", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "wide-grip-lat-pulldown", "name": "Wide Grip Lat Pulldown", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "seated-cable-rows", "name": "Seated Cable Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "deadlift", "name": "Deadlift", "category": "Rygg", "workoutTypes": ["pull", "lower", "full-body"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "romanian-deadlift", "name": "Romanian Deadlift", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "cable-pullovers", "name": "Cable Pullovers", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Bryst"] },
-    { "id": "reverse-flyes", "name": "Reverse Flyes", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Skuldre"] },
-    { "id": "straight-arm-pulldowns", "name": "Straight Arm Pulldowns", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg"] },
-    { "id": "wide-grip-pull-ups", "name": "Wide Grip Pull-ups", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "close-grip-pull-ups", "name": "Close Grip Pull-ups", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "assisted-pull-ups", "name": "Assisted Pull-ups", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "negative-pull-ups", "name": "Negative Pull-ups", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "inverted-rows", "name": "Inverted Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "cable-pulldowns", "name": "Cable Pulldowns", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "one-arm-dumbbell-rows", "name": "One-Arm Dumbbell Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "pendlay-rows", "name": "Pendlay Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "yates-rows", "name": "Yates Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "meadow-rows", "name": "Meadow Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "landmine-rows", "name": "Landmine Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "resistance-band-rows", "name": "Resistance Band Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "machine-rows", "name": "Machine Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "cable-seated-rows", "name": "Cable Seated Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "smith-machine-rows", "name": "Smith Machine Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "t-bar-rows", "name": "T-Bar Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "chest-supported-rows", "name": "Chest Supported Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "machine-pulldowns", "name": "Machine Pulldowns", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "assisted-chin-ups", "name": "Assisted Chin-ups", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Armer"] },
-    { "id": "good-mornings", "name": "Good Mornings", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "hyperextensions", "name": "Hyperextensions", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg"] },
-    { "id": "reverse-hyperextensions", "name": "Reverse Hyperextensions", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "bird-dogs", "name": "Bird Dogs", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg", "Mage"] },
-    { "id": "superman-holds", "name": "Superman Holds", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "prone-y-raises", "name": "Prone Y-Raises", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Skuldre"] },
-    { "id": "prone-t-raises", "name": "Prone T-Raises", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Skuldre"] },
-    { "id": "prone-w-raises", "name": "Prone W-Raises", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Skuldre"] },
-    { "id": "cobra-stretches", "name": "Cobra Stretches", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "cat-cow-stretches", "name": "Cat-Cow Stretches", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "wall-angel", "name": "Wall Angel", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg", "Skuldre"] },
-    { "id": "thoracic-extension", "name": "Thoracic Extension", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "scapular-pull-ups", "name": "Scapular Pull-ups", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg"] },
-    { "id": "scapular-rows", "name": "Scapular Rows", "category": "Rygg", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Rygg"] },
-    { "id": "prone-cobra", "name": "Prone Cobra", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "quadruped-arm-leg-raise", "name": "Quadruped Arm & Leg Raise", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg", "Mage"] },
-    { "id": "dead-bug", "name": "Dead Bug", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg", "Mage"] },
-    { "id": "glute-bridge", "name": "Glute Bridge", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "single-leg-glute-bridge", "name": "Single Leg Glute Bridge", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "marching-glute-bridge", "name": "Marching Glute Bridge", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "clamshells", "name": "Clamshells", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "fire-hydrants", "name": "Fire Hydrants", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "donkey-kicks", "name": "Donkey Kicks", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "side-lying-leg-lifts", "name": "Side Lying Leg Lifts", "category": "Rygg", "workoutTypes": ["pull", "lower"], "muscleGroups": ["Rygg", "Ben"] },
-    { "id": "standing-back-extension", "name": "Standing Back Extension", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "seated-back-extension", "name": "Seated Back Extension", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "lying-back-extension", "name": "Lying Back Extension", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "standing-cat-stretch", "name": "Standing Cat Stretch", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "standing-back-rotation", "name": "Standing Back Rotation", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "seated-back-rotation", "name": "Seated Back Rotation", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "lying-back-rotation", "name": "Lying Back Rotation", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "standing-side-bend", "name": "Standing Side Bend", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "seated-side-bend", "name": "Seated Side Bend", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "lying-side-bend", "name": "Lying Side Bend", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "standing-back-bend", "name": "Standing Back Bend", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "seated-back-bend", "name": "Seated Back Bend", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
-    { "id": "lying-back-bend", "name": "Lying Back Bend", "category": "Rygg", "workoutTypes": ["pull", "core"], "muscleGroups": ["Rygg"] },
+    {
+      "id": "pull-ups",
+      "name": "Pull-ups",
+      "category": "Rygg",
+      "workoutTypes": ["pull", "upper"],
+      "muscleGroups": ["Rygg", "Armer"],
+      "variants": [
+        {
+          "id": "pull-ups",
+          "name": "Pull-ups",
+          "equipment": "bodyweight",
+          "grip": "overhand"
+        },
+        {
+          "id": "chin-ups",
+          "name": "Chin-ups",
+          "equipment": "bodyweight",
+          "grip": "underhand"
+        },
+        {
+          "id": "wide-grip-pull-ups",
+          "name": "Wide Grip Pull-ups",
+          "equipment": "bodyweight",
+          "grip": "wide"
+        },
+        {
+          "id": "close-grip-pull-ups",
+          "name": "Close Grip Pull-ups",
+          "equipment": "bodyweight",
+          "grip": "close"
+        },
+        {
+          "id": "assisted-pull-ups",
+          "name": "Assisted Pull-ups",
+          "equipment": "assisted",
+          "grip": "overhand"
+        },
+        {
+          "id": "negative-pull-ups",
+          "name": "Negative Pull-ups",
+          "equipment": "bodyweight",
+          "grip": "overhand"
+        },
+        {
+          "id": "assisted-chin-ups",
+          "name": "Assisted Chin-ups",
+          "equipment": "assisted",
+          "grip": "underhand"
+        },
+        {
+          "id": "scapular-pull-ups",
+          "name": "Scapular Pull-ups",
+          "equipment": "bodyweight",
+          "grip": "overhand"
+        }
+      ]
+    },
+    {
+      "id": "lat-pulldown",
+      "name": "Lat Pulldown",
+      "category": "Rygg",
+      "workoutTypes": ["pull", "upper"],
+      "muscleGroups": ["Rygg", "Armer"],
+      "variants": [
+        {
+          "id": "lat-pulldown",
+          "name": "Lat Pulldown",
+          "equipment": "cable",
+          "grip": "overhand"
+        },
+        {
+          "id": "wide-grip-lat-pulldown",
+          "name": "Wide Grip Lat Pulldown",
+          "equipment": "cable",
+          "grip": "wide"
+        },
+        {
+          "id": "close-grip-lat-pulldown",
+          "name": "Close Grip Lat Pulldown",
+          "equipment": "cable",
+          "grip": "close"
+        },
+        {
+          "id": "cable-pulldowns",
+          "name": "Cable Pulldowns",
+          "equipment": "cable",
+          "grip": "overhand"
+        },
+        {
+          "id": "machine-pulldowns",
+          "name": "Machine Pulldowns",
+          "equipment": "machine",
+          "grip": "overhand"
+        }
+      ]
+    },
+    {
+      "id": "rows",
+      "name": "Rows",
+      "category": "Rygg",
+      "workoutTypes": ["pull", "upper"],
+      "muscleGroups": ["Rygg", "Armer"],
+      "variants": [
+        {
+          "id": "barbell-rows",
+          "name": "Barbell Rows",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "t-bar-rows",
+          "name": "T-Bar Rows",
+          "equipment": "t-bar",
+          "position": "standing"
+        },
+        {
+          "id": "dumbbell-rows",
+          "name": "Single-Arm Dumbbell Rows",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "one-arm-dumbbell-rows",
+          "name": "One-Arm Dumbbell Rows",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "seated-cable-rows",
+          "name": "Seated Cable Rows",
+          "equipment": "cable",
+          "position": "seated"
+        },
+        {
+          "id": "pendlay-rows",
+          "name": "Pendlay Rows",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "yates-rows",
+          "name": "Yates Rows",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "meadow-rows",
+          "name": "Meadow Rows",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "landmine-rows",
+          "name": "Landmine Rows",
+          "equipment": "landmine",
+          "position": "standing"
+        },
+        {
+          "id": "resistance-band-rows",
+          "name": "Resistance Band Rows",
+          "equipment": "resistance-band",
+          "position": "standing"
+        },
+        {
+          "id": "machine-rows",
+          "name": "Machine Rows",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "cable-seated-rows",
+          "name": "Cable Seated Rows",
+          "equipment": "cable",
+          "position": "seated"
+        },
+        {
+          "id": "smith-machine-rows",
+          "name": "Smith Machine Rows",
+          "equipment": "smith-machine",
+          "position": "standing"
+        },
+        {
+          "id": "chest-supported-rows",
+          "name": "Chest Supported Rows",
+          "equipment": "barbell",
+          "position": "prone"
+        },
+        {
+          "id": "scapular-rows",
+          "name": "Scapular Rows",
+          "equipment": "barbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "deadlift",
+      "name": "Deadlift",
+      "category": "Rygg",
+      "workoutTypes": ["pull", "lower", "full-body"],
+      "muscleGroups": ["Rygg", "Ben"],
+      "variants": [
+        {
+          "id": "deadlift",
+          "name": "Deadlift",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "romanian-deadlift",
+          "name": "Romanian Deadlift",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "stiff-legged-deadlift",
+          "name": "Stiff-Legged Deadlift",
+          "equipment": "barbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "other-back",
+      "name": "Other Back Exercises",
+      "category": "Rygg",
+      "workoutTypes": ["pull", "upper", "lower", "core"],
+      "muscleGroups": ["Rygg", "Skuldre", "Bryst", "Ben", "Mage"],
+      "variants": [
+        {
+          "id": "cable-pullovers",
+          "name": "Cable Pullovers",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "reverse-flyes",
+          "name": "Reverse Flyes",
+          "equipment": "dumbbell",
+          "position": "bent-over"
+        },
+        {
+          "id": "straight-arm-pulldowns",
+          "name": "Straight Arm Pulldowns",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "inverted-rows",
+          "name": "Inverted Rows",
+          "equipment": "bodyweight",
+          "position": "inverted"
+        },
+        {
+          "id": "good-mornings",
+          "name": "Good Mornings",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "hyperextensions",
+          "name": "Hyperextensions",
+          "equipment": "machine",
+          "position": "prone"
+        },
+        {
+          "id": "reverse-hyperextensions",
+          "name": "Reverse Hyperextensions",
+          "equipment": "machine",
+          "position": "prone"
+        },
+        {
+          "id": "bird-dogs",
+          "name": "Bird Dogs",
+          "equipment": "bodyweight",
+          "position": "quadruped"
+        },
+        {
+          "id": "superman-holds",
+          "name": "Superman Holds",
+          "equipment": "bodyweight",
+          "position": "prone"
+        },
+        {
+          "id": "prone-y-raises",
+          "name": "Prone Y-Raises",
+          "equipment": "bodyweight",
+          "position": "prone"
+        },
+        {
+          "id": "prone-t-raises",
+          "name": "Prone T-Raises",
+          "equipment": "bodyweight",
+          "position": "prone"
+        },
+        {
+          "id": "prone-w-raises",
+          "name": "Prone W-Raises",
+          "equipment": "bodyweight",
+          "position": "prone"
+        },
+        {
+          "id": "cobra-stretches",
+          "name": "Cobra Stretches",
+          "equipment": "bodyweight",
+          "position": "prone"
+        },
+        {
+          "id": "cat-cow-stretches",
+          "name": "Cat-Cow Stretches",
+          "equipment": "bodyweight",
+          "position": "quadruped"
+        },
+        {
+          "id": "wall-angel",
+          "name": "Wall Angel",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "thoracic-extension",
+          "name": "Thoracic Extension",
+          "equipment": "bodyweight",
+          "position": "seated"
+        },
+        {
+          "id": "prone-cobra",
+          "name": "Prone Cobra",
+          "equipment": "bodyweight",
+          "position": "prone"
+        },
+        {
+          "id": "quadruped-arm-leg-raise",
+          "name": "Quadruped Arm & Leg Raise",
+          "equipment": "bodyweight",
+          "position": "quadruped"
+        },
+        {
+          "id": "dead-bug",
+          "name": "Dead Bug",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "glute-bridge",
+          "name": "Glute Bridge",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "single-leg-glute-bridge",
+          "name": "Single Leg Glute Bridge",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "marching-glute-bridge",
+          "name": "Marching Glute Bridge",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "clamshells",
+          "name": "Clamshells",
+          "equipment": "bodyweight",
+          "position": "side-lying"
+        },
+        {
+          "id": "fire-hydrants",
+          "name": "Fire Hydrants",
+          "equipment": "bodyweight",
+          "position": "quadruped"
+        },
+        {
+          "id": "donkey-kicks",
+          "name": "Donkey Kicks",
+          "equipment": "bodyweight",
+          "position": "quadruped"
+        },
+        {
+          "id": "side-lying-leg-lifts",
+          "name": "Side Lying Leg Lifts",
+          "equipment": "bodyweight",
+          "position": "side-lying"
+        },
+        {
+          "id": "standing-back-extension",
+          "name": "Standing Back Extension",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "seated-back-extension",
+          "name": "Seated Back Extension",
+          "equipment": "bodyweight",
+          "position": "seated"
+        },
+        {
+          "id": "lying-back-extension",
+          "name": "Lying Back Extension",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "standing-cat-stretch",
+          "name": "Standing Cat Stretch",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "standing-back-rotation",
+          "name": "Standing Back Rotation",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "seated-back-rotation",
+          "name": "Seated Back Rotation",
+          "equipment": "bodyweight",
+          "position": "seated"
+        },
+        {
+          "id": "lying-back-rotation",
+          "name": "Lying Back Rotation",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "standing-side-bend",
+          "name": "Standing Side Bend",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "seated-side-bend",
+          "name": "Seated Side Bend",
+          "equipment": "bodyweight",
+          "position": "seated"
+        },
+        {
+          "id": "lying-side-bend",
+          "name": "Lying Side Bend",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "standing-back-bend",
+          "name": "Standing Back Bend",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "seated-back-bend",
+          "name": "Seated Back Bend",
+          "equipment": "bodyweight",
+          "position": "seated"
+        },
+        {
+          "id": "lying-back-bend",
+          "name": "Lying Back Bend",
+          "equipment": "bodyweight",
+          "position": "supine"
+        }
+      ]
+    },
 
-    { "id": "bicep-curls", "name": "Barbell Bicep Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "dumbbell-curls", "name": "Dumbbell Bicep Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "hammer-curls", "name": "Hammer Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer", "Underarmer"] },
-    { "id": "preacher-curls", "name": "Preacher Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "concentration-curls", "name": "Concentration Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "tricep-dips", "name": "Tricep Dips", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "tricep-pushdowns", "name": "Cable Tricep Pushdowns", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "skull-crushers", "name": "Skull Crushers", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "overhead-tricep-extension", "name": "Overhead Tricep Extension", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "incline-dumbbell-curls", "name": "Incline Dumbbell Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "spider-curls", "name": "Spider Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "zottman-curls", "name": "Zottman Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer", "Underarmer"] },
-    { "id": "diamond-push-ups", "name": "Diamond Push-ups", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer", "Bryst"] },
-    { "id": "rope-pushdowns", "name": "Rope Pushdowns", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "dumbbell-kickbacks", "name": "Dumbbell Kickbacks", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "preacher-hammer-curls", "name": "Preacher Hammer Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer", "Underarmer"] },
-    { "id": "cable-bicep-curls", "name": "Cable Bicep Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "resistance-band-curls", "name": "Resistance Band Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "21s", "name": "21s (Bicep Curls)", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "cross-body-hammer-curls", "name": "Cross Body Hammer Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer", "Underarmer"] },
-    { "id": "drag-curls", "name": "Drag Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "cable-tricep-extensions", "name": "Cable Tricep Extensions", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "diamond-push-ups", "name": "Diamond Push-ups", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer", "Bryst"] },
-    { "id": "close-grip-bench-press", "name": "Close Grip Bench Press", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer", "Bryst"] },
-    { "id": "jm-press", "name": "JM Press", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer", "Bryst"] },
-    { "id": "resistance-band-tricep-extensions", "name": "Resistance Band Tricep Extensions", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "dumbbell-tricep-extensions", "name": "Dumbbell Tricep Extensions", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "tricep-dips-on-parallel-bars", "name": "Tricep Dips on Parallel Bars", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "bench-dips", "name": "Bench Dips", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "cable-overhead-tricep-extension", "name": "Cable Overhead Tricep Extension", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "single-arm-tricep-extension", "name": "Single Arm Tricep Extension", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "tricep-kickbacks", "name": "Tricep Kickbacks", "category": "Armer", "workoutTypes": ["push", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "ez-bar-curls", "name": "EZ Bar Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "incline-hammer-curls", "name": "Incline Hammer Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer", "Underarmer"] },
-    { "id": "standing-dumbbell-curls", "name": "Standing Dumbbell Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "seated-dumbbell-curls", "name": "Seated Dumbbell Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "concentration-curls", "name": "Concentration Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer"] },
-    { "id": "cable-hammer-curls", "name": "Cable Hammer Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer", "Underarmer"] },
-    { "id": "reverse-curls", "name": "Reverse Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Armer", "Underarmer"] },
-    { "id": "wrist-curls", "name": "Wrist Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Underarmer"] },
-    { "id": "reverse-wrist-curls", "name": "Reverse Wrist Curls", "category": "Armer", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Underarmer"] },
-    { "id": "farmer-walks", "name": "Farmer Walks", "category": "Armer", "workoutTypes": ["full-body"], "muscleGroups": ["Armer", "Underarmer", "Kjerne"] },
-    
-    { "id": "squat", "name": "Squats", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "front-squat", "name": "Front Squats", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "goblet-squat", "name": "Goblet Squats", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "leg-press", "name": "Leg Press Machine", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "leg-extensions", "name": "Leg Extensions", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "single-leg-curls", "name": "Single Leg Curls", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "seated-leg-curls", "name": "Seated Leg Curls", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "hip-adduction", "name": "Hip Adduction", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "hip-abduction", "name": "Hip Abduction", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "stiff-legged-deadlift", "name": "Stiff-Legged Deadlift", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben", "Rygg"] },
-    { "id": "good-mornings", "name": "Good Mornings", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben", "Rygg"] },
-    { "id": "lunges", "name": "Walking Lunges", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "bulgarian-split-squats", "name": "Bulgarian Split Squats", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "step-ups", "name": "Step-ups", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "calf-raises", "name": "Standing Calf Raises", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Legger"] },
-    { "id": "seated-calf-raises", "name": "Seated Calf Raises", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Legger"] },
-    { "id": "hack-squat", "name": "Hack Squat Machine", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "smith-machine-squat", "name": "Smith Machine Squat", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "pistol-squats", "name": "Pistol Squats", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "box-jumps", "name": "Box Jumps", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "jump-squats", "name": "Jump Squats", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "wall-sits", "name": "Wall Sits", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "glute-bridges", "name": "Glute Bridges", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "hip-thrusts", "name": "Hip Thrusts", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "donkey-kicks", "name": "Donkey Kicks", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "sumo-squat", "name": "Sumo Squats", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben", "Sete"] },
-    { "id": "zercher-squat", "name": "Zercher Squats", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben", "Kjerne"] },
-    { "id": "overhead-squat", "name": "Overhead Squats", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben", "Kjerne", "Skuldre"] },
-    { "id": "split-squats", "name": "Split Squats", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "curtsy-lunges", "name": "Curtsy Lunges", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben", "Sete"] },
-    { "id": "reverse-lunges", "name": "Reverse Lunges", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "side-lunges", "name": "Side Lunges", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben", "Sete"] },
-    { "id": "walking-lunges-barbell", "name": "Barbell Walking Lunges", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "romanian-deadlift", "name": "Romanian Deadlift", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Hamstrings", "Sete", "Rygg"] },
-    { "id": "single-leg-romanian-deadlift", "name": "Single Leg Romanian Deadlift", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Hamstrings", "Sete", "Kjerne"] },
-    { "id": "nordic-hamstring-curl", "name": "Nordic Hamstring Curl", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Hamstrings"] },
-    { "id": "glute-kickback-machine", "name": "Glute Kickback Machine", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Sete", "Hamstrings"] },
-    { "id": "frog-pumps", "name": "Frog Pumps", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Sete"] },
-    { "id": "cable-pull-through", "name": "Cable Pull-through", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Sete", "Hamstrings"] },
-    { "id": "sled-push", "name": "Sled Push", "category": "Ben", "workoutTypes": ["legs", "full-body"], "muscleGroups": ["Ben", "Kjerne"] },
-    { "id": "sled-drag", "name": "Sled Drag", "category": "Ben", "workoutTypes": ["legs", "full-body"], "muscleGroups": ["Ben", "Kjerne"] },
-    { "id": "jump-lunges", "name": "Jump Lunges", "category": "Ben", "workoutTypes": ["legs", "lower", "plyometric"], "muscleGroups": ["Ben"] },
-    { "id": "skater-jumps", "name": "Skater Jumps", "category": "Ben", "workoutTypes": ["legs", "lower", "plyometric"], "muscleGroups": ["Ben", "Sete"] },
-    { "id": "smith-machine-lunge", "name": "Smith Machine Lunge", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Ben"] },
-    { "id": "smith-machine-calf-raises", "name": "Smith Machine Calf Raises", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Legger"] },
-    { "id": "standing-single-leg-calf-raises", "name": "Standing Single Leg Calf Raises", "category": "Ben", "workoutTypes": ["legs", "lower"], "muscleGroups": ["Legger"] },
-    { "id": "farmers-walk-on-toes", "name": "Farmer's Walk on Toes", "category": "Ben", "workoutTypes": ["legs", "lower", "carry"], "muscleGroups": ["Legger", "Kjerne"] },
+    {
+      "id": "bicep-curls",
+      "name": "Bicep Curls",
+      "category": "Armer",
+      "workoutTypes": ["pull", "upper"],
+      "muscleGroups": ["Armer"],
+      "variants": [
+        {
+          "id": "bicep-curls",
+          "name": "Barbell Bicep Curls",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "dumbbell-curls",
+          "name": "Dumbbell Bicep Curls",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "standing-dumbbell-curls",
+          "name": "Standing Dumbbell Curls",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "seated-dumbbell-curls",
+          "name": "Seated Dumbbell Curls",
+          "equipment": "dumbbell",
+          "position": "seated"
+        },
+        {
+          "id": "hammer-curls",
+          "name": "Hammer Curls",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "preacher-curls",
+          "name": "Preacher Curls",
+          "equipment": "barbell",
+          "position": "seated"
+        },
+        {
+          "id": "concentration-curls",
+          "name": "Concentration Curls",
+          "equipment": "dumbbell",
+          "position": "seated"
+        },
+        {
+          "id": "incline-dumbbell-curls",
+          "name": "Incline Dumbbell Curls",
+          "equipment": "dumbbell",
+          "position": "incline"
+        },
+        {
+          "id": "spider-curls",
+          "name": "Spider Curls",
+          "equipment": "barbell",
+          "position": "prone"
+        },
+        {
+          "id": "zottman-curls",
+          "name": "Zottman Curls",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "preacher-hammer-curls",
+          "name": "Preacher Hammer Curls",
+          "equipment": "dumbbell",
+          "position": "seated"
+        },
+        {
+          "id": "cable-bicep-curls",
+          "name": "Cable Bicep Curls",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "resistance-band-curls",
+          "name": "Resistance Band Curls",
+          "equipment": "resistance-band",
+          "position": "standing"
+        },
+        {
+          "id": "21s",
+          "name": "21s (Bicep Curls)",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "cross-body-hammer-curls",
+          "name": "Cross Body Hammer Curls",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "drag-curls",
+          "name": "Drag Curls",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "ez-bar-curls",
+          "name": "EZ Bar Curls",
+          "equipment": "ez-bar",
+          "position": "standing"
+        },
+        {
+          "id": "incline-hammer-curls",
+          "name": "Incline Hammer Curls",
+          "equipment": "dumbbell",
+          "position": "incline"
+        },
+        {
+          "id": "cable-hammer-curls",
+          "name": "Cable Hammer Curls",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "reverse-curls",
+          "name": "Reverse Curls",
+          "equipment": "barbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "tricep-exercises",
+      "name": "Tricep Exercises",
+      "category": "Armer",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Armer"],
+      "variants": [
+        {
+          "id": "tricep-dips",
+          "name": "Tricep Dips",
+          "equipment": "parallel-bars",
+          "position": "standing"
+        },
+        {
+          "id": "tricep-pushdowns",
+          "name": "Cable Tricep Pushdowns",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "skull-crushers",
+          "name": "Skull Crushers",
+          "equipment": "barbell",
+          "position": "supine"
+        },
+        {
+          "id": "overhead-tricep-extension",
+          "name": "Overhead Tricep Extension",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "rope-pushdowns",
+          "name": "Rope Pushdowns",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "dumbbell-kickbacks",
+          "name": "Dumbbell Kickbacks",
+          "equipment": "dumbbell",
+          "position": "bent-over"
+        },
+        {
+          "id": "cable-tricep-extensions",
+          "name": "Cable Tricep Extensions",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "close-grip-bench-press",
+          "name": "Close Grip Bench Press",
+          "equipment": "barbell",
+          "position": "supine"
+        },
+        {
+          "id": "jm-press",
+          "name": "JM Press",
+          "equipment": "barbell",
+          "position": "supine"
+        },
+        {
+          "id": "resistance-band-tricep-extensions",
+          "name": "Resistance Band Tricep Extensions",
+          "equipment": "resistance-band",
+          "position": "standing"
+        },
+        {
+          "id": "dumbbell-tricep-extensions",
+          "name": "Dumbbell Tricep Extensions",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "tricep-dips-on-parallel-bars",
+          "name": "Tricep Dips on Parallel Bars",
+          "equipment": "parallel-bars",
+          "position": "standing"
+        },
+        {
+          "id": "bench-dips",
+          "name": "Bench Dips",
+          "equipment": "bench",
+          "position": "seated"
+        },
+        {
+          "id": "cable-overhead-tricep-extension",
+          "name": "Cable Overhead Tricep Extension",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "single-arm-tricep-extension",
+          "name": "Single Arm Tricep Extension",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "tricep-kickbacks",
+          "name": "Tricep Kickbacks",
+          "equipment": "dumbbell",
+          "position": "bent-over"
+        }
+      ]
+    },
+    {
+      "id": "forearm-exercises",
+      "name": "Forearm Exercises",
+      "category": "Armer",
+      "workoutTypes": ["pull", "upper"],
+      "muscleGroups": ["Underarmer"],
+      "variants": [
+        {
+          "id": "wrist-curls",
+          "name": "Wrist Curls",
+          "equipment": "barbell",
+          "position": "seated"
+        },
+        {
+          "id": "reverse-wrist-curls",
+          "name": "Reverse Wrist Curls",
+          "equipment": "barbell",
+          "position": "seated"
+        }
+      ]
+    },
+    {
+      "id": "other-arm",
+      "name": "Other Arm Exercises",
+      "category": "Armer",
+      "workoutTypes": ["full-body"],
+      "muscleGroups": ["Armer", "Underarmer", "Kjerne"],
+      "variants": [
+        {
+          "id": "farmer-walks",
+          "name": "Farmer Walks",
+          "equipment": "dumbbell",
+          "position": "standing"
+        }
+      ]
+    },
 
-    { "id": "planks", "name": "Planks", "category": "Kjerne", "workoutTypes": ["full-body", "lower"], "muscleGroups": ["Kjerne"] },
-    { "id": "side-planks", "name": "Side Planks", "category": "Kjerne", "workoutTypes": ["full-body", "lower"], "muscleGroups": ["Kjerne"] },
-    { "id": "crunches", "name": "Crunches", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne"] },
-    { "id": "sit-ups", "name": "Sit-ups", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne"] },
-    { "id": "leg-raises", "name": "Leg Raises", "category": "Kjerne", "workoutTypes": ["full-body", "lower"], "muscleGroups": ["Kjerne"] },
-    { "id": "russian-twists", "name": "Russian Twists", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne"] },
-    { "id": "mountain-climbers", "name": "Mountain Climbers", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne"] },
-    { "id": "bicycle-crunches", "name": "Bicycle Crunches", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne"] },
-    { "id": "flutter-kicks", "name": "Flutter Kicks", "category": "Kjerne", "workoutTypes": ["full-body", "lower"], "muscleGroups": ["Kjerne"] },
-    { "id": "scissor-kicks", "name": "Scissor Kicks", "category": "Kjerne", "workoutTypes": ["full-body", "lower"], "muscleGroups": ["Kjerne"] },
-    { "id": "v-ups", "name": "V-ups", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne"] },
-    { "id": "hollow-holds", "name": "Hollow Holds", "category": "Kjerne", "workoutTypes": ["full-body", "lower"], "muscleGroups": ["Kjerne"] },
-    { "id": "dead-bug", "name": "Dead Bug", "category": "Kjerne", "workoutTypes": ["full-body", "lower"], "muscleGroups": ["Kjerne"] },
-    { "id": "bird-dog", "name": "Bird Dog", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne"] },
-    { "id": "burpees", "name": "Burpees", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne", "Ben", "Bryst"] },
-    { "id": "man-makers", "name": "Man Makers", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne", "Bryst", "Armer"] },
-    { "id": "turkish-get-ups", "name": "Turkish Get-ups", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne", "Skuldre", "Ben"] },
-    { "id": "clean-and-press", "name": "Clean and Press", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne", "Ben", "Skuldre", "Armer"] },
-    { "id": "snatch", "name": "Snatch", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne", "Ben", "Skuldre", "Armer"] },
-    { "id": "thrusters", "name": "Thrusters", "category": "Kjerne", "workoutTypes": ["full-body"], "muscleGroups": ["Kjerne", "Ben", "Skuldre", "Armer"] },
-    { "id": "custom-exercise", "name": "Annet øvelse", "category": "Annet", "workoutTypes": ["push", "pull", "legs", "upper", "lower", "full-body"], "muscleGroups": ["Annet"] }
+    {
+      "id": "squats",
+      "name": "Squats",
+      "category": "Ben",
+      "workoutTypes": ["legs", "lower"],
+      "muscleGroups": ["Ben"],
+      "variants": [
+        {
+          "id": "squat",
+          "name": "Squats",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "front-squat",
+          "name": "Front Squats",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "goblet-squat",
+          "name": "Goblet Squats",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "hack-squat",
+          "name": "Hack Squat Machine",
+          "equipment": "machine",
+          "position": "standing"
+        },
+        {
+          "id": "smith-machine-squat",
+          "name": "Smith Machine Squat",
+          "equipment": "smith-machine",
+          "position": "standing"
+        },
+        {
+          "id": "pistol-squats",
+          "name": "Pistol Squats",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "sumo-squat",
+          "name": "Sumo Squats",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "zercher-squat",
+          "name": "Zercher Squats",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "overhead-squat",
+          "name": "Overhead Squats",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "split-squats",
+          "name": "Split Squats",
+          "equipment": "barbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "lunges",
+      "name": "Lunges",
+      "category": "Ben",
+      "workoutTypes": ["legs", "lower"],
+      "muscleGroups": ["Ben"],
+      "variants": [
+        {
+          "id": "walking-lunges",
+          "name": "Walking Lunges",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "bulgarian-split-squats",
+          "name": "Bulgarian Split Squats",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "curtsy-lunges",
+          "name": "Curtsy Lunges",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "reverse-lunges",
+          "name": "Reverse Lunges",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "side-lunges",
+          "name": "Side Lunges",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "walking-lunges-barbell",
+          "name": "Barbell Walking Lunges",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "smith-machine-lunge",
+          "name": "Smith Machine Lunge",
+          "equipment": "smith-machine",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "machine-exercises",
+      "name": "Machine Exercises",
+      "category": "Ben",
+      "workoutTypes": ["legs", "lower"],
+      "muscleGroups": ["Ben"],
+      "variants": [
+        {
+          "id": "leg-press",
+          "name": "Leg Press Machine",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "leg-extensions",
+          "name": "Leg Extensions",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "single-leg-curls",
+          "name": "Single Leg Curls",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "seated-leg-curls",
+          "name": "Seated Leg Curls",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "hip-adduction",
+          "name": "Hip Adduction",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "hip-abduction",
+          "name": "Hip Abduction",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "glute-kickback-machine",
+          "name": "Glute Kickback Machine",
+          "equipment": "machine",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "glute-exercises",
+      "name": "Glute Exercises",
+      "category": "Ben",
+      "workoutTypes": ["legs", "lower"],
+      "muscleGroups": ["Ben", "Sete"],
+      "variants": [
+        {
+          "id": "glute-bridges",
+          "name": "Glute Bridges",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "hip-thrusts",
+          "name": "Hip Thrusts",
+          "equipment": "barbell",
+          "position": "supine"
+        },
+        {
+          "id": "donkey-kicks",
+          "name": "Donkey Kicks",
+          "equipment": "bodyweight",
+          "position": "quadruped"
+        },
+        {
+          "id": "frog-pumps",
+          "name": "Frog Pumps",
+          "equipment": "bodyweight",
+          "position": "supine"
+        }
+      ]
+    },
+    {
+      "id": "calf-exercises",
+      "name": "Calf Exercises",
+      "category": "Ben",
+      "workoutTypes": ["legs", "lower"],
+      "muscleGroups": ["Legger"],
+      "variants": [
+        {
+          "id": "calf-raises",
+          "name": "Standing Calf Raises",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "seated-calf-raises",
+          "name": "Seated Calf Raises",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "smith-machine-calf-raises",
+          "name": "Smith Machine Calf Raises",
+          "equipment": "smith-machine",
+          "position": "standing"
+        },
+        {
+          "id": "standing-single-leg-calf-raises",
+          "name": "Standing Single Leg Calf Raises",
+          "equipment": "bodyweight",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "plyometric",
+      "name": "Plyometric Exercises",
+      "category": "Ben",
+      "workoutTypes": ["legs", "lower", "plyometric"],
+      "muscleGroups": ["Ben"],
+      "variants": [
+        {
+          "id": "box-jumps",
+          "name": "Box Jumps",
+          "equipment": "box",
+          "position": "standing"
+        },
+        {
+          "id": "jump-squats",
+          "name": "Jump Squats",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "jump-lunges",
+          "name": "Jump Lunges",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "skater-jumps",
+          "name": "Skater Jumps",
+          "equipment": "bodyweight",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "other-legs",
+      "name": "Other Leg Exercises",
+      "category": "Ben",
+      "workoutTypes": ["legs", "lower", "full-body"],
+      "muscleGroups": ["Ben", "Rygg", "Sete", "Kjerne"],
+      "variants": [
+        {
+          "id": "stiff-legged-deadlift",
+          "name": "Stiff-Legged Deadlift",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "good-mornings",
+          "name": "Good Mornings",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "step-ups",
+          "name": "Step-ups",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "wall-sits",
+          "name": "Wall Sits",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "romanian-deadlift",
+          "name": "Romanian Deadlift",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "single-leg-romanian-deadlift",
+          "name": "Single Leg Romanian Deadlift",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "nordic-hamstring-curl",
+          "name": "Nordic Hamstring Curl",
+          "equipment": "bodyweight",
+          "position": "kneeling"
+        },
+        {
+          "id": "cable-pull-through",
+          "name": "Cable Pull-through",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "sled-push",
+          "name": "Sled Push",
+          "equipment": "sled",
+          "position": "standing"
+        },
+        {
+          "id": "sled-drag",
+          "name": "Sled Drag",
+          "equipment": "sled",
+          "position": "standing"
+        },
+        {
+          "id": "farmers-walk-on-toes",
+          "name": "Farmer's Walk on Toes",
+          "equipment": "dumbbell",
+          "position": "standing"
+        }
+      ]
+    },
+
+    {
+      "id": "core-stability",
+      "name": "Core Stability",
+      "category": "Kjerne",
+      "workoutTypes": ["full-body", "lower"],
+      "muscleGroups": ["Kjerne"],
+      "variants": [
+        {
+          "id": "planks",
+          "name": "Planks",
+          "equipment": "bodyweight",
+          "position": "plank"
+        },
+        {
+          "id": "side-planks",
+          "name": "Side Planks",
+          "equipment": "bodyweight",
+          "position": "side-plank"
+        },
+        {
+          "id": "hollow-holds",
+          "name": "Hollow Holds",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "dead-bug",
+          "name": "Dead Bug",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "bird-dog",
+          "name": "Bird Dog",
+          "equipment": "bodyweight",
+          "position": "quadruped"
+        }
+      ]
+    },
+    {
+      "id": "core-crunches",
+      "name": "Core Crunches",
+      "category": "Kjerne",
+      "workoutTypes": ["full-body"],
+      "muscleGroups": ["Kjerne"],
+      "variants": [
+        {
+          "id": "crunches",
+          "name": "Crunches",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "sit-ups",
+          "name": "Sit-ups",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "bicycle-crunches",
+          "name": "Bicycle Crunches",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "russian-twists",
+          "name": "Russian Twists",
+          "equipment": "bodyweight",
+          "position": "seated"
+        }
+      ]
+    },
+    {
+      "id": "core-legs",
+      "name": "Core Leg Exercises",
+      "category": "Kjerne",
+      "workoutTypes": ["full-body", "lower"],
+      "muscleGroups": ["Kjerne"],
+      "variants": [
+        {
+          "id": "leg-raises",
+          "name": "Leg Raises",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "flutter-kicks",
+          "name": "Flutter Kicks",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "scissor-kicks",
+          "name": "Scissor Kicks",
+          "equipment": "bodyweight",
+          "position": "supine"
+        },
+        {
+          "id": "v-ups",
+          "name": "V-ups",
+          "equipment": "bodyweight",
+          "position": "supine"
+        }
+      ]
+    },
+    {
+      "id": "core-dynamic",
+      "name": "Dynamic Core",
+      "category": "Kjerne",
+      "workoutTypes": ["full-body"],
+      "muscleGroups": ["Kjerne"],
+      "variants": [
+        {
+          "id": "mountain-climbers",
+          "name": "Mountain Climbers",
+          "equipment": "bodyweight",
+          "position": "plank"
+        },
+        {
+          "id": "burpees",
+          "name": "Burpees",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "man-makers",
+          "name": "Man Makers",
+          "equipment": "dumbbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "olympic-lifts",
+      "name": "Olympic Lifts",
+      "category": "Kjerne",
+      "workoutTypes": ["full-body"],
+      "muscleGroups": ["Kjerne", "Ben", "Skuldre", "Armer"],
+      "variants": [
+        {
+          "id": "turkish-get-ups",
+          "name": "Turkish Get-ups",
+          "equipment": "dumbbell",
+          "position": "supine"
+        },
+        {
+          "id": "clean-and-press",
+          "name": "Clean and Press",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "snatch",
+          "name": "Snatch",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "thrusters",
+          "name": "Thrusters",
+          "equipment": "barbell",
+          "position": "standing"
+        }
+      ]
+    },
+    {
+      "id": "custom-exercise",
+      "name": "Annet øvelse",
+      "category": "Annet",
+      "workoutTypes": ["push", "pull", "legs", "upper", "lower", "full-body"],
+      "muscleGroups": ["Annet"]
+    }
   ]
 }
 

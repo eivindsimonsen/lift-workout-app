@@ -32,12 +32,24 @@ export interface WorkoutStats {
 }
 
 // Exercise database and categorization
+export interface ExerciseVariant {
+  id: string;
+  name: string;
+  equipment?: string;
+  angle?: string;
+  grip?: string;
+  position?: string;
+  direction?: string;
+  focus?: string;
+}
+
 export interface ExerciseData {
   id: string;
   name: string;
   category: string;
   workoutTypes: string[];
   muscleGroups: string[];
+  variants?: ExerciseVariant[];
 }
 
 export interface WorkoutType {

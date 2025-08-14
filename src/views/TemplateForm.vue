@@ -181,8 +181,86 @@ const workoutTypes = computed(() => {
   return workoutData.workoutTypes.value
 })
 
+// Function to get default muscle groups based on workout type
+const getDefaultMuscleGroups = (workoutType: string): string[] => {
+  const muscleGroupMap: Record<string, string[]> = {
+    'push': ['Bryst', 'Skuldre', 'Armer'],
+    'pull': ['Rygg', 'Armer'],
+    'legs': ['Ben'],
+    'upper': ['Bryst', 'Rygg', 'Skuldre', 'Armer'],
+    'lower': ['Ben', 'Kjerne'],
+    'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne'],
+    'bryst': ['Bryst'],
+    'rygg': ['Rygg'],
+    'ben': ['Ben'],
+    'skuldre': ['Skuldre'],
+    'armer': ['Armer'],
+    'kjerne': ['Kjerne']
+  }
+  
+  return muscleGroupMap[workoutType.toLowerCase()] || []
+}
+
 const availableExercises = computed(() => {
-  return workoutData.exercises.value
+  const exercises: Array<{id: string, name: string, category: string, muscleGroups?: string[]}> = []
+  
+  // If workout type is selected, only include exercises that match
+  if (templateForm.value.workoutType) {
+    const relevantMuscleGroups = getDefaultMuscleGroups(templateForm.value.workoutType)
+    
+    workoutData.exercises.value.forEach(exercise => {
+      // Check if this exercise matches the workout type
+      const hasMatchingMuscleGroup = exercise.muscleGroups && 
+        exercise.muscleGroups.some(group => relevantMuscleGroups.includes(group))
+      
+      if (hasMatchingMuscleGroup) {
+        if (exercise.variants && exercise.variants.length > 0) {
+          // Add each variant as a separate exercise
+          exercise.variants.forEach(variant => {
+            exercises.push({
+              id: variant.id,
+              name: `${exercise.name} - ${variant.name}`,
+              category: exercise.category,
+              muscleGroups: exercise.muscleGroups
+            })
+          })
+        } else {
+          // Exercises without variants
+          exercises.push({
+            id: exercise.id,
+            name: exercise.name,
+            category: exercise.category,
+            muscleGroups: exercise.muscleGroups
+          })
+        }
+      }
+    })
+  } else {
+    // If no workout type selected, include all exercises
+    workoutData.exercises.value.forEach(exercise => {
+      if (exercise.variants && exercise.variants.length > 0) {
+        // Add each variant as a separate exercise
+        exercise.variants.forEach(variant => {
+          exercises.push({
+            id: variant.id,
+            name: `${exercise.name} - ${variant.name}`,
+            category: exercise.category,
+            muscleGroups: exercise.muscleGroups
+          })
+        })
+      } else {
+        // Exercises without variants
+        exercises.push({
+          id: exercise.id,
+          name: exercise.name,
+          category: exercise.category,
+          muscleGroups: exercise.muscleGroups
+        })
+      }
+    })
+  }
+  
+  return exercises
 })
 
 const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
@@ -207,8 +285,16 @@ const handleSelectExercise = (exerciseId: string) => {
 
 const getExerciseName = (id: string): string => {
   if (!id) return ''
-  const ex = workoutData.exercises.value.find(e => e.id === id)
-  return ex?.name || ''
+  const exercise = workoutData.getExerciseById.value(id)
+  if (!exercise?.name) return ''
+  
+  // Extract variant name from "Main Exercise - Variant" format
+  // For example: "Squats - Front Squats" -> "Front Squats"
+  const parts = exercise.name.split(' - ')
+  if (parts.length > 1) {
+    return parts[1] // Return the variant part
+  }
+  return exercise.name // Return original if no dash found
 }
 
 // Methods
@@ -235,7 +321,7 @@ const deleteTemplate = () => {
 const saveTemplate = () => {
   // Update exercise names based on selected exercise IDs
   const exercisesWithNames = templateForm.value.exercises.map(exercise => {
-    const exerciseData = workoutData.exercises.value.find(e => e.id === exercise.exerciseId)
+    const exerciseData = workoutData.getExerciseById.value(exercise.exerciseId)
     return {
       ...exercise,
       name: exerciseData?.name || exercise.name

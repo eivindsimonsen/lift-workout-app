@@ -367,11 +367,34 @@ const sessionDuration = computed(() => {
 })
 
 const availableExercises = computed(() => {
-  if (!session.value) return workoutData.exercises.value
+  if (!session.value) return []
   
-  // Filter out exercises that are already in the session
   const existingExerciseIds = session.value.exercises.map(e => e.exerciseId)
-  return workoutData.exercises.value.filter(exercise => !existingExerciseIds.includes(exercise.id))
+  const exercises: Array<{id: string, name: string, category: string}> = []
+  
+  workoutData.exercises.value.forEach(exercise => {
+    if (exercise.variants && exercise.variants.length > 0) {
+      exercise.variants.forEach(variant => {
+        if (!existingExerciseIds.includes(variant.id)) {
+          exercises.push({
+            id: variant.id,
+            name: `${exercise.name} - ${variant.name}`,
+            category: exercise.category
+          })
+        }
+      })
+    } else {
+      if (!existingExerciseIds.includes(exercise.id)) {
+        exercises.push({
+          id: exercise.id,
+          name: exercise.name,
+          category: exercise.category
+        })
+      }
+    }
+  })
+  
+  return exercises
 })
 
 

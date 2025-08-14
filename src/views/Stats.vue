@@ -618,12 +618,12 @@ const oneRepMaxProgression = computed(() => {
 })
 
 const powerExerciseRecords = computed(() => {
-  // Define power exercises (major compound movements)
+  // Define power exercises (major compound movements) - now using specific variant IDs
   const powerExerciseIds = [
-    'bench-press',           // Barbell Bench Press
-    'deadlift',              // Deadlift
-    'squat',                 // Squat
-    'barbell-shoulder-press' // Barbell Shoulder Press
+    'barbell-bench-press',           // Barbell Bench Press variant
+    'deadlift',                      // Deadlift (no variants)
+    'squat',                         // Squat (no variants)
+    'barbell-shoulder-press'         // Barbell Shoulder Press variant
   ]
   
   const records: { exercise: string; weight: number; reps: number; date: string }[] = []
@@ -656,8 +656,8 @@ const powerExerciseRecords = computed(() => {
     })
     
     if (bestSet) {
-      // Get exercise name from exercises data
-      const exerciseData = workoutData.exercises.value.find(e => e.id === exerciseId)
+      // Get exercise name from exercises data using the new helper function
+      const exerciseData = workoutData.getExerciseById.value(exerciseId)
       if (exerciseData) {
         records.push({
           exercise: exerciseData.name,
@@ -672,6 +672,19 @@ const powerExerciseRecords = computed(() => {
   // Sort by weight (highest first), then by reps, then by date
   return records.sort((a, b) => b.weight - a.weight || b.reps - a.reps || new Date(b.date).getTime() - new Date(a.date).getTime())
 })
+
+// Helper function to get better exercise display names
+const getExerciseDisplayName = (exerciseId: string): string => {
+  const mainExercise = workoutData.getMainExerciseByVariantId.value(exerciseId)
+  if (mainExercise && mainExercise.variants) {
+    const variant = mainExercise.variants.find((v: any) => v.id === exerciseId)
+    return variant ? `${mainExercise.name} - ${variant.name}` : mainExercise.name
+  }
+  
+  // Fallback to direct exercise lookup
+  const exerciseData = workoutData.getExerciseById.value(exerciseId)
+  return exerciseData?.name || exerciseId
+}
 
 const muscleGroupDistribution = computed(() => {
   const totalVolume = muscleGroupStats.value.reduce((sum, group) => sum + group.volume, 0)

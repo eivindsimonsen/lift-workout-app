@@ -24,7 +24,20 @@
             class="w-full text-left px-3 py-2 hover:bg-dark-700 text-sm"
             @click="select(ex.id, ex.name)"
           >
-            {{ ex.name }}
+            <div class="flex items-center justify-between">
+              <span>{{ ex.name }}</span>
+              <div v-if="ex.equipment || ex.angle || ex.grip" class="flex gap-1">
+                <span v-if="ex.equipment" class="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded">
+                  {{ ex.equipment }}
+                </span>
+                <span v-if="ex.angle" class="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">
+                  {{ ex.angle }}
+                </span>
+                <span v-if="ex.grip" class="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                  {{ ex.grip }}
+                </span>
+              </div>
+            </div>
           </button>
         </div>
       </template>
@@ -35,12 +48,38 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
+interface ExerciseVariant {
+  id: string
+  name: string
+  equipment?: string
+  angle?: string
+  grip?: string
+  position?: string
+  direction?: string
+  focus?: string
+}
+
 interface ExerciseItem {
   id: string
   name: string
   category?: string
   workoutTypes?: string[]
   muscleGroups?: string[]
+  variants?: ExerciseVariant[]
+}
+
+interface FlattenedExercise {
+  id: string
+  name: string
+  category?: string
+  workoutTypes?: string[]
+  muscleGroups?: string[]
+  equipment?: string
+  angle?: string
+  grip?: string
+  position?: string
+  direction?: string
+  focus?: string
 }
 
 const props = defineProps<{
@@ -57,8 +96,45 @@ const rootRef = ref<HTMLElement | null>(null)
 
 const placeholder = computed(() => props.placeholder || 'Søk og velg øvelse')
 
+// Flatten exercises with variants into individual selectable exercises
+const flattenedExercises = computed<FlattenedExercise[]>(() => {
+  const flattened: FlattenedExercise[] = []
+  
+  props.exercises.forEach(exercise => {
+    if (exercise.variants && exercise.variants.length > 0) {
+      // Add each variant as a separate exercise
+      exercise.variants.forEach(variant => {
+        flattened.push({
+          id: variant.id,
+          name: `${exercise.name} - ${variant.name}`,
+          category: exercise.category,
+          workoutTypes: exercise.workoutTypes,
+          muscleGroups: exercise.muscleGroups,
+          equipment: variant.equipment,
+          angle: variant.angle,
+          grip: variant.grip,
+          position: variant.position,
+          direction: variant.direction,
+          focus: variant.focus
+        })
+      })
+    } else {
+      // Exercise without variants
+      flattened.push({
+        id: exercise.id,
+        name: exercise.name,
+        category: exercise.category,
+        workoutTypes: exercise.workoutTypes,
+        muscleGroups: exercise.muscleGroups
+      })
+    }
+  })
+  
+  return flattened
+})
+
 // Grouped results in dropdown
-type GroupSection = { group: string; items: ExerciseItem[] }
+type GroupSection = { group: string; items: FlattenedExercise[] }
 
 // Normalization and alias mapping to support Norwegian/English terms and workout types
 const norm = (s: string) =>
@@ -99,14 +175,17 @@ const filtered = computed(() => {
     : []
 
   const hasTokens = tokens.length > 0
-  if (!hasTokens) return props.exercises
+  if (!hasTokens) return flattenedExercises.value
 
-  return props.exercises.filter((ex) => {
+  return flattenedExercises.value.filter((ex) => {
     const name = norm(ex.name)
     const category = norm(ex.category || '')
     const groups = (ex.muscleGroups || []).map((g) => norm(g)).join(' ')
     const types = (ex.workoutTypes || []).map((t) => norm(t)).join(' ')
-    const haystack = norm(`${name} ${category} ${groups} ${types}`)
+    const equipment = norm(ex.equipment || '')
+    const angle = norm(ex.angle || '')
+    const grip = norm(ex.grip || '')
+    const haystack = norm(`${name} ${category} ${groups} ${types} ${equipment} ${angle} ${grip}`)
 
     const tokenMatch = tokens.every((t) => {
       const candidates = (ALIASES[t] || [t]).map((a) => norm(a))
@@ -120,7 +199,7 @@ const filtered = computed(() => {
 const groupedFiltered = computed<GroupSection[]>(() => {
   const items = filtered.value
   if (!items.length) return []
-  const groups = new Map<string, ExerciseItem[]>()
+  const groups = new Map<string, FlattenedExercise[]>()
   for (const ex of items) {
     const key = ex.category || 'Annet'
     if (!groups.has(key)) groups.set(key, [])
@@ -140,7 +219,7 @@ watch(
     if (!val) {
       query.value = ''
     } else {
-      const found = props.exercises.find(e => e.id === val)
+      const found = flattenedExercises.value.find(e => e.id === val)
       if (found) query.value = found.name
     }
   },

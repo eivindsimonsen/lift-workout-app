@@ -52,7 +52,21 @@
           class="w-full text-left px-3 py-3 rounded-md hover:bg-dark-700 text-sm z-0 relative flex items-center justify-between group"
           @click="selectExercise(ex)"
         >
-          <span class="text-white">{{ ex.name }}</span>
+          <div class="flex-1">
+            <span class="text-white">{{ getVariantName(ex.name) }}</span>
+            <!-- Show variant details if available -->
+            <div v-if="ex.equipment || ex.angle || ex.grip" class="flex gap-1 mt-1">
+              <span v-if="ex.equipment" class="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded">
+                {{ ex.equipment }}
+              </span>
+              <span v-if="ex.angle" class="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">
+                {{ ex.angle }}
+              </span>
+              <span v-if="ex.grip" class="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                {{ ex.grip }}
+              </span>
+            </div>
+          </div>
           <div class="flex gap-1 flex-wrap justify-end">
             <span
               v-if="getPrimaryMuscleGroup(ex)"
@@ -79,6 +93,12 @@ interface ExerciseItem {
   category?: string
   workoutTypes?: string[]
   muscleGroups?: string[]
+  equipment?: string
+  angle?: string
+  grip?: string
+  position?: string
+  direction?: string
+  focus?: string
 }
 
 const props = defineProps<{
@@ -125,23 +145,9 @@ const availableMuscleGroups = computed(() => {
   const mainCategories = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
   const groups = new Set<string>()
   
-  props.exercises.forEach(ex => {
-    // Add category if it exists and is a main category
-    if (ex.category && mainCategories.includes(ex.category)) {
-      groups.add(ex.category)
-    }
-    
-    // Add muscle groups if they exist and are main categories
-    if (ex.muscleGroups) {
-      ex.muscleGroups.forEach(group => {
-        if (mainCategories.includes(group)) {
-          groups.add(group)
-        }
-      })
-    }
-  })
+  // Always show all main muscle group checkboxes
+  mainCategories.forEach(category => groups.add(category))
   
-  // Return in the specific order we want
   return mainCategories.filter(category => groups.has(category))
 })
 
@@ -163,14 +169,20 @@ const filteredResults = computed(() => {
       if (ex.id === 'custom-exercise') return true
       
       // Check if exercise matches any selected muscle group
-      const hasMatchingCategory = ex.category && selectedMuscleGroups.value.includes(ex.category)
-      const hasMatchingMuscleGroup = ex.muscleGroups && ex.muscleGroups.some(group => 
-        selectedMuscleGroups.value.includes(group)
-      )
+      // For variants, use muscleGroups from main exercise
+      // For exercises without variants, use category
+      if (ex.muscleGroups && ex.muscleGroups.length > 0) {
+        // Check if any of the exercise's muscle groups match the selected ones
+        return ex.muscleGroups.some(group => selectedMuscleGroups.value.includes(group))
+      } else if (ex.category) {
+        // Fallback to category if no muscleGroups
+        return selectedMuscleGroups.value.includes(ex.category)
+      }
       
-      return hasMatchingCategory || hasMatchingMuscleGroup
+      return false
     })
   } else {
+    // If no muscle groups selected, show all exercises
     exercises = uniqueExercises
   }
   
@@ -182,8 +194,11 @@ const filteredResults = computed(() => {
     // Always include custom exercise in search results
     if (ex.id === 'custom-exercise') return true
     
-    // Only include exercises where the name contains the search text
-    return ex.name.toLowerCase().includes(searchText)
+    // Search in both the full name and the variant name
+    const fullName = ex.name.toLowerCase()
+    const variantName = getVariantName(ex.name).toLowerCase()
+    
+    return fullName.includes(searchText) || variantName.includes(searchText)
   }).sort((x, y) => x.name.localeCompare(y.name, 'no'))
 })
 
@@ -233,6 +248,18 @@ const getDefaultMuscleGroups = (workoutType: string): string[] => {
 }
 
 const workoutTypes = computed(() => workoutTypesData.workoutTypes)
+
+// Computed property to extract the variant name from the full exercise name
+const getVariantName = (fullName: string): string => {
+  // Extract variant name from "Main Exercise - Variant" format
+  // For example: "Squats - Front Squats" -> "Front Squats"
+  // "Bench Press - Barbell Bench Press" -> "Barbell Bench Press"
+  const parts = fullName.split(' - ')
+  if (parts.length > 1) {
+    return parts[1] // Return the variant part
+  }
+  return fullName // Return original if no dash found
+}
 </script>
 
 

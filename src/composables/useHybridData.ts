@@ -33,6 +33,74 @@ export const useHybridData = () => {
     };
   });
 
+  // Helper functions for exercises with variants
+  const getExerciseById = computed(() => {
+    return (id: string) => {
+      for (const exercise of exercises.value) {
+        if (exercise.id === id) return exercise;
+        if (exercise.variants) {
+          const variant = exercise.variants.find((v) => v.id === id);
+          if (variant) {
+            return { ...exercise, ...variant };
+          }
+        }
+      }
+      return null;
+    };
+  });
+
+  const getMainExerciseByVariantId = computed(() => {
+    return (variantId: string) => {
+      return exercises.value.find((exercise) => exercise.variants?.some((v) => v.id === variantId));
+    };
+  });
+
+  const getFlattenedExercises = computed(() => {
+    const flattened: Array<{
+      id: string;
+      name: string;
+      category?: string;
+      workoutTypes?: string[];
+      muscleGroups?: string[];
+      equipment?: string;
+      angle?: string;
+      grip?: string;
+      position?: string;
+      direction?: string;
+      focus?: string;
+    }> = [];
+
+    exercises.value.forEach((exercise) => {
+      if (exercise.variants && exercise.variants.length > 0) {
+        exercise.variants.forEach((variant) => {
+          flattened.push({
+            id: variant.id,
+            name: `${exercise.name} - ${variant.name}`,
+            category: exercise.category,
+            workoutTypes: exercise.workoutTypes,
+            muscleGroups: exercise.muscleGroups,
+            equipment: variant.equipment,
+            angle: variant.angle,
+            grip: variant.grip,
+            position: variant.position,
+            direction: variant.direction,
+            focus: variant.focus,
+          });
+        });
+      } else {
+        flattened.push({
+          id: exercise.id,
+          name: exercise.name,
+          category: exercise.category,
+          workoutTypes: exercise.workoutTypes,
+          muscleGroups: exercise.muscleGroups,
+        });
+      }
+    });
+
+    return flattened;
+  });
+
   const getTemplatesByType = computed(() => {
     return (workoutType: string) => {
       logHybridAccess("Get templates by type", workoutType);
@@ -69,6 +137,9 @@ export const useHybridData = () => {
     workoutStats: userData.workoutStats,
     getSessionById,
     getTemplatesByType,
+    getExerciseById,
+    getMainExerciseByVariantId,
+    getFlattenedExercises,
 
     // Actions (all from Supabase)
     loadData: userData.loadData,

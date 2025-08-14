@@ -16,6 +16,31 @@
     </div>
 
     <div v-if="exercise" class="space-y-6">
+      <!-- Variant Details (if this is a variant) -->
+      <div v-if="exercise.equipment || exercise.angle || exercise.grip" class="card">
+        <h3 class="text-lg font-semibold text-white mb-4">Variant Detaljer</h3>
+        <div class="flex flex-wrap gap-3">
+          <span v-if="exercise.equipment" class="px-3 py-2 bg-primary-500/20 text-primary-400 rounded-lg text-sm">
+            {{ exercise.equipment }}
+          </span>
+          <span v-if="exercise.angle" class="px-3 py-2 bg-blue-500/20 text-blue-400 rounded-lg text-sm">
+            {{ exercise.angle }}
+          </span>
+          <span v-if="exercise.grip" class="px-3 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm">
+            {{ exercise.grip }}
+          </span>
+          <span v-if="exercise.position" class="px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-sm">
+            {{ exercise.position }}
+          </span>
+          <span v-if="exercise.direction" class="px-3 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg text-sm">
+            {{ exercise.direction }}
+          </span>
+          <span v-if="exercise.focus" class="px-3 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm">
+            {{ exercise.focus }}
+          </span>
+        </div>
+      </div>
+
       <!-- Stats Overview -->
       <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div class="card text-center">
@@ -710,12 +735,15 @@ const getWeekNumber = (date: Date): number => {
 // Lifecycle
 onMounted(() => {
   const exerciseId = route.params.id as string
-  const foundExercise = workoutData.exercises.value.find(e => e.id === exerciseId)
+  
+  // Use getExerciseById which can handle both main exercises and variants
+  const foundExercise = workoutData.getExerciseById.value(exerciseId)
   
   if (foundExercise) {
     exercise.value = foundExercise
   } else {
-    router.push('/')
+    // If not found, redirect to exercises page
+    router.push('/exercises')
   }
 })
 </script>

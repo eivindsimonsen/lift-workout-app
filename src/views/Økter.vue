@@ -262,8 +262,8 @@ const getExerciseGroups = (exercises: any[]) => {
   }
   
   exercises.forEach(exercise => {
-    // Find the exercise data to get muscle groups
-    const exerciseData = workoutData.exercises.value?.find(e => e.id === exercise.exerciseId)
+    // Find the exercise data using getExerciseById which can handle both main exercises and variants
+    const exerciseData = workoutData.getExerciseById.value(exercise.exerciseId)
     if (exerciseData && exerciseData.muscleGroups && exerciseData.muscleGroups.length > 0) {
       // Use the first muscle group as the primary category
       const primaryGroup = exerciseData.muscleGroups[0]
@@ -271,8 +271,14 @@ const getExerciseGroups = (exercises: any[]) => {
         groups[primaryGroup] = []
       }
       groups[primaryGroup].push(exercise)
+    } else if (exerciseData && exerciseData.category) {
+      // Fallback to category if no muscleGroups
+      if (!groups[exerciseData.category]) {
+        groups[exerciseData.category] = []
+      }
+      groups[exerciseData.category].push(exercise)
     } else {
-      // Fallback for exercises without muscle groups
+      // Last resort fallback
       if (!groups['other']) {
         groups['other'] = []
       }

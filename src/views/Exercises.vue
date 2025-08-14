@@ -95,9 +95,21 @@
             @click="viewExercise(exercise.id)"
             class="group bg-dark-700 rounded-lg p-3 border border-dark-600 hover:border-primary-500/50 transition-colors cursor-pointer hover:bg-dark-600 overflow-hidden"
           >
-            <div class="flex items-center h-10">
+            <div class="flex items-center justify-between">
               <div class="min-w-0 flex-1">
                 <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.name }}</h3>
+                <!-- Show variant tags if this is a variant -->
+                <div v-if="exercise.isVariant" class="flex gap-1 mt-1">
+                  <span v-if="exercise.equipment" class="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded">
+                    {{ exercise.equipment }}
+                  </span>
+                  <span v-if="exercise.angle" class="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">
+                    {{ exercise.angle }}
+                  </span>
+                  <span v-if="exercise.grip" class="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                    {{ exercise.grip }}
+                  </span>
+                </div>
               </div>
               <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -120,20 +132,84 @@
           </div>
 
           <!-- Exercise Grid -->
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+          <div class="space-y-4">
             <div 
               v-for="exercise in getExercisesByCategory(category)" 
               :key="exercise.id"
-              @click="viewExercise(exercise.id)"
-              class="group bg-dark-700 rounded-lg p-3 border border-dark-600 hover:border-primary-500/50 transition-colors cursor-pointer hover:bg-dark-600 overflow-hidden"
+              class="bg-dark-700 rounded-lg border border-dark-600 hover:border-primary-500/50 transition-colors overflow-hidden"
             >
-              <div class="flex items-center h-10">
-                <div class="min-w-0 flex-1">
-                  <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.name }}</h3>
+              <!-- Main Exercise Header -->
+              <div 
+                v-if="exercise.isMainExercise"
+                class="p-3 border-b border-dark-600"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <h3 class="font-medium text-white text-sm">{{ exercise.name }}</h3>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span v-if="exercise.totalSessions > 0" class="text-xs text-primary-400">
+                        {{ exercise.totalSessions }} økter
+                      </span>
+                      <span v-if="exercise.oneRepMax > 0" class="text-xs text-blue-400">
+                        1RM: {{ exercise.oneRepMax }}kg
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
+              </div>
+
+              <!-- Variants -->
+              <div v-if="exercise.variants && exercise.variants.length > 0" class="p-3 space-y-2">
+                <div 
+                  v-for="variant in exercise.variants" 
+                  :key="variant.id"
+                  @click="viewExercise(variant.id)"
+                  class="bg-dark-800 rounded p-2 hover:bg-dark-600 cursor-pointer transition-colors"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <span class="text-white text-sm">{{ variant.name }}</span>
+                      <div class="flex gap-1 mt-1">
+                        <span v-if="variant.equipment" class="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded">
+                          {{ variant.equipment }}
+                        </span>
+                        <span v-if="variant.angle" class="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">
+                          {{ variant.angle }}
+                        </span>
+                        <span v-if="variant.grip" class="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                          {{ variant.grip }}
+                        </span>
+                      </div>
+                    </div>
+                    <svg class="w-3 h-3 text-dark-400 group-hover:text-primary-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Exercise without variants -->
+              <div 
+                v-else-if="!exercise.isMainExercise"
+                @click="viewExercise(exercise.id)"
+                class="p-3 hover:bg-dark-600 cursor-pointer"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <span class="text-white text-sm">{{ exercise.name }}</span>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span v-if="exercise.totalSessions > 0" class="text-xs text-primary-400">
+                        {{ exercise.totalSessions }} økter
+                      </span>
+                      <span v-if="exercise.oneRepMax > 0" class="text-xs text-blue-400">
+                        1RM: {{ exercise.oneRepMax }}kg
+                      </span>
+                    </div>
+                  </div>
+                  <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -156,11 +232,49 @@ const workoutData = useHybridData()
 // Search
 const searchQuery = ref('')
 const hasSearch = computed(() => searchQuery.value.trim().length > 0)
-const flatExercises = computed(() => workoutData.exercises.value || [])
 const searchResults = computed(() => {
   if (!hasSearch.value) return []
   const q = searchQuery.value.trim().toLowerCase()
-  return flatExercises.value.filter((e: any) => e.name.toLowerCase().includes(q))
+  
+  // Use the processed exercise structure to show variants properly
+  const results: any[] = []
+  
+  allExercises.value.forEach(exercise => {
+    if (exercise.variants && exercise.variants.length > 0) {
+      // For exercises with variants, search through variants
+      exercise.variants.forEach(variant => {
+        const fullName = `${exercise.name} - ${variant.name}`
+        if (fullName.toLowerCase().includes(q)) {
+          results.push({
+            id: variant.id,
+            name: fullName,
+            category: exercise.muscleGroups?.[0] || '',
+            isVariant: true,
+            mainExercise: exercise.name,
+            // Include variant details directly
+            equipment: variant.equipment,
+            angle: variant.angle,
+            grip: variant.grip,
+            position: variant.position,
+            direction: variant.direction,
+            focus: variant.focus
+          })
+        }
+      })
+    } else {
+      // For exercises without variants, search the main exercise name
+      if (exercise.name.toLowerCase().includes(q)) {
+        results.push({
+          id: exercise.id,
+          name: exercise.name,
+          category: exercise.muscleGroups?.[0] || '',
+          isVariant: false
+        })
+      }
+    }
+  })
+  
+  return results
 })
 
 // Muscle group order for categorization
@@ -170,79 +284,111 @@ const muscleGroupOrder = ['Bryst', 'Rygg', 'Ben', 'Armer', 'Skuldre', 'Kjerne']
 const isLoading = computed(() => workoutData.isLoading.value)
 
 const allExercises = computed(() => {
-  // Start with all exercises from Supabase
-  const exercises = workoutData.exercises.value?.map(exercise => {
-    const performances: any[] = []
-    let totalSessions = 0
+  const exercises: Array<{
+    id: string;
+    name: string;
+    muscleGroups: string[];
+    totalSessions: number;
+    lastPerformance: any;
+    oneRepMax: number;
+    isMainExercise: boolean;
+    mainExerciseName?: string;
+    variants?: any[];
+  }> = []
 
-    // Find all performances of this exercise in completed sessions
-    workoutData.sessions.value
-      ?.filter(session => session.isCompleted)
-      ?.forEach(session => {
-        const sessionExercise = session.exercises?.find(e => e.exerciseId === exercise.id)
-        if (sessionExercise) {
-          totalSessions++
-          
-          // Find best set for this exercise in this session
-          let bestSet: any = null
-          let bestVolume = 0
-          
-          sessionExercise.sets?.forEach(set => {
-            if (set.isCompleted && set.weight && set.reps) {
-              const volume = set.weight * set.reps
-              if (volume > bestVolume) {
-                bestVolume = volume
-                bestSet = set
-              }
-            }
-          })
-          
-          if (bestSet) {
-            performances.push({
-              weight: bestSet.weight,
-              reps: bestSet.reps,
-              date: session.date,
-              volume: bestVolume
-            })
-          }
-        }
+  workoutData.exercises.value?.forEach(exercise => {
+    if (exercise.variants && exercise.variants.length > 0) {
+      // Add main exercise with variants
+      const mainExerciseData = getExerciseData(exercise.id, exercise.name, exercise.muscleGroups || [])
+      exercises.push({
+        ...mainExerciseData,
+        isMainExercise: true,
+        variants: exercise.variants
       })
-
-    // Sort performances by date and get the latest one
-    const lastPerformance = performances.length > 0 
-      ? performances.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-      : null
-
-    // Calculate one rep max from all completed sets with 1 rep
-    let oneRepMax = 0
-    workoutData.sessions.value
-      ?.filter(session => session.isCompleted)
-      ?.forEach(session => {
-        const sessionExercise = session.exercises?.find(e => e.exerciseId === exercise.id)
-        if (sessionExercise) {
-          sessionExercise.sets?.forEach(set => {
-            if (set.isCompleted && set.weight && set.reps === 1) {
-              if (set.weight > oneRepMax) {
-                oneRepMax = set.weight
-              }
-            }
-          })
-        }
+      // Don't add variants as separate entries - they're already shown under the main exercise
+    } else {
+      // Exercise without variants
+      const exerciseData = getExerciseData(exercise.id, exercise.name, exercise.muscleGroups || [])
+      exercises.push({
+        ...exerciseData,
+        isMainExercise: true
       })
-
-    return {
-      id: exercise.id,
-      name: exercise.name,
-      muscleGroups: exercise.muscleGroups || [],
-      totalSessions,
-      lastPerformance,
-      oneRepMax
     }
-  }) || []
+  })
 
   // Sort exercises by name within each category
   return exercises.sort((a, b) => a.name.localeCompare(b.name, 'no'))
 })
+
+// Helper function to get exercise data (sessions, performance, etc.)
+const getExerciseData = (exerciseId: string, exerciseName: string, muscleGroups: string[]) => {
+  const performances: any[] = []
+  let totalSessions = 0
+
+  // Find all performances of this exercise in completed sessions
+  workoutData.sessions.value
+    ?.filter(session => session.isCompleted)
+    ?.forEach(session => {
+      const sessionExercise = session.exercises?.find(e => e.exerciseId === exerciseId)
+      if (sessionExercise) {
+        totalSessions++
+        
+        // Find best set for this exercise in this session
+        let bestSet: any = null
+        let bestVolume = 0
+        
+        sessionExercise.sets?.forEach(set => {
+          if (set.isCompleted && set.weight && set.reps) {
+            const volume = set.weight * set.reps
+            if (volume > bestVolume) {
+              bestVolume = volume
+              bestSet = set
+            }
+          }
+        })
+        
+        if (bestSet) {
+          performances.push({
+            weight: bestSet.weight,
+            reps: bestSet.reps,
+            date: session.date,
+            volume: bestVolume
+          })
+        }
+      }
+    })
+
+  // Sort performances by date and get the latest one
+  const lastPerformance = performances.length > 0 
+    ? performances.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+    : null
+
+  // Calculate one rep max from all completed sets with 1 rep
+  let oneRepMax = 0
+  workoutData.sessions.value
+    ?.filter(session => session.isCompleted)
+    ?.forEach(session => {
+      const sessionExercise = session.exercises?.find(e => e.exerciseId === exerciseId)
+      if (sessionExercise) {
+        sessionExercise.sets?.forEach(set => {
+          if (set.isCompleted && set.weight && set.reps === 1) {
+            if (set.weight > oneRepMax) {
+              oneRepMax = set.weight
+            }
+          }
+        })
+      }
+    })
+
+  return {
+    id: exerciseId,
+    name: exerciseName,
+    muscleGroups,
+    totalSessions,
+    lastPerformance,
+    oneRepMax
+  }
+}
 
 // Active exercises - exercises that are used in workout templates or sessions
 const activeExercises = computed(() => {
@@ -299,6 +445,8 @@ const getExercisesByCategory = (muscleGroup: string) => {
 }
 
 const viewExercise = (exerciseId: string) => {
+  // Navigate directly to the exercise ID (could be main exercise or variant)
+  // ExerciseDetail.vue will handle both cases
   router.push(`/exercise/${exerciseId}`)
 }
 </script>
