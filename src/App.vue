@@ -83,8 +83,8 @@
         <!-- Offline Indicator -->
         <OfflineIndicator />
         
-        <!-- PWA Install Prompt -->
-        <PWAInstallPrompt />
+        <!-- Update Notification -->
+        <UpdateNotification />
         
 
 
@@ -128,11 +128,11 @@
         </div>
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
-        <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation">
+        <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation" :style="isPWA ? 'padding-bottom: env(safe-area-inset-bottom)' : ''">
           <div class="flex justify-around">
             <router-link 
               to="/" 
-              class="flex flex-col items-center py-2.5 px-4 text-dark-300 hover:text-white transition-colors"
+              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
               :class="{ 'nav-link-active': $route.path === '/' || $route.path.startsWith('/workout/') || $route.path.startsWith('/template/') }"
             >
               <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +144,7 @@
             
             <router-link 
               to="/exercises" 
-              class="flex flex-col items-center py-2.5 px-4 text-dark-300 hover:text-white transition-colors"
+              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
               :class="{ 'nav-link-active': $route.path === '/exercises' || $route.path.startsWith('/exercise/') }"
             >
               <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,7 +155,7 @@
             
             <router-link 
               to="/history" 
-              class="flex flex-col items-center py-2.5 px-4 text-dark-300 hover:text-white transition-colors"
+              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
               :class="{ 'nav-link-active': $route.path === '/history' || $route.path.startsWith('/session/') }"
             >
               <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +166,7 @@
             
             <router-link 
               to="/stats" 
-              class="flex flex-col items-center py-2.5 px-4 text-dark-300 hover:text-white transition-colors"
+              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
               :class="{ 'nav-link-active': $route.path === '/stats' }"
             >
               <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,7 +177,7 @@
             
             <router-link 
               to="/profile"
-              class="flex flex-col items-center py-2.5 px-4 text-dark-300 hover:text-white transition-colors"
+              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
             >
               <div class="w-6 h-6 mb-1 bg-primary-500 rounded-full flex items-center justify-center">
                 <span class="text-white text-xs font-medium">{{ userInitials }}</span>
@@ -188,7 +188,7 @@
         </nav>
 
         <!-- Workout Session Navigation - only show if in workout session -->
-        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation">
+        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation" :style="isPWA ? 'padding-bottom: env(safe-area-inset-bottom)' : ''">
           <!-- Progress Bar as border-top -->
           <div class="w-full h-1 bg-dark-600">
             <div 
@@ -198,10 +198,10 @@
           </div>
           
           <!-- Action Buttons -->
-          <div class="flex gap-3 p-3.5">
+          <div class="flex gap-3 p-4">
             <button 
               @click="handleCompleteWorkout"
-              class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+              class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-3 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -211,7 +211,7 @@
             <button 
               @click="handleSaveWorkout"
               :disabled="!hasUnsavedChanges || isSaving"
-              class="flex-1 text-white py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="flex-1 text-white py-3 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               :class="hasUnsavedChanges && !isSaving ? 'bg-dark-700 hover:bg-dark-600' : 'bg-dark-800 cursor-not-allowed'"
               data-save-button
             >
@@ -238,7 +238,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
-import PWAInstallPrompt from '@/components/PWAInstallPrompt.vue'
+import UpdateNotification from '@/components/UpdateNotification.vue'
 import OfflineIndicator from '@/components/OfflineIndicator.vue'
 import MobileBrowserBanner from '@/components/MobileBrowserBanner.vue'
 
@@ -307,6 +307,10 @@ const userInitials = computed(() => {
   } else {
     return name.substring(0, 2).toUpperCase()
   }
+})
+
+const isPWA = computed(() => {
+  return window.matchMedia('(display-mode: standalone)').matches
 })
 
 

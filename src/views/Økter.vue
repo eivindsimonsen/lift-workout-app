@@ -1,7 +1,5 @@
 <template>
   <NetworkStatus />
-  <PWAInstallPrompt />
-  <PullToRefresh @refresh="handleRefresh" :on-refresh="handleRefresh">
     <div>
       <!-- Header -->
       <div class="mb-8">
@@ -172,7 +170,6 @@
       </div>
     </div>
   </div>
-  </PullToRefresh>
 </template>
 
 <script setup lang="ts">
@@ -180,9 +177,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import SwipeableCard from '@/components/SwipeableCard.vue'
-import PullToRefresh from '@/components/PullToRefresh.vue'
 import NetworkStatus from '@/components/NetworkStatus.vue'
-import PWAInstallPrompt from '@/components/PWAInstallPrompt.vue'
 
 const router = useRouter()
 const workoutData = useHybridData()
@@ -260,13 +255,9 @@ const abandonWorkout = async (sessionId: string) => {
   }
 }
 
-const handleRefresh = async () => {
-  try {
-    await workoutData.loadData()
-  } catch (error) {
-    console.error('Refresh failed:', error)
-  }
-}
+
+
+
 
 // Helper methods for exercise grouping
 const getExerciseGroups = (exercises: any[]) => {
