@@ -187,7 +187,7 @@
         </nav>
 
         <!-- Workout Session Navigation - only show if in workout session -->
-        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation pb-6" :style="isPWA ? 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))' : ''">
+        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation">
           <!-- Progress Bar as border-top -->
           <div class="w-full h-1 bg-dark-600">
             <div 
@@ -197,7 +197,7 @@
           </div>
           
           <!-- Action Buttons -->
-          <div class="flex gap-3 px-4 p-3">
+          <div class="flex gap-6 px-4 p-2">
             <button 
               @click="handleCompleteWorkout"
               class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-3 rounded-lg transition-colors flex items-center justify-center gap-2"
