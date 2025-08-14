@@ -51,16 +51,20 @@ const checkForUpdates = () => {
         
         // Check if there's a waiting service worker (update available)
         if (reg.waiting) {
+          console.log('Update available - waiting service worker found')
           showUpdatePrompt.value = true
         }
         
         // Listen for new service worker installation
         reg.addEventListener('updatefound', () => {
+          console.log('Update found - new service worker installing')
           const newWorker = reg.installing
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
+              console.log('Service worker state changed:', newWorker.state)
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 // New service worker is installed and waiting
+                console.log('New service worker installed, waiting to activate')
                 showUpdatePrompt.value = true
               }
             })
@@ -72,6 +76,7 @@ const checkForUpdates = () => {
   
   // Listen for custom event from service worker registration
   window.addEventListener('sw-update-available', () => {
+    console.log('Update available event received')
     showUpdatePrompt.value = true
   })
 }
@@ -88,7 +93,8 @@ const refreshApp = () => {
 
 const dismissPrompt = () => {
   showUpdatePrompt.value = false
-  localStorage.setItem('update-prompt-dismissed', 'true')
+  // Don't dismiss permanently - allow it to show again on next update
+  // localStorage.setItem('update-prompt-dismissed', 'true')
 }
 
 const handleSkipWaiting = () => {
@@ -103,12 +109,25 @@ const handleSkipWaiting = () => {
 }
 
 onMounted(() => {
-  // Check if prompt was dismissed
-  const wasDismissed = localStorage.getItem('update-prompt-dismissed') === 'true'
-  if (!wasDismissed) {
-    checkForUpdates()
-    handleSkipWaiting()
-  }
+  // Always check for updates, don't dismiss permanently
+  checkForUpdates()
+  handleSkipWaiting()
+  
+  // Also check periodically for updates
+  const updateCheckInterval = setInterval(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg && reg.waiting) {
+          console.log('Periodic check found waiting service worker')
+          showUpdatePrompt.value = true
+        }
+      })
+    }
+  }, 60000) // Check every minute
+  
+  onUnmounted(() => {
+    clearInterval(updateCheckInterval)
+  })
 })
 
 onUnmounted(() => {

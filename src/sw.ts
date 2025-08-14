@@ -1,9 +1,12 @@
-// Service Worker Registration
+// Service Worker Registration for Vite PWA Plugin
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then((registration) => {
+    // Let Vite PWA plugin handle the registration
+    // This file is just for additional update handling
+
+    // Check for existing service worker registration
+    navigator.serviceWorker.getRegistration().then((registration) => {
+      if (registration) {
         console.log("SW registered: ", registration);
 
         // Check for updates
@@ -37,9 +40,7 @@ if ("serviceWorker" in navigator) {
             registration.waiting?.postMessage({ type: "SKIP_WAITING" });
           }
         });
-      })
-      .catch((registrationError) => {
-        console.log("SW registration failed: ", registrationError);
-      });
+      }
+    });
   });
 }
