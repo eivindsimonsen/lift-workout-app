@@ -129,7 +129,7 @@
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
         <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation" :style="isPWA ? 'padding-bottom: calc(1.35rem + env(safe-area-inset-bottom))' : 'padding-bottom: 1.35rem'">
-          <div class="flex justify-around">
+          <div class="flex justify-around pt-6 pb-4">
             <router-link 
               to="/" 
               class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
@@ -198,7 +198,7 @@
           </div>
           
           <!-- Action Buttons -->
-          <div class="flex gap-3 px-4 py-4">
+          <div class="flex gap-3 px-4 pt-6 pb-4">
             <button 
               @click="handleCompleteWorkout"
               class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-3 rounded-lg transition-colors flex items-center justify-center gap-2"
