@@ -8,26 +8,25 @@
   >
     <!-- Main Card Content -->
     <div 
-      class="transition-all duration-200 ease-out"
-      :class="{
-        'rounded-r-none': showDeleteAction,
-        'rounded-lg': !showDeleteAction
+      class="transition-all duration-200 ease-out relative z-10"
+      :style="{ 
+        transform: `translateX(${translateX}px)`,
+        borderRadius: showDeleteAction ? '8px 0px 0px 8px' : '8px'
       }"
-      :style="{ transform: `translateX(${translateX}px)` }"
     >
       <slot />
     </div>
     
     <!-- Delete Action Background (shown when swiping) -->
     <div 
-      class="absolute right-0 top-0 bottom-0 flex items-center justify-center delete-action text-white transition-all duration-200 ease-out shadow-lg"
+      class="absolute right-0 top-0 bottom-0 flex items-center justify-end delete-action text-white transition-opacity duration-200 ease-out shadow-lg pr-6 rounded-r-lg"
       :class="{ 
-        'opacity-100 scale-100': showDeleteAction, 
-        'opacity-0 scale-95': !showDeleteAction 
+        'opacity-100': showDeleteAction, 
+        'opacity-0': !showDeleteAction 
       }"
       :style="{ 
-        width: `${Math.abs(translateX)}px`,
-        left: `${Math.abs(translateX)}px`
+        width: '100%',
+        left: '0'
       }"
     >
       <!-- Delete Icon with better styling -->

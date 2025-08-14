@@ -57,13 +57,6 @@
               >
                 {{ getWorkoutTypeName(session.workoutType) }}
               </span>
-              <button 
-                @click.stop="abandonWorkout(session.id)"
-                class="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-sm font-medium"
-                title="Avbryt økt"
-              >
-                Avbryt
-              </button>
             </div>
           </div>
         </SwipeableCard>

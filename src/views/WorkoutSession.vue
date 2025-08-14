@@ -40,10 +40,10 @@
           >
             {{ getWorkoutTypeName(session?.workoutType || '') }}
           </span>
-          <!-- Abandon workout button -->
+          <!-- Abandon workout button (desktop only) -->
           <button 
             @click="handleAbandonWorkout"
-            class="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-sm font-medium"
+            class="hidden md:block px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-sm font-medium"
             title="Avbryt økt"
           >
             Avbryt økt

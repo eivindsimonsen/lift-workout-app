@@ -197,7 +197,7 @@
           </div>
           
           <!-- Action Buttons -->
-          <div class="flex gap-6 px-4 p-2">
+          <div class="flex gap-6 px-4 p-4">
             <button 
               @click="handleCompleteWorkout"
               class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-3 rounded-lg transition-colors flex items-center justify-center gap-2"
