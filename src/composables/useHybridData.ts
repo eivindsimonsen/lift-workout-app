@@ -73,9 +73,14 @@ export const useHybridData = () => {
     exercises.value.forEach((exercise) => {
       if (exercise.variants && exercise.variants.length > 0) {
         exercise.variants.forEach((variant) => {
+          // Skip variants that have the same ID as the main exercise to avoid conflicts
+          if (variant.id === exercise.id) {
+            return;
+          }
+
           flattened.push({
             id: variant.id,
-            name: `${exercise.name} - ${variant.name}`,
+            name: variant.name, // Use only the variant name, not the main exercise name
             category: exercise.category,
             workoutTypes: exercise.workoutTypes,
             muscleGroups: exercise.muscleGroups,

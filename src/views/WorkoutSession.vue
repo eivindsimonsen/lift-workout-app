@@ -367,34 +367,17 @@ const sessionDuration = computed(() => {
 })
 
 const availableExercises = computed(() => {
-  if (!session.value) return []
+  if (!session.value) {
+    return []
+  }
   
   const existingExerciseIds = session.value.exercises.map(e => e.exerciseId)
-  const exercises: Array<{id: string, name: string, category: string}> = []
   
-  workoutData.exercises.value.forEach(exercise => {
-    if (exercise.variants && exercise.variants.length > 0) {
-      exercise.variants.forEach(variant => {
-        if (!existingExerciseIds.includes(variant.id)) {
-          exercises.push({
-            id: variant.id,
-            name: `${exercise.name} - ${variant.name}`,
-            category: exercise.category
-          })
-        }
-      })
-    } else {
-      if (!existingExerciseIds.includes(exercise.id)) {
-        exercises.push({
-          id: exercise.id,
-          name: exercise.name,
-          category: exercise.category
-        })
-      }
-    }
-  })
+  // Use the getFlattenedExercises helper for consistency
+  const allExercises = workoutData.getFlattenedExercises.value
+  const available = allExercises.filter(exercise => !existingExerciseIds.includes(exercise.id))
   
-  return exercises
+  return available
 })
 
 
@@ -570,27 +553,49 @@ const addSet = (exerciseIndex: number) => {
 }
 
 const addExerciseToSession = () => {
-  if (!session.value || !newExerciseId.value) return
+  console.log('🔍 addExerciseToSession called')
+  console.log('🔍 newExerciseId.value:', newExerciseId.value)
+  
+  if (!session.value || !newExerciseId.value) {
+    console.log('❌ Early return - missing session or exercise ID')
+    return
+  }
 
-  const exerciseData = workoutData.exercises.value.find(e => e.id === newExerciseId.value)
-  if (!exerciseData) return
+  // Find the exercise from the flattened exercises list for consistency
+  const exerciseData = workoutData.getFlattenedExercises.value.find(e => e.id === newExerciseId.value)
+  console.log('🔍 exerciseData found from flattened exercises:', exerciseData)
+  
+  if (!exerciseData) {
+    console.log('❌ No exercise data found for ID:', newExerciseId.value)
+    return
+  }
 
   // Check if exercise already exists in session
   const exerciseExists = session.value.exercises.some(e => e.exerciseId === newExerciseId.value)
+  console.log('🔍 exerciseExists:', exerciseExists)
+  
   if (exerciseExists) {
+    console.log('❌ Exercise already exists in session')
     alert('Denne øvelsen er allerede lagt til i økten.')
     return
   }
 
   // Check if there are available exercises
   if (availableExercises.value.length === 0) {
+    console.log('❌ No available exercises')
     alert('Det er ingen flere øvelser å legge til.')
     return
   }
 
+  // The exercise data from getFlattenedExercises should already have the correct name
+  const exerciseName = exerciseData.name
+  const exerciseId = exerciseData.id
+  
+  console.log('🔍 Using exercise name:', exerciseName, 'and ID:', exerciseId)
+
   const newExercise = {
-    exerciseId: newExerciseId.value,
-    name: exerciseData.name,
+    exerciseId: exerciseId,
+    name: exerciseName,
     sets: [{
       id: `set-${Date.now()}`,
       reps: 0,
@@ -601,12 +606,15 @@ const addExerciseToSession = () => {
     }]
   }
   
+  console.log('🔍 newExercise created:', newExercise)
+  
   // Ensure weight and reps are numbers
   newExercise.sets[0].weight = Number(newExercise.sets[0].weight) || 0
   newExercise.sets[0].reps = Number(newExercise.sets[0].reps) || 0
 
   // Add the exercise to the session
   session.value.exercises.push(newExercise)
+  console.log('✅ Exercise added to session. New exercises array:', session.value.exercises)
   
   // Mark as having unsaved changes instead of auto-saving
   hasUnsavedChanges.value = true
