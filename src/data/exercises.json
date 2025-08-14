@@ -346,18 +346,6 @@
           "name": "Dips (Chest)",
           "equipment": "parallel-bars",
           "focus": "chest"
-        },
-        {
-          "id": "tricep-dips",
-          "name": "Tricep Dips",
-          "equipment": "parallel-bars",
-          "focus": "triceps"
-        },
-        {
-          "id": "bench-dips",
-          "name": "Bench Dips",
-          "equipment": "bench",
-          "focus": "triceps"
         }
       ]
     },
@@ -1151,12 +1139,6 @@
           "position": "quadruped"
         },
         {
-          "id": "dead-bug",
-          "name": "Dead Bug",
-          "equipment": "bodyweight",
-          "position": "supine"
-        },
-        {
           "id": "glute-bridge",
           "name": "Glute Bridge",
           "equipment": "bodyweight",
@@ -1456,12 +1438,6 @@
           "name": "Cable Tricep Extensions",
           "equipment": "cable",
           "position": "standing"
-        },
-        {
-          "id": "close-grip-bench-press",
-          "name": "Close Grip Bench Press",
-          "equipment": "barbell",
-          "position": "supine"
         },
         {
           "id": "jm-press",

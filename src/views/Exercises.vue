@@ -97,7 +97,7 @@
           >
             <div class="flex items-center justify-between">
               <div class="min-w-0 flex-1">
-                <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.name }}</h3>
+                <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.displayName }}</h3>
                 <!-- Show variant tags if this is a variant -->
                 <div v-if="exercise.isVariant" class="flex gap-1 mt-1">
                   <span v-if="exercise.equipment" class="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded">
@@ -248,6 +248,7 @@ const searchResults = computed(() => {
           results.push({
             id: variant.id,
             name: fullName,
+            displayName: getVariantName(fullName), // Use variant name without prefix
             category: exercise.muscleGroups?.[0] || '',
             isVariant: true,
             mainExercise: exercise.name,
@@ -267,6 +268,7 @@ const searchResults = computed(() => {
         results.push({
           id: exercise.id,
           name: exercise.name,
+          displayName: exercise.name, // No prefix for exercises without variants
           category: exercise.muscleGroups?.[0] || '',
           isVariant: false
         })
@@ -276,6 +278,15 @@ const searchResults = computed(() => {
   
   return results
 })
+
+// Helper function to get variant name without the prefix (e.g., "Barbell Bench Press - Incline" -> "Incline")
+const getVariantName = (fullName: string): string => {
+  const parts = fullName.split(' - ')
+  if (parts.length > 1) {
+    return parts[1]
+  }
+  return fullName
+}
 
 // Muscle group order for categorization
 const muscleGroupOrder = ['Bryst', 'Rygg', 'Ben', 'Armer', 'Skuldre', 'Kjerne']

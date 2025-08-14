@@ -37,7 +37,6 @@
               class="w-4 h-4 text-dark-600 bg-dark-700 border-dark-600 rounded focus:ring-dark-500 focus:ring-2"
             />
             <span class="text-sm text-white">{{ muscleGroup }}</span>
-            
           </label>
         </div>
       </div>
@@ -69,11 +68,11 @@
           </div>
           <div class="flex gap-1 flex-wrap justify-end">
             <span
-              v-if="getPrimaryMuscleGroup(ex)"
+              v-if="ex.category"
               class="px-2 py-1 text-xs font-medium rounded-full bg-dark-600"
-              :style="{ color: getMuscleGroupColor(getPrimaryMuscleGroup(ex) || '') }"
+              :style="{ color: getMuscleGroupColor(ex.category) }"
             >
-              {{ getPrimaryMuscleGroup(ex) }}
+              {{ ex.category }}
             </span>
           </div>
         </button>
@@ -86,13 +85,12 @@
 import { computed, ref, watch, nextTick } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
 import * as workoutTypesData from '@/data/workout-types.json'
+import * as exercisesData from '@/data/exercises.json'
 
 interface ExerciseItem {
   id: string
   name: string
-  category?: string
-  workoutTypes?: string[]
-  muscleGroups?: string[]
+  category: string
   equipment?: string
   angle?: string
   grip?: string
@@ -103,7 +101,6 @@ interface ExerciseItem {
 
 const props = defineProps<{
   isOpen: boolean
-  exercises: ExerciseItem[]
   title?: string
   workoutType?: string
 }>()
@@ -121,94 +118,71 @@ const query = ref('')
 const selectedMuscleGroups = ref<string[]>([])
 const searchInput = ref<HTMLInputElement>()
 
-// Reset when opening
-watch(() => props.isOpen, async (open) => {
-  if (open) {
-    query.value = ''
-    // Auto-select muscle groups based on workout type
-    if (props.workoutType) {
-      selectedMuscleGroups.value = getDefaultMuscleGroups(props.workoutType)
+// Get all available muscle groups
+const availableMuscleGroups = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
+
+// Get all exercises from exercises.json
+const allExercises = computed(() => {
+  const exercises: ExerciseItem[] = []
+  const seenIds = new Set<string>()
+  
+  exercisesData.exercises.forEach(exercise => {
+    if (exercise.variants && exercise.variants.length > 0) {
+      // Add each variant as a separate exercise
+      exercise.variants.forEach(variant => {
+        // Skip if we've already seen this variant ID
+        if (seenIds.has(variant.id)) return
+        
+        seenIds.add(variant.id)
+        exercises.push({
+          id: variant.id,
+          name: `${exercise.name} - ${variant.name}`,
+          category: exercise.category,
+          equipment: (variant as any).equipment,
+          angle: (variant as any).angle,
+          grip: (variant as any).grip,
+          position: (variant as any).position,
+          direction: (variant as any).direction,
+          focus: (variant as any).focus
+        })
+      })
     } else {
-      selectedMuscleGroups.value = []
-    }
-    
-    // Focus the search input after the slide-over is fully rendered
-    await nextTick()
-    if (searchInput.value) {
-      searchInput.value.focus()
-    }
-  }
-})
-
-// Get all available muscle groups from exercises (only main categories)
-const availableMuscleGroups = computed(() => {
-  const mainCategories = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
-  const groups = new Set<string>()
-  
-  // Always show all main muscle group checkboxes
-  mainCategories.forEach(category => groups.add(category))
-  
-  return mainCategories.filter(category => groups.has(category))
-})
-
-const filteredResults = computed(() => {
-  let exercises = props.exercises
-  
-  // Remove duplicates based on name (keep the first occurrence)
-  const uniqueExercises = exercises.filter((exercise, index, self) => 
-    index === self.findIndex(e => e.name === exercise.name)
-  )
-  
-  // Always include "Annet øvelse" regardless of filters
-  const customExercise = uniqueExercises.find(ex => ex.id === 'custom-exercise')
-  
-  // Filter by selected muscle groups (using both category and muscleGroups fields)
-  if (selectedMuscleGroups.value.length > 0) {
-    exercises = uniqueExercises.filter(ex => {
-      // Always include custom exercise
-      if (ex.id === 'custom-exercise') return true
-      
-      // Check if exercise matches any selected muscle group
-      // For variants, use muscleGroups from main exercise
-      // For exercises without variants, use category
-      if (ex.muscleGroups && ex.muscleGroups.length > 0) {
-        // Check if any of the exercise's muscle groups match the selected ones
-        return ex.muscleGroups.some(group => selectedMuscleGroups.value.includes(group))
-      } else if (ex.category) {
-        // Fallback to category if no muscleGroups
-        return selectedMuscleGroups.value.includes(ex.category)
+      // Exercises without variants
+      if (!seenIds.has(exercise.id)) {
+        seenIds.add(exercise.id)
+        exercises.push({
+          id: exercise.id,
+          name: exercise.name,
+          category: exercise.category
+        })
       }
-      
-      return false
-    })
-  } else {
-    // If no muscle groups selected, show all exercises
-    exercises = uniqueExercises
-  }
+    }
+  })
   
-  // Filter by search query - only show exercises with search text in name
-  const searchText = query.value.trim().toLowerCase()
-  if (!searchText) return exercises
-  
-  return exercises.filter((ex) => {
-    // Always include custom exercise in search results
-    if (ex.id === 'custom-exercise') return true
-    
-    // Search in both the full name and the variant name
-    const fullName = ex.name.toLowerCase()
-    const variantName = getVariantName(ex.name).toLowerCase()
-    
-    return fullName.includes(searchText) || variantName.includes(searchText)
-  }).sort((x, y) => x.name.localeCompare(y.name, 'no'))
+  return exercises
 })
 
-const getPrimaryMuscleGroup = (exercise: ExerciseItem): string | null => {
-  // Return the first muscle group, or category as fallback
-  if (exercise.muscleGroups && exercise.muscleGroups.length > 0) {
-    return exercise.muscleGroups[0]
+// Filter results based on search query and selected muscle groups
+const filteredResults = computed(() => {
+  let exercises = allExercises.value
+  
+  // Filter by selected muscle groups
+  if (selectedMuscleGroups.value.length > 0) {
+    exercises = exercises.filter(ex => selectedMuscleGroups.value.includes(ex.category))
   }
-  return exercise.category || null
-}
+  
+  // Filter by search query
+  const searchText = query.value.trim().toLowerCase()
+  if (searchText) {
+    exercises = exercises.filter(ex => {
+      const fullName = ex.name.toLowerCase()
+      const variantName = getVariantName(ex.name).toLowerCase()
+      return fullName.includes(searchText) || variantName.includes(searchText)
+    })
+  }
+  
+  return exercises.sort((a, b) => a.name.localeCompare(b.name, 'no'))
+})
 
 const getMuscleGroupColor = (muscleGroup: string): string => {
   const colors: Record<string, string> = {
@@ -260,6 +234,25 @@ const getVariantName = (fullName: string): string => {
   }
   return fullName // Return original if no dash found
 }
+
+// Reset when opening
+watch(() => props.isOpen, async (open) => {
+  if (open) {
+    query.value = ''
+    // Auto-select muscle groups based on workout type
+    if (props.workoutType) {
+      selectedMuscleGroups.value = getDefaultMuscleGroups(props.workoutType)
+    } else {
+      selectedMuscleGroups.value = []
+    }
+    
+    // Focus the search input after the slide-over is fully rendered
+    await nextTick()
+    if (searchInput.value) {
+      searchInput.value.focus()
+    }
+  }
+})
 </script>
 
 
