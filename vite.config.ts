@@ -77,7 +77,14 @@ export default defineConfig({
   server: {
     host: "0.0.0.0", // Allow external connections
     port: 5173,
-    https: false, // Back to HTTP for development
+    // Allow all localtunnel URLs and other development domains
+    allowedHosts: [
+      "localhost",
+      "127.0.0.1",
+      ".loca.lt", // Allow all localtunnel subdomains
+      ".tunnel.dev", // Allow all tunnel.dev subdomains
+      ".serveo.net", // Allow all serveo subdomains
+    ],
   },
   resolve: {
     alias: {
