@@ -130,6 +130,8 @@ export const useHybridData = () => {
     isLoading: userData.isLoading,
     currentUser: userData.currentUser,
     isAuthenticated: userData.isAuthenticated,
+    isOnline: userData.isOnline,
+    lastSyncTime: userData.lastSyncTime,
 
     // Exercise data from JSON file
     exercises,
@@ -160,5 +162,11 @@ export const useHybridData = () => {
     abandonWorkoutSession: userData.abandonWorkoutSession,
     signOut: userData.signOut,
     cleanup: userData.cleanup,
+
+    // Offline-first functions
+    updateTemplateOffline: userData.updateTemplateOffline,
+    updateWorkoutSessionOffline: userData.updateWorkoutSessionOffline,
+    syncPendingChanges: userData.syncPendingChanges,
+    watchNetworkStatus: userData.watchNetworkStatus,
   };
 };

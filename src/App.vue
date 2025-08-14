@@ -6,7 +6,12 @@
         <div class="text-center">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
           <p class="text-dark-300">Laster...</p>
-          <p class="text-sm text-dark-400 mt-2">Venter på autentisering...</p>
+          <p class="text-sm text-dark-400 mt-2">
+            {{ hasInitialized ? 'Laster data...' : 'Starter app...' }}
+          </p>
+          <p v-if="workoutData.lastSyncTime?.value" class="text-xs text-dark-500 mt-1">
+            Sist synkronisert: {{ formatLastSyncTime(workoutData.lastSyncTime.value) }}
+          </p>
         </div>
       </div>
 
@@ -100,19 +105,7 @@
           <!-- Action Buttons -->
           <div class="container mx-auto px-4 py-3.5">
             <div class="flex gap-3 max-w-md mx-auto">
-              <button 
-                @click="handleSaveWorkout"
-                :disabled="!hasUnsavedChanges || isSaving"
-                class="flex-1 text-white py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                :class="hasUnsavedChanges && !isSaving ? 'bg-dark-700 hover:bg-dark-600' : 'bg-dark-800 cursor-not-allowed'"
-                data-save-button
-              >
-                <svg v-if="!isSaving" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                </svg>
-                <div v-else class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>{{ isSaving ? 'Lagrer...' : 'Lagre' }}</span>
-              </button>
+              
               <button 
                 @click="handleCompleteWorkout"
                 class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -208,8 +201,7 @@
               Fullfør
             </button>
             <button 
-              @click="handleSaveWorkout"
-              :disabled="!hasUnsavedChanges || isSaving"
+              style="display: none;"
               class="flex-1 text-white py-3 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               :class="hasUnsavedChanges && !isSaving ? 'bg-dark-700 hover:bg-dark-600' : 'bg-dark-800 cursor-not-allowed'"
               data-save-button
@@ -218,7 +210,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
               </svg>
               <div v-else class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <span>{{ isSaving ? 'Lagrer...' : 'Lagre' }}</span>
+              <span>Auto-lagring</span>
             </button>
           </div>
         </nav>
@@ -255,6 +247,48 @@ const mainContent = ref<HTMLElement>()
 const hasInitialized = ref(false)
 const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
+const networkStatus = ref<'online' | 'offline'>('online')
+
+// Network status monitoring
+const updateNetworkStatus = () => {
+  networkStatus.value = navigator.onLine ? 'online' : 'offline'
+  console.log(`🌐 App: Network status changed to ${networkStatus.value}`)
+  
+  // If we're back online, sync pending changes
+  if (networkStatus.value === 'online') {
+    workoutData.syncPendingChanges()
+  }
+}
+
+// Format last sync time
+const formatLastSyncTime = (timestamp: number) => {
+  const now = Date.now()
+  const diff = now - timestamp
+  
+  if (diff < 60000) { // Less than 1 minute
+    return 'Nettopp'
+  } else if (diff < 3600000) { // Less than 1 hour
+    const minutes = Math.floor(diff / 60000)
+    return `${minutes} minutter siden`
+  } else if (diff < 86400000) { // Less than 1 day
+    const hours = Math.floor(diff / 3600000)
+    return `${hours} timer siden`
+  } else {
+    const days = Math.floor(diff / 86400000)
+    return `${days} dager siden`
+  }
+}
+
+// Watch for network status changes
+watch(() => workoutData.isOnline.value, (isOnline) => {
+  networkStatus.value = isOnline ? 'online' : 'offline'
+  console.log(`🌐 App: Network status updated to ${networkStatus.value}`)
+  
+  // If we're back online, sync pending changes
+  if (isOnline) {
+    workoutData.syncPendingChanges()
+  }
+})
 
 // Computed properties
 const isWorkoutSession = computed(() => {
@@ -289,8 +323,9 @@ const workoutProgress = computed(() => {
 const isAuthenticated = computed(() => workoutData.isAuthenticated.value)
 const currentUser = computed(() => workoutData.currentUser.value)
 const isLoading = computed(() => {
-  // Show loading while initializing auth or while loading data
-  return !hasInitialized.value || workoutData.isLoading.value
+  // Show loading only during initial auth setup, not on subsequent data loads
+  // This prevents showing the loading screen every time the app is opened
+  return !hasInitialized.value
 })
 
 const userInitials = computed(() => {
@@ -316,47 +351,7 @@ const isPWA = computed(() => {
 
 // Methods
 
-const handleSaveWorkout = async () => {
-  if (!isWorkoutSession.value || !route.params.id) return
-
-  try {
-    isSaving.value = true
-    
-    // Emit a custom event that WorkoutSession.vue can listen to
-    const saveEvent = new CustomEvent('saveWorkoutSession', {
-      detail: { sessionId: route.params.id }
-    })
-    window.dispatchEvent(saveEvent)
-    
-    // Wait a bit to show the loading state
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Show success state temporarily
-    const saveButton = document.querySelector('[data-save-button]') as HTMLButtonElement
-    if (saveButton) {
-      const originalText = saveButton.innerHTML
-      saveButton.innerHTML = `
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-        Lagring velykket
-      `
-      saveButton.disabled = true
-      saveButton.classList.add('bg-green-600', 'hover:bg-green-600')
-      
-      setTimeout(() => {
-        saveButton.innerHTML = originalText
-        saveButton.disabled = false
-        saveButton.classList.remove('bg-green-600', 'hover:bg-green-600')
-        isSaving.value = false
-        hasUnsavedChanges.value = false
-      }, 2000)
-    }
-  } catch (error: any) {
-    isSaving.value = false
-    handleAuthError(error)
-  }
-}
+// Auto-save is handled automatically in WorkoutSession.vue
 
 const handleCompleteWorkout = async () => {
   if (!isWorkoutSession.value || !route.params.id) return
@@ -396,13 +391,13 @@ onMounted(async () => {
   window.addEventListener('focus', handleFocus)
   ;(window as any).__appFocusHandler = handleFocus
 
-  // Add keyboard shortcut for saving (Ctrl+S)
+  // Auto-save is handled automatically, no manual save needed
   const handleKeydown = (event: KeyboardEvent) => {
+    // Disable Ctrl+S since auto-save handles everything
     if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault()
-      if (hasUnsavedChanges.value && !isSaving.value) {
-        handleSaveWorkout()
-      }
+      // Show a message that auto-save is active
+      console.log('📱 Auto-save is active - no manual save needed')
     }
   }
   
@@ -416,20 +411,24 @@ onMounted(async () => {
   const handleBeforeUnload = (event: BeforeUnloadEvent) => {
     if (hasUnsavedChanges.value) {
       event.preventDefault()
-      event.returnValue = 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
-      return 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
+      event.returnValue = 'Er du sikker på at du vil forlate siden?'
+      return 'Er du sikker på at du vil forlate siden?'
     }
   }
   
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('updateAppSaveState', handleSaveStateUpdate as EventListener)
   window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener('online', updateNetworkStatus)
+  window.addEventListener('offline', updateNetworkStatus)
   
   // Cleanup on unmount
   onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
     window.removeEventListener('updateAppSaveState', handleSaveStateUpdate as EventListener)
     window.removeEventListener('beforeunload', handleBeforeUnload)
+    window.removeEventListener('online', updateNetworkStatus)
+    window.removeEventListener('offline', updateNetworkStatus)
   })
 })
 

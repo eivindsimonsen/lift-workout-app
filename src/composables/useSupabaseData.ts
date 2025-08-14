@@ -1,11 +1,127 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useSupabase } from "./useSupabase";
 import { useErrorHandler } from "@/composables/useErrorHandler";
+import { useIndexedDB } from "@/composables/useIndexedDB";
 import type { WorkoutTemplate, WorkoutSession, WorkoutType } from "@/types/workout";
 
 // Console logging utility
 const logSupabaseAccess = (operation: string, details?: any) => {
   const timestamp = new Date().toLocaleTimeString("no-NO");
+};
+
+// Helper function to create serializable user object for IndexedDB storage
+const createSerializableUser = (user: any) => {
+  if (!user || typeof user !== "object") {
+    console.warn("⚠️ Invalid user object provided to createSerializableUser");
+    return null;
+  }
+
+  return {
+    id: user.id || null,
+    email: user.email || null,
+    user_metadata: user.user_metadata || null,
+    app_metadata: user.app_metadata || null,
+    aud: user.aud || null,
+    created_at: user.created_at || null,
+    updated_at: user.updated_at || null,
+  };
+};
+
+// Helper function to ensure data is serializable for IndexedDB storage
+const ensureSerializable = (data: any): any => {
+  // Handle null and undefined
+  if (data === null || data === undefined) {
+    return null;
+  }
+
+  // Handle primitive types
+  if (typeof data !== "object") {
+    return data;
+  }
+
+  // Handle Date objects
+  if (data instanceof Date) {
+    return data.toISOString();
+  }
+
+  // Handle arrays
+  if (Array.isArray(data)) {
+    return data.map((item) => ensureSerializable(item));
+  }
+
+  // Handle objects - be very careful with this
+  if (typeof data === "object") {
+    const cleanData: any = {};
+
+    // Get all enumerable keys
+    const keys = Object.keys(data);
+
+    for (const key of keys) {
+      try {
+        const value = data[key];
+
+        // Skip functions and other non-serializable types
+        if (typeof value === "function") {
+          continue;
+        }
+
+        // Skip Vue reactive properties
+        if (key.startsWith("__v_")) {
+          continue;
+        }
+
+        // Skip undefined values
+        if (value === undefined) {
+          continue;
+        }
+
+        // Handle null values
+        if (value === null) {
+          cleanData[key] = null;
+          continue;
+        }
+
+        // Handle primitive values
+        if (typeof value !== "object") {
+          cleanData[key] = value;
+          continue;
+        }
+
+        // Handle Date objects
+        if (value instanceof Date) {
+          cleanData[key] = value.toISOString();
+          continue;
+        }
+
+        // Handle arrays
+        if (Array.isArray(value)) {
+          cleanData[key] = value.map((item) => ensureSerializable(item));
+          continue;
+        }
+
+        // Handle nested objects - be very careful
+        try {
+          // Test if this object can be serialized
+          JSON.stringify(value);
+          cleanData[key] = ensureSerializable(value);
+        } catch {
+          // If it can't be serialized, skip it
+          console.warn(`⚠️ Skipping non-serializable nested object: ${key}`);
+          continue;
+        }
+      } catch (error) {
+        // Skip this property if it can't be processed
+        console.warn(`⚠️ Skipping problematic property: ${key}`, error);
+        continue;
+      }
+    }
+
+    return cleanData;
+  }
+
+  // If we get here, something went wrong
+  console.warn("⚠️ Unexpected data type in ensureSerializable:", typeof data);
+  return null;
 };
 
 // Singleton instance
@@ -14,6 +130,7 @@ let isInitializing = false;
 
 const createSupabaseData = () => {
   const { supabase } = useSupabase();
+  const indexedDB = useIndexedDB();
 
   // State (only user data)
   const templates = ref<WorkoutTemplate[]>([]);
@@ -21,10 +138,35 @@ const createSupabaseData = () => {
   const isLoading = ref(false);
   const currentUser = ref<any>(null);
   const isAuthenticated = ref(false);
-  const isInitialized = ref(false); // Add initialization guard
+  const isInitialized = ref(false);
+  const isOnline = ref(navigator.onLine);
+  const lastSyncTime = ref<number | null>(null);
 
-  // Load data from Supabase (only user data)
-  const loadData = async (retryCount = 0) => {
+  // Debounce visibility change to prevent rapid tab switching from triggering loads
+  let visibilityChangeTimeout: NodeJS.Timeout | null = null;
+
+  // Network status monitoring
+  const updateNetworkStatus = () => {
+    isOnline.value = navigator.onLine;
+    console.log(`🌐 Network status: ${isOnline.value ? "Online" : "Offline"}`);
+  };
+
+  // Initialize IndexedDB
+  const initIndexedDB = async () => {
+    try {
+      console.log("📱 Initializing IndexedDB for offline caching...");
+      await indexedDB.initDB();
+      console.log("✅ IndexedDB initialized for offline caching");
+    } catch (error) {
+      console.error("❌ Failed to initialize IndexedDB:", error);
+      // Don't throw here - app can still work without offline caching
+      // Set isOnline to false to prevent offline operations from being attempted
+      isOnline.value = false;
+    }
+  };
+
+  // Load data from cache first, then from Supabase if needed
+  const loadData = async (retryCount = 0, forceRefresh = false) => {
     if (!currentUser.value) {
       return;
     }
@@ -33,17 +175,99 @@ const createSupabaseData = () => {
     if (isLoading.value) {
       return;
     }
-    isLoading.value = true;
 
-    // Add retry logic for better reliability
-    const maxRetries = 2;
+    // Only set loading to true if we're actually going to do work
+    // For visibility-triggered refreshes, be more conservative
+    let shouldShowLoading = true;
 
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (isLoading.value) {
+    // Check if this is a visibility-triggered refresh with fresh cache
+    if (forceRefresh && !isOnline.value) {
+      shouldShowLoading = false; // Don't show loading for offline refreshes
+    }
+
+    // Set loading state immediately if needed
+    if (shouldShowLoading) {
+      isLoading.value = true;
+    }
+
+    try {
+      // Try to load from cache first (only if IndexedDB is available)
+      let cachedData: any = null;
+      if (indexedDB.isSupported.value) {
+        try {
+          cachedData = await indexedDB.getUserData(currentUser.value.id);
+
+          if (cachedData && !forceRefresh) {
+            console.log("📱 Loading data from cache...");
+            templates.value = cachedData.templates;
+            sessions.value = cachedData.sessions;
+            lastSyncTime.value = cachedData.lastSync;
+
+            // If cache is fresh (less than 5 minutes old), don't sync
+            const cacheAge = Date.now() - cachedData.lastSync;
+            if (cacheAge < 5 * 60 * 1000) {
+              console.log("✅ Using cached data (fresh)");
+              isLoading.value = false;
+              return;
+            }
+          }
+        } catch (cacheError) {
+          console.warn("⚠️ Cache loading failed, will sync with Supabase:", cacheError);
+          // Continue with Supabase sync if cache fails
+        }
+      } else {
+        console.log("📱 IndexedDB not supported, skipping cache");
+      }
+
+      // Load from Supabase if online and cache is stale or forced
+      if (isOnline.value) {
+        console.log("🌐 Syncing with Supabase...");
+        try {
+          await syncWithSupabase();
+        } catch (syncError) {
+          console.error("❌ Supabase sync failed:", syncError);
+          // If sync fails, try to use cached data if available
+          if (cachedData) {
+            console.log("📱 Using cached data due to sync failure");
+            templates.value = cachedData.templates;
+            sessions.value = cachedData.sessions;
+          }
+        }
+      } else {
+        console.log("📱 Offline mode - using cached data");
+        if (cachedData) {
+          templates.value = cachedData.templates;
+          sessions.value = cachedData.sessions;
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error loading data:", error);
+
+      // Fallback to cache if available
+      if (indexedDB.isSupported.value) {
+        try {
+          const cachedData = await indexedDB.getUserData(currentUser.value.id);
+          if (cachedData) {
+            console.log("📱 Fallback to cached data");
+            templates.value = cachedData.templates;
+            sessions.value = cachedData.sessions;
+          }
+        } catch (cacheError) {
+          console.error("❌ Cache fallback failed:", cacheError);
+          // Don't fail the entire operation if cache fallback fails
+        }
+      }
+    } finally {
+      // Only reset loading if we actually set it to true
+      if (shouldShowLoading) {
         isLoading.value = false;
       }
-    }, 10000); // 10 second timeout
+    }
+  };
+
+  // Sync with Supabase
+  const syncWithSupabase = async () => {
+    if (!currentUser.value || !isOnline.value) return;
 
     try {
       // Ensure user profile exists before loading data
@@ -56,8 +280,9 @@ const createSupabaseData = () => {
         console.error("Error loading templates:", templatesError);
         throw templatesError;
       }
+
       logSupabaseAccess("Get templates", `${templatesData.length} templates`);
-      templates.value = templatesData.map((template: any) => ({
+      const formattedTemplates = templatesData.map((template: any) => ({
         id: template.id,
         name: template.name,
         workoutType: template.workout_type,
@@ -71,8 +296,9 @@ const createSupabaseData = () => {
         console.error("Error loading sessions:", sessionsError);
         throw sessionsError;
       }
+
       logSupabaseAccess("Get sessions", `${sessionsData.length} sessions`);
-      sessions.value = sessionsData.map((session: any) => {
+      const formattedSessions = sessionsData.map((session: any) => {
         // Ensure exercises data is properly formatted with numbers
         const exercises =
           session.exercises?.map((exercise: any) => ({
@@ -102,37 +328,60 @@ const createSupabaseData = () => {
           templateName: session.template_name,
           workoutType: session.workout_type,
           date: new Date(session.date),
-          duration: session.duration,
+          duration: session.duration || 0,
+          exercises,
           totalVolume: recalculatedTotalVolume,
-          exercises: exercises,
-          isCompleted: session.is_completed,
+          isCompleted: session.is_completed || false,
         };
       });
 
-      // Note: Exercises are loaded from exercises.json, not from Supabase
-      logSupabaseAccess("Get exercises", "Loaded from exercises.json");
-    } catch (error: any) {
-      console.error("Error loading Supabase data:", error);
+      // Update local state
+      templates.value = formattedTemplates;
+      sessions.value = formattedSessions;
+      lastSyncTime.value = Date.now();
 
-      // Retry logic for better reliability
-      if (retryCount < maxRetries) {
-        console.log(`🔄 Retrying data load (attempt ${retryCount + 1}/${maxRetries})`);
-        isLoading.value = false;
-        clearTimeout(timeoutId);
+      // Cache the data - only store serializable user properties
+      if (indexedDB.isSupported.value) {
+        try {
+          console.log("📱 Caching synced data locally...");
+          const serializableUser = createSerializableUser(currentUser.value);
 
-        // Wait a bit before retrying
-        setTimeout(() => {
-          loadData(retryCount + 1);
-        }, 1000 * (retryCount + 1)); // Exponential backoff
-        return;
+          if (!serializableUser) {
+            console.warn("⚠️ Cannot cache synced data - invalid user object");
+            return;
+          }
+
+          // Extract raw data to avoid reactive object issues
+          const rawTemplates = Array.isArray(formattedTemplates) ? [...formattedTemplates] : [];
+          const rawSessions = Array.isArray(formattedSessions) ? [...formattedSessions] : [];
+
+          const userDataToCache = {
+            templates: ensureSerializable(rawTemplates),
+            sessions: ensureSerializable(rawSessions),
+            lastSync: Date.now(),
+            user: serializableUser,
+          };
+
+          console.log("📱 Caching synced data structure:", {
+            templatesCount: userDataToCache.templates.length,
+            sessionsCount: userDataToCache.sessions.length,
+            userKeys: Object.keys(userDataToCache.user),
+          });
+
+          await indexedDB.storeUserData(currentUser.value.id, userDataToCache);
+          console.log("✅ Synced data cached successfully");
+        } catch (cacheError) {
+          console.warn("⚠️ Failed to cache synced data locally:", cacheError);
+          // Don't fail the sync operation if caching fails
+        }
+      } else {
+        console.log("📱 IndexedDB not supported, skipping cache");
       }
 
-      // Use error handler to show user-friendly error after max retries
-      const { showError } = useErrorHandler();
-      showError("Kunne ikke laste data fra databasen. Prøv å oppdatere siden.");
-    } finally {
-      clearTimeout(timeoutId);
-      isLoading.value = false;
+      console.log("✅ Data synced and cached successfully");
+    } catch (error) {
+      console.error("❌ Error syncing with Supabase:", error);
+      throw error;
     }
   };
 
@@ -200,10 +449,13 @@ const createSupabaseData = () => {
     isInitializing = true;
     isInitialized.value = true;
 
-    // Add a small delay to ensure Supabase is fully initialized
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
     try {
+      // Initialize IndexedDB first
+      await initIndexedDB();
+
+      // Add a small delay to ensure Supabase is fully initialized
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Get initial session
       const {
         data: { session },
@@ -218,6 +470,8 @@ const createSupabaseData = () => {
       if (session?.user) {
         currentUser.value = session.user;
         isAuthenticated.value = true;
+
+        // Try to load from cache first, then sync if needed
         try {
           await loadData();
         } catch (loadError) {
@@ -231,19 +485,52 @@ const createSupabaseData = () => {
         if (event === "SIGNED_IN" && session?.user) {
           currentUser.value = session.user;
           isAuthenticated.value = true;
-          // Only load data if we don't already have it
-          if (templates.value.length === 0 && sessions.value.length === 0) {
-            await loadData();
-          }
+
+          // Load data (will use cache if available)
+          await loadData();
         } else if (event === "SIGNED_OUT") {
           currentUser.value = null;
           isAuthenticated.value = false;
           templates.value = [];
           sessions.value = [];
+
+          // Clear cached data for this user
+          if (indexedDB.isSupported.value) {
+            try {
+              await indexedDB.clearUserData(session?.user?.id || "");
+            } catch (error) {
+              console.warn("⚠️ Failed to clear cached data:", error);
+              // Don't fail the sign out if cache clearing fails
+            }
+          }
         } else if (event === "TOKEN_REFRESHED" && session?.user) {
           // Handle token refresh on mobile
           currentUser.value = session.user;
           isAuthenticated.value = true;
+
+          // Update cached user data
+          if (indexedDB.isSupported.value) {
+            try {
+              const cachedData = await indexedDB.getUserData(session.user.id);
+              if (cachedData) {
+                const serializableUser = createSerializableUser(session.user);
+                if (serializableUser) {
+                  try {
+                    await indexedDB.storeUserData(session.user.id, {
+                      ...cachedData,
+                      user: serializableUser,
+                    });
+                  } catch (storeError) {
+                    console.warn("⚠️ Failed to update cached user data:", storeError);
+                  }
+                } else {
+                  console.warn("⚠️ Cannot update cached user data - invalid user object");
+                }
+              }
+            } catch (error) {
+              console.warn("⚠️ Failed to retrieve cached user data for update:", error);
+            }
+          }
         }
       });
 
@@ -251,37 +538,28 @@ const createSupabaseData = () => {
       if (typeof document !== "undefined") {
         const handleVisibilityChange = () => {
           if (document.visibilityState === "visible") {
-            // Always check session when page becomes visible to ensure state is fresh
-            supabase.auth
-              .getSession()
-              .then(({ data: { session }, error }: any) => {
-                if (error) {
-                  console.error("📱 Error getting session on visibility change:", error);
-                  return;
-                }
+            // Clear any existing timeout
+            if (visibilityChangeTimeout) {
+              clearTimeout(visibilityChangeTimeout);
+            }
 
-                if (session?.user) {
-                  // If we have a session but no current user, or user ID changed, update
-                  if (!currentUser.value || session.user.id !== currentUser.value.id) {
-                    currentUser.value = session.user;
-                    isAuthenticated.value = true;
-                    // Only load data if we don't already have it
-                    if (templates.value.length === 0 && sessions.value.length === 0) {
-                      loadData();
-                    }
+            // Only sync if we're online, cache is actually stale, and we're not already loading
+            if (currentUser.value && isOnline.value && lastSyncTime.value && !isLoading.value) {
+              const cacheAge = Date.now() - lastSyncTime.value;
+              if (cacheAge > 5 * 60 * 1000) {
+                // 5 minutes - use debounced loading to prevent rapid tab switching
+                visibilityChangeTimeout = setTimeout(() => {
+                  if (document.visibilityState === "visible" && currentUser.value && !isLoading.value) {
+                    console.log("📱 Page visible, syncing stale data...");
+                    loadData(0, true); // Force refresh
                   }
-                } else if (currentUser.value) {
-                  // If we have a current user but no session, user was logged out
-                  currentUser.value = null;
-                  isAuthenticated.value = false;
-                  templates.value = [];
-                  sessions.value = [];
-                }
-              })
-              .catch((error: any) => {
-                console.error("📱 Error checking session on visibility change:", error);
-                // Don't reset state on error, just log it
-              });
+                }, 500); // Increased delay to prevent rapid tab switching
+              } else {
+                console.log("📱 Page visible, cache is fresh, no sync needed");
+              }
+            } else {
+              console.log("📱 Page visible, no sync needed (offline, no user, or already loading)");
+            }
           }
         };
 
@@ -291,6 +569,21 @@ const createSupabaseData = () => {
         if (typeof window !== "undefined") {
           (window as any).__visibilityChangeHandler = handleVisibilityChange;
         }
+      }
+
+      // Set up network status monitoring
+      window.addEventListener("online", updateNetworkStatus);
+      window.addEventListener("offline", updateNetworkStatus);
+
+      // Clean up expired cache items periodically
+      if (indexedDB.isSupported.value) {
+        setInterval(() => {
+          try {
+            indexedDB.cleanupExpiredCache();
+          } catch (error) {
+            console.warn("⚠️ Cache cleanup failed:", error);
+          }
+        }, 10 * 60 * 1000); // Every 10 minutes
       }
     } catch (error) {
       console.error("❌ Error initializing auth:", error);
@@ -347,9 +640,207 @@ const createSupabaseData = () => {
       const handler = (window as any).__visibilityChangeHandler;
       if (handler) {
         document.removeEventListener("visibilitychange", handler);
-        delete (window as any).__visibilityChangeHandler;
+      }
+
+      // Remove network status listeners
+      window.removeEventListener("online", updateNetworkStatus);
+      window.removeEventListener("offline", updateNetworkStatus);
+
+      // Clear visibility change timeout
+      if (visibilityChangeTimeout) {
+        clearTimeout(visibilityChangeTimeout);
+        visibilityChangeTimeout = null;
       }
     }
+  };
+
+  // Offline-first save function
+  const saveWithOfflineSupport = async (operation: string, data: any) => {
+    try {
+      // Always save to local cache first for immediate feedback
+      if (currentUser.value) {
+        // Update local state immediately
+        if (operation === "template") {
+          const existingIndex = templates.value.findIndex((t) => t.id === data.id);
+          if (existingIndex >= 0) {
+            templates.value[existingIndex] = data;
+          } else {
+            templates.value.push(data);
+          }
+        } else if (operation === "session") {
+          const existingIndex = sessions.value.findIndex((s) => s.id === data.id);
+          if (existingIndex >= 0) {
+            sessions.value[existingIndex] = data;
+          } else {
+            sessions.value.push(data);
+          }
+        }
+
+        // Cache the updated data - only store serializable user properties
+        if (indexedDB.isSupported.value) {
+          try {
+            console.log("📱 Attempting to cache data locally...");
+            const serializableUser = createSerializableUser(currentUser.value);
+
+            if (!serializableUser) {
+              console.warn("⚠️ Cannot cache data - invalid user object");
+              return;
+            }
+
+            console.log("📱 Data before serialization:", {
+              templatesType: typeof templates.value,
+              templatesIsArray: Array.isArray(templates.value),
+              sessionsType: typeof sessions.value,
+              sessionsIsArray: Array.isArray(sessions.value),
+              templatesLength: templates.value?.length,
+              sessionsLength: sessions.value?.length,
+            });
+
+            // Extract raw data from Vue refs to avoid reactive object issues
+            const rawTemplates = Array.isArray(templates.value) ? [...templates.value] : [];
+            const rawSessions = Array.isArray(sessions.value) ? [...sessions.value] : [];
+
+            const userDataToCache = {
+              templates: ensureSerializable(rawTemplates),
+              sessions: ensureSerializable(rawSessions),
+              lastSync: Date.now(),
+              user: serializableUser,
+            };
+
+            console.log("📱 Caching data structure:", {
+              templatesCount: userDataToCache.templates?.length || 0,
+              sessionsCount: userDataToCache.sessions?.length || 0,
+              userKeys: Object.keys(userDataToCache.user),
+            });
+
+            await indexedDB.storeUserData(currentUser.value.id, userDataToCache);
+            console.log("✅ Data cached successfully");
+          } catch (cacheError) {
+            console.warn("⚠️ Failed to cache data locally:", cacheError);
+            console.error("❌ Cache error details:", cacheError);
+            // Don't fail the operation if caching fails
+          }
+        } else {
+          console.log("📱 IndexedDB not supported, skipping cache");
+        }
+      }
+
+      // If online, sync with Supabase immediately
+      if (isOnline.value) {
+        console.log("🌐 Online - syncing immediately");
+        return await performSupabaseOperation(operation, data);
+      } else {
+        // If offline, queue for later sync
+        console.log("📱 Offline - queuing for later sync");
+
+        if (indexedDB.isSupported.value) {
+          try {
+            // Ensure data is serializable for IndexedDB storage
+            console.log("📱 Queuing offline change for operation:", operation);
+            console.log("📱 Original data structure:", {
+              operation,
+              dataType: typeof data,
+              dataKeys: data ? Object.keys(data) : [],
+              dataIsArray: Array.isArray(data),
+            });
+
+            const serializableData = ensureSerializable(data);
+            console.log("📱 Serialized data structure:", {
+              operation,
+              dataKeys: serializableData ? Object.keys(serializableData) : [],
+              dataType: typeof serializableData,
+              dataIsArray: Array.isArray(serializableData),
+            });
+
+            // Safety check - ensure we have valid data to store
+            if (!serializableData) {
+              console.warn("⚠️ Serialized data is null/undefined, skipping offline change");
+              return { success: true, offline: true, cacheFailed: true };
+            }
+
+            await indexedDB.storePendingChange(operation, serializableData);
+            console.log("✅ Offline change queued successfully");
+            return { success: true, offline: true };
+          } catch (cacheError) {
+            console.warn("⚠️ Failed to queue offline change:", cacheError);
+            console.error("❌ Offline change error details:", cacheError);
+            // Return success anyway since the data was saved locally
+            return { success: true, offline: true, cacheFailed: true };
+          }
+        } else {
+          console.log("📱 IndexedDB not supported, offline change not queued");
+          return { success: true, offline: true, cacheFailed: true };
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Error in offline-first save (${operation}):`, error);
+      throw error;
+    }
+  };
+
+  // Perform actual Supabase operation
+  const performSupabaseOperation = async (operation: string, data: any) => {
+    switch (operation) {
+      case "template":
+        return await updateTemplate(data.id, data);
+      case "session":
+        return await updateWorkoutSession(data.id, data);
+      default:
+        throw new Error(`Unknown operation: ${operation}`);
+    }
+  };
+
+  // Sync pending changes when back online
+  const syncPendingChanges = async () => {
+    if (!isOnline.value || !currentUser.value || !indexedDB.isSupported.value) return;
+
+    try {
+      const pendingChanges = await indexedDB.getPendingChanges();
+      if (pendingChanges.length === 0) return;
+
+      console.log(`🔄 Syncing ${pendingChanges.length} pending changes...`);
+
+      for (const change of pendingChanges) {
+        try {
+          await performSupabaseOperation(change.type, change.data);
+          await indexedDB.removePendingChange(change.id);
+          console.log(`✅ Synced pending change: ${change.type}`);
+        } catch (error) {
+          console.error(`❌ Failed to sync pending change: ${change.type}`, error);
+          // Increment retry count and keep for later
+          change.retryCount = (change.retryCount || 0) + 1;
+          if (change.retryCount > 3) {
+            // Remove after 3 failed attempts
+            try {
+              await indexedDB.removePendingChange(change.id);
+              console.log(`🗑️ Removed failed pending change after 3 attempts: ${change.type}`);
+            } catch (removeError) {
+              console.warn("⚠️ Failed to remove failed pending change:", removeError);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error syncing pending changes:", error);
+    }
+  };
+
+  // Watch for network status changes to sync pending changes
+  const watchNetworkStatus = () => {
+    if (isOnline.value && currentUser.value && indexedDB.isSupported.value) {
+      syncPendingChanges();
+    }
+  };
+
+  // Override existing functions to use offline-first approach
+  const updateTemplateOffline = async (id: string, updates: Partial<WorkoutTemplate>) => {
+    const updatedTemplate = { ...templates.value.find((t) => t.id === id), ...updates };
+    return await saveWithOfflineSupport("template", updatedTemplate);
+  };
+
+  const updateWorkoutSessionOffline = async (id: string, updates: Partial<WorkoutSession>) => {
+    const updatedSession = { ...sessions.value.find((s) => s.id === id), ...updates };
+    return await saveWithOfflineSupport("session", updatedSession);
   };
 
   // Computed properties (only user data)
@@ -813,6 +1304,8 @@ const createSupabaseData = () => {
     currentUser,
     isAuthenticated,
     isInitialized,
+    isOnline,
+    lastSyncTime,
 
     // Computed
     completedSessions,
@@ -838,6 +1331,12 @@ const createSupabaseData = () => {
     initializeAuth,
     resetState,
     cleanup,
+
+    // Offline-first functions
+    updateTemplateOffline,
+    updateWorkoutSessionOffline,
+    syncPendingChanges,
+    watchNetworkStatus,
   };
 };
 

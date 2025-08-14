@@ -24,13 +24,7 @@
           <h1 class="text-2xl font-bold text-white">{{ session?.templateName }}</h1>
         </div>
         <div class="flex items-center gap-3">
-          <!-- Unsaved changes indicator -->
-          <div v-if="hasUnsavedChanges" class="flex items-center gap-2 text-yellow-400 text-sm">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-            </svg>
-            <span>Ulagrede endringer</span>
-          </div>
+
           <span 
             class="inline-block px-3 py-1 text-sm font-medium rounded-full"
             :style="{ 
@@ -57,7 +51,17 @@
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 01-1.414-1.414L9 10.586 7.707 9.293a1 1 0 01-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
           </svg>
-          <span>Lagring velykket!</span>
+          <span>{{ workoutData.isOnline.value ? 'Lagring velykket!' : 'Endringer lagret offline - vil synkroniseres når du er tilkoblet' }}</span>
+        </div>
+      </div>
+
+      <!-- Network status indicator -->
+      <div v-if="!workoutData.isOnline.value" class="mt-4 p-3 bg-yellow-600 bg-opacity-20 border border-yellow-500 rounded-lg">
+        <div class="flex items-center gap-2 text-yellow-400 text-sm">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <span>Offline modus - endringer lagres lokalt og synkroniseres når du er tilkoblet</span>
         </div>
       </div>
 
@@ -330,6 +334,7 @@ const isSaving = ref(false)
 const showSaveSuccess = ref(false)
 
 
+
 // Computed
 const completedSets = computed(() => {
   if (!session.value) return 0
@@ -488,8 +493,13 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
     set.isCompleted = isCompleted
   }
   
-  // Don't auto-save anymore - just mark as having unsaved changes
-  // The user will manually save when ready
+  // Mark as having unsaved changes
+  hasUnsavedChanges.value = true
+  
+  // Save immediately to IndexedDB for instant persistence
+  if (!isSaving.value) {
+    saveSessionChanges()
+  }
 }
 
 const saveSessionChanges = async () => {
@@ -498,29 +508,30 @@ const saveSessionChanges = async () => {
   isSaving.value = true
   
   try {
-    // Ensure all data is properly formatted before saving
-    const formattedExercises = session.value.exercises.map(exercise => ({
-      ...exercise,
-      sets: exercise.sets.map(set => ({
-        ...set,
-        weight: Number(set.weight) || 0,
-        reps: Number(set.reps) || 0
-      }))
-    }))
-    
-    // Save session with formatted data
-    await workoutData.updateWorkoutSession(session.value.id, {
-      exercises: formattedExercises
+    // Use offline-first save function
+    const result = await workoutData.updateWorkoutSessionOffline(session.value.id, {
+      exercises: session.value.exercises
     })
+    
+    // Check if the result indicates offline mode
+    if (result && typeof result === 'object' && 'offline' in result && result.offline) {
+      console.log('📱 Changes saved offline, will sync when online')
+      // Show offline indicator
+      showSaveSuccess.value = true
+      setTimeout(() => {
+        showSaveSuccess.value = false
+      }, 3000)
+    } else {
+      console.log('✅ Session saved and synced successfully')
+      showSaveSuccess.value = true
+      setTimeout(() => {
+        showSaveSuccess.value = false
+      }, 3000)
+    }
     
     // Clear unsaved changes flag
     hasUnsavedChanges.value = false
-    showSaveSuccess.value = true
-    setTimeout(() => {
-      showSaveSuccess.value = false
-    }, 3000) // Hide after 3 seconds
     
-    console.log('✅ Session saved successfully')
   } catch (error) {
     console.error('❌ Error saving session:', error)
     // Keep the unsaved changes flag so user can retry
@@ -548,8 +559,11 @@ const addSet = (exerciseIndex: number) => {
   
   exercise.sets.push(newSet)
   
-  // Mark as having unsaved changes instead of auto-saving
+  // Mark as having unsaved changes and save immediately
   hasUnsavedChanges.value = true
+  if (!isSaving.value) {
+    saveSessionChanges()
+  }
 }
 
 const addExerciseToSession = () => {
@@ -616,8 +630,11 @@ const addExerciseToSession = () => {
   session.value.exercises.push(newExercise)
   console.log('✅ Exercise added to session. New exercises array:', session.value.exercises)
   
-  // Mark as having unsaved changes instead of auto-saving
+  // Mark as having unsaved changes and save immediately
   hasUnsavedChanges.value = true
+  if (!isSaving.value) {
+    saveSessionChanges()
+  }
 
   // Reset form and close modal
   newExerciseId.value = ''
@@ -643,8 +660,11 @@ const removeExercise = (index: number) => {
   
   session.value.exercises.splice(index, 1)
   
-  // Mark as having unsaved changes instead of auto-saving
+  // Mark as having unsaved changes and save immediately
   hasUnsavedChanges.value = true
+  if (!isSaving.value) {
+    saveSessionChanges()
+  }
 }
 
 const removeSet = (exerciseIndex: number, setIndex: number) => {
@@ -656,16 +676,22 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   if (exercise.sets.length <= 1) {
     session.value.exercises.splice(exerciseIndex, 1)
     
-    // Mark as having unsaved changes instead of auto-saving
+    // Mark as having unsaved changes and save immediately
     hasUnsavedChanges.value = true
+    if (!isSaving.value) {
+      saveSessionChanges()
+    }
     return
   }
   
   // Otherwise, just remove the set
   exercise.sets.splice(setIndex, 1)
   
-  // Mark as having unsaved changes instead of auto-saving
+  // Mark as having unsaved changes and save immediately
   hasUnsavedChanges.value = true
+  if (!isSaving.value) {
+    saveSessionChanges()
+  }
 }
 
 const formatNumber = (num: number): string => {
@@ -828,8 +854,8 @@ onMounted(async () => {
   const handleBeforeUnload = (event: BeforeUnloadEvent) => {
     if (hasUnsavedChanges.value) {
       event.preventDefault()
-      event.returnValue = 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
-      return 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
+      event.returnValue = 'Er du sikker på at du vil forlate siden?'
+      return 'Er du sikker på at du vil forlate siden?'
     }
   }
   
@@ -842,6 +868,8 @@ onMounted(async () => {
     window.removeEventListener('keydown', handleKeydown)
     window.removeEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
     window.removeEventListener('beforeunload', handleBeforeUnload)
+    
+
   })
 })
 
@@ -850,7 +878,7 @@ watch(() => route.params.id, async (newId, oldId) => {
   if (newId && newId !== oldId) {
     // Check if there are unsaved changes before navigating away
     if (hasUnsavedChanges.value) {
-      const shouldLeave = confirm('Du har ulagrede endringer. Vil du lagre dem først?')
+      const shouldLeave = confirm('Vil du lagre endringene først?')
       if (shouldLeave) {
         await saveSessionChanges()
       }
