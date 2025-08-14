@@ -8,33 +8,52 @@
   >
     <!-- Main Card Content -->
     <div 
-      class="transition-transform duration-200 ease-out"
+      class="transition-all duration-200 ease-out"
+      :class="{
+        'rounded-r-none': showDeleteAction,
+        'rounded-lg': !showDeleteAction
+      }"
       :style="{ transform: `translateX(${translateX}px)` }"
     >
       <slot />
     </div>
     
-    <!-- Delete Action (shown when swiping) -->
+    <!-- Delete Action Background (shown when swiping) -->
     <div 
-      class="absolute right-0 top-0 bottom-0 flex items-center justify-center bg-red-500 text-white px-6 transition-opacity duration-200"
-      :class="{ 'opacity-100': showDeleteAction, 'opacity-0': !showDeleteAction }"
-      :style="{ width: `${Math.abs(translateX)}px` }"
+      class="absolute right-0 top-0 bottom-0 flex items-center justify-center delete-action text-white transition-all duration-200 ease-out shadow-lg"
+      :class="{ 
+        'opacity-100 scale-100': showDeleteAction, 
+        'opacity-0 scale-95': !showDeleteAction 
+      }"
+      :style="{ 
+        width: `${Math.abs(translateX)}px`,
+        left: `${Math.abs(translateX)}px`
+      }"
     >
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
-      </svg>
+      <!-- Delete Icon with better styling -->
+      <div class="flex flex-col items-center gap-2 transform transition-transform duration-200 delete-icon" :class="{ 'scale-110': showDeleteAction }">
+        <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-lg">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </div>
+        <span class="text-xs font-semibold text-white tracking-wide">SLETT</span>
+      </div>
     </div>
     
     <!-- Swipe Hint (shown on first visit) -->
     <div 
       v-if="showSwipeHint && !hasInteracted"
-      class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white text-sm pointer-events-none"
+      class="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm text-white text-sm pointer-events-none rounded-lg"
     >
-      <div class="text-center">
-        <svg class="w-8 h-8 mx-auto mb-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
-        </svg>
-        <p>Sveip til venstre for å slette</p>
+      <div class="text-center bg-dark-800/90 px-4 py-3 rounded-lg border border-dark-600">
+        <div class="w-10 h-10 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+          <svg class="w-6 h-6 text-primary-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+          </svg>
+        </div>
+        <p class="font-medium">Sveip til venstre for å slette</p>
+        <p class="text-xs text-dark-300 mt-1">Første gang du bruker denne funksjonen</p>
       </div>
     </div>
   </div>
@@ -99,7 +118,8 @@ const handleTouchMove = (event: TouchEvent) => {
   // Only allow left swipe (negative deltaX)
   if (deltaX < 0) {
     translateX.value = Math.max(deltaX, -props.threshold * 1.5)
-    showDeleteAction.value = Math.abs(deltaX) > props.threshold / 2
+    // Show delete action earlier for better visual feedback
+    showDeleteAction.value = Math.abs(deltaX) > props.threshold / 3
   }
 }
 
@@ -141,6 +161,33 @@ onUnmounted(() => {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+}
+
+/* Smooth transitions for delete action */
+.delete-action-enter-active,
+.delete-action-leave-active {
+  transition: all 0.2s ease-out;
+}
+
+.delete-action-enter-from,
+.delete-action-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Enhanced delete action styling */
+.delete-action {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Smooth icon animation */
+.delete-icon {
+  transition: all 0.2s ease-out;
+}
+
+.delete-icon:hover {
+  transform: scale(1.1);
 }
 </style>
 
