@@ -127,7 +127,7 @@
         </div>
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
-        <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation" :style="isPWA ? 'padding-bottom: calc(10rem + env(safe-area-inset-bottom))' : 'padding-bottom: 10rem'">
+        <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation pb-6" :style="isPWA ? 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))' : ''">
           <div class="flex justify-around pt-6 pb-4">
             <router-link 
               to="/" 
@@ -187,7 +187,7 @@
         </nav>
 
         <!-- Workout Session Navigation - only show if in workout session -->
-        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation" :style="isPWA ? 'padding-bottom: calc(10rem + env(safe-area-inset-bottom))' : 'padding-bottom: 10rem'">
+        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation pb-6" :style="isPWA ? 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))' : ''">
           <!-- Progress Bar as border-top -->
           <div class="w-full h-1 bg-dark-600">
             <div 
