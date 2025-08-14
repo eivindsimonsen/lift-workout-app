@@ -75,12 +75,12 @@
     <div class="card">
       <h3 class="text-lg font-semibold text-white mb-6">Fremgang over Tid</h3>
       
-      <!-- Personal Records -->
+      <!-- Power Exercise Records -->
       <div class="mb-6">
-        <h4 class="text-md font-medium text-white mb-4">Personlige Rekorder</h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <h4 class="text-md font-medium text-white mb-4">Power Exercise Records</h4>
+        <div v-if="powerExerciseRecords.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <div 
-            v-for="pr in personalRecords" 
+            v-for="pr in powerExerciseRecords" 
             :key="pr.exercise"
             class="bg-dark-700 rounded-lg p-3"
           >
@@ -88,6 +88,9 @@
             <div class="text-lg font-bold text-primary-500">{{ pr.weight }} kg</div>
             <div class="text-xs text-dark-300">{{ pr.reps }} reps • {{ pr.date }}</div>
           </div>
+        </div>
+        <div v-else class="bg-dark-700 rounded-lg p-4 text-sm text-dark-300">
+          Ingen power exercise records ennå. Start med å trene Barbell Bench Press, Deadlift, Squat eller Barbell Shoulder Press for å bygge styrke.
         </div>
       </div>
 
@@ -614,45 +617,59 @@ const oneRepMaxProgression = computed(() => {
     .slice(0, 5) // Show top 5
 })
 
-const personalRecords = computed(() => {
+const powerExerciseRecords = computed(() => {
+  // Define power exercises (major compound movements)
+  const powerExerciseIds = [
+    'bench-press',           // Barbell Bench Press
+    'deadlift',              // Deadlift
+    'squat',                 // Squat
+    'barbell-shoulder-press' // Barbell Shoulder Press
+  ]
+  
   const records: { exercise: string; weight: number; reps: number; date: string }[] = []
-  const exerciseNames = new Set<string>()
-
-  workoutData.completedSessions.value.forEach(session => {
-    session.exercises.forEach(exercise => {
-      exerciseNames.add(exercise.name)
+  
+  // Get all completed sessions
+  const completedSessions = workoutData.completedSessions.value.filter(session => session.isCompleted)
+  
+  // Find the best performance for each power exercise
+  powerExerciseIds.forEach(exerciseId => {
+    let bestSet: { weight: number; reps: number; date: Date } | null = null
+    let bestVolume = 0
+    
+    completedSessions.forEach(session => {
+      const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
+      if (exercise) {
+        exercise.sets.forEach(set => {
+          if (set.isCompleted && set.weight && set.reps) {
+            const volume = set.weight * set.reps
+            if (volume > bestVolume) {
+              bestVolume = volume
+              bestSet = {
+                weight: set.weight,
+                reps: set.reps,
+                date: session.date
+              }
+            }
+          }
+        })
+      }
     })
-  })
-
-  exerciseNames.forEach(name => {
-    const exerciseSessions = workoutData.completedSessions.value.filter(session =>
-      session.exercises.some(exercise => exercise.name === name)
-    )
-
-    const maxWeight = Math.max(...exerciseSessions.map(session => {
-      const maxSetWeight = Math.max(...session.exercises.find(e => e.name === name)?.sets.map(set => set.weight || 0) || [])
-      return maxSetWeight
-    }))
-
-    const maxReps = Math.max(...exerciseSessions.map(session => {
-      const maxSetReps = Math.max(...session.exercises.find(e => e.name === name)?.sets.map(set => set.reps || 0) || [])
-      return maxSetReps
-    }))
-
-    const lastSession = exerciseSessions.reduce((last, current) => {
-      return new Date(current.date) > new Date(last.date) ? current : last
-    }, exerciseSessions[0])
-
-    if (maxWeight > 0 || maxReps > 0) {
-      records.push({
-        exercise: name,
-        weight: maxWeight,
-        reps: maxReps,
-        date: formatDate(lastSession.date)
-      })
+    
+    if (bestSet) {
+      // Get exercise name from exercises data
+      const exerciseData = workoutData.exercises.value.find(e => e.id === exerciseId)
+      if (exerciseData) {
+        records.push({
+          exercise: exerciseData.name,
+          weight: bestSet.weight,
+          reps: bestSet.reps,
+          date: formatDate(bestSet.date)
+        })
+      }
     }
   })
-
+  
+  // Sort by weight (highest first), then by reps, then by date
   return records.sort((a, b) => b.weight - a.weight || b.reps - a.reps || new Date(b.date).getTime() - new Date(a.date).getTime())
 })
 

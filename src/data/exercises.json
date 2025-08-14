@@ -42,6 +42,7 @@
 
     { "id": "overhead-press", "name": "Military Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
     { "id": "dumbbell-shoulder-press", "name": "Dumbbell Shoulder Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
+    { "id": "barbell-shoulder-press", "name": "Barbell Shoulder Press", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre", "Armer"] },
     { "id": "lateral-raises", "name": "Lateral Raises", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre"] },
     { "id": "front-raises", "name": "Front Raises", "category": "Skuldre", "workoutTypes": ["push", "upper"], "muscleGroups": ["Skuldre"] },
     { "id": "rear-delt-flyes", "name": "Reverse Flyes (Rear Deltoid)", "category": "Skuldre", "workoutTypes": ["pull", "upper"], "muscleGroups": ["Skuldre", "Rygg"] },
