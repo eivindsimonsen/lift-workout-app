@@ -1031,6 +1031,12 @@
       "muscleGroups": ["Rygg", "Skuldre", "Bryst", "Ben", "Mage"],
       "variants": [
         {
+          "id": "face-pulls-back",
+          "name": "Face Pulls",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
           "id": "cable-pullovers",
           "name": "Cable Pullovers",
           "equipment": "cable",

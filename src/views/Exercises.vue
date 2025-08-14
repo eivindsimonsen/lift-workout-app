@@ -401,7 +401,7 @@ const getExerciseData = (exerciseId: string, exerciseName: string, muscleGroups:
   }
 }
 
-// Active exercises - exercises that are used in workout templates or sessions
+// Active exercises - exercises that are used in workout templates, sessions, or are popular
 const activeExercises = computed(() => {
   // Get exercises that are used in any workout template or session
   const activeExerciseIds = new Set<string>()
@@ -420,10 +420,99 @@ const activeExercises = computed(() => {
     })
   })
   
-  // Filter exercises to only show active ones
-  return allExercises.value
-    .filter(exercise => activeExerciseIds.has(exercise.id))
-    .sort((a, b) => b.totalSessions - a.totalSessions) // Sort by most used first
+  // If user has no templates or sessions yet, show popular exercise variants
+  if (activeExerciseIds.size === 0) {
+    // Show popular exercise variants from each major category
+    const popularExerciseVariants = [
+      'barbell-bench-press', 'dumbbell-bench-press', 'push-ups', // Chest
+      'pull-ups', 'lat-pulldown', 'barbell-rows', // Back
+      'squat', 'deadlift', 'walking-lunges', // Legs
+      'overhead-press', 'lateral-raises', // Shoulders
+      'bicep-curls', 'tricep-dips', // Arms
+      'planks', 'crunches' // Core
+    ]
+    
+    // Get the actual exercise data for these variants
+    const exercises: any[] = []
+    workoutData.exercises.value?.forEach(exercise => {
+      if (exercise.variants && exercise.variants.length > 0) {
+        // Add variants that are in the popular list
+                 exercise.variants.forEach(variant => {
+           if (popularExerciseVariants.includes(variant.id)) {
+             const exerciseData = getExerciseData(variant.id, variant.name, exercise.muscleGroups || [])
+             exercises.push({
+               ...exerciseData,
+               isMainExercise: false
+             })
+           }
+         })
+      } else if (popularExerciseVariants.includes(exercise.id)) {
+        // Add exercises without variants
+        const exerciseData = getExerciseData(exercise.id, exercise.name, exercise.muscleGroups || [])
+        exercises.push({
+          ...exerciseData,
+          isMainExercise: false
+        })
+      }
+    })
+    
+    return exercises.sort((a, b) => a.name.localeCompare(b.name, 'no'))
+  }
+  
+  // Get active exercises with their variants
+  const exercises: any[] = []
+  
+  workoutData.exercises.value?.forEach(exercise => {
+    if (exercise.variants && exercise.variants.length > 0) {
+             // For exercises with variants, check if any variant is active
+       exercise.variants.forEach(variant => {
+         if (activeExerciseIds.has(variant.id)) {
+           const exerciseData = getExerciseData(variant.id, variant.name, exercise.muscleGroups || [])
+           exercises.push({
+             ...exerciseData,
+             isMainExercise: false
+           })
+         }
+       })
+    } else if (activeExerciseIds.has(exercise.id)) {
+      // Exercise without variants
+      const exerciseData = getExerciseData(exercise.id, exercise.name, exercise.muscleGroups || [])
+      exercises.push({
+        ...exerciseData,
+        isMainExercise: false
+      })
+    }
+  })
+  
+  // If user has very few active exercises, add some popular variants
+  if (exercises.length < 5) {
+    const popularVariantIds = ['barbell-bench-press', 'squat', 'pull-ups', 'overhead-press']
+    const additionalExercises: any[] = []
+    
+    workoutData.exercises.value?.forEach(exercise => {
+      if (exercise.variants && exercise.variants.length > 0) {
+                 exercise.variants.forEach(variant => {
+           if (popularVariantIds.includes(variant.id) && !activeExerciseIds.has(variant.id)) {
+             const exerciseData = getExerciseData(variant.id, variant.name, exercise.muscleGroups || [])
+             additionalExercises.push({
+               ...exerciseData,
+               isMainExercise: false
+             })
+           }
+         })
+      } else if (popularVariantIds.includes(exercise.id) && !activeExerciseIds.has(exercise.id)) {
+        const exerciseData = getExerciseData(exercise.id, exercise.name, exercise.muscleGroups || [])
+        additionalExercises.push({
+          ...exerciseData,
+          isMainExercise: false
+        })
+      }
+    })
+    
+    exercises.push(...additionalExercises.slice(0, 3))
+  }
+  
+  return exercises.sort((a, b) => b.totalSessions - a.totalSessions) // Sort by most used first
 })
 
 const categories = computed(() => {
