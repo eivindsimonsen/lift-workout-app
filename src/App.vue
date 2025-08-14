@@ -128,7 +128,7 @@
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
         <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation pb-6" :style="isPWA ? 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))' : ''">
-          <div class="flex justify-around pb-6">
+          <div class="flex justify-around pb-5">
             <router-link 
               to="/" 
               class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
