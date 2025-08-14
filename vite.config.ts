@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: "prompt",
+      registerType: "autoUpdate",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
@@ -72,8 +72,6 @@ export default defineConfig({
         enabled: true,
         type: "module",
       },
-      injectRegister: "auto",
-      strategies: "injectManifest",
     }),
   ],
   server: {
