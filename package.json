@@ -1,6 +1,6 @@
 {
   "name": "treningsloggen",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Treningsloggen - En minimalistisk treningslogg",
   "scripts": {
