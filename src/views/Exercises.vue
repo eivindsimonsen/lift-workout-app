@@ -136,9 +136,9 @@
           :key="category"
         >
           <!-- Category Header (compact) -->
-          <div class="mb-4">
-            <h2 class="text-lg font-semibold text-dark-200 uppercase tracking-wide">{{ getCategoryName(category) }}</h2>
-            <div class="mt-2 border-b border-dark-700"></div>
+          <div class="mb-6 text-center">
+            <h2 class="text-xl font-bold text-white mb-2">{{ getCategoryName(category) }}</h2>
+            <div class="h-1 bg-gradient-to-r from-primary-500 to-primary-400 rounded-full mx-auto w-24"></div>
           </div>
 
           <!-- Exercise Grid -->
@@ -146,7 +146,7 @@
             <div 
               v-for="exercise in getExercisesByCategory(category)" 
               :key="exercise.id"
-              class="bg-dark-700 rounded-lg border border-dark-600 hover:border-primary-500/50 transition-colors overflow-hidden"
+              class="overflow-hidden rounded-lg"
             >
               <!-- Main Exercise Header -->
               <div 
@@ -154,8 +154,8 @@
                 class="p-3 border-b border-dark-600"
               >
                 <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <h3 class="font-medium text-white text-sm">{{ exercise.name }}</h3>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="font-medium text-white text-sm truncate">{{ exercise.name }}</h3>
                     <div class="flex items-center gap-2 mt-1">
                       <span v-if="exercise.totalSessions > 0" class="text-xs text-primary-400">
                         {{ exercise.totalSessions }} økter
@@ -169,31 +169,33 @@
               </div>
 
               <!-- Variants -->
-              <div v-if="exercise.variants && exercise.variants.length > 0" class="p-3 space-y-2">
-                <div 
-                  v-for="variant in exercise.variants" 
-                  :key="variant.id"
-                  @click="viewExercise(variant.id)"
-                  class="bg-dark-800 rounded p-2 hover:bg-dark-600 cursor-pointer transition-colors"
-                >
-                  <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                      <span class="text-white text-sm">{{ variant.name }}</span>
-                      <div class="flex gap-1 mt-1">
-                        <span v-if="variant.equipment" class="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded">
-                          {{ variant.equipment }}
-                        </span>
-                        <span v-if="variant.angle" class="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">
-                          {{ variant.angle }}
-                        </span>
-                        <span v-if="variant.grip" class="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
-                          {{ variant.grip }}
-                        </span>
+              <div v-if="exercise.variants && exercise.variants.length > 0" class="p-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <div 
+                    v-for="variant in exercise.variants" 
+                    :key="variant.id"
+                    @click="viewExercise(variant.id)"
+                    class="bg-dark-800 rounded p-2 hover:bg-dark-600 cursor-pointer transition-colors"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex-1 min-w-0">
+                        <span class="text-white text-sm truncate block">{{ variant.name }}</span>
+                        <div class="flex gap-1 mt-1 flex-wrap">
+                          <span v-if="variant.equipment" class="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded">
+                            {{ variant.equipment }}
+                          </span>
+                          <span v-if="variant.angle" class="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">
+                            {{ variant.angle }}
+                          </span>
+                          <span v-if="variant.grip" class="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                            {{ variant.grip }}
+                          </span>
+                        </div>
                       </div>
+                      <svg class="w-3 h-3 text-dark-400 group-hover:text-primary-400 transition-colors flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
-                    <svg class="w-3 h-3 text-dark-400 group-hover:text-primary-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
                   </div>
                 </div>
               </div>
@@ -205,8 +207,8 @@
                 class="p-3 hover:bg-dark-600 cursor-pointer"
               >
                 <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <span class="text-white text-sm">{{ exercise.name }}</span>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-white text-sm truncate block">{{ exercise.name }}</span>
                     <div class="flex items-center gap-2 mt-1">
                       <span v-if="exercise.totalSessions > 0" class="text-xs text-primary-400">
                         {{ exercise.totalSessions }} økter
@@ -216,7 +218,7 @@
                       </span>
                     </div>
                   </div>
-                  <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                   </svg>
                 </div>

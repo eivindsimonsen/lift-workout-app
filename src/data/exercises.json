@@ -863,7 +863,7 @@
       "name": "Lat Pulldown",
       "category": "Rygg",
       "workoutTypes": ["pull", "upper"],
-      "muscleGroups": ["Rygg", "Armer"],
+      "muscleGroups": ["Rygg"],
       "variants": [
         {
           "id": "lat-pulldown",
