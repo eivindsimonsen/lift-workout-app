@@ -3,46 +3,35 @@
     v-if="showUpdatePrompt"
     class="fixed bottom-4 left-4 right-4 z-50 bg-dark-800 border border-primary-500/20 rounded-lg p-4 shadow-xl"
   >
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
-          <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </div>
-        <div>
-          <h3 class="text-sm font-semibold text-white">Oppdatering tilgjengelig</h3>
-          <p class="text-xs text-dark-300">En ny versjon av appen er tilgjengelig</p>
-        </div>
-      </div>
-      
-      <div class="flex items-center gap-2">
-        <button 
-          @click="dismissPrompt"
-          class="text-dark-400 hover:text-white transition-colors p-1"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        
-        <button 
-          @click="refreshApp"
-          class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          Oppdater
-        </button>
-        
-        <!-- Test button for development -->
-        <button 
-          v-if="isDevelopment"
-          @click="testUpdate"
-          class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors ml-2"
-        >
-          Test
-        </button>
-      </div>
-    </div>
+         <div class="flex items-center gap-3">
+       <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+         <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+         </svg>
+       </div>
+       <div class="flex-1 min-w-0">
+         <h3 class="text-sm font-semibold text-white">Oppdatering tilgjengelig</h3>
+         <p class="text-xs text-dark-300">En ny versjon av appen er tilgjengelig</p>
+       </div>
+       
+       <div class="flex items-center gap-3 flex-shrink-0">
+         <button 
+           @click="refreshApp"
+           class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+         >
+           Oppdater
+         </button>
+         
+         <button 
+           @click="dismissPrompt"
+           class="text-dark-400 hover:text-white transition-colors p-2"
+         >
+           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+           </svg>
+         </button>
+       </div>
+     </div>
   </div>
 </template>
 
@@ -145,6 +134,14 @@ const refreshApp = () => {
   } else {
     // Fallback: just reload the page
     window.location.reload()
+  }
+}
+
+// Force check for updates (for testing)
+const forceCheckForUpdates = () => {
+  console.log('🔍 UpdateNotification: Force checking for updates...')
+  if (registration.value) {
+    registration.value.update()
   }
 }
 
