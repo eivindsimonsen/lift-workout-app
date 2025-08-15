@@ -8,6 +8,7 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: "prompt",
+      version: "1.0.1",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         skipWaiting: true,
@@ -42,6 +43,7 @@ export default defineConfig({
         name: "Treningsloggen",
         short_name: "Treningsloggen",
         description: "Din personlige treningslogg med full kontroll over treningsøktene dine",
+        version: "1.0.1",
         theme_color: "#1F2937",
         background_color: "#1F2937",
         display: "standalone",

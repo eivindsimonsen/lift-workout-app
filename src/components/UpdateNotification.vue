@@ -32,16 +32,29 @@
         >
           Oppdater
         </button>
+        
+        <!-- Test button for development -->
+        <button 
+          v-if="isDevelopment"
+          @click="testUpdate"
+          class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors ml-2"
+        >
+          Test
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const showUpdatePrompt = ref(false)
 const registration = ref<ServiceWorkerRegistration | null>(null)
+
+const isDevelopment = computed(() => {
+  return import.meta.env.DEV
+})
 
 const checkForUpdates = () => {
   console.log('🔍 UpdateNotification: Checking for updates...')
@@ -76,6 +89,9 @@ const checkForUpdates = () => {
         
         // Check for updates manually
         reg.update()
+        
+        // Also check manifest version
+        checkManifestVersion()
       } else {
         console.log('🔍 UpdateNotification: No service worker registration found')
       }
@@ -85,6 +101,35 @@ const checkForUpdates = () => {
   } else {
     console.log('🔍 UpdateNotification: Service workers not supported')
   }
+}
+
+const checkManifestVersion = async () => {
+  try {
+    const response = await fetch('/manifest.webmanifest')
+    if (response.ok) {
+      const manifest = await response.json()
+      const currentVersion = manifest.version || '1.0.0'
+      const storedVersion = localStorage.getItem('app-version')
+      
+      console.log('🔍 UpdateNotification: Current manifest version:', currentVersion)
+      console.log('🔍 UpdateNotification: Stored version:', storedVersion)
+      
+      if (storedVersion && storedVersion !== currentVersion) {
+        console.log('🔍 UpdateNotification: New version detected!')
+        showUpdatePrompt.value = true
+      }
+      
+      // Store current version
+      localStorage.setItem('app-version', currentVersion)
+    }
+  } catch (error) {
+    console.error('🔍 UpdateNotification: Error checking manifest:', error)
+  }
+}
+
+const testUpdate = () => {
+  console.log('🧪 UpdateNotification: Testing update notification...')
+  showUpdatePrompt.value = true
 }
 
 const refreshApp = () => {
@@ -148,7 +193,7 @@ onMounted(() => {
   
   window.addEventListener('vite-plugin-pwa:update-ready', handleVitePwaUpdateReady)
   
-  // Always check for updates, don't dismiss permanently
+    // Always check for updates, don't dismiss permanently
   checkForUpdates()
   handleSkipWaiting()
   
@@ -168,6 +213,9 @@ onMounted(() => {
         }
       })
     }
+    
+    // Also check manifest version periodically
+    checkManifestVersion()
   }, 30000) // Check every 30 seconds
   
   // Cleanup function

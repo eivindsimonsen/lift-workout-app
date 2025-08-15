@@ -224,6 +224,9 @@
   
   <!-- Update Notification -->
   <UpdateNotification />
+  
+  <!-- Test component for development -->
+  <UpdateTest v-if="isDevelopment" />
 </template>
 
 <script setup lang="ts">
@@ -233,6 +236,7 @@ import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
 import UpdateNotification from '@/components/UpdateNotification.vue'
+import UpdateTest from '@/components/UpdateTest.vue'
 
 import OfflineIndicator from '@/components/OfflineIndicator.vue'
 import MobileBrowserBanner from '@/components/MobileBrowserBanner.vue'
@@ -349,6 +353,10 @@ const userInitials = computed(() => {
 
 const isPWA = computed(() => {
   return window.matchMedia('(display-mode: standalone)').matches
+})
+
+const isDevelopment = computed(() => {
+  return import.meta.env.DEV
 })
 
 
