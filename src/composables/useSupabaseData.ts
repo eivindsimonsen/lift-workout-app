@@ -177,6 +177,54 @@ const createSupabaseData = () => {
     }
   };
 
+  // Force refresh UI data immediately (bypasses cache timeout)
+  const refreshUIData = async () => {
+    if (!currentUser.value) {
+      return;
+    }
+
+    console.log("🔄 Force refreshing UI data immediately...");
+
+    try {
+      // Force sync with Supabase to get latest data
+      if (isOnline.value) {
+        await syncWithSupabase();
+      } else {
+        // If offline, at least refresh from cache
+        if (indexedDB.isSupported.value) {
+          const cachedData = await indexedDB.getUserData(currentUser.value.id);
+          if (cachedData) {
+            // Convert date strings back to Date objects
+            const convertDates = (data: any[]): any[] => {
+              return data.map((item) => {
+                if (item && typeof item === "object") {
+                  if (item.date && typeof item.date === "string") {
+                    item.date = new Date(item.date);
+                  }
+                  if (item.created_at && typeof item.created_at === "string") {
+                    item.created_at = new Date(item.created_at);
+                  }
+                  if (item.updated_at && typeof item.updated_at === "string") {
+                    item.updated_at = new Date(item.updated_at);
+                  }
+                }
+                return item;
+              });
+            };
+
+            templates.value = cachedData.templates || [];
+            sessions.value = convertDates(cachedData.sessions || []);
+            lastSyncTime.value = cachedData.lastSync;
+          }
+        }
+      }
+
+      console.log("✅ UI data refreshed immediately");
+    } catch (error) {
+      console.error("❌ Error refreshing UI data:", error);
+    }
+  };
+
   // Load data from cache first, then from Supabase if needed
   const loadData = async (retryCount = 0, forceRefresh = false) => {
     if (!currentUser.value) {
@@ -262,7 +310,7 @@ const createSupabaseData = () => {
       }
 
       // Load from Supabase if online and cache is stale or forced, AND no pending changes
-      if (isOnline.value && !hasPendingChanges) {
+      if (isOnline.value && (!hasPendingChanges || forceRefresh)) {
         console.log("🌐 Syncing with Supabase...");
         try {
           await syncWithSupabase();
@@ -296,7 +344,7 @@ const createSupabaseData = () => {
             sessions.value = convertDates(cachedData.sessions || []);
           }
         }
-      } else if (hasPendingChanges) {
+      } else if (hasPendingChanges && !forceRefresh) {
         console.log("📱 Pending changes detected - skipping Supabase sync to preserve local changes");
         if (cachedData) {
           // Convert date strings back to Date objects when using offline cache
@@ -1609,6 +1657,7 @@ const createSupabaseData = () => {
     initializeAuth,
     resetState,
     cleanup,
+    refreshUIData,
 
     // Offline-first functions
     updateTemplateOffline,

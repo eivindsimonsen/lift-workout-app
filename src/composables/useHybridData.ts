@@ -162,6 +162,7 @@ export const useHybridData = () => {
     abandonWorkoutSession: userData.abandonWorkoutSession,
     signOut: userData.signOut,
     cleanup: userData.cleanup,
+    refreshUIData: userData.refreshUIData,
 
     // Offline-first functions
     updateTemplateOffline: userData.updateTemplateOffline,

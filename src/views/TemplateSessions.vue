@@ -285,11 +285,16 @@ const startWorkout = async (templateId: string) => {
   try {
     const session = await workoutData.startWorkoutSession(templateId)
     if (session) {
+      // Force refresh the UI data to ensure changes are visible immediately
+      await workoutData.refreshUIData()
+      
+      // Navigate to the workout session
       router.push(`/workout/${session.id}`)
     } else {
       alert('Kunne ikke starte økt. Prøv igjen.')
     }
   } catch (error) {
+    console.error('Error starting workout:', error)
     alert('Kunne ikke starte økt. Prøv igjen.')
   }
 }
@@ -307,14 +312,16 @@ const abandonWorkout = async (sessionId: string) => {
       }
       
       await workoutData.abandonWorkoutSession(sessionId)
-      // Refresh data to update the UI
-      await workoutData.loadData()
+      
+      // Force refresh the UI data to ensure changes are visible immediately
+      await workoutData.refreshUIData()
       
       // Success feedback
       if ('vibrate' in navigator) {
         navigator.vibrate([50, 100, 50])
       }
     } catch (error) {
+      console.error('Error abandoning workout:', error)
       // Error feedback
       if ('vibrate' in navigator) {
         navigator.vibrate([200, 100, 200])

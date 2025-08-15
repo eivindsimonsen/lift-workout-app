@@ -357,14 +357,23 @@ const removeExercise = (index: number) => {
   templateForm.value.exercises.splice(index, 1)
 }
 
-const deleteTemplate = () => {
+const deleteTemplate = async () => {
   if (template.value && confirm('Er du sikker på at du vil slette denne økten?')) {
-    workoutData.deleteTemplate(template.value.id)
-    router.push('/')
+    try {
+      await workoutData.deleteTemplate(template.value.id)
+      
+      // Force refresh the UI data to ensure changes are visible immediately
+      await workoutData.refreshUIData()
+      
+      router.push('/')
+    } catch (error) {
+      console.error('Error deleting template:', error)
+      alert('Kunne ikke slette økt. Prøv igjen.')
+    }
   }
 }
 
-const saveTemplate = () => {
+const saveTemplate = async () => {
   // Update exercise names based on selected exercise IDs
   const exercisesWithNames = templateForm.value.exercises.map(exercise => {
     const exerciseData = workoutData.getExerciseById.value(exercise.exerciseId)
@@ -374,25 +383,34 @@ const saveTemplate = () => {
     }
   })
 
-  if (isEditing.value && template.value) {
-    // Update existing template
-    workoutData.updateTemplate(template.value.id, {
-      name: templateForm.value.name,
-      workoutType: templateForm.value.workoutType,
-      exercises: exercisesWithNames
-    })
-  } else {
-    // Create new template
-    const templateData = {
-      id: `template-${Date.now()}`,
-      name: templateForm.value.name,
-      workoutType: templateForm.value.workoutType,
-      exercises: exercisesWithNames
+  try {
+    if (isEditing.value && template.value) {
+      // Update existing template
+      await workoutData.updateTemplate(template.value.id, {
+        name: templateForm.value.name,
+        workoutType: templateForm.value.workoutType,
+        exercises: exercisesWithNames
+      })
+    } else {
+      // Create new template
+      const templateData = {
+        id: `template-${Date.now()}`,
+        name: templateForm.value.name,
+        workoutType: templateForm.value.workoutType,
+        exercises: exercisesWithNames
+      }
+      await workoutData.addTemplate(templateData)
     }
-    workoutData.addTemplate(templateData)
-  }
 
-  router.push('/')
+    // Force refresh the UI data to ensure changes are visible immediately
+    await workoutData.refreshUIData()
+    
+    // Navigate back to templates list
+    router.push('/')
+  } catch (error) {
+    console.error('Error saving template:', error)
+    alert('Kunne ikke lagre økt. Prøv igjen.')
+  }
 }
 
 // Lifecycle
