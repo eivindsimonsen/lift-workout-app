@@ -480,7 +480,7 @@
   }
 
   .input-field {
-    @apply bg-dark-700 border border-dark-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply bg-dark-700 border border-dark-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
