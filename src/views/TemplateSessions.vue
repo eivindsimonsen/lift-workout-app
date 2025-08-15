@@ -32,18 +32,6 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
-          
-          <!-- Debug button for session details -->
-          <button 
-            @click="showSessionDetails"
-            class="px-3 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors text-sm font-medium"
-            title="Vis session detaljer"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -355,21 +343,6 @@ const forceSyncData = () => {
   workoutData.forceSyncData()
   alert('Data er nå synkronisert.')
 }
-
-const showSessionDetails = () => {
-  console.log('🔍 Session details:')
-  console.log('All sessions:', workoutData.sessions.value)
-  console.log('Active sessions:', activeSessions.value)
-  console.log('Completed sessions:', workoutData.completedSessions.value)
-  
-  // Show in alert for easy viewing
-  const details = workoutData.sessions.value.map(s => 
-    `${s.templateName}: ${s.isCompleted ? 'Fullført' : 'Aktiv'} (${new Date(s.date).toLocaleString('no-NO')})`
-  ).join('\n')
-  
-  alert(`Session detaljer:\n\n${details}`)
-}
-
 
 // Helper methods for exercise grouping
 const getExerciseGroups = (exercises: any[]) => {

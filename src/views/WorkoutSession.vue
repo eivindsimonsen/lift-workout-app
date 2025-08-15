@@ -63,6 +63,26 @@
         </div>
       </div>
 
+      <!-- Pending changes indicator -->
+      <div v-if="workoutData.isOnline.value && pendingChangesCount > 0" class="mt-4 p-3 bg-blue-600 bg-opacity-20 border border-blue-500 rounded-lg">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-blue-400 text-sm">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <span>{{ pendingChangesCount }} endring(er) venter på synkronisering</span>
+          </div>
+          <button 
+            @click="syncPendingChanges"
+            class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors"
+            :disabled="isSyncingPendingChanges"
+          >
+            <span v-if="isSyncingPendingChanges">Synkroniserer...</span>
+            <span v-else>Synkroniser nå</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Exercises -->
       <div v-if="session" class="space-y-6 mt-6">
         <div 
@@ -288,21 +308,6 @@
             <p class="text-sm text-dark-300">Varighet</p>
           </div>
         </div>
-        
-        <!-- Action Buttons -->
-        <div class="mt-6 flex gap-3 justify-center">
-          <button 
-            @click="handleCompleteWorkout"
-            :disabled="completedSets === 0"
-            class="btn-primary px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            :title="completedSets === 0 ? 'Du må ha minst ett fullført sett for å fullføre økten' : 'Fullfør økt'"
-          >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Fullfør økt
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -330,6 +335,7 @@ const newExerciseId = ref('')
 const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
 const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
+const isSyncingPendingChanges = ref(false)
 
 
 
@@ -384,6 +390,29 @@ const availableExercises = computed(() => {
   return available
 })
 
+// Pending changes functionality
+const pendingChangesCount = ref(0)
+
+const updatePendingChangesCount = async () => {
+  // For now, we'll set this to 0 and update it when we implement the full functionality
+  // This will be enhanced later when we add proper pending changes tracking
+  pendingChangesCount.value = 0
+}
+
+const syncPendingChanges = async () => {
+  if (!workoutData.isOnline.value) return
+  
+  isSyncingPendingChanges.value = true
+  try {
+    await workoutData.syncPendingChanges()
+    // Update the count after syncing
+    await updatePendingChangesCount()
+  } catch (error) {
+    console.error('❌ Error syncing pending changes:', error)
+  } finally {
+    isSyncingPendingChanges.value = false
+  }
+}
 
 
 // Methods
@@ -878,6 +907,17 @@ onMounted(async () => {
   watch([hasUnsavedChanges, isSaving], () => {
     updateAppSaveState()
   })
+
+  // Watch for changes in pending changes count and update App.vue
+  watch(pendingChangesCount, (newCount) => {
+    const updateEvent = new CustomEvent('updatePendingChangesCount', {
+      detail: { pendingChangesCount: newCount }
+    })
+    window.dispatchEvent(updateEvent)
+  })
+
+  // Update pending changes count on mount
+  await updatePendingChangesCount()
   
   // Add beforeunload listener to warn about unsaved changes
   const handleBeforeUnload = (event: BeforeUnloadEvent) => {

@@ -147,8 +147,20 @@ const createSupabaseData = () => {
 
   // Network status monitoring
   const updateNetworkStatus = () => {
+    const wasOffline = !isOnline.value;
     isOnline.value = navigator.onLine;
     console.log(`🌐 Network status: ${isOnline.value ? "Online" : "Offline"}`);
+
+    // If we just came back online, sync pending changes
+    if (wasOffline && isOnline.value && currentUser.value && indexedDB.isSupported.value) {
+      console.log("🌐 Network back online, syncing pending changes...");
+      // Use a small delay to ensure network is stable
+      setTimeout(() => {
+        if (isOnline.value && currentUser.value) {
+          syncPendingChanges();
+        }
+      }, 1000);
+    }
   };
 
   // Initialize IndexedDB
@@ -193,9 +205,15 @@ const createSupabaseData = () => {
     try {
       // Try to load from cache first (only if IndexedDB is available)
       let cachedData: any = null;
+      let hasPendingChanges = false;
+
       if (indexedDB.isSupported.value) {
         try {
           cachedData = await indexedDB.getUserData(currentUser.value.id);
+
+          // Check if there are pending changes that haven't been synced yet
+          const pendingChanges = await indexedDB.getPendingChanges();
+          hasPendingChanges = pendingChanges.length > 0;
 
           if (cachedData && !forceRefresh) {
             console.log("📱 Loading data from cache...");
@@ -224,10 +242,13 @@ const createSupabaseData = () => {
             sessions.value = convertDates(cachedData.sessions || []);
             lastSyncTime.value = cachedData.lastSync;
 
-            // If cache is fresh (less than 5 minutes old), don't sync
+            // If cache is fresh (less than 5 minutes old) OR if there are pending changes, don't sync
             const cacheAge = Date.now() - cachedData.lastSync;
-            if (cacheAge < 5 * 60 * 1000) {
-              console.log("✅ Using cached data (fresh)");
+            if (cacheAge < 5 * 60 * 1000 || hasPendingChanges) {
+              console.log(`✅ Using cached data (${hasPendingChanges ? "pending changes exist" : "fresh"})`);
+              if (hasPendingChanges) {
+                console.log("📱 Pending changes detected - prioritizing local data over Supabase sync");
+              }
               isLoading.value = false;
               return;
             }
@@ -240,8 +261,8 @@ const createSupabaseData = () => {
         console.log("📱 IndexedDB not supported, skipping cache");
       }
 
-      // Load from Supabase if online and cache is stale or forced
-      if (isOnline.value) {
+      // Load from Supabase if online and cache is stale or forced, AND no pending changes
+      if (isOnline.value && !hasPendingChanges) {
         console.log("🌐 Syncing with Supabase...");
         try {
           await syncWithSupabase();
@@ -274,6 +295,32 @@ const createSupabaseData = () => {
             templates.value = cachedData.templates || [];
             sessions.value = convertDates(cachedData.sessions || []);
           }
+        }
+      } else if (hasPendingChanges) {
+        console.log("📱 Pending changes detected - skipping Supabase sync to preserve local changes");
+        if (cachedData) {
+          // Convert date strings back to Date objects when using offline cache
+          const convertDates = (data: any[]): any[] => {
+            return data.map((item) => {
+              if (item && typeof item === "object") {
+                // Convert session dates back to Date objects
+                if (item.date && typeof item.date === "string") {
+                  item.date = new Date(item.date);
+                }
+                // Convert any other date fields that might exist
+                if (item.created_at && typeof item.created_at === "string") {
+                  item.created_at = new Date(item.created_at);
+                }
+                if (item.updated_at && typeof item.updated_at === "string") {
+                  item.updated_at = new Date(item.updated_at);
+                }
+              }
+              return item;
+            });
+          };
+
+          templates.value = cachedData.templates || [];
+          sessions.value = convertDates(cachedData.sessions || []);
         }
       } else {
         console.log("📱 Offline mode - using cached data");
@@ -573,9 +620,24 @@ const createSupabaseData = () => {
             if (currentUser.value && isOnline.value && !isLoading.value) {
               console.log("📱 Page visible, syncing data for consistency...");
               // Use a shorter delay for better responsiveness
-              visibilityChangeTimeout = setTimeout(() => {
+              visibilityChangeTimeout = setTimeout(async () => {
                 if (document.visibilityState === "visible" && currentUser.value && !isLoading.value) {
                   console.log("📱 Page visible, syncing data...");
+
+                  // First sync any pending changes to preserve local data
+                  if (indexedDB.isSupported.value) {
+                    try {
+                      const pendingChanges = await indexedDB.getPendingChanges();
+                      if (pendingChanges.length > 0) {
+                        console.log(`📱 Found ${pendingChanges.length} pending changes, syncing them first...`);
+                        await syncPendingChanges();
+                      }
+                    } catch (error) {
+                      console.warn("⚠️ Failed to sync pending changes on visibility change:", error);
+                    }
+                  }
+
+                  // Then load data (will use cache if pending changes exist)
                   loadData(0, true); // Force refresh
                 }
               }, 200); // Reduced delay for better responsiveness
@@ -602,8 +664,22 @@ const createSupabaseData = () => {
         if (currentUser.value && isOnline.value && !isLoading.value) {
           console.log("📱 App gained focus, syncing data for consistency...");
           // Use a small delay to prevent rapid focus events
-          setTimeout(() => {
+          setTimeout(async () => {
             if (currentUser.value && isOnline.value && !isLoading.value) {
+              // First sync any pending changes to preserve local data
+              if (indexedDB.isSupported.value) {
+                try {
+                  const pendingChanges = await indexedDB.getPendingChanges();
+                  if (pendingChanges.length > 0) {
+                    console.log(`📱 Found ${pendingChanges.length} pending changes, syncing them first...`);
+                    await syncPendingChanges();
+                  }
+                } catch (error) {
+                  console.warn("⚠️ Failed to sync pending changes on focus:", error);
+                }
+              }
+
+              // Then load data (will use cache if pending changes exist)
               loadData(0, true); // Force refresh
             }
           }, 100);
@@ -946,6 +1022,17 @@ const createSupabaseData = () => {
 
   const recentSessions = computed(() => {
     return completedSessions.value.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+  });
+
+  const pendingChangesCount = computed(async () => {
+    if (!indexedDB.isSupported.value || !currentUser.value) return 0;
+    try {
+      const pendingChanges = await indexedDB.getPendingChanges();
+      return pendingChanges.length;
+    } catch (error) {
+      console.error("❌ Error getting pending changes count:", error);
+      return 0;
+    }
   });
 
   const workoutStats = computed(() => {
@@ -1452,6 +1539,23 @@ const createSupabaseData = () => {
     }
   };
 
+  // Force sync pending changes manually
+  const forceSyncPendingChanges = async () => {
+    if (!isOnline.value || !currentUser.value || !indexedDB.isSupported.value) {
+      console.log("📱 Cannot force sync pending changes - no user or offline");
+      return;
+    }
+
+    try {
+      console.log("📱 Force syncing pending changes...");
+      await syncPendingChanges();
+      console.log("✅ Force sync of pending changes completed");
+    } catch (error) {
+      console.error("❌ Force sync of pending changes failed:", error);
+      throw error;
+    }
+  };
+
   // Force sync data with Supabase
   const forceSyncData = async () => {
     if (!currentUser.value || !isOnline.value) {
@@ -1488,6 +1592,7 @@ const createSupabaseData = () => {
     workoutStats,
     getSessionById,
     getTemplatesByType,
+    pendingChangesCount,
 
     // Actions
     loadData,
@@ -1511,6 +1616,7 @@ const createSupabaseData = () => {
     syncPendingChanges,
     watchNetworkStatus,
     forceSyncData,
+    forceSyncPendingChanges,
   };
 };
 
