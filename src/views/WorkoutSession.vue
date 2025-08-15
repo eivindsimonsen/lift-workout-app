@@ -294,7 +294,7 @@
 
       <!-- Summary -->
       <div class="card mt-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="text-center">
             <p class="text-2xl font-bold text-primary-500">{{ completedSets }} av {{ totalSets }}</p>
             <p class="text-sm text-dark-300">Sett gjennomført</p>
@@ -308,23 +308,23 @@
             <p class="text-sm text-dark-300">Varighet</p>
           </div>
         </div>
-        
-        <!-- Complete Button -->
-        <div class="mt-6">
-          <button 
-            @click="handleCompleteWorkout"
-            class="w-full btn-primary py-3 flex items-center justify-center gap-2"
-            :disabled="completedSets === 0"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Fullfør Økt
-          </button>
-          <p v-if="completedSets === 0" class="text-xs text-dark-400 text-center mt-2">
-            Du må fullføre minst ett sett for å kunne fullføre økten
-          </p>
-        </div>
+      </div>
+      
+      <!-- Complete Button - moved below summary box -->
+      <div class="mt-6">
+        <button 
+          @click="handleCompleteWorkout"
+          class="w-full btn-primary py-3 flex items-center justify-center gap-2"
+          :disabled="completedSets === 0"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Fullfør Økt
+        </button>
+        <p v-if="completedSets === 0" class="text-xs text-dark-400 text-center mt-2">
+          Du må fullføre minst ett sett for å kunne fullføre økten
+        </p>
       </div>
     </div>
   </div>
