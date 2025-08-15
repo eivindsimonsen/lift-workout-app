@@ -1,63 +1,25 @@
 <template>
   <div 
     v-if="showUpdatePrompt"
-    class="fixed bottom-4 left-4 right-4 z-50"
+    class="fixed bottom-4 left-4 right-4 z-50 bg-dark-800 border border-primary-500/20 rounded-lg p-4 shadow-xl"
   >
-    <div 
-      ref="notificationRef"
-      class="relative overflow-hidden bg-dark-800 border border-primary-500/20 rounded-lg p-4 shadow-xl"
-      @touchstart="handleTouchStart"
-      @touchmove="handleTouchMove"
-      @touchend="handleTouchEnd"
-    >
-      <!-- Main Notification Content -->
-      <div 
-        class="transition-all duration-200 ease-out relative z-10 flex items-center gap-3"
-        :style="{ 
-          transform: `translateX(${translateX}px)`,
-          borderRadius: showDismissAction ? '8px 0px 0px 8px' : '8px'
-        }"
-      >
-        <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-          <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <h3 class="text-sm font-semibold text-white">Oppdatering tilgjengelig</h3>
-        </div>
-        
-        <div class="flex items-center gap-3 flex-shrink-0">
-          <button 
-            @click="refreshApp"
-            class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            Oppdater
-          </button>
-        </div>
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </div>
+      <div class="flex-1 min-w-0">
+        <h3 class="text-sm font-semibold text-white">Oppdatering tilgjengelig</h3>
       </div>
       
-      <!-- Dismiss Action Background (shown when swiping) -->
-      <div 
-        class="absolute right-0 top-0 bottom-0 flex items-center justify-end dismiss-action text-white transition-opacity duration-200 ease-out shadow-lg pr-6 rounded-r-lg"
-        :class="{ 
-          'opacity-100': showDismissAction, 
-          'opacity-0': !showDismissAction 
-        }"
-        :style="{ 
-          width: '100%',
-          left: '0'
-        }"
-      >
-        <!-- Dismiss Icon -->
-        <div class="flex flex-col items-center gap-2 transform transition-transform duration-200 dismiss-icon" :class="{ 'scale-110': showDismissAction }">
-          <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-lg">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
-          <span class="text-xs font-semibold text-white tracking-wide">AVVIS</span>
-        </div>
+      <div class="flex items-center gap-3 flex-shrink-0">
+        <button 
+          @click="refreshApp"
+          class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          Oppdater
+        </button>
       </div>
     </div>
   </div>
@@ -68,14 +30,6 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const showUpdatePrompt = ref(false)
 const registration = ref<ServiceWorkerRegistration | null>(null)
-const notificationRef = ref<HTMLElement>()
-
-// Touch/swipe state
-const translateX = ref(0)
-const showDismissAction = ref(false)
-let startX = 0
-let currentX = 0
-let isDragging = false
 
 const isDevelopment = computed(() => {
   return import.meta.env.DEV
@@ -187,44 +141,6 @@ const dismissPrompt = () => {
   // Don't dismiss permanently - allow it to show again on next update
 }
 
-// Touch handlers for swipe-to-dismiss
-const handleTouchStart = (event: TouchEvent) => {
-  if (event.touches.length !== 1) return
-  
-  startX = event.touches[0].clientX
-  currentX = startX
-  isDragging = true
-}
-
-const handleTouchMove = (event: TouchEvent) => {
-  if (!isDragging) return
-  
-  currentX = event.touches[0].clientX
-  const deltaX = currentX - startX
-  
-  // Only allow left swipe (negative deltaX)
-  if (deltaX < 0) {
-    translateX.value = Math.max(deltaX, -80 * 1.5)
-    // Show dismiss action earlier for better visual feedback
-    showDismissAction.value = Math.abs(deltaX) > 80 / 3
-  }
-}
-
-const handleTouchEnd = () => {
-  if (!isDragging) return
-  
-  isDragging = false
-  
-  if (Math.abs(translateX.value) > 80) {
-    // Trigger dismiss
-    dismissPrompt()
-  }
-  
-  // Reset position
-  translateX.value = 0
-  showDismissAction.value = false
-}
-
 const handleSkipWaiting = () => {
   // Listen for skip waiting message
   if ('serviceWorker' in navigator) {
@@ -303,27 +219,4 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
-/* Prevent text selection during swipe */
-.transition-transform {
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
 
-/* Enhanced dismiss action styling */
-.dismiss-action {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
-}
-
-/* Smooth icon animation */
-.dismiss-icon {
-  transition: all 0.2s ease-out;
-}
-
-.dismiss-icon:hover {
-  transform: scale(1.1);
-}
-</style>
