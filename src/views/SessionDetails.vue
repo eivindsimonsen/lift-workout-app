@@ -20,8 +20,51 @@
       <router-link to="/history" class="btn-primary mt-4">Tilbake til Historikk</router-link>
     </div>
 
+    <!-- Loading State for Session Details -->
+    <div v-if="isLoading" class="space-y-6 animate-pulse">
+      <!-- Session Header Skeleton -->
+      <div class="card">
+        <div class="flex items-start justify-between">
+          <div class="space-y-3">
+            <div class="h-8 bg-dark-600 rounded w-48"></div>
+            <div class="h-4 bg-dark-600 rounded w-40"></div>
+            <div class="h-6 bg-dark-600 rounded w-24"></div>
+          </div>
+          <div class="text-right space-y-2">
+            <div class="h-6 bg-dark-600 rounded w-20"></div>
+            <div class="h-3 bg-dark-600 rounded w-16"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Metrics Grid Skeleton -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div v-for="i in 5" :key="i" class="bg-dark-700 rounded-lg p-4 text-center space-y-2">
+          <div class="h-6 bg-dark-600 rounded w-12 mx-auto"></div>
+          <div class="h-3 bg-dark-600 rounded w-16 mx-auto"></div>
+        </div>
+      </div>
+
+      <!-- Exercise List Skeleton -->
+      <div class="card">
+        <div class="h-6 bg-dark-600 rounded w-32 mb-4"></div>
+        <div class="space-y-4">
+          <div v-for="i in 4" :key="i" class="bg-dark-700 rounded-lg p-4 space-y-3">
+            <div class="h-5 bg-dark-600 rounded w-40"></div>
+            <div class="space-y-2">
+              <div v-for="j in 3" :key="j" class="flex items-center gap-3">
+                <div class="h-4 bg-dark-600 rounded w-16"></div>
+                <div class="h-4 bg-dark-600 rounded w-12"></div>
+                <div class="h-4 bg-dark-600 rounded w-20"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Session Details -->
-    <div v-else class="space-y-6">
+    <div v-else-if="session" class="space-y-6">
       <!-- Session Header -->
       <div class="card">
         <div class="flex items-start justify-between">
@@ -242,6 +285,7 @@ const workoutData = useHybridData()
 
 const session = ref<WorkoutSession | null>(null)
 const activeSessions = computed(() => workoutData.sessions.value.filter(s => !s.isCompleted))
+const isLoading = computed(() => workoutData.isLoading.value)
 
 // Methods
 const formatDate = (date: Date): string => {

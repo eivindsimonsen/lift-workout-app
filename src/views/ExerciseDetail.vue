@@ -15,7 +15,43 @@
       </div>
     </div>
 
-    <div v-if="exercise" class="space-y-6">
+    <!-- Loading State for Exercise Details -->
+    <div v-if="isLoading" class="space-y-6 animate-pulse">
+      <!-- Variant Details Skeleton -->
+      <div class="card">
+        <div class="h-6 bg-dark-600 rounded w-32 mb-4"></div>
+        <div class="flex flex-wrap gap-3">
+          <div v-for="i in 4" :key="i" class="h-8 bg-dark-600 rounded-lg w-20"></div>
+        </div>
+      </div>
+
+      <!-- Stats Overview Skeleton -->
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div v-for="i in 6" :key="i" class="card text-center space-y-2">
+          <div class="h-8 bg-dark-600 rounded w-16 mx-auto"></div>
+          <div class="h-4 bg-dark-600 rounded w-20 mx-auto"></div>
+        </div>
+      </div>
+
+      <!-- Performance Chart Skeleton -->
+      <div class="card">
+        <div class="h-6 bg-dark-600 rounded w-48 mb-4"></div>
+        <div class="h-64 bg-dark-700 rounded-lg"></div>
+      </div>
+
+      <!-- Recent Sessions Skeleton -->
+      <div class="card">
+        <div class="h-6 bg-dark-600 rounded w-40 mb-4"></div>
+        <div class="space-y-3">
+          <div v-for="i in 5" :key="i" class="bg-dark-700 rounded-lg p-3 space-y-2">
+            <div class="h-4 bg-dark-600 rounded w-32"></div>
+            <div class="h-3 bg-dark-600 rounded w-24"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="exercise" class="space-y-6">
       <!-- Variant Details (if this is a variant) -->
       <div v-if="exercise.equipment || exercise.angle || exercise.grip" class="card">
         <h3 class="text-lg font-semibold text-white mb-4">Variant Detaljer</h3>
@@ -298,6 +334,9 @@ import { useHybridData } from '@/composables/useHybridData'
 const route = useRoute()
 const router = useRouter()
 const workoutData = useHybridData()
+
+// Loading state
+const isLoading = computed(() => workoutData.isLoading.value)
 
 const exercise = ref<any>(null)
 

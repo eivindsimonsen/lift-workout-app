@@ -58,8 +58,28 @@
 
 
 
-    <!-- Workout Sessions -->
-    <div v-if="filteredSessions.length === 0" class="mt-8 text-center py-8 sm:py-12">
+    <!-- Loading State for Workout Sessions -->
+    <div v-if="isLoading" class="mt-8 space-y-4 px-1">
+      <div 
+        v-for="i in 6" 
+        :key="i"
+        class="card animate-pulse"
+      >
+        <div class="flex items-center justify-between w-full">
+          <div class="flex-1 min-w-0 space-y-2">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="h-5 bg-dark-600 rounded w-32"></div>
+              <div class="h-5 bg-dark-600 rounded w-20"></div>
+            </div>
+            <div class="h-4 bg-dark-600 rounded w-40 mb-1"></div>
+            <div class="h-3 bg-dark-600 rounded w-48"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="filteredSessions.length === 0" class="mt-8 text-center py-8 sm:py-12">
       <div class="w-16 h-16 bg-dark-700 rounded-full flex items-center justify-center mx-auto mb-4">
         <svg class="w-8 h-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -71,6 +91,7 @@
       </router-link>
     </div>
 
+    <!-- Workout Sessions -->
     <div v-else class="mt-8 space-y-4 px-1">
       <router-link 
         v-for="session in filteredSessions" 
@@ -199,6 +220,9 @@ import FilterModal from '@/components/FilterModal.vue'
 import type { WorkoutSession } from '@/types/workout'
 
 const workoutData = useHybridData()
+
+// Loading state
+const isLoading = computed(() => workoutData.isLoading.value)
 
 // State
 const searchQuery = ref('')

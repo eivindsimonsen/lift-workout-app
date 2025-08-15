@@ -24,6 +24,45 @@
       <router-link to="/" class="btn-primary mt-4">Tilbake til Økter</router-link>
     </div>
 
+    <!-- Loading State for Template Form -->
+    <div v-if="isLoading" class="space-y-6 animate-pulse">
+      <!-- Basic Info Skeleton -->
+      <div class="card">
+        <div class="h-6 bg-dark-600 rounded w-64 mb-4"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div v-for="i in 2" :key="i" class="space-y-2">
+            <div class="h-4 bg-dark-600 rounded w-24"></div>
+            <div class="h-10 bg-dark-600 rounded w-full"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exercises Skeleton -->
+      <div class="card">
+        <div class="h-6 bg-dark-600 rounded w-20 mb-4"></div>
+        <div class="space-y-4">
+          <div v-for="i in 3" :key="i" class="bg-dark-700 rounded-lg p-4 space-y-3">
+            <div class="h-5 bg-dark-600 rounded w-24"></div>
+            <div class="space-y-2">
+              <div class="h-4 bg-dark-600 rounded w-16"></div>
+              <div class="h-10 bg-dark-600 rounded w-full"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div v-for="j in 3" :key="j" class="space-y-2">
+                <div class="h-4 bg-dark-600 rounded w-16"></div>
+                <div class="h-10 bg-dark-600 rounded w-full"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Button Skeleton -->
+      <div class="flex justify-end">
+        <div class="h-10 bg-dark-600 rounded w-24"></div>
+      </div>
+    </div>
+
     <!-- Template Form -->
     <form v-else @submit.prevent="saveTemplate" class="space-y-6">
       <!-- Basic Info -->
@@ -163,6 +202,9 @@ import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
 const router = useRouter()
 const route = useRoute()
 const workoutData = useHybridData()
+
+// Loading state
+const isLoading = computed(() => workoutData.isLoading.value)
 
 const template = ref<WorkoutTemplate | null>(null)
 const templateForm = ref({

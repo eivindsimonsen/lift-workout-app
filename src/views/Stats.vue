@@ -12,8 +12,25 @@
       </div>
     </div>
 
+    <!-- Loading State for Overview Stats -->
+    <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div 
+        v-for="i in 4" 
+        :key="i"
+        class="card animate-pulse"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="h-4 bg-dark-600 rounded w-20 mb-2"></div>
+            <div class="h-8 bg-dark-600 rounded w-16"></div>
+          </div>
+          <div class="w-12 h-12 bg-dark-600 rounded-lg"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Overview Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div v-else class="grid grid-cols-1 md:grid-cols-4 gap-6">
       <div class="card">
         <div class="flex items-center justify-between">
           <div>
@@ -71,8 +88,45 @@
       </div>
     </div>
 
+    <!-- Loading State for Progress Over Time -->
+    <div v-if="isLoading" class="card animate-pulse">
+      <div class="h-6 bg-dark-600 rounded w-48 mb-6"></div>
+      
+      <!-- Power Exercise Records Skeleton -->
+      <div class="mb-6">
+        <div class="h-5 bg-dark-600 rounded w-40 mb-4"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div 
+            v-for="i in 3" 
+            :key="i"
+            class="bg-dark-700 rounded-lg p-3 space-y-2"
+          >
+            <div class="h-4 bg-dark-600 rounded w-24"></div>
+            <div class="h-6 bg-dark-600 rounded w-16"></div>
+            <div class="h-3 bg-dark-600 rounded w-20"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- One Rep Max Progression Skeleton -->
+      <div>
+        <div class="h-5 bg-dark-600 rounded w-44 mb-4"></div>
+        <div class="space-y-2">
+          <div 
+            v-for="i in 3" 
+            :key="i"
+            class="bg-dark-700 rounded-lg p-3 space-y-2"
+          >
+            <div class="h-4 bg-dark-600 rounded w-28"></div>
+            <div class="h-6 bg-dark-600 rounded w-20"></div>
+            <div class="h-3 bg-dark-600 rounded w-16"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Progress Over Time -->
-    <div class="card">
+    <div v-else class="card">
       <h3 class="text-lg font-semibold text-white mb-6">Fremgang over Tid</h3>
       
       <!-- Power Exercise Records -->
@@ -121,8 +175,20 @@
       </div>
     </div>
 
+    <!-- Loading State for Training Habits -->
+    <div v-if="isLoading" class="card animate-pulse">
+      <div class="h-6 bg-dark-600 rounded w-32 mb-6"></div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div v-for="i in 3" :key="i" class="text-center p-4 bg-dark-700 rounded-lg space-y-2">
+          <div class="h-8 bg-dark-600 rounded w-16 mx-auto mb-1"></div>
+          <div class="h-3 bg-dark-600 rounded w-32 mx-auto"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Training Habits -->
-    <div class="card">
+    <div v-else class="card">
       <h3 class="text-lg font-semibold text-white mb-6">Treningsvaner</h3>
       
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -138,7 +204,7 @@
           <div class="text-xs text-dark-300">Dager på rad</div>
         </div>
         
-        <!-- Longest Streak -->
+        <!-- Current Streak -->
         <div class="text-center p-4 bg-dark-700 rounded-lg">
           <div class="text-2xl font-bold text-primary-500 mb-1">{{ longestStreak }}</div>
           <div class="text-xs text-dark-300">Lengste streak</div>
@@ -183,8 +249,26 @@
       </div>
     </div>
 
+    <!-- Loading State for Distribution and Balance -->
+    <div v-if="isLoading" class="card animate-pulse">
+      <div class="h-6 bg-dark-600 rounded w-40 mb-6"></div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div v-for="i in 2" :key="i" class="space-y-4">
+          <div class="h-5 bg-dark-600 rounded w-44"></div>
+          <div class="space-y-3">
+            <div v-for="j in 3" :key="j" class="flex items-center gap-3">
+              <div class="w-4 h-4 bg-dark-600 rounded-full"></div>
+              <div class="h-4 bg-dark-600 rounded w-24 flex-1"></div>
+              <div class="h-4 bg-dark-600 rounded w-12"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Distribution and Balance -->
-    <div class="card">
+    <div v-else class="card">
       <h3 class="text-lg font-semibold text-white mb-6">Fordeling og Balanse</h3>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -226,8 +310,20 @@
     <div class="card">
       <h3 class="text-lg font-semibold text-white mb-6">Prestasjoner og Motivasjon</h3>
       
+      <!-- Loading State for Achievements Grid -->
+      <div v-if="isLoading" class="mb-6">
+        <div class="h-5 bg-dark-600 rounded w-32 mb-4"></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 animate-pulse">
+          <div v-for="i in 8" :key="i" class="text-center p-3 bg-dark-700 rounded-lg space-y-2">
+            <div class="h-6 bg-dark-600 rounded w-8 mx-auto"></div>
+            <div class="h-3 bg-dark-600 rounded w-16 mx-auto"></div>
+            <div class="h-3 bg-dark-600 rounded w-20 mx-auto"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Achievements Grid -->
-      <div class="mb-6">
+      <div v-else class="mb-6">
         <h4 class="text-md font-medium text-white mb-4">Prestasjoner</h4>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div 
@@ -243,8 +339,22 @@
         </div>
       </div>
 
+      <!-- Loading State for Volume Progress -->
+      <div v-if="isLoading" class="animate-pulse">
+        <div class="h-5 bg-dark-600 rounded w-16 mb-1"></div>
+        <div class="h-3 bg-dark-600 rounded w-64 mb-4"></div>
+        <div class="bg-dark-700 rounded-lg p-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="h-4 bg-dark-600 rounded w-32"></div>
+            <div class="h-4 bg-dark-600 rounded w-24"></div>
+          </div>
+          <div class="w-full bg-dark-600 rounded-full h-2"></div>
+          <div class="h-3 bg-dark-600 rounded w-48"></div>
+        </div>
+      </div>
+
       <!-- Volume Progress (Total volume toward next milestone) -->
-      <div>
+      <div v-else>
         <h4 class="text-md font-medium text-white mb-1">Volum</h4>
         <p class="text-xs text-dark-300 mb-4">Totalvolum er summen av vekt × reps i alle fullførte økter.</p>
         <div class="bg-dark-700 rounded-lg p-4 space-y-2">
@@ -270,6 +380,9 @@ import { computed } from 'vue'
 import { useHybridData } from '@/composables/useHybridData'
 
 const workoutData = useHybridData()
+
+// Loading state
+const isLoading = computed(() => workoutData.isLoading.value)
 
 // Computed
 const averageVolumePerWorkout = computed(() => {

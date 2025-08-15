@@ -12,8 +12,27 @@
       </div>
     </div>
 
+    <!-- Loading State for Profile Info -->
+    <div v-if="isLoading" class="card animate-pulse">
+      <div class="space-y-6">
+        <div>
+          <div class="h-6 bg-dark-600 rounded w-48 mb-4"></div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div v-for="i in 3" :key="i" class="space-y-2">
+              <div class="h-4 bg-dark-600 rounded w-16"></div>
+              <div class="h-10 bg-dark-600 rounded w-full"></div>
+              <div v-if="i === 2" class="h-3 bg-dark-600 rounded w-64"></div>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end pt-2">
+          <div class="h-10 bg-dark-600 rounded w-32"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Profile Info Card -->
-    <div class="card">
+    <div v-else class="card">
       <div class="space-y-6">
         <div>
           <h3 class="text-lg font-semibold text-white mb-4">Grunnleggende informasjon</h3>
@@ -52,8 +71,28 @@
       </div>
     </div>
 
+    <!-- Loading State for Password Card -->
+    <div v-if="isLoading" class="card animate-pulse">
+      <div class="space-y-4">
+        <div class="h-6 bg-dark-600 rounded w-32"></div>
+        <div>
+          <div class="h-4 bg-dark-600 rounded w-32 mb-2"></div>
+          <div class="h-10 bg-dark-600 rounded w-full"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div v-for="i in 2" :key="i" class="space-y-2">
+            <div class="h-4 bg-dark-600 rounded w-24"></div>
+            <div class="h-10 bg-dark-600 rounded w-full"></div>
+          </div>
+        </div>
+        <div class="flex justify-end">
+          <div class="h-10 bg-dark-600 rounded w-32"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Password Card -->
-    <div class="card">
+    <div v-else class="card">
       <div class="space-y-4">
         <h3 class="text-lg font-semibold text-white">Endre passord</h3>
         <div>
@@ -85,19 +124,16 @@
       </div>
     </div>
 
-     <!-- Subscription / Plus (visual only for now) -->
-     <div class="card">
-       <h3 class="text-lg font-semibold text-white mb-4">Abonnement</h3>
+     <!-- Loading State for Subscription -->
+     <div v-if="isLoading" class="card animate-pulse">
+       <div class="h-6 bg-dark-600 rounded w-32 mb-4"></div>
        <div class="bg-dark-700 rounded-lg p-4">
          <div class="flex items-center justify-between mb-4">
-           <div>
-             <p class="text-lg font-bold text-white">{{ currentSubscription.label }}</p>
-             <p class="text-sm text-dark-300">{{ currentSubscription.description }}</p>
+           <div class="space-y-2">
+             <div class="h-5 bg-dark-600 rounded w-32"></div>
+             <div class="h-4 bg-dark-600 rounded w-48"></div>
            </div>
-           <span class="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-green-500 text-white">
-             <div class="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
-             {{ subscriptionStatus === 'active' ? 'Aktiv' : 'Inaktiv' }}
-           </span>
+           <div class="h-6 bg-dark-600 rounded w-16"></div>
          </div>
          
          <div class="space-y-3">
@@ -160,6 +196,21 @@
        </div>
      </div>
 
+     <!-- Subscription / Plus (visual only for now) -->
+     <div v-else class="card">
+       <h3 class="text-lg font-semibold text-white mb-4">Abonnement</h3>
+       <div class="bg-dark-700 rounded-lg p-4">
+         <div class="flex items-center justify-between mb-4">
+           <div>
+             <p class="text-lg font-bold text-white">{{ currentSubscription.label }}</p>
+             <p class="text-sm text-dark-300">{{ currentSubscription.description }}</p>
+           </div>
+           <span class="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-green-500 text-white">
+             <div class="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
+             {{ subscriptionStatus === 'active' ? 'Aktiv' : 'Inaktiv' }}
+           </span>
+         </div>
+
      <!-- Sign Out Button - Outside the card, centered at bottom -->
     <div class="flex justify-center pt-8">
       <button 
@@ -185,6 +236,9 @@ const router = useRouter()
 const workoutData = useHybridData()
 const { supabase } = useSupabase()
 const { showError, showSuccess, showWarning, handleAuthError } = useErrorHandler()
+
+// Loading state
+const isLoading = computed(() => workoutData.isLoading.value)
 
 // Form data
 const profileName = ref('')

@@ -82,7 +82,46 @@
         </div>
       </div>
 
-      <div v-if="filteredTemplates.length === 0" class="mt-4 text-center py-12">
+      <!-- Loading State -->
+      <div v-if="isLoading" class="mt-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div 
+            v-for="i in 6" 
+            :key="i"
+            class="bg-dark-700 rounded-lg p-6 border border-dark-600 animate-pulse"
+          >
+            <!-- Template Title and Workout Type Skeleton -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="h-6 bg-dark-600 rounded w-32"></div>
+              <div class="h-6 bg-dark-600 rounded w-20"></div>
+            </div>
+
+            <!-- Exercise Count Skeleton -->
+            <div class="h-4 bg-dark-600 rounded w-24 mb-6"></div>
+
+            <!-- Exercise Preview Skeleton -->
+            <div class="mb-6 space-y-3">
+              <div class="space-y-2">
+                <div class="h-3 bg-dark-600 rounded w-16"></div>
+                <div class="space-y-1">
+                  <div class="h-3 bg-dark-600 rounded w-full"></div>
+                  <div class="h-3 bg-dark-600 rounded w-3/4"></div>
+                  <div class="h-3 bg-dark-600 rounded w-1/2"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons Skeleton -->
+            <div class="flex gap-2 mt-auto">
+              <div class="flex-1 h-8 bg-dark-600 rounded-lg"></div>
+              <div class="flex-1 h-8 bg-dark-600 rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="filteredTemplates.length === 0" class="mt-4 text-center py-12">
         <div class="w-16 h-16 bg-dark-700 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg class="w-8 h-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -94,6 +133,7 @@
         </router-link>
       </div>
 
+      <!-- Templates Grid -->
       <div v-else class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div 
           v-for="template in filteredTemplates" 
@@ -183,6 +223,9 @@ const filteredTemplates = computed(() => {
 const activeSessions = computed(() => {
   return workoutData.sessions.value.filter(session => !session.isCompleted)
 })
+
+// Loading state
+const isLoading = computed(() => workoutData.isLoading.value)
 
 // Methods
 const formatNumber = (num: number): string => {
