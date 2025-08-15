@@ -308,29 +308,6 @@ const handleRegister = async () => {
   }
 
   if (data.user) {
-    // Create user preferences in our user_preferences table
-    const { error: profileError } = await supabase
-      .from('user_preferences')
-      .insert({
-        id: data.user.id,
-        supabase_id: data.user.id,
-        subscription_type: 'free',
-        subscription_status: 'active'
-      })
-      .select()
-      .single()
-
-    if (profileError) {
-      // Check if it's a duplicate key error (user already exists)
-      if (profileError.code === '23505' || profileError.message?.includes('duplicate key')) {
-    
-      } else {
-        console.error('Error creating user preferences:', profileError)
-        // Show error message to user
-        errorMessage.value = 'Registrering fullført, men det oppstod en feil med brukerinnstillingene. Prøv å logge inn.'
-        return
-      }
-    }
 
     // Show success message and switch to login mode
     showSuccess('Registrering vellykket! Sjekk din e-post for bekreftelse.')

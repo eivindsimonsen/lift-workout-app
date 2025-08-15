@@ -46,11 +46,10 @@ En moderne treningslogg bygget med Vue 3 (Composition API) og TypeScript. Appen 
 
 Tabeller og RLS settes opp via `supabase-setup/`:
 
-- `user_preferences`: koblet til `auth.users`, inneholder abonnementsstatus og brukerpreferanser.
 - `workout_templates`: brukerens øktmaler. Felt `exercises` lagres som JSONB.
 - `workout_sessions`: fullførte/aktive økter. JSONB for `exercises`, `total_volume`, `duration`, `is_completed` m.m.
 
-**Viktig:** Profilinformasjon (navn, e-post, telefon) lagres i Supabase Auth (`auth.users` og `user_metadata`), ikke i `user_preferences`.
+**Viktig:** Profilinformasjon (navn, e-post, telefon) lagres i Supabase Auth (`auth.users` og `user_metadata`). Ingen ekstra brukertabeller er nødvendige.
 
 RLS: Alle tabeller er sikret slik at brukeren kun ser/opererer på egne rader (`auth.uid() = user_id` / `id`). Indekser finnes på sentrale felt for ytelse (f.eks. `user_id`, `date`).
 
@@ -132,7 +131,6 @@ Les `supabase-setup/README.md` for trinnvis guide. Kortversjon:
 
 1. Opprett Supabase‑prosjekt (hvis du ikke har gjort det ennå)
 2. Kjør SQL i denne rekkefølgen i Supabase SQL Editor:
-   - `01_user_preferences.sql`
    - `02_workout_templates.sql`
    - `03_workout_sessions.sql`
 

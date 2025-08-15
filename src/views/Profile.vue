@@ -275,48 +275,12 @@ const currentSubscription = computed(() => {
 const initializeProfileData = async () => {
   const user = workoutData.currentUser.value
   if (user) {
-          // Load user data from user_preferences table in Supabase (subscription info only)
-      try {
-        const { data: userData, error } = await supabase
-          .from('user_preferences')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-        
-        if (!error && userData) {
-          // Update form fields with data from user_preferences table (subscription only)
-          // Profile data (name, email, phone) comes from Supabase Auth
-          profileName.value = user.user_metadata?.name || ''
-          profileEmail.value = user.email || '' // Always use auth email (verification required for changes)
-          phoneNumber.value = user.user_metadata?.phone || ''
-          subscriptionType.value = userData.subscription_type || 'free'
-          subscriptionStatus.value = userData.subscription_status || 'active'
-        } else {
-          // No database record found, use auth data and create preferences record
-          profileName.value = user.user_metadata?.name || ''
-          profileEmail.value = user.email || '' // Always use auth email (verification required for changes)
-          phoneNumber.value = user.user_metadata?.phone || ''
-          subscriptionType.value = 'free'
-          subscriptionStatus.value = 'active'
-          
-          // The ensureUserProfile function in useSupabaseData will create the record
-          // when loadData() is called, so we don't need to do it here
-          // But we can trigger it manually to ensure consistency
-          try {
-            await workoutData.loadData()
-          } catch (loadError) {
-            // Handle load error silently
-          }
-        }
-      } catch (error) {
-        console.error('Error loading user preferences from database:', error)
-        // Fallback to auth user data
-        profileName.value = user.user_metadata?.name || ''
-        profileEmail.value = user.email || '' // Always use auth email
-        phoneNumber.value = user.user_metadata?.phone || ''
-        subscriptionType.value = 'free'
-        subscriptionStatus.value = 'active'
-      }
+    // Profile data (name, email, phone) comes from Supabase Auth
+    profileName.value = user.user_metadata?.name || ''
+    profileEmail.value = user.email || '' // Always use auth email (verification required for changes)
+    phoneNumber.value = user.user_metadata?.phone || ''
+    subscriptionType.value = 'free'
+    subscriptionStatus.value = 'active'
   }
 }
 
@@ -345,22 +309,7 @@ const updateBasicProfile = async () => {
       return
     }
     
-    // Update user_preferences table in Supabase (subscription info only)
-    const { error: profileError } = await supabase
-      .from('user_preferences')
-      .upsert({
-        id: user.id,
-        supabase_id: user.id,
-        subscription_type: subscriptionType.value,
-        subscription_status: subscriptionStatus.value,
-        updated_at: new Date().toISOString()
-      })
 
-    if (profileError) {
-      console.error('Error updating user preferences in database:', profileError)
-      handleAuthError({ message: 'Kunne ikke oppdatere brukerinnstillinger i database' })
-      return
-    }
 
     // Update Supabase Auth user metadata and email if changed
     if (hasNameChange || hasPhoneChange) {
@@ -411,8 +360,6 @@ const updateBasicProfile = async () => {
       showSuccess('Profil oppdatert! Sjekk din nye e-postadresse for verifiseringslenke. E-postadressen vil bli oppdatert etter verifisering.')
       
       // Note: After email verification, the user should log out and log back in
-      // or we should trigger a sync of the user_preferences table with the new email
-      // For now, we'll show a message about this
     } else {
       showSuccess('Profil oppdatert!')
     }

@@ -5,15 +5,17 @@ Denne filen dokumenterer hvordan data håndteres i Next Rep Workout App, inklude
 ## 📊 **Data Kilder**
 
 ### **Lokale JSON-filer (Statisk Data)**
+
 - `exercises.json` - Alle tilgjengelige øvelser
 - `workout-types.json` - Treningsøvelse-typer (push, pull, legs)
 
 ### **Supabase Tabeller (Brukerdata)**
-- `user_preferences` - Brukerpreferanser og abonnement
+
 - `workout_templates` - Treningsøvelse-maler
 - `workout_sessions` - Treningsøkter
 
 ### **Supabase Auth (Brukerprofildata)**
+
 - `auth.users` - Standard brukerautentisering
 - `auth.users.user_metadata` - Navn, telefon og andre profildata
 
@@ -24,6 +26,7 @@ Denne filen dokumenterer hvordan data håndteres i Next Rep Workout App, inklude
 **Filplassering:** `src/data/exercises.json`
 
 **JSON Struktur:**
+
 ```json
 {
   "id": "bench-press",
@@ -35,19 +38,22 @@ Denne filen dokumenterer hvordan data håndteres i Next Rep Workout App, inklude
 ```
 
 **Kategorier (category):**
+
 - `"Bryst"` - Brystmuskulatur
-- `"Rygg"` - Ryggmuskulatur  
+- `"Rygg"` - Ryggmuskulatur
 - `"Ben"` - Benmuskulatur
 - `"Skuldre"` - Skuldermuskulatur
 - `"Armer"` - Armmuskulatur
 - `"Kjerne"` - Kjerne/core
 
 **Workout Types:**
+
 - `"push"` - Push-øvelser (bryst, skuldre, triceps)
 - `"pull"` - Pull-øvelser (rygg, biceps)
 - `"legs"` - Ben-øvelser (quadriceps, hamstrings, glutes)
 
 **Muscle Groups:**
+
 - `"Bryst"` - Pectoralis major/minor
 - `"Rygg"` - Latissimus dorsi, trapezius
 - `"Ben"` - Quadriceps, hamstrings, glutes
@@ -62,6 +68,7 @@ Denne filen dokumenterer hvordan data håndteres i Next Rep Workout App, inklude
 **Filplassering:** `src/data/workout-types.json`
 
 **JSON Struktur:**
+
 ```json
 {
   "id": "push",
@@ -72,6 +79,7 @@ Denne filen dokumenterer hvordan data håndteres i Next Rep Workout App, inklude
 ```
 
 **Eksempel Data:**
+
 ```json
 [
   {
@@ -82,7 +90,7 @@ Denne filen dokumenterer hvordan data håndteres i Next Rep Workout App, inklude
   },
   {
     "id": "pull",
-    "name": "Pull", 
+    "name": "Pull",
     "description": "Øvelser som trener rygg og biceps",
     "color": "#3b82f6"
   },
@@ -99,35 +107,7 @@ Denne filen dokumenterer hvordan data håndteres i Next Rep Workout App, inklude
 
 ## 👥 **Brukere (Supabase)**
 
-**Tabell:** `user_preferences`
-
-**SQL Schema:**
-```sql
-CREATE TABLE user_preferences (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  supabase_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  subscription_type TEXT DEFAULT 'free',
-  subscription_status TEXT DEFAULT 'active',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_login TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-**JSON Struktur:**
-```json
-{
-  "id": "uuid-string",
-  "supabase_id": "auth-user-uuid",
-  "subscription_type": "free",
-  "subscription_status": "active",
-  "created_at": "2024-01-01T00:00:00Z",
-  "updated_at": "2024-01-01T00:00:00Z",
-  "last_login": "2024-01-01T00:00:00Z"
-}
-```
-
-**Viktig:** Profilinformasjon (navn, e-post, telefon) lagres i Supabase Auth (`auth.users` og `user_metadata`), ikke i `user_preferences`.
+**Viktig:** Profilinformasjon (navn, e-post, telefon) lagres i Supabase Auth (`auth.users` og `user_metadata`). Ingen ekstra brukertabeller er nødvendige.
 
 ---
 
@@ -136,10 +116,11 @@ CREATE TABLE user_preferences (
 **Tabell:** `workout_templates`
 
 **SQL Schema:**
+
 ```sql
 CREATE TABLE workout_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES user_preferences(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   workout_type TEXT NOT NULL,
   exercises JSONB NOT NULL,
@@ -150,10 +131,11 @@ CREATE TABLE workout_templates (
 ```
 
 **JSON Struktur:**
+
 ```json
 {
   "id": "uuid-string",
-  "user_id": "user-preferences-uuid",
+  "user_id": "auth-user-uuid",
   "name": "Push Day",
   "workout_type": "push",
   "exercises": [
@@ -172,13 +154,14 @@ CREATE TABLE workout_templates (
 ```
 
 **Exercise Template Struktur:**
+
 ```json
 {
-  "exercise_id": "string",     // Referanse til exercise.id fra exercises.json
-  "sets": "number",            // Antall sett
-  "reps": "number",            // Antall repetisjoner
-  "weight": "number",          // Vekt i kg
-  "rest_time": "number"        // Hviletid i sekunder
+  "exercise_id": "string", // Referanse til exercise.id fra exercises.json
+  "sets": "number", // Antall sett
+  "reps": "number", // Antall repetisjoner
+  "weight": "number", // Vekt i kg
+  "rest_time": "number" // Hviletid i sekunder
 }
 ```
 
@@ -189,10 +172,11 @@ CREATE TABLE workout_templates (
 **Tabell:** `workout_sessions`
 
 **SQL Schema:**
+
 ```sql
 CREATE TABLE workout_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES user_preferences(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   template_id UUID REFERENCES workout_templates(id) ON DELETE SET NULL,
   template_name TEXT NOT NULL,
   workout_type TEXT NOT NULL,
@@ -207,10 +191,11 @@ CREATE TABLE workout_sessions (
 ```
 
 **JSON Struktur:**
+
 ```json
 {
   "id": "uuid-string",
-  "user_id": "user-preferences-uuid",
+  "user_id": "auth-user-uuid",
   "template_id": "template-uuid",
   "template_name": "Push Day",
   "workout_type": "push",
@@ -238,13 +223,14 @@ CREATE TABLE workout_sessions (
 ```
 
 **Set Struktur:**
+
 ```json
 {
-  "set_number": "number",      // Sett nummer (1, 2, 3...)
-  "reps": "number",            // Antall repetisjoner
-  "weight": "number",          // Vekt i kg
-  "completed": "boolean",      // Om settet er fullført
-  "notes": "string"            // Notater (valgfritt)
+  "set_number": "number", // Sett nummer (1, 2, 3...)
+  "reps": "number", // Antall repetisjoner
+  "weight": "number", // Vekt i kg
+  "completed": "boolean", // Om settet er fullført
+  "notes": "string" // Notater (valgfritt)
 }
 ```
 
@@ -253,6 +239,7 @@ CREATE TABLE workout_sessions (
 ## 🔄 **CRUD Operasjoner**
 
 ### **Create (Opprett)**
+
 ```typescript
 // Opprett ny template
 const newTemplate = {
@@ -272,48 +259,33 @@ const newSession = {
 ```
 
 ### **Read (Les)**
+
 ```typescript
 // Hent templates for en bruker
-const templates = await supabase
-  .from('workout_templates')
-  .select('*')
-  .eq('user_id', userId)
+const templates = await supabase.from("workout_templates").select("*").eq("user_id", userId);
 
 // Hent økter for en bruker
-const sessions = await supabase
-  .from('workout_sessions')
-  .select('*')
-  .eq('user_id', userId)
+const sessions = await supabase.from("workout_sessions").select("*").eq("user_id", userId);
 ```
 
 ### **Update (Oppdater)**
+
 ```typescript
 // Oppdater template
-await supabase
-  .from('workout_templates')
-  .update({ exercises: newExercises })
-  .eq('id', templateId)
+await supabase.from("workout_templates").update({ exercises: newExercises }).eq("id", templateId);
 
 // Oppdater økt
-await supabase
-  .from('workout_sessions')
-  .update({ exercises: updatedExercises })
-  .eq('id', sessionId)
+await supabase.from("workout_sessions").update({ exercises: updatedExercises }).eq("id", sessionId);
 ```
 
 ### **Delete (Slett)**
+
 ```typescript
 // Slett template
-await supabase
-  .from('workout_templates')
-  .delete()
-  .eq('id', templateId)
+await supabase.from("workout_templates").delete().eq("id", templateId);
 
 // Slett økt
-await supabase
-  .from('workout_sessions')
-  .delete()
-  .eq('id', sessionId)
+await supabase.from("workout_sessions").delete().eq("id", sessionId);
 ```
 
 ---
@@ -321,12 +293,14 @@ await supabase
 ## 📝 **Viktige Notater**
 
 ### **Dataflyt**
+
 1. **Øvelser** lastes fra `exercises.json` (statisk data)
 2. **Treningsøvelse-typer** lastes fra `workout-types.json` (statisk data)
 3. **Brukerdata** (templates, økter) lagres i Supabase
 4. **Profildata** (navn, e-post, telefon) lagres i Supabase Auth
 
 ### **Sikkerhet**
+
 - Alle UUID-er genereres automatisk av Supabase
 - Timestamps oppdateres automatisk
 - Foreign key constraints sikrer dataintegritet
@@ -334,16 +308,18 @@ await supabase
 - RLS (Row Level Security) sikrer at brukere kun kan aksessere sin egen data
 
 ### **JSONB-felter**
+
 - `exercises` i templates og økter bruker JSONB for fleksibilitet
 - Dette tillater komplekse datastrukturer uten å endre databaseskjemaet
 
 ### **Ingen Exercises-tabell**
+
 - **Viktig:** Det finnes ingen `exercises` tabell i Supabase
 - Alle øvelser kommer fra `exercises.json`
 - Dette gjør appen enklere å vedlikeholde og oppdatere
 
 ### **Brukerpreferanser vs Profildata**
-- **`user_preferences`**: Lagrer app-spesifikke preferanser (abonnement, innstillinger)
+
 - **`auth.users`**: Standard Supabase Auth for innlogging og e-post
 - **`auth.users.user_metadata`**: Lagrer navn, telefon og andre profildata
 - Dette gir bedre separasjon av ansvar og enklere datamodell

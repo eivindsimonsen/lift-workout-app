@@ -5,35 +5,6 @@ import { ref } from "vue";
 export interface Database {
   public: {
     Tables: {
-      user_preferences: {
-        Row: {
-          id: string;
-          supabase_id: string | null;
-          subscription_type: string;
-          subscription_status: string;
-          created_at: string;
-          updated_at: string;
-          last_login: string | null;
-        };
-        Insert: {
-          id?: string;
-          supabase_id?: string | null;
-          subscription_type?: string;
-          subscription_status?: string;
-          created_at?: string;
-          updated_at?: string;
-          last_login?: string | null;
-        };
-        Update: {
-          id?: string;
-          supabase_id?: string | null;
-          subscription_type?: string;
-          subscription_status?: string;
-          created_at?: string;
-          updated_at?: string;
-          last_login?: string | null;
-        };
-      };
       workout_templates: {
         Row: {
           id: string;

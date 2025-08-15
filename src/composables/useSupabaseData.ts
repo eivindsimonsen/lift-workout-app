@@ -353,9 +353,6 @@ const createSupabaseData = () => {
     if (!currentUser.value || !isOnline.value) return;
 
     try {
-      // Ensure user profile exists before loading data
-      await ensureUserProfile();
-
       // Load templates for the current user
       const { data: templatesData, error: templatesError } = await supabase.from("workout_templates").select("*").eq("user_id", currentUser.value.id).order("created_at", { ascending: true });
 
@@ -464,60 +461,6 @@ const createSupabaseData = () => {
       console.log("✅ Data synced and cached successfully");
     } catch (error) {
       console.error("❌ Error syncing with Supabase:", error);
-      throw error;
-    }
-  };
-
-  // Ensure user preferences exist in user_preferences table
-  const ensureUserProfile = async () => {
-    if (!currentUser.value) {
-      return;
-    }
-
-    try {
-      // Check if user preferences exist
-      const { data: existingUser, error: selectError } = await supabase.from("user_preferences").select("id").eq("id", currentUser.value.id).single();
-
-      if (selectError) {
-        // Check if the error is due to no rows found (PGRST116) or other issues
-        if (selectError.code === "PGRST116" || selectError.message?.includes("No rows found")) {
-          // User preferences don't exist, create them
-
-          const { error: insertError } = await supabase
-            .from("user_preferences")
-            .insert({
-              id: currentUser.value.id,
-              supabase_id: currentUser.value.id,
-              subscription_type: "free",
-              subscription_status: "active",
-            })
-            .select()
-            .single();
-
-          if (insertError) {
-            // Check if it's a duplicate key error (user already exists)
-            if (insertError.code === "23505" || insertError.message?.includes("duplicate key")) {
-              // User preferences already exist, skipping insert
-            } else {
-              // Check if this is a table not found error
-              if (insertError.message?.includes('relation "user_preferences" does not exist')) {
-                throw new Error("user_preferences table does not exist. Please run the database migration.");
-              }
-
-              throw insertError;
-            }
-          }
-        } else {
-          // Check if this is a table not found error
-          if (selectError.message?.includes('relation "user_preferences" does not exist')) {
-            throw new Error("user_preferences table does not exist. Please run the database migration.");
-          }
-
-          throw selectError;
-        }
-      }
-    } catch (error) {
-      console.error("Error ensuring user preferences:", error);
       throw error;
     }
   };
@@ -1059,9 +1002,6 @@ const createSupabaseData = () => {
     logSupabaseAccess("Add template", template.name);
 
     try {
-      // Ensure user profile exists before creating template
-      await ensureUserProfile();
-
       const { data, error } = await supabase
         .from("workout_templates")
         .insert({
@@ -1144,9 +1084,6 @@ const createSupabaseData = () => {
     }
 
     try {
-      // Ensure user profile exists before creating session
-      await ensureUserProfile();
-
       // First, mark all existing active sessions as completed
       const { error: updateError } = await supabase.from("workout_sessions").update({ is_completed: true }).eq("user_id", currentUser.value.id).eq("is_completed", false);
 
@@ -1336,9 +1273,6 @@ const createSupabaseData = () => {
     logSupabaseAccess("Mark session active", sessionId);
 
     try {
-      // Ensure user profile exists before updating sessions
-      await ensureUserProfile();
-
       // First, mark all other sessions as completed
       const { error: updateError } = await supabase.from("workout_sessions").update({ is_completed: true }).eq("user_id", currentUser.value.id).neq("id", sessionId).eq("is_completed", false);
 
