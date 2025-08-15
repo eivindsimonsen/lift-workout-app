@@ -774,9 +774,9 @@ const powerExerciseRecords = computed(() => {
       if (exerciseData) {
         records.push({
           exercise: exerciseData.name,
-          weight: bestSet.weight,
-          reps: bestSet.reps,
-          date: formatDate(bestSet.date)
+          weight: (bestSet as { weight: number; reps: number; date: Date }).weight,
+          reps: (bestSet as { weight: number; reps: number; date: Date }).reps,
+          date: formatDate((bestSet as { weight: number; reps: number; date: Date }).date)
         })
       }
     }
