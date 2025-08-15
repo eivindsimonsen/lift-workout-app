@@ -3,7 +3,6 @@
     <!-- Breadcrumbs - moved above header -->
     <Breadcrumbs 
       :breadcrumbs="[
-        { name: 'Hjem', path: '/' },
         { name: 'Historikk', path: '/history' },
         { name: 'Økt Detaljer' }
       ]"
@@ -428,12 +427,19 @@ const exerciseInsights = computed(() => {
   return insights
 })
 
-const deleteSession = () => {
+const deleteSession = async () => {
   if (!session.value) return
   
   if (confirm('Er du sikker på at du vil slette denne økten?')) {
-    workoutData.deleteWorkoutSession(session.value.id)
-    router.push('/history')
+    try {
+      await workoutData.deleteWorkoutSession(session.value.id)
+      // Navigate back to history after successful deletion
+      router.push('/history')
+    } catch (error) {
+      console.error('Failed to delete session:', error)
+      // Show error message to user (you could add a toast notification here)
+      alert('Kunne ikke slette økten. Prøv igjen.')
+    }
   }
 }
 

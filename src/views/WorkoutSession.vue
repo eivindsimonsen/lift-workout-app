@@ -13,7 +13,6 @@
       <!-- Breadcrumbs - moved above header -->
       <Breadcrumbs 
         :breadcrumbs="[
-          { name: 'Hjem', path: '/' },
           { name: 'Økt' }
         ]"
       />

@@ -664,31 +664,39 @@ const createSupabaseData = () => {
               clearTimeout(visibilityChangeTimeout);
             }
 
-            // Always sync when page becomes visible to ensure data consistency
+            // Only sync when page becomes visible if cache is stale or there are pending changes
             if (currentUser.value && isOnline.value && !isLoading.value) {
-              console.log("📱 Page visible, syncing data for consistency...");
-              // Use a shorter delay for better responsiveness
-              visibilityChangeTimeout = setTimeout(async () => {
-                if (document.visibilityState === "visible" && currentUser.value && !isLoading.value) {
-                  console.log("📱 Page visible, syncing data...");
+              // Check if cache is stale (older than 5 minutes) or if there are pending changes
+              const cacheAge = lastSyncTime.value ? Date.now() - lastSyncTime.value : Infinity;
+              const isCacheStale = cacheAge > 5 * 60 * 1000; // 5 minutes
 
-                  // First sync any pending changes to preserve local data
-                  if (indexedDB.isSupported.value) {
-                    try {
-                      const pendingChanges = await indexedDB.getPendingChanges();
-                      if (pendingChanges.length > 0) {
-                        console.log(`📱 Found ${pendingChanges.length} pending changes, syncing them first...`);
-                        await syncPendingChanges();
+              if (isCacheStale) {
+                console.log("📱 Page visible, cache is stale, syncing data for consistency...");
+                // Use a shorter delay for better responsiveness
+                visibilityChangeTimeout = setTimeout(async () => {
+                  if (document.visibilityState === "visible" && currentUser.value && !isLoading.value) {
+                    console.log("📱 Page visible, syncing stale data...");
+
+                    // First sync any pending changes to preserve local data
+                    if (indexedDB.isSupported.value) {
+                      try {
+                        const pendingChanges = await indexedDB.getPendingChanges();
+                        if (pendingChanges.length > 0) {
+                          console.log(`📱 Found ${pendingChanges.length} pending changes, syncing them first...`);
+                          await syncPendingChanges();
+                        }
+                      } catch (error) {
+                        console.warn("⚠️ Failed to sync pending changes on visibility change:", error);
                       }
-                    } catch (error) {
-                      console.warn("⚠️ Failed to sync pending changes on visibility change:", error);
                     }
-                  }
 
-                  // Then load data (will use cache if pending changes exist)
-                  loadData(0, true); // Force refresh
-                }
-              }, 200); // Reduced delay for better responsiveness
+                    // Then load data (will use cache if pending changes exist)
+                    loadData(0, true); // Force refresh
+                  }
+                }, 200); // Reduced delay for better responsiveness
+              } else {
+                console.log("📱 Page visible, cache is fresh, no sync needed");
+              }
             } else {
               console.log("📱 Page visible, no sync needed (offline, no user, or already loading)");
             }
@@ -707,30 +715,38 @@ const createSupabaseData = () => {
       window.addEventListener("online", updateNetworkStatus);
       window.addEventListener("offline", updateNetworkStatus);
 
-      // Add focus handler to sync data when app gains focus
+      // Add focus handler to sync data when app gains focus - only if cache is stale
       const handleFocus = () => {
         if (currentUser.value && isOnline.value && !isLoading.value) {
-          console.log("📱 App gained focus, syncing data for consistency...");
-          // Use a small delay to prevent rapid focus events
-          setTimeout(async () => {
-            if (currentUser.value && isOnline.value && !isLoading.value) {
-              // First sync any pending changes to preserve local data
-              if (indexedDB.isSupported.value) {
-                try {
-                  const pendingChanges = await indexedDB.getPendingChanges();
-                  if (pendingChanges.length > 0) {
-                    console.log(`📱 Found ${pendingChanges.length} pending changes, syncing them first...`);
-                    await syncPendingChanges();
-                  }
-                } catch (error) {
-                  console.warn("⚠️ Failed to sync pending changes on focus:", error);
-                }
-              }
+          // Check if cache is stale (older than 5 minutes) or if there are pending changes
+          const cacheAge = lastSyncTime.value ? Date.now() - lastSyncTime.value : Infinity;
+          const isCacheStale = cacheAge > 5 * 60 * 1000; // 5 minutes
 
-              // Then load data (will use cache if pending changes exist)
-              loadData(0, true); // Force refresh
-            }
-          }, 100);
+          if (isCacheStale) {
+            console.log("📱 App gained focus, cache is stale, syncing data for consistency...");
+            // Use a small delay to prevent rapid focus events
+            setTimeout(async () => {
+              if (currentUser.value && isOnline.value && !isLoading.value) {
+                // First sync any pending changes to preserve local data
+                if (indexedDB.isSupported.value) {
+                  try {
+                    const pendingChanges = await indexedDB.getPendingChanges();
+                    if (pendingChanges.length > 0) {
+                      console.log(`📱 Found ${pendingChanges.length} pending changes, syncing them first...`);
+                      await syncPendingChanges();
+                    }
+                  } catch (error) {
+                    console.warn("⚠️ Failed to sync pending changes on focus:", error);
+                  }
+                }
+
+                // Then load data (will use cache if pending changes exist)
+                loadData(0, true); // Force refresh
+              }
+            }, 100);
+          } else {
+            console.log("📱 App gained focus, cache is fresh, no sync needed");
+          }
         }
       };
       window.addEventListener("focus", handleFocus);
@@ -1516,14 +1532,50 @@ const createSupabaseData = () => {
   const deleteWorkoutSession = async (sessionId: string) => {
     logSupabaseAccess("Delete session", sessionId);
 
-    const { error } = await supabase.from("workout_sessions").delete().eq("id", sessionId);
+    try {
+      // Delete from Supabase first
+      const { error } = await supabase.from("workout_sessions").delete().eq("id", sessionId);
 
-    if (error) {
-      console.error("Error deleting session:", error);
-      return;
+      if (error) {
+        console.error("Error deleting session:", error);
+        throw error;
+      }
+
+      // Update local state immediately for better UX
+      sessions.value = sessions.value.filter((s) => s.id !== sessionId);
+
+      // Immediately update the local cache to ensure consistency
+      if (indexedDB.isSupported.value && currentUser.value) {
+        try {
+          console.log("📱 Immediately updating cache after session deletion...");
+          const serializableUser = createSerializableUser(currentUser.value);
+
+          if (serializableUser) {
+            // Extract raw data from Vue refs to avoid reactive object issues
+            const rawTemplates = Array.isArray(templates.value) ? [...templates.value] : [];
+            const rawSessions = Array.isArray(sessions.value) ? [...sessions.value] : [];
+
+            const userDataToCache = {
+              templates: ensureSerializable(rawTemplates),
+              sessions: ensureSerializable(rawSessions),
+              lastSync: Date.now(),
+              user: serializableUser,
+            };
+
+            await indexedDB.storeUserData(currentUser.value.id, userDataToCache);
+            console.log("✅ Cache updated immediately after session deletion");
+          }
+        } catch (cacheError) {
+          console.warn("⚠️ Failed to update cache immediately after session deletion:", cacheError);
+          // Don't fail the operation if immediate cache update fails
+        }
+      }
+
+      console.log("✅ Session deleted successfully");
+    } catch (error) {
+      console.error("❌ Error deleting session:", error);
+      throw error;
     }
-
-    sessions.value = sessions.value.filter((s) => s.id !== sessionId);
   };
 
   const abandonWorkoutSession = async (sessionId: string) => {

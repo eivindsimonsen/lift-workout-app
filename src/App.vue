@@ -335,15 +335,6 @@ onMounted(async () => {
     console.error("Error initializing auth:", error)
     // Don't fail the entire app initialization
   }
-  
-  const handleFocus = () => {
-    if (workoutData.isAuthenticated.value && workoutData.currentUser.value) {
-      workoutData.loadData()
-    }
-  }
-  
-  window.addEventListener('focus', handleFocus)
-  ;(window as any).__appFocusHandler = handleFocus
 
   // Auto-save is handled automatically, no manual save needed
   const handleKeydown = (event: KeyboardEvent) => {
@@ -387,15 +378,6 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  if (typeof window !== 'undefined') {
-    const focusHandler = (window as any).__appFocusHandler
-    
-    if (focusHandler) {
-      window.removeEventListener('focus', focusHandler)
-      delete (window as any).__appFocusHandler
-    }
-  }
-  
   workoutData.cleanup()
 })
 

@@ -3,7 +3,7 @@
     <!-- Breadcrumbs - moved above header -->
     <Breadcrumbs 
       :breadcrumbs="[
-        { name: 'Hjem', path: '/' },
+        { name: 'Økter', path: '/' },
         { name: isEditing ? 'Rediger Økt' : 'Opprett Ny Økt' }
       ]"
     />

@@ -3,7 +3,6 @@
     <!-- Breadcrumbs - moved above header -->
     <Breadcrumbs 
       :breadcrumbs="[
-        { name: 'Hjem', path: '/' },
         { name: 'Øvelser', path: '/exercises' },
         { name: exercise?.name || 'Øvelse' }
       ]"
