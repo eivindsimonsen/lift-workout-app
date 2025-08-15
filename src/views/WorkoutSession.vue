@@ -142,7 +142,7 @@
                 <div>
                   <label class="block text-xs text-dark-300 mb-1">Reps</label>
                   <input
-                    :value="set.reps"
+                    :value="set.reps === 0 ? '' : set.reps"
                     type="number"
                     inputmode="numeric"
                     min="0"
@@ -156,7 +156,7 @@
                 <div>
                   <label class="block text-xs text-dark-300 mb-1">Vekt (kg)</label>
                   <input
-                    :value="set.weight"
+                    :value="set.weight === 0 ? '' : set.weight"
                     type="number"
                     inputmode="decimal"
                     min="0"
@@ -456,7 +456,7 @@ const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number
   
   console.log('💪 Weight input:', { exerciseIndex, setIndex, value })
   
-  // Always store as number, never as string
+  // Store as number, but allow empty input to be treated as 0
   const weight = value === '' ? 0 : parseFloat(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
   
@@ -494,7 +494,7 @@ const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) 
   
   console.log('💪 Reps input:', { exerciseIndex, setIndex, value })
   
-  // Always store as number, never as string
+  // Store as number, but allow empty input to be treated as 0
   const reps = value === '' ? 0 : parseInt(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
   
@@ -631,10 +631,6 @@ const addSet = (exerciseIndex: number) => {
     isCompleted: false
   }
   
-  // Ensure weight and reps are numbers
-  newSet.weight = Number(newSet.weight) || 0
-  newSet.reps = Number(newSet.reps) || 0
-  
   exercise.sets.push(newSet)
   
   // Mark as having unsaved changes and save immediately
@@ -700,10 +696,6 @@ const addExerciseToSession = () => {
   
   console.log('🔍 newExercise created:', newExercise)
   
-  // Ensure weight and reps are numbers
-  newExercise.sets[0].weight = Number(newExercise.sets[0].weight) || 0
-  newExercise.sets[0].reps = Number(newExercise.sets[0].reps) || 0
-
   // Add the exercise to the session
   session.value.exercises.push(newExercise)
   console.log('✅ Exercise added to session. New exercises array:', session.value.exercises)
