@@ -210,6 +210,8 @@
              {{ subscriptionStatus === 'active' ? 'Aktiv' : 'Inaktiv' }}
            </span>
          </div>
+       </div>
+     </div>
 
      <!-- Sign Out Button - Outside the card, centered at bottom -->
     <div class="flex justify-center pt-8">

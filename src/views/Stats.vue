@@ -88,7 +88,7 @@
       </div>
     </div>
 
-    <!-- Loading State for Progress Over Time -->
+    <!-- Progress Over Time -->
     <div v-if="isLoading" class="card animate-pulse">
       <div class="h-6 bg-dark-600 rounded w-48 mb-6"></div>
       
@@ -175,7 +175,7 @@
       </div>
     </div>
 
-    <!-- Loading State for Training Habits -->
+    <!-- Training Habits -->
     <div v-if="isLoading" class="card animate-pulse">
       <div class="h-6 bg-dark-600 rounded w-32 mb-6"></div>
       
@@ -249,7 +249,7 @@
       </div>
     </div>
 
-    <!-- Loading State for Distribution and Balance -->
+    <!-- Distribution and Balance -->
     <div v-if="isLoading" class="card animate-pulse">
       <div class="h-6 bg-dark-600 rounded w-40 mb-6"></div>
       
@@ -310,7 +310,7 @@
     <div class="card">
       <h3 class="text-lg font-semibold text-white mb-6">Prestasjoner og Motivasjon</h3>
       
-      <!-- Loading State for Achievements Grid -->
+      <!-- Achievements Grid -->
       <div v-if="isLoading" class="mb-6">
         <div class="h-5 bg-dark-600 rounded w-32 mb-4"></div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 animate-pulse">
@@ -339,7 +339,7 @@
         </div>
       </div>
 
-      <!-- Loading State for Volume Progress -->
+      <!-- Volume Progress -->
       <div v-if="isLoading" class="animate-pulse">
         <div class="h-5 bg-dark-600 rounded w-16 mb-1"></div>
         <div class="h-3 bg-dark-600 rounded w-64 mb-4"></div>
@@ -783,7 +783,11 @@ const powerExerciseRecords = computed(() => {
   })
   
   // Sort by weight (highest first), then by reps, then by date
-  return records.sort((a, b) => b.weight - a.weight || b.reps - a.reps || new Date(b.date).getTime() - new Date(a.date).getTime())
+  return records.sort((a, b) => {
+    if (a.weight !== b.weight) return b.weight - a.weight
+    if (a.reps !== b.reps) return b.reps - a.reps
+    return new Date(b.date).getTime() - new Date(a.date).getTime()
+  })
 })
 
 // Helper function to get better exercise display names
