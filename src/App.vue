@@ -221,6 +221,9 @@
    
   <!-- Global Error Toast -->
   <ErrorToast />
+  
+  <!-- Update Notification -->
+  <UpdateNotification />
 </template>
 
 <script setup lang="ts">
@@ -229,6 +232,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
+import UpdateNotification from '@/components/UpdateNotification.vue'
 
 import OfflineIndicator from '@/components/OfflineIndicator.vue'
 import MobileBrowserBanner from '@/components/MobileBrowserBanner.vue'

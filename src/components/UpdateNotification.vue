@@ -44,30 +44,30 @@ const showUpdatePrompt = ref(false)
 const registration = ref<ServiceWorkerRegistration | null>(null)
 
 const checkForUpdates = () => {
-  console.log('Checking for updates...')
+  console.log('🔍 UpdateNotification: Checking for updates...')
   
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistration().then((reg) => {
       if (reg) {
-        console.log('Service worker registration found:', reg)
+        console.log('🔍 UpdateNotification: Service worker registration found:', reg)
         registration.value = reg
         
         // Check if there's a waiting service worker (update available)
         if (reg.waiting) {
-          console.log('Update available - waiting service worker found')
+          console.log('🔍 UpdateNotification: Update available - waiting service worker found')
           showUpdatePrompt.value = true
         }
         
         // Listen for new service worker installation
         reg.addEventListener('updatefound', () => {
-          console.log('Update found - new service worker installing')
+          console.log('🔍 UpdateNotification: Update found - new service worker installing')
           const newWorker = reg.installing
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
-              console.log('Service worker state changed:', newWorker.state)
+              console.log('🔍 UpdateNotification: Service worker state changed:', newWorker.state)
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 // New service worker is installed and waiting
-                console.log('New service worker installed, waiting to activate')
+                console.log('🔍 UpdateNotification: New service worker installed, waiting to activate')
                 showUpdatePrompt.value = true
               }
             })
@@ -77,41 +77,26 @@ const checkForUpdates = () => {
         // Check for updates manually
         reg.update()
       } else {
-        console.log('No service worker registration found')
+        console.log('🔍 UpdateNotification: No service worker registration found')
       }
     }).catch((error) => {
-      console.error('Error getting service worker registration:', error)
+      console.error('🔍 UpdateNotification: Error getting service worker registration:', error)
     })
   } else {
-    console.log('Service workers not supported')
+    console.log('🔍 UpdateNotification: Service workers not supported')
   }
-  
-  // Listen for custom event from service worker registration
-  window.addEventListener('sw-update-available', () => {
-    console.log('Update available event received')
-    showUpdatePrompt.value = true
-  })
-  
-  // Listen for Vite PWA plugin events
-  window.addEventListener('vite-plugin-pwa:update-found', () => {
-    console.log('Vite PWA update found event received')
-    showUpdatePrompt.value = true
-  })
-  
-  window.addEventListener('vite-plugin-pwa:update-ready', () => {
-    console.log('Vite PWA update ready event received')
-    showUpdatePrompt.value = true
-  })
 }
 
 const refreshApp = () => {
-  console.log('Refreshing app...')
+  console.log('🔄 UpdateNotification: Refreshing app...')
   if (registration.value && registration.value.waiting) {
     // Send message to waiting service worker to activate
     registration.value.waiting.postMessage({ type: 'SKIP_WAITING' })
     
-    // Reload the page to activate the new service worker
-    window.location.reload()
+    // Wait a bit for the service worker to activate, then reload
+    setTimeout(() => {
+      window.location.reload()
+    }, 100)
   } else {
     // Fallback: just reload the page
     window.location.reload()
@@ -119,10 +104,9 @@ const refreshApp = () => {
 }
 
 const dismissPrompt = () => {
-  console.log('Dismissing update prompt')
+  console.log('❌ UpdateNotification: Dismissing update prompt')
   showUpdatePrompt.value = false
   // Don't dismiss permanently - allow it to show again on next update
-  // localStorage.setItem('update-prompt-dismissed', 'true')
 }
 
 const handleSkipWaiting = () => {
@@ -137,7 +121,32 @@ const handleSkipWaiting = () => {
 }
 
 onMounted(() => {
-  console.log('UpdateNotification component mounted')
+  console.log('🚀 UpdateNotification: Component mounted')
+  
+  // Listen for custom event from service worker registration
+  const handleSwUpdateAvailable = () => {
+    console.log('🔍 UpdateNotification: SW update available event received')
+    showUpdatePrompt.value = true
+  }
+  
+  // Listen for Vite PWA plugin events
+  const handleVitePwaUpdateFound = () => {
+    console.log('🔍 UpdateNotification: Vite PWA update found event received')
+    showUpdatePrompt.value = true
+  }
+  
+  const handleVitePwaUpdateReady = () => {
+    console.log('🔍 UpdateNotification: Vite PWA update ready event received')
+    showUpdatePrompt.value = true
+  }
+  
+  // Listen for custom event from service worker registration
+  window.addEventListener('sw-update-available', handleSwUpdateAvailable)
+  
+  // Listen for Vite PWA plugin events
+  window.addEventListener('vite-plugin-pwa:update-found', handleVitePwaUpdateFound)
+  
+  window.addEventListener('vite-plugin-pwa:update-ready', handleVitePwaUpdateReady)
   
   // Always check for updates, don't dismiss permanently
   checkForUpdates()
@@ -145,11 +154,11 @@ onMounted(() => {
   
   // Also check periodically for updates
   const updateCheckInterval = setInterval(() => {
-    console.log('Periodic update check...')
+    console.log('🔍 UpdateNotification: Periodic update check...')
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then((reg) => {
         if (reg && reg.waiting) {
-          console.log('Periodic check found waiting service worker')
+          console.log('🔍 UpdateNotification: Periodic check found waiting service worker')
           showUpdatePrompt.value = true
         }
         
@@ -161,12 +170,16 @@ onMounted(() => {
     }
   }, 30000) // Check every 30 seconds
   
+  // Cleanup function
   onUnmounted(() => {
     clearInterval(updateCheckInterval)
+    window.removeEventListener('sw-update-available', handleSwUpdateAvailable)
+    window.removeEventListener('vite-plugin-pwa:update-found', handleVitePwaUpdateFound)
+    window.removeEventListener('vite-plugin-pwa:update-ready', handleVitePwaUpdateReady)
   })
 })
 
 onUnmounted(() => {
-  console.log('UpdateNotification component unmounted')
+  console.log('🔌 UpdateNotification: Component unmounted')
 })
 </script>

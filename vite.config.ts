@@ -7,9 +7,11 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -72,6 +74,7 @@ export default defineConfig({
         enabled: true,
         type: "module",
       },
+      injectRegister: "auto",
     }),
   ],
   server: {
