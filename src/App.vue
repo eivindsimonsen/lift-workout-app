@@ -86,7 +86,7 @@
              <main 
                v-if="isAuthenticated" 
                :key="route.path"
-               :class="`container mx-auto px-4 py-8 ${isWorkoutSession ? 'pb-32 md:pb-32' : 'pb-32 md:pb-8'}`" 
+               class="container mx-auto px-4 py-8 pb-32 md:pb-8"
                style="padding-top: calc(0.25rem + env(safe-area-inset-top));"
                ref="mainContent"
              >
@@ -105,35 +105,16 @@
         
 
 
-        <!-- Desktop Workout Session Actions - only show if in workout session -->
-        <div v-if="isAuthenticated && isWorkoutSession" class="hidden md:block fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation">
-          <!-- Progress Bar as border-top -->
-          <div class="w-full h-1 bg-dark-600">
+        <!-- Mobile Bottom Navigation - only show if authenticated -->
+        <nav v-if="isAuthenticated" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation pb-6" :style="isPWA ? 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))' : ''">
+          <!-- Progress Bar as border-top - only show if in workout session -->
+          <div v-if="isWorkoutSession" class="w-full h-1 bg-dark-600">
             <div 
               class="bg-primary-500 h-1 transition-all duration-300"
               :style="{ width: workoutProgress.percentage + '%' }"
             ></div>
           </div>
           
-          <!-- Action Buttons -->
-          <div class="container mx-auto px-4 py-3.5">
-            <div class="flex gap-3 max-w-md mx-auto">
-              
-              <button 
-                @click="handleCompleteWorkout"
-                class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Fullfør
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mobile Bottom Navigation - only show if authenticated -->
-        <nav v-if="isAuthenticated && !isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation pb-6" :style="isPWA ? 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))' : ''">
           <div class="flex justify-around pb-5">
             <router-link 
               to="/" 
@@ -193,40 +174,7 @@
         </nav>
 
         <!-- Workout Session Navigation - only show if in workout session -->
-        <nav v-if="isAuthenticated && isWorkoutSession" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation">
-          <!-- Progress Bar as border-top -->
-          <div class="w-full h-1 bg-dark-600">
-            <div 
-              class="bg-primary-500 h-1 transition-all duration-300"
-              :style="{ width: workoutProgress.percentage + '%' }"
-            ></div>
-          </div>
-          
-          <!-- Action Buttons -->
-          <div class="flex gap-6 px-4 p-4">
-            <button 
-              @click="handleCompleteWorkout"
-              class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              Fullfør
-            </button>
-            <button 
-              style="display: none;"
-              class="flex-1 text-white py-3 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              :class="hasUnsavedChanges && !isSaving ? 'bg-dark-700 hover:bg-dark-600' : 'bg-dark-800 cursor-not-allowed'"
-              data-save-button
-            >
-              <svg v-if="!isSaving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
-              <div v-else class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <span>Auto-lagring</span>
-            </button>
-          </div>
-        </nav>
+        <!-- Removed: Complete button is now integrated into WorkoutSession.vue content -->
         </MobileBrowserBanner>
       </div>
     </div>
@@ -312,41 +260,43 @@ watch(() => workoutData.isOnline.value, (isOnline) => {
 })
 
 // Computed properties
-const isWorkoutSession = computed(() => {
-  return route.path.startsWith('/workout/') && route.params.id
-})
-
-const workoutProgress = computed(() => {
-  if (!isWorkoutSession.value || !route.params.id) {
-    return { completedSets: 0, totalSets: 0, percentage: 0 }
-  }
-  
-  const sessionId = route.params.id as string
-  const session = workoutData.getSessionById.value(sessionId)
-  
-  if (!session) {
-    return { completedSets: 0, totalSets: 0, percentage: 0 }
-  }
-  
-  const completedSets = session.exercises.reduce((total, exercise) => {
-    return total + exercise.sets.filter(set => set.isCompleted).length
-  }, 0)
-  
-  const totalSets = session.exercises.reduce((total, exercise) => {
-    return total + exercise.sets.length
-  }, 0)
-  
-  const percentage = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0
-  
-  return { completedSets, totalSets, percentage }
-})
-
 const isAuthenticated = computed(() => workoutData.isAuthenticated.value)
 const currentUser = computed(() => workoutData.currentUser.value)
 const isLoading = computed(() => {
   // Show loading only during initial auth setup, not on subsequent data loads
   // This prevents showing the loading screen every time the app is opened
   return !hasInitialized.value
+})
+
+const isWorkoutSession = computed(() => {
+  return route.path.startsWith('/workout/')
+})
+
+const workoutProgress = computed(() => {
+  if (!isWorkoutSession.value) {
+    return { percentage: 0 }
+  }
+  
+  // Get the current workout session from the route
+  const sessionId = route.params.id as string
+  const session = workoutData.getSessionById.value(sessionId)
+  
+  if (!session) {
+    return { percentage: 0 }
+  }
+  
+  // Calculate progress based on completed sets
+  const totalSets = session.exercises.reduce((total, exercise) => {
+    return total + exercise.sets.length
+  }, 0)
+  
+  const completedSets = session.exercises.reduce((total, exercise) => {
+    return total + exercise.sets.filter(set => set.isCompleted).length
+  }, 0)
+  
+  const percentage = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0
+  
+  return { percentage }
 })
 
 const userInitials = computed(() => {
@@ -372,29 +322,8 @@ const isDevelopment = computed(() => {
   return import.meta.env.DEV
 })
 
-
-
 // Methods
-
 // Auto-save is handled automatically in WorkoutSession.vue
-
-const handleCompleteWorkout = async () => {
-  if (!isWorkoutSession.value || !route.params.id) return
-
-  if (confirm('Er du sikker på at du vil avslutte økten?')) {
-    try {
-      const sessionId = route.params.id as string
-      await workoutData.completeWorkoutSession(sessionId)
-      router.push(`/session/${sessionId}`)
-    } catch (error: any) {
-      handleAuthError(error)
-    }
-  }
-}
-
-
-
-
 
 // Session management - Removed automatic interval to prevent unnecessary data reloading
 

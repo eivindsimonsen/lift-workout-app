@@ -1,7 +1,15 @@
 <template>
   <div>
+    <!-- Breadcrumbs - moved above header -->
+    <Breadcrumbs 
+      :breadcrumbs="[
+        { name: 'Hjem', path: '/' },
+        { name: isEditing ? 'Rediger Økt' : 'Opprett Ny Økt' }
+      ]"
+    />
+
     <!-- Header -->
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center justify-between mb-4 mt-4">
       <div class="flex items-center gap-3">
         <router-link 
           to="/" 
@@ -14,14 +22,6 @@
         <h1 class="text-2xl font-bold text-white">{{ isEditing ? 'Rediger Økt' : 'Opprett Ny Økt' }}</h1>
       </div>
     </div>
-
-    <!-- Breadcrumbs -->
-    <Breadcrumbs 
-      :breadcrumbs="[
-        { name: 'Hjem', path: '/' },
-        { name: isEditing ? 'Rediger Økt' : 'Opprett Ny Økt' }
-      ]"
-    />
 
     <div v-if="isEditing && !template" class="text-center py-12">
       <p class="text-dark-300">Økt ikke funnet</p>

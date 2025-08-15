@@ -1,7 +1,16 @@
 <template>
   <div>
+    <!-- Breadcrumbs - moved above header -->
+    <Breadcrumbs 
+      :breadcrumbs="[
+        { name: 'Hjem', path: '/' },
+        { name: 'Øvelser', path: '/exercises' },
+        { name: exercise?.name || 'Øvelse' }
+      ]"
+    />
+
     <!-- Header -->
-    <div class="mb-4">
+    <div class="mb-4 mt-4">
       <div class="flex items-center gap-3">
         <router-link 
           to="/exercises" 
@@ -14,15 +23,6 @@
         <h1 class="text-2xl font-bold text-white">{{ exercise?.name }}</h1>
       </div>
     </div>
-
-    <!-- Breadcrumbs -->
-    <Breadcrumbs 
-      :breadcrumbs="[
-        { name: 'Hjem', path: '/' },
-        { name: 'Øvelser', path: '/exercises' },
-        { name: exercise?.name || 'Øvelse' }
-      ]"
-    />
 
     <!-- Loading State for Exercise Details -->
     <div v-if="isLoading" class="space-y-6 animate-pulse">
