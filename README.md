@@ -56,7 +56,7 @@ RLS: Alle tabeller er sikret slik at brukeren kun ser/opererer på egne rader (`
 
 ## Viktige skjermer og funksjoner
 
-- `Økter` (`src/views/Økter.vue`): dashboard for å starte nye økter og fortsette aktive.
+- `Template Sessions` (`src/views/TemplateSessions.vue`): dashboard for å starte nye økter og fortsette aktive.
 - `Øvelser` (`src/views/Exercises.vue`): kompakt liste med tydelige handlinger og klikkbarhet til detaljer. Piltips indikerer at kortene er trykkbare.
 - `Øvelse` detalj (`src/views/ExerciseDetail.vue`):
   - PR‑tavle: beste for rep‑mål 1/3/4/6/8/10/12/14 (eksakt)

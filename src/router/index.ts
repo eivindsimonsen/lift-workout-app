@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import { useSupabase } from "@/composables/useSupabase";
 
 // View imports
-import Økter from "@/views/Økter.vue";
+import TemplateSessions from "@/views/TemplateSessions.vue";
 import History from "@/views/History.vue";
 import Stats from "@/views/Stats.vue";
 import Login from "@/views/Login.vue";
@@ -16,7 +16,7 @@ import Exercises from "@/views/Exercises.vue";
 
 // Route configuration
 const routes = [
-  { path: "/", name: "Økter", component: Økter, meta: { requiresAuth: true } },
+  { path: "/", name: "TemplateSessions", component: TemplateSessions, meta: { requiresAuth: true } },
   { path: "/history", name: "History", component: History, meta: { requiresAuth: true } },
   { path: "/stats", name: "Stats", component: Stats, meta: { requiresAuth: true } },
   { path: "/profile", name: "Profile", component: Profile, meta: { requiresAuth: true } },
