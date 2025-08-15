@@ -168,5 +168,6 @@ export const useHybridData = () => {
     updateWorkoutSessionOffline: userData.updateWorkoutSessionOffline,
     syncPendingChanges: userData.syncPendingChanges,
     watchNetworkStatus: userData.watchNetworkStatus,
+    forceSyncData: userData.forceSyncData,
   };
 };
