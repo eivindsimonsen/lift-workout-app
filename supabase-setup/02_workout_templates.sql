@@ -29,22 +29,22 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = current_schema() AND tablename = 'workout_templates' AND policyname = 'Users can view own templates'
   ) THEN
-    CREATE POLICY "Users can view own templates" ON workout_templates FOR SELECT USING (auth.uid() = user_id);
+    CREATE POLICY "Users can view own templates" ON workout_templates FOR SELECT USING ((SELECT auth.uid()) = user_id);
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = current_schema() AND tablename = 'workout_templates' AND policyname = 'Users can insert own templates'
   ) THEN
-    CREATE POLICY "Users can insert own templates" ON workout_templates FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "Users can insert own templates" ON workout_templates FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = current_schema() AND tablename = 'workout_templates' AND policyname = 'Users can update own templates'
   ) THEN
-    CREATE POLICY "Users can update own templates" ON workout_templates FOR UPDATE USING (auth.uid() = user_id);
+    CREATE POLICY "Users can update own templates" ON workout_templates FOR UPDATE USING ((SELECT auth.uid()) = user_id);
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = current_schema() AND tablename = 'workout_templates' AND policyname = 'Users can delete own templates'
   ) THEN
-    CREATE POLICY "Users can delete own templates" ON workout_templates FOR DELETE USING (auth.uid() = user_id);
+    CREATE POLICY "Users can delete own templates" ON workout_templates FOR DELETE USING ((SELECT auth.uid()) = user_id);
   END IF;
 END$$;
 

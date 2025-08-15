@@ -35,22 +35,22 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = current_schema() AND tablename = 'workout_sessions' AND policyname = 'Users can view own sessions'
   ) THEN
-    CREATE POLICY "Users can view own sessions" ON workout_sessions FOR SELECT USING (auth.uid() = user_id);
+    CREATE POLICY "Users can view own sessions" ON workout_sessions FOR SELECT USING ((SELECT auth.uid()) = user_id);
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = current_schema() AND tablename = 'workout_sessions' AND policyname = 'Users can insert own sessions'
   ) THEN
-    CREATE POLICY "Users can insert own sessions" ON workout_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "Users can insert own sessions" ON workout_sessions FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = current_schema() AND tablename = 'workout_sessions' AND policyname = 'Users can update own sessions'
   ) THEN
-    CREATE POLICY "Users can update own sessions" ON workout_sessions FOR UPDATE USING (auth.uid() = user_id);
+    CREATE POLICY "Users can update own sessions" ON workout_sessions FOR UPDATE USING ((SELECT auth.uid()) = user_id);
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = current_schema() AND tablename = 'workout_sessions' AND policyname = 'Users can delete own sessions'
   ) THEN
-    CREATE POLICY "Users can delete own sessions" ON workout_sessions FOR DELETE USING (auth.uid() = user_id);
+    CREATE POLICY "Users can delete own sessions" ON workout_sessions FOR DELETE USING ((SELECT auth.uid()) = user_id);
   END IF;
 END$$;
 
