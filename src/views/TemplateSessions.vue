@@ -111,10 +111,6 @@
           <span class="text-gray-300 text-sm font-medium">Debug Info</span>
         </div>
         <div class="text-xs text-gray-400 space-y-1">
-          <p>Totalt antall økter: {{ workoutData.sessions.value.length }}</p>
-          <p>Aktive økter: {{ activeSessions.length }}</p>
-          <p>Fullførte økter: {{ workoutData.completedSessions.value.length }}</p>
-          <p>Online: {{ workoutData.isOnline.value ? 'Ja' : 'Nei' }}</p>
           <p>Sist synkronisert: {{ workoutData.lastSyncTime.value ? new Date(workoutData.lastSyncTime.value).toLocaleString('no-NO') : 'Aldri' }}</p>
         </div>
       </div>

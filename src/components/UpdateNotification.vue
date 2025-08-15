@@ -1,6 +1,6 @@
 <template>
   <div 
-    v-if="showUpdatePrompt"
+    v-if="showUpdatePrompt && !isDevelopment"
     class="fixed bottom-4 left-4 right-4 z-50 bg-dark-800 border border-primary-500/20 rounded-lg p-4 shadow-xl"
   >
     <div class="flex items-center gap-3">
@@ -36,6 +36,12 @@ const isDevelopment = computed(() => {
 })
 
 const checkForUpdates = () => {
+  // Don't check for updates in development mode
+  if (isDevelopment.value) {
+    console.log('🔍 UpdateNotification: Skipping update check in development mode')
+    return
+  }
+  
   console.log('🔍 UpdateNotification: Checking for updates...')
   
   if ('serviceWorker' in navigator) {
@@ -83,6 +89,12 @@ const checkForUpdates = () => {
 }
 
 const checkManifestVersion = async () => {
+  // Don't check manifest in development mode
+  if (isDevelopment.value) {
+    console.log('🔍 UpdateNotification: Skipping manifest check in development mode')
+    return
+  }
+  
   try {
     const response = await fetch('/manifest.webmanifest')
     if (response.ok) {
@@ -154,6 +166,12 @@ const handleSkipWaiting = () => {
 
 onMounted(() => {
   console.log('🚀 UpdateNotification: Component mounted')
+  
+  // Don't run update logic in development mode
+  if (isDevelopment.value) {
+    console.log('🔍 UpdateNotification: Running in development mode, skipping update logic')
+    return
+  }
   
   // Listen for custom event from service worker registration
   const handleSwUpdateAvailable = () => {
