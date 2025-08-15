@@ -45,7 +45,13 @@
         </div>
       </div>
 
-
+      <!-- Breadcrumbs -->
+      <Breadcrumbs 
+        :breadcrumbs="[
+          { name: 'Hjem', path: '/' },
+          { name: 'Økt' }
+        ]"
+      />
 
       <!-- Network status indicator -->
       <div v-if="!workoutData.isOnline.value" class="mt-4 p-3 bg-yellow-600 bg-opacity-20 border border-yellow-500 rounded-lg">
@@ -309,6 +315,7 @@ import { useHybridData } from '@/composables/useHybridData'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { WorkoutSession } from '@/types/workout'
 import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
+import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 const route = useRoute()
 const router = useRouter()

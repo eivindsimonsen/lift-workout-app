@@ -1,23 +1,27 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+        <router-link 
+          to="/" 
+          class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center hover:bg-primary-500/30 transition-colors"
+        >
           <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
-        </div>
+        </router-link>
         <h1 class="text-2xl font-bold text-white">{{ isEditing ? 'Rediger Økt' : 'Opprett Ny Økt' }}</h1>
       </div>
-      <router-link 
-        to="/" 
-        class="btn-secondary"
-      >
-        Avbryt
-      </router-link>
     </div>
+
+    <!-- Breadcrumbs -->
+    <Breadcrumbs 
+      :breadcrumbs="[
+        { name: 'Hjem', path: '/' },
+        { name: isEditing ? 'Rediger Økt' : 'Opprett Ny Økt' }
+      ]"
+    />
 
     <div v-if="isEditing && !template" class="text-center py-12">
       <p class="text-dark-300">Økt ikke funnet</p>
@@ -198,6 +202,7 @@ import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutTemplate, ExerciseTemplate } from '@/types/workout'
 import ExerciseSelector from '@/components/ExerciseSelector.vue'
 import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
+import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 const router = useRouter()
 const route = useRoute()

@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
         <router-link 
           to="/history" 
@@ -14,6 +14,15 @@
         <h1 class="text-2xl font-bold text-white">Økt Detaljer</h1>
       </div>
     </div>
+
+    <!-- Breadcrumbs -->
+    <Breadcrumbs 
+      :breadcrumbs="[
+        { name: 'Hjem', path: '/' },
+        { name: 'Historikk', path: '/history' },
+        { name: 'Økt Detaljer' }
+      ]"
+    />
 
     <div v-if="!session" class="text-center py-12">
       <p class="text-dark-300">Økt ikke funnet</p>
@@ -278,6 +287,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutSession } from '@/types/workout'
+import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 const router = useRouter()
 const route = useRoute()

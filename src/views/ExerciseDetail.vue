@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="mb-6">
+    <div class="mb-4">
       <div class="flex items-center gap-3">
         <router-link 
           to="/exercises" 
@@ -14,6 +14,15 @@
         <h1 class="text-2xl font-bold text-white">{{ exercise?.name }}</h1>
       </div>
     </div>
+
+    <!-- Breadcrumbs -->
+    <Breadcrumbs 
+      :breadcrumbs="[
+        { name: 'Hjem', path: '/' },
+        { name: 'Øvelser', path: '/exercises' },
+        { name: exercise?.name || 'Øvelse' }
+      ]"
+    />
 
     <!-- Loading State for Exercise Details -->
     <div v-if="isLoading" class="space-y-6 animate-pulse">
@@ -330,6 +339,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
+import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 const route = useRoute()
 const router = useRouter()
