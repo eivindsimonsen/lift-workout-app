@@ -86,7 +86,7 @@
     <!-- Workout Templates Section -->
     <div class="mt-8 pb-24 md:pb-0">
       <div class="mb-4">
-        <h2 class="text-xl font-semibold text-white">Training Templates</h2>
+        <h2 class="text-xl font-semibold text-white">Treningsøkter</h2>
       </div>
 
       <!-- Info message when there's an active session -->
@@ -147,9 +147,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
         </div>
-        <p class="text-dark-300 mb-4">No training templates created yet</p>
+        <p class="text-dark-300 mb-4">Ingen økter opprettet enda</p>
         <router-link to="/template/create" class="btn-primary">
-          Create your first template
+          Opprett din første økt
         </router-link>
       </div>
 
