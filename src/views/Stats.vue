@@ -13,9 +13,9 @@
     </div>
 
     <!-- Loading State for Overview Stats -->
-    <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div 
-        v-for="i in 4" 
+        v-for="i in 6" 
         :key="i"
         class="card animate-pulse"
       >
@@ -29,8 +29,8 @@
       </div>
     </div>
 
-    <!-- Overview Stats -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <!-- All Stats in One Grid -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="card">
         <div class="flex items-center justify-between">
           <div>
@@ -82,6 +82,34 @@
           <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-dark-300 text-sm">Total Varighet</p>
+            <p class="text-2xl font-bold text-white">{{ totalDuration }} min</p>
+          </div>
+          <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-dark-300 text-sm">Total Volum</p>
+            <p class="text-2xl font-bold text-white">{{ formatNumber(workoutData.totalVolume.value) }} kg</p>
+          </div>
+          <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
         </div>
@@ -924,6 +952,13 @@ const volumeProgress = computed<VolumeProgress>(() => {
   const denominator = isMax ? current || 1 : nextTarget
   const percentage = Math.min(100, Math.round((current / denominator) * 100))
   return { current, nextTarget, percentage, isMax }
+})
+
+const totalDuration = computed(() => {
+  if (workoutData.completedSessions.value.length === 0) return 0
+  return workoutData.completedSessions.value.reduce((total, session) => {
+    return total + session.duration
+  }, 0)
 })
 
 const getCurrentStreak = (): number => {
