@@ -439,6 +439,10 @@
     -webkit-touch-callout: none;
   }
 
+  .btn-primary:disabled {
+    @apply bg-dark-600 text-dark-400 cursor-not-allowed opacity-50;
+  }
+
   .btn-secondary {
     @apply bg-dark-700 hover:bg-dark-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
     -webkit-appearance: none;
@@ -453,6 +457,10 @@
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
+  }
+
+  .btn-secondary:disabled {
+    @apply bg-dark-800 text-dark-400 cursor-not-allowed opacity-50;
   }
 
   .card {

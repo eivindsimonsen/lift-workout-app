@@ -1283,7 +1283,23 @@ const createSupabaseData = () => {
           name: exercise.name,
           sets: [
             {
-              id: `set-${Date.now()}`,
+              id: `set-${Date.now()}-1`,
+              reps: 0,
+              weight: 0,
+              duration: undefined,
+              distance: undefined,
+              isCompleted: false,
+            },
+            {
+              id: `set-${Date.now()}-2`,
+              reps: 0,
+              weight: 0,
+              duration: undefined,
+              distance: undefined,
+              isCompleted: false,
+            },
+            {
+              id: `set-${Date.now()}-3`,
               reps: 0,
               weight: 0,
               duration: undefined,
