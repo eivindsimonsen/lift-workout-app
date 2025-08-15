@@ -25,41 +25,61 @@
       </div>
 
     <!-- Active Workout Sessions -->
-    <div v-if="activeSessions.length > 0" class="mt-8">
-      <h2 class="text-xl font-semibold text-white mb-4">Aktiv Økt</h2>
-
-      <div class="space-y-4">
-        <SwipeableCard
-          v-for="session in activeSessions" 
-          :key="session.id"
-          @delete="abandonWorkout(session.id)"
-        >
-          <div 
-            @click="continueWorkout(session.id)"
-            class="flex items-center justify-between p-4 bg-dark-700 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors border-l-4 border-primary-500"
-          >
-            <div class="flex-1">
-              <h3 class="font-medium text-white">{{ session.templateName }}</h3>
-              <p class="text-sm text-dark-300">
-                Startet {{ formatDate(session.date) }}
-              </p>
-              <p class="text-xs text-dark-400">
-                {{ session.exercises.length }} øvelser • Fortsett økt
-              </p>
-            </div>
-            <div class="flex items-center gap-2">
-              <span 
-                class="px-3 py-2 rounded-full text-sm font-medium"
-                :style="{ 
-                  backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
-                  color: getWorkoutTypeColor(session.workoutType)
-                }"
-              >
-                {{ getWorkoutTypeName(session.workoutType) }}
-              </span>
+    <div class="mt-8">
+      <!-- Loading State for Active Sessions -->
+      <div v-if="isLoading" class="mb-4">
+        <div class="h-7 bg-dark-600 rounded w-32 mb-4 animate-pulse"></div>
+        <div class="space-y-4">
+          <div class="bg-dark-700 rounded-lg p-4 border border-dark-600 animate-pulse">
+            <div class="flex items-center justify-between">
+              <div class="flex-1 space-y-2">
+                <div class="h-5 bg-dark-600 rounded w-40"></div>
+                <div class="h-4 bg-dark-600 rounded w-32"></div>
+                <div class="h-3 bg-dark-600 rounded w-48"></div>
+              </div>
+              <div class="h-8 bg-dark-600 rounded-full w-20"></div>
             </div>
           </div>
-        </SwipeableCard>
+        </div>
+      </div>
+
+      <!-- Active Sessions Content -->
+      <div v-else-if="activeSessions.length > 0">
+        <h2 class="text-xl font-semibold text-white mb-4">Aktiv Økt</h2>
+
+        <div class="space-y-4">
+          <SwipeableCard
+            v-for="session in activeSessions" 
+            :key="session.id"
+            @delete="abandonWorkout(session.id)"
+          >
+            <div 
+              @click="continueWorkout(session.id)"
+              class="flex items-center justify-between p-4 bg-dark-700 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors border-l-4 border-primary-500"
+            >
+              <div class="flex-1">
+                <h3 class="font-medium text-white">{{ session.templateName }}</h3>
+                <p class="text-sm text-dark-300">
+                  Startet {{ formatDate(session.date) }}
+                </p>
+                <p class="text-xs text-dark-400">
+                  {{ session.exercises.length }} øvelser • Fortsett økt
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span 
+                  class="px-3 py-2 rounded-full text-sm font-medium"
+                  :style="{ 
+                    backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
+                    color: getWorkoutTypeColor(session.workoutType)
+                  }"
+                >
+                  {{ getWorkoutTypeName(session.workoutType) }}
+                </span>
+              </div>
+            </div>
+          </SwipeableCard>
+        </div>
       </div>
     </div>
 
