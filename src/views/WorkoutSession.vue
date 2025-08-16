@@ -947,13 +947,41 @@ const updateAppSaveState = () => {
 }
 
 const handleCompleteWorkout = () => {
-  if (confirm('Er du sikker på at du vil fullføre økten?')) {
+  const incompleteExercises = session.value?.exercises.filter(exercise => 
+    !exercise.sets.some(set => set.isCompleted)
+  ) || []
+  
+  const incompleteSets = session.value?.exercises.reduce((total, exercise) => 
+    total + exercise.sets.filter(set => !set.isCompleted).length, 0
+  ) || 0
+  
+  let message = 'Er du sikker på at du vil fullføre økten?'
+  
+  if (incompleteExercises.length > 0 || incompleteSets > 0) {
+    message += `\n\nMerk: ${incompleteExercises.length} ufullførte øvelser og ${incompleteSets} ufullførte sett vil bli fjernet fra økten før den lagres.`
+  }
+  
+  if (confirm(message)) {
     completeWorkout()
   }
 }
 
 const handleAbandonWorkout = () => {
-  if (confirm('Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent.')) {
+  const incompleteExercises = session.value?.exercises.filter(exercise => 
+    !exercise.sets.some(set => set.isCompleted)
+  ) || []
+  
+  const incompleteSets = session.value?.exercises.reduce((total, exercise) => 
+    total + exercise.sets.filter(set => !set.isCompleted).length, 0
+  ) || 0
+  
+  let message = 'Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent.'
+  
+  if (incompleteExercises.length > 0 || incompleteSets > 0) {
+    message += `\n\nMerk: ${incompleteExercises.length} ufullførte øvelser og ${incompleteSets} ufullførte sett vil bli fjernet fra økten før den slettes.`
+  }
+  
+  if (confirm(message)) {
     abandonWorkout()
   }
 }
@@ -962,6 +990,15 @@ const abandonWorkout = async () => {
   if (!session.value) return
   
   try {
+    // Clean up session data before abandoning to avoid storing unnecessary 0-values
+    const cleanedSession = await cleanupSessionData(session.value)
+    
+    // Update the session with cleaned data before abandoning
+    await workoutData.updateWorkoutSessionOffline(session.value.id, {
+      exercises: cleanedSession.exercises
+    })
+    
+    // Now abandon the workout with clean data
     await workoutData.abandonWorkoutSession(session.value.id)
     router.push('/')
   } catch (error: any) {
@@ -990,6 +1027,15 @@ const completeWorkout = async () => {
   if (!session.value) return
   
   try {
+    // Clean up session data before completing to avoid storing unnecessary 0-values
+    const cleanedSession = await cleanupSessionData(session.value)
+    
+    // Update the session with cleaned data
+    await workoutData.updateWorkoutSessionOffline(session.value.id, {
+      exercises: cleanedSession.exercises
+    })
+    
+    // Now complete the workout with clean data
     await workoutData.completeWorkoutSession(session.value.id)
     router.push(`/session/${session.value.id}`)
   } catch (error: any) {
@@ -1012,6 +1058,54 @@ const completeWorkout = async () => {
     // Handle other errors
     handleAuthError(error)
   }
+}
+
+// Helper function to clean up session data before completion
+const cleanupSessionData = async (sessionData: WorkoutSession): Promise<WorkoutSession> => {
+  console.log('🧹 Cleaning up session data before completion...')
+  
+  // Create a deep copy to avoid mutating the original
+  const cleanedSession = JSON.parse(JSON.stringify(sessionData))
+  
+  // Filter out exercises that have no completed sets
+  const originalExerciseCount = cleanedSession.exercises.length
+  cleanedSession.exercises = cleanedSession.exercises.filter((exercise: any) => {
+    const hasCompletedSets = exercise.sets.some((set: any) => set.isCompleted)
+    if (!hasCompletedSets) {
+      console.log(`🧹 Removing exercise "${exercise.name}" - no completed sets`)
+    }
+    return hasCompletedSets
+  })
+  
+  // For each remaining exercise, filter out incomplete sets
+  let totalSetsRemoved = 0
+  cleanedSession.exercises.forEach((exercise: any) => {
+    const originalSetCount = exercise.sets.length
+    exercise.sets = exercise.sets.filter((set: any) => {
+      const isComplete = set.isCompleted && set.weight > 0 && set.reps > 0
+      if (!isComplete) {
+        console.log(`🧹 Removing incomplete set from "${exercise.name}" - weight: ${set.weight}, reps: ${set.reps}`)
+        totalSetsRemoved++
+      }
+      return isComplete
+    })
+    
+    if (exercise.sets.length === 0) {
+      console.log(`🧹 Exercise "${exercise.name}" now has no sets after cleanup, will be removed`)
+    }
+  })
+  
+  // Remove exercises that ended up with no sets after cleanup
+  cleanedSession.exercises = cleanedSession.exercises.filter((exercise: any) => exercise.sets.length > 0)
+  
+  console.log('🧹 Session cleaned up:', {
+    originalExercises: originalExerciseCount,
+    cleanedExercises: cleanedSession.exercises.length,
+    totalSetsRemoved,
+    exercisesRemoved: originalExerciseCount - cleanedSession.exercises.length
+  })
+  
+  return cleanedSession
 }
 
 // Lifecycle
