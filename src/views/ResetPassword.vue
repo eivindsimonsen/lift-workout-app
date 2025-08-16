@@ -6,9 +6,9 @@
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-2xl font-bold text-white">
-              <span class="text-primary-500">Treningsloggen</span>
+              <span class="text-primary-500">Fremv</span>
             </h1>
-            <p class="text-sm text-dark-300">Full kontroll over treningsøktene dine</p>
+                          <p class="text-sm text-dark-300">Full kontroll på din fremgang</p>
           </div>
         </div>
       </div>

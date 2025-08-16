@@ -16,7 +16,7 @@ interface UserData {
 
 export const useIndexedDB = () => {
   const isSupported = ref(false);
-  const dbName = "TreningsloggenDB";
+  const dbName = "FremvDB";
   const version = 1;
   let db: IDBDatabase | null = null;
 

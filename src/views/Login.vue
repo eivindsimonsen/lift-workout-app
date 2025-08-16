@@ -16,7 +16,7 @@
             {{ isRegistering ? 'Registrer deg' : 'Logg inn' }}
           </h1>
           <p class="text-dark-300">
-            {{ isRegistering ? 'Opprett din Treningsloggen konto' : 'Logg inn på din Treningsloggen konto' }}
+            {{ isRegistering ? 'Opprett din Fremv konto' : 'Logg inn på din Fremv konto' }}
           </p>
         </div>
 

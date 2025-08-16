@@ -1,4 +1,4 @@
-# PWA Setup Guide for Treningsloggen
+# PWA Setup Guide for Fremv
 
 ## What's Been Added
 
@@ -52,7 +52,7 @@ This will generate:
 
 ### Branding
 
-- App name in `vite.config.ts` (currently "Treningsloggen")
+- App name in `vite.config.ts` (currently "Fremv")
 - Colors in manifest (currently using your dark theme)
 - Description and metadata
 

@@ -10,10 +10,10 @@
       </div>
 
       <!-- Title -->
-      <h1 class="text-2xl font-bold text-white mb-4">Treningsloggen</h1>
+              <h1 class="text-2xl font-bold text-white mb-4">Fremv</h1>
       
       <!-- Subtitle -->
-      <p class="text-dark-300 mb-8">Din personlige treningslogg med full kontroll over treningsøktene dine</p>
+      <p class="text-dark-300 mb-8">Din personlige treningslogg med full kontroll på din fremgang</p>
 
       <!-- Installation Instructions -->
       <div class="bg-dark-800 rounded-lg p-6 mb-8 border border-dark-700">
@@ -88,13 +88,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const showBlocker = ref(false)
 const deferredPrompt = ref<any>(null)
 const isIOSSafari = ref(false)
 const isChromeOnIOS = ref(false)
 const isAndroid = ref(false)
+
+// Check if we're in development mode
+const isDevelopment = computed(() => {
+  return import.meta.env.DEV
+})
 
 // Check if user is on mobile browser (not PWA)
 const isMobileBrowser = () => {
@@ -150,9 +155,8 @@ const handleAppInstalled = () => {
 onMounted(() => {
   detectPlatformAndBrowser()
   
-  if (isMobileBrowser() && !hasInstalledPWA()) {
-    // showBlocker.value = true // TODO: Uncomment this when done testing
-    showBlocker.value = false
+    if (isMobileBrowser() && !hasInstalledPWA() && !isDevelopment.value) {
+    showBlocker.value = true
   }
   
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)

@@ -1,6 +1,6 @@
-# Treningsloggen
+# Fremv
 
-En moderne treningslogg bygget med Vue 3 (Composition API) og TypeScript. Appen gjør det enkelt å registrere økter, følge progresjon og se meningsfulle statistikker – med fokus på konsistens, styrkeutvikling og en clean UI/UX.
+En moderne treningslogg bygget med Vue 3 (Composition API) og TypeScript. Fremv gjør det enkelt å registrere økter, følge progresjon og se meningsfulle statistikker – med fokus på konsistens, styrkeutvikling og en clean UI/UX.
 
 ## Innhold
 
