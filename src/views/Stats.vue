@@ -220,22 +220,16 @@
       <h3 class="text-lg font-semibold text-white mb-6">Treningsvaner</h3>
       
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Weekly Average -->
+        <!-- Completed Workouts -->
         <div class="text-center p-4 bg-dark-700 rounded-lg">
-          <div class="text-2xl font-bold text-primary-500 mb-1">{{ averageWorkoutsPerWeek }}</div>
-          <div class="text-xs text-dark-300">Økter/uke siste 3 måneder</div>
+          <div class="text-2xl font-bold text-primary-500 mb-1">{{ workoutData.completedSessions.value.length }}</div>
+          <div class="text-xs text-dark-300">Antall økter fullført</div>
         </div>
         
-        <!-- Current Streak -->
+        <!-- Rest Days -->
         <div class="text-center p-4 bg-dark-700 rounded-lg">
-          <div class="text-2xl font-bold text-primary-500 mb-1">{{ currentStreak }}</div>
-          <div class="text-xs text-dark-300">Dager på rad</div>
-        </div>
-        
-        <!-- Current Streak -->
-        <div class="text-center p-4 bg-dark-700 rounded-lg">
-          <div class="text-2xl font-bold text-primary-500 mb-1">{{ longestStreak }}</div>
-          <div class="text-xs text-dark-300">Lengste streak</div>
+          <div class="text-2xl font-bold text-primary-500 mb-1">{{ restDaysCount }}</div>
+          <div class="text-xs text-dark-300">Antall dager med restitusjon</div>
         </div>
       </div>
 
@@ -959,6 +953,32 @@ const totalDuration = computed(() => {
   return workoutData.completedSessions.value.reduce((total, session) => {
     return total + session.duration
   }, 0)
+})
+
+const restDaysCount = computed(() => {
+  if (workoutData.completedSessions.value.length === 0) return 0
+  
+  const sortedSessions = [...workoutData.completedSessions.value]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  
+  if (sortedSessions.length < 2) return 0
+  
+  const firstDate = new Date(sortedSessions[0].date)
+  const lastDate = new Date(sortedSessions[sortedSessions.length - 1].date)
+  
+  // Count total days between first and last workout
+  const totalDays = Math.ceil((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  
+  // Count workout days
+  const workoutDays = new Set()
+  sortedSessions.forEach(session => {
+    const date = new Date(session.date)
+    date.setHours(0, 0, 0, 0)
+    workoutDays.add(date.getTime())
+  })
+  
+  // Rest days = total days - workout days
+  return Math.max(0, totalDays - workoutDays.size)
 })
 
 const getCurrentStreak = (): number => {
