@@ -651,6 +651,23 @@ const saveSessionChanges = async () => {
       sessionId: session.value?.id,
       exercisesCount: session.value?.exercises?.length
     })
+    
+    // Check if it's an authentication error
+    if (error.message && (
+      error.message.includes("not authenticated") || 
+      error.message.includes("Session expired") ||
+      error.message.includes("Please log in again")
+    )) {
+      console.log("🔄 Authentication error detected in saveSessionChanges")
+      
+      // Show a more user-friendly message
+      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.")
+      
+      // Redirect to login
+      router.push('/login')
+      return
+    }
+    
     // Keep the unsaved changes flag so user can retry
   } finally {
     isSaving.value = false
@@ -948,6 +965,23 @@ const abandonWorkout = async () => {
     await workoutData.abandonWorkoutSession(session.value.id)
     router.push('/')
   } catch (error: any) {
+    console.error("❌ Error abandoning workout:", error)
+    
+    // Check if it's an authentication error
+    if (error.message && (
+      error.message.includes("not authenticated") || 
+      error.message.includes("Session expired") ||
+      error.message.includes("Please log in again")
+    )) {
+      // Show a more user-friendly message
+      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.")
+      
+      // Redirect to login
+      router.push('/login')
+      return
+    }
+    
+    // Handle other errors
     handleAuthError(error)
   }
 }
@@ -959,6 +993,23 @@ const completeWorkout = async () => {
     await workoutData.completeWorkoutSession(session.value.id)
     router.push(`/session/${session.value.id}`)
   } catch (error: any) {
+    console.error("❌ Error completing workout:", error)
+    
+    // Check if it's an authentication error
+    if (error.message && (
+      error.message.includes("not authenticated") || 
+      error.message.includes("Session expired") ||
+      error.message.includes("Please log in again")
+    )) {
+      // Show a more user-friendly message
+      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.")
+      
+      // Redirect to login
+      router.push('/login')
+      return
+    }
+    
+    // Handle other errors
     handleAuthError(error)
   }
 }

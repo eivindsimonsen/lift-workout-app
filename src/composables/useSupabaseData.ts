@@ -505,7 +505,7 @@ const createSupabaseData = () => {
           date: new Date(session.date),
           duration: session.duration || 0,
           exercises,
-          totalVolume: recalculatedTotalVolume,
+          totalVolume: Math.round(recalculatedTotalVolume), // Ensure integer for database
           isCompleted: session.is_completed || false,
         };
       });
@@ -1395,18 +1395,26 @@ const createSupabaseData = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from("workout_sessions")
-        .update({
-          template_name: updates.templateName,
-          workout_type: updates.workoutType,
-          duration: updates.duration,
-          total_volume: updates.totalVolume,
-          exercises: updates.exercises,
-          is_completed: updates.isCompleted,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", sessionId);
+      // Ensure data types match database schema
+      const updateData: any = {
+        template_name: updates.templateName,
+        workout_type: updates.workoutType,
+        exercises: updates.exercises,
+        is_completed: updates.isCompleted,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Ensure duration is an integer (database expects INTEGER)
+      if (updates.duration !== undefined) {
+        updateData.duration = Math.round(Number(updates.duration) || 0);
+      }
+
+      // Ensure total_volume is an integer (database expects INTEGER)
+      if (updates.totalVolume !== undefined) {
+        updateData.total_volume = Math.round(Number(updates.totalVolume) || 0);
+      }
+
+      const { error } = await supabase.from("workout_sessions").update(updateData).eq("id", sessionId);
 
       if (error) {
         console.error("❌ Error updating session in database:", error);
@@ -1441,19 +1449,21 @@ const createSupabaseData = () => {
       }
 
       // Calculate total volume
-      const totalVolume = session.exercises.reduce((exerciseTotal, exercise) => {
-        const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
-          if (set.isCompleted && set.weight) {
-            // Ensure weight and reps are numbers
-            const weight = Number(set.weight) || 0;
-            const reps = Number(set.reps) || 0;
-            const volume = weight * reps;
-            return setTotal + volume;
-          }
-          return setTotal;
-        }, 0);
-        return exerciseTotal + exerciseVolume;
-      }, 0);
+      const totalVolume = Math.round(
+        session.exercises.reduce((exerciseTotal, exercise) => {
+          const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
+            if (set.isCompleted && set.weight) {
+              // Ensure weight and reps are numbers
+              const weight = Number(set.weight) || 0;
+              const reps = Number(set.reps) || 0;
+              const volume = weight * reps;
+              return setTotal + volume;
+            }
+            return setTotal;
+          }, 0);
+          return exerciseTotal + exerciseVolume;
+        }, 0)
+      );
 
       const duration = Math.round((Date.now() - new Date(session.date).getTime()) / 60000);
 

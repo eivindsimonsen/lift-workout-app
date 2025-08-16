@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 // Database types - Only user data tables
 export interface Database {
@@ -149,6 +149,7 @@ export const useSupabase = () => {
         },
       });
       isInitialized.value = true;
+      console.log("✅ Supabase client initialized successfully");
     } else {
       // Use mock client for missing configuration
       console.warn("⚠️ Missing Supabase environment variables. Using mock client.");
@@ -156,12 +157,45 @@ export const useSupabase = () => {
 
       supabaseInstance = createMockClient();
       error.value = "Supabase ikke konfigurert";
+      console.error("❌ Supabase not configured - using mock client");
     }
   }
+
+  // Add method to check if we're using mock client
+  const isMockClient = computed(() => {
+    return !supabaseInstance || error.value === "Supabase ikke konfigurert";
+  });
+
+  // Add method to get authentication status
+  const getAuthStatus = async () => {
+    if (isMockClient.value) {
+      return { isAuthenticated: false, user: null, error: "Mock client - no real authentication" };
+    }
+
+    try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabaseInstance.auth.getSession();
+      return {
+        isAuthenticated: !!session?.user,
+        user: session?.user || null,
+        error: sessionError?.message || null,
+      };
+    } catch (error) {
+      return {
+        isAuthenticated: false,
+        user: null,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  };
 
   return {
     supabase: supabaseInstance,
     isInitialized,
     error,
+    isMockClient,
+    getAuthStatus,
   };
 };
