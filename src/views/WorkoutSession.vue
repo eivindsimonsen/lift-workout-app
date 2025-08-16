@@ -88,7 +88,7 @@
         <div 
           v-for="(exercise, exerciseIndex) in session.exercises" 
           :key="exercise.exerciseId"
-          class="border-b border-dark-700 last:border-b-0"
+          class="border-dark-700 last:border-b-0"
         >
           <div class="flex items-center justify-between mb-6">
             <div class="flex-1">
