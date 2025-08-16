@@ -428,7 +428,7 @@ const continueWorkout = (sessionId: string) => {
 }
 
 const abandonWorkout = async (sessionId: string) => {
-  if (confirm('Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil markeres som fullført.')) {
+  if (confirm('Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent.')) {
     try {
       // Haptic feedback on mobile
       if ('vibrate' in navigator) {

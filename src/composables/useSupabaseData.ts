@@ -1598,28 +1598,17 @@ const createSupabaseData = () => {
     logSupabaseAccess("Abandon session", sessionId);
 
     try {
-      // Update local state immediately for better UX
-      const sessionIndex = sessions.value.findIndex((s) => s.id === sessionId);
-      if (sessionIndex !== -1) {
-        sessions.value[sessionIndex] = {
-          ...sessions.value[sessionIndex],
-          isCompleted: true,
-        };
-      }
-
-      // Mark the session as completed - this effectively "abandons" it
-      // The data is preserved but marked as finished
-      const { error } = await supabase
-        .from("workout_sessions")
-        .update({
-          is_completed: true,
-        })
-        .eq("id", sessionId);
+      // For abandoned workouts, we want to delete them completely from the database
+      // instead of marking them as completed with potentially invalid data
+      const { error } = await supabase.from("workout_sessions").delete().eq("id", sessionId);
 
       if (error) {
         console.error("Error abandoning session:", error);
         throw error;
       }
+
+      // Update local state immediately for better UX
+      sessions.value = sessions.value.filter((s) => s.id !== sessionId);
 
       // Immediately update the local cache to ensure consistency
       if (indexedDB.isSupported.value && currentUser.value) {
@@ -1648,7 +1637,7 @@ const createSupabaseData = () => {
         }
       }
 
-      console.log("✅ Session abandoned successfully");
+      console.log("✅ Session abandoned and deleted successfully");
     } catch (error) {
       console.error("❌ Error abandoning session:", error);
       throw error;
