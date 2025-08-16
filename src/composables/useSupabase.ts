@@ -145,7 +145,7 @@ export const useSupabase = () => {
           autoRefreshToken: true,
           detectSessionInUrl: true,
           flowType: "pkce",
-          storageKey: "fremv-auth",
+          storageKey: "lift-auth",
         },
       });
       isInitialized.value = true;

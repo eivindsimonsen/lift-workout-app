@@ -6,9 +6,9 @@
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-2xl font-bold text-white">
-              <span class="text-primary-500">Fremv</span>
+              <span class="text-primary-500">LIFT</span>
             </h1>
-                          <p class="text-sm text-dark-300">Full kontroll på din fremgang</p>
+                          <p class="text-sm text-dark-300">Full control over your workouts and progress tracking</p>
           </div>
         </div>
       </div>

@@ -16,7 +16,7 @@
             {{ isRegistering ? 'Registrer deg' : 'Logg inn' }}
           </h1>
           <p class="text-dark-300">
-            {{ isRegistering ? 'Opprett din Fremv konto' : 'Logg inn på din Fremv konto' }}
+            {{ isRegistering ? 'Create your LIFT account' : 'Sign in to your LIFT account' }}
           </p>
         </div>
 

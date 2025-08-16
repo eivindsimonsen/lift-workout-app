@@ -40,9 +40,9 @@ export default defineConfig({
       },
       includeAssets: ["favicon.ico", "icon-192.png", "icon-512.png"],
       manifest: {
-        name: "Fremv",
-        short_name: "Fremv",
-        description: "Din personlige treningslogg med full kontroll på din fremgang",
+        name: "LIFT - Training log",
+        short_name: "LIFT",
+        description: "Training log with full control over your workouts and progress tracking",
         version: "1.0.1",
         theme_color: "#1F2937",
         background_color: "#1F2937",

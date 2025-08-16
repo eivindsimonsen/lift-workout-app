@@ -23,7 +23,7 @@
         <header v-if="isAuthenticated" class="hidden md:block sticky top-0 z-40 bg-dark-900/80 backdrop-blur border-b border-dark-700">
           <div class="container mx-auto px-4 h-14 flex items-center justify-between">
             <router-link to="/" class="text-white font-semibold tracking-wide">
-              Fremv
+              LIFT
             </router-link>
 
                          <nav class="flex items-center gap-6">

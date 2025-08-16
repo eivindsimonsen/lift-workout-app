@@ -1,4 +1,4 @@
-# PWA Setup Guide for Fremv
+# PWA Setup Guide for LIFT
 
 ## What's Been Added
 
@@ -52,7 +52,7 @@ This will generate:
 
 ### Branding
 
-- App name in `vite.config.ts` (currently "Fremv")
+- App name in `vite.config.ts` (currently "LIFT")
 - Colors in manifest (currently using your dark theme)
 - Description and metadata
 

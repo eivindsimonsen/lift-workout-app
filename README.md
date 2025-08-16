@@ -1,6 +1,6 @@
-# Fremv
+# LIFT - Training log
 
-En moderne treningslogg bygget med Vue 3 (Composition API) og TypeScript. Fremv gjør det enkelt å registrere økter, følge progresjon og se meningsfulle statistikker – med fokus på konsistens, styrkeutvikling og en clean UI/UX.
+A modern training log built with Vue 3 (Composition API) and TypeScript. LIFT makes it easy to log workouts, track progress and view meaningful statistics – with focus on consistency, strength development and a clean UI/UX.
 
 ## Innhold
 

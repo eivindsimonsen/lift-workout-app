@@ -1,8 +1,8 @@
 {
-  "name": "fremv",
+  "name": "lift-training-log",
   "version": "1.0.1",
   "type": "module",
-  "description": "Fremv - Din personlige treningslogg med full kontroll på din fremgang",
+  "description": "LIFT - Training log with full control over your workouts and progress tracking",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

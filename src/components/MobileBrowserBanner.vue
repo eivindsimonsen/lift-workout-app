@@ -10,10 +10,10 @@
       </div>
 
       <!-- Title -->
-              <h1 class="text-2xl font-bold text-white mb-4">Fremv</h1>
+              <h1 class="text-2xl font-bold text-white mb-4">LIFT</h1>
       
       <!-- Subtitle -->
-      <p class="text-dark-300 mb-8">Din personlige treningslogg med full kontroll på din fremgang</p>
+      <p class="text-dark-300 mb-8">Training log with full control over your workouts and progress tracking</p>
 
       <!-- Installation Instructions -->
       <div class="bg-dark-800 rounded-lg p-6 mb-8 border border-dark-700">
