@@ -83,27 +83,54 @@
         </div>
       </div>
 
-      <!-- Exercises -->
-      <div v-if="session" class="space-y-8 mt-6">
-        <div 
-          v-for="(exercise, exerciseIndex) in session.exercises" 
-          :key="exercise.exerciseId"
-          class="border-dark-700 last:border-b-0"
-        >
-          <div class="flex items-center justify-between mb-6">
-            <div class="flex-1">
-              <h3 class="text-xl font-bold text-white mb-2">{{ exercise.name }}</h3>
-              <!-- Last Performance -->
-              <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-2 text-sm text-dark-300">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span>Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg</span>
-                <span class="text-dark-500">• {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-4">
-              <span class="text-sm font-medium text-primary-400 bg-primary-500/10 px-3 py-1 rounded-full">
+             <!-- Exercises -->
+       <div v-if="session" class="mt-8">
+         <div 
+           v-for="(exercise, exerciseIndex) in session.exercises" 
+           :key="exercise.exerciseId"
+           class="mb-10 last:mb-0"
+         >
+           <!-- Exercise Separator -->
+           <div v-if="exerciseIndex > 0" class="mb-8 flex items-center">
+             <div class="flex-1 h-px bg-dark-600"></div>
+             <div class="mx-4 px-3 py-1 bg-dark-700 rounded-full border border-dark-600">
+               <span class="text-xs font-medium text-dark-400">Øvelse {{ exerciseIndex + 1 }}</span>
+             </div>
+             <div class="flex-1 h-px bg-dark-600"></div>
+           </div>
+                     <!-- Exercise Header -->
+           <div class="flex items-start justify-between mb-4">
+             <!-- Left Column: Exercise Info -->
+             <div class="flex-1 min-w-0">
+               <!-- Last Performance -->
+               <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-2 text-sm text-dark-300 mb-2">
+                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                 </svg>
+                 <span>Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
+               </div>
+               
+               <h3 class="text-xl font-bold text-white mb-2">{{ exercise.name }}</h3>
+               
+               <!-- Muscle Groups -->
+               <div v-if="getExerciseMuscleGroups(exercise.exerciseId)" class="flex flex-wrap gap-1">
+                 <span 
+                   v-for="muscleGroup in getExerciseMuscleGroups(exercise.exerciseId)" 
+                   :key="muscleGroup"
+                   class="inline-block px-2 py-1 text-xs font-medium rounded-full"
+                   :style="{
+                     backgroundColor: getMuscleGroupColor(muscleGroup) + '20',
+                     color: getMuscleGroupColor(muscleGroup)
+                   }"
+                 >
+                   {{ muscleGroup }}
+                 </span>
+               </div>
+             </div>
+            
+            <!-- Right Column: Actions -->
+            <div class="flex items-center gap-3 ml-4">
+              <span class="text-sm font-medium text-primary-400 bg-primary-500/10 px-3 py-1.5 rounded-full">
                 {{ getCompletedSets(exercise) }}/{{ exercise.sets.length }} sett
               </span>
               <button 
@@ -123,13 +150,13 @@
             <div 
               v-for="(set, setIndex) in exercise.sets" 
               :key="set.id"
-              class="p-4 transition-all duration-200"
+              class="p-5 transition-all duration-200"
               :class="{ 
                 'bg-primary-500/5 border-l-4 border-l-primary-500': set.isCompleted,
                 'border-b border-dark-600': setIndex < exercise.sets.length - 1
               }"
             >
-              <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center justify-between mb-4">
                 <button 
                   @click="removeSet(exerciseIndex, setIndex)"
                   class="text-dark-400 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
@@ -139,26 +166,26 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                <span class="text-sm font-semibold text-white bg-dark-700 px-3 py-1 rounded-full">Sett {{ setIndex + 1 }}</span>
+                <span class="text-sm font-semibold text-white bg-dark-700 px-3 py-1.5 rounded-full">Sett {{ setIndex + 1 }}</span>
               </div>
 
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-xs font-medium text-dark-300 mb-2 uppercase tracking-wide">Reps</label>
+                  <label class="block text-sm font-medium text-dark-300 mb-3">Reps</label>
                   <input
                     :value="set.reps === 0 ? '' : set.reps"
                     type="number"
                     inputmode="numeric"
                     min="0"
                     required
-                    class="input-field w-full text-sm py-2.5 bg-dark-700 border-dark-600 focus:border-primary-500"
+                    class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
                     :placeholder="getLastPerformance(exercise.exerciseId)?.reps?.toString() || '8'"
                     @input="(event) => handleRepsInput(event, exerciseIndex, setIndex)"
                     @blur="(event) => handleRepsBlur(event, exerciseIndex, setIndex)"
                   />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-dark-300 mb-2 uppercase tracking-wide">Vekt (kg)</label>
+                  <label class="block text-sm font-medium text-dark-300 mb-3">Vekt (kg)</label>
                   <input
                     :value="set.weight === 0 ? '' : set.weight"
                     type="number"
@@ -166,7 +193,7 @@
                     min="0"
                     step="0.5"
                     required
-                    class="input-field w-full text-sm py-2.5 bg-dark-700 border-dark-600 focus:border-primary-500"
+                    class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
                     :placeholder="getLastPerformance(exercise.exerciseId)?.weight?.toString() || '20'"
                     @input="(event) => handleWeightInput(event, exerciseIndex, setIndex)"
                     @blur="(event) => handleWeightBlur(event, exerciseIndex, setIndex)"
@@ -175,10 +202,10 @@
               </div>
 
               <!-- Volume Display -->
-              <div v-if="set.weight && set.reps" class="mt-3 pt-3 border-t border-dark-600">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="text-dark-300 font-medium">Volum:</span>
-                  <span class="text-primary-400 font-bold text-sm">
+              <div v-if="set.weight && set.reps" class="mt-4 pt-4 border-t border-dark-600">
+                <div class="flex items-center justify-between">
+                  <span class="text-dark-300 font-medium text-sm">Volum:</span>
+                  <span class="text-primary-400 font-bold text-base">
                     {{ set.weight * set.reps }} kg
                   </span>
                 </div>
@@ -186,10 +213,10 @@
             </div>
             
             <!-- Add Set Button -->
-            <div class="p-4 border-t border-dark-600">
+            <div class="p-5 border-t border-dark-600">
               <button 
                 @click="addSet(exerciseIndex)"
-                class="w-full btn-secondary text-sm py-3 border-dashed border-2 border-dark-600 hover:border-primary-500 hover:bg-primary-500/10 transition-all duration-200"
+                class="w-full btn-secondary text-sm py-4 border-dashed border-2 border-dark-600 hover:border-primary-500 hover:bg-primary-500/10 transition-all duration-200"
               >
                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -821,6 +848,74 @@ const getLastPerformance = (exerciseId: string) => {
   }
   
   return null
+}
+
+const getExerciseMuscleGroups = (exerciseId: string): string[] => {
+  const exerciseData = workoutData.getExerciseById.value(exerciseId)
+  return exerciseData?.muscleGroups || []
+}
+
+const getMuscleGroupColor = (muscleGroupName: string): string => {
+  // Import muscle groups data
+  const muscleGroupsData = {
+    "muscleGroups": [
+      {
+        "id": "bryst",
+        "name": "Bryst",
+        "displayName": "Bryst",
+        "description": "Brystmuskulatur inkludert pectoralis major og minor",
+        "color": "#f97316"
+      },
+      {
+        "id": "rygg",
+        "name": "Rygg",
+        "displayName": "Rygg",
+        "description": "Ryggmuskulatur inkludert latissimus dorsi, rhomboids og trapezius",
+        "color": "#3b82f6"
+      },
+      {
+        "id": "ben",
+        "name": "Ben",
+        "displayName": "Ben",
+        "description": "Bekkemuskulatur inkludert quadriceps, hamstrings og glutes",
+        "color": "#10b981"
+      },
+      {
+        "id": "skuldre",
+        "name": "Skuldre",
+        "displayName": "Skuldre",
+        "description": "Skuldermuskulatur inkludert deltoids",
+        "color": "#8b5cf6"
+      },
+      {
+        "id": "biceps",
+        "name": "Biceps",
+        "displayName": "Biceps",
+        "color": "#f59e0b"
+      },
+      {
+        "id": "triceps",
+        "name": "Triceps",
+        "displayName": "Triceps",
+        "color": "#ec4899"
+      },
+      {
+        "id": "kjerne",
+        "name": "Kjerne",
+        "displayName": "Kjerne",
+        "description": "Kjerne- og mage-muskulatur inkludert abs og obliques",
+        "color": "#ef4444"
+      }
+    ]
+  }
+  
+  // Find the muscle group by name and return its color
+  const muscleGroup = muscleGroupsData.muscleGroups.find(mg => 
+    mg.name.toLowerCase() === muscleGroupName.toLowerCase() ||
+    mg.displayName.toLowerCase() === muscleGroupName.toLowerCase()
+  )
+  
+  return muscleGroup?.color || '#6b7280' // Default gray color if not found
 }
 
 // Communicate save state to App.vue
