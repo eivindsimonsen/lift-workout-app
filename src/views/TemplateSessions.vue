@@ -235,6 +235,54 @@
         </div>
       </div>
     </div>
+
+    <!-- Countdown Modal -->
+    <div 
+      v-if="showCountdown" 
+      class="fixed inset-0 bg-black/90 flex items-center justify-center z-50"
+      @click="cancelCountdown"
+    >
+      <div 
+        class="w-full h-full flex flex-col items-center justify-center text-center p-8"
+        @click.stop
+      >
+        <!-- Countdown Number -->
+        <div class="mb-8">
+          <div 
+            class="text-9xl md:text-[12rem] font-bold text-primary-500 transition-all duration-300"
+            :class="countdownNumber === 0 ? 'scale-110' : ''"
+          >
+            {{ countdownNumber }}
+          </div>
+        </div>
+
+        <!-- Motivational Text -->
+        <div class="mb-12">
+          <h3 class="text-4xl md:text-5xl font-bold text-white mb-4">
+            {{ getMotivationalText() }}
+          </h3>
+          <p class="text-xl md:text-2xl text-dark-300">
+            {{ getMotivationalSubtext() }}
+          </p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full max-w-md bg-dark-700 rounded-full h-3 mb-8">
+          <div 
+            class="bg-primary-500 h-3 rounded-full transition-all duration-1000 ease-out"
+            :style="{ width: `${((4 - countdownNumber) / 4) * 100}%` }"
+          ></div>
+        </div>
+
+        <!-- Cancel Button -->
+        <button 
+          @click="cancelCountdown"
+          class="text-dark-400 hover:text-white transition-colors text-lg px-6 py-3 rounded-lg hover:bg-dark-700/50 transition-all"
+        >
+          Avbryt
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -247,6 +295,12 @@ import NetworkStatus from '@/components/NetworkStatus.vue'
 
 const router = useRouter()
 const workoutData = useHybridData()
+
+// Countdown state
+const showCountdown = ref(false)
+const countdownNumber = ref(3)
+const countdownInterval = ref<number | null>(null)
+const pendingSessionId = ref<string | null>(null)
 
 // Computed properties
 const filteredTemplates = computed(() => {
@@ -281,6 +335,76 @@ const getWorkoutTypeColor = (typeId: string): string => {
   return workoutData.getWorkoutTypeColor.value(typeId)
 }
 
+const getMotivationalText = (): string => {
+  const texts = [
+    'Gjør deg klar!',
+    'Fokus!',
+    'Nesten der!',
+    'Løft!'
+  ]
+  return texts[4 - countdownNumber.value] || 'Gjør deg klar!'
+}
+
+const getMotivationalSubtext = (): string => {
+  const subtexts = [
+    'Treningsøkten starter snart',
+    'Konsentrer deg på formen',
+    'Beregn deg for å løfte',
+    'La oss gjøre dette!'
+  ]
+  return subtexts[4 - countdownNumber.value] || 'Treningsøkten starter snart'
+}
+
+const startCountdown = (sessionId: string) => {
+  pendingSessionId.value = sessionId
+  showCountdown.value = true
+  countdownNumber.value = 3
+  
+  // Haptic feedback on mobile
+  if ('vibrate' in navigator) {
+    navigator.vibrate(100)
+  }
+  
+  countdownInterval.value = window.setInterval(() => {
+    countdownNumber.value--
+    
+    // Haptic feedback for each countdown number
+    if ('vibrate' in navigator && countdownNumber.value > 0) {
+      navigator.vibrate(50)
+    }
+    
+    if (countdownNumber.value <= 0) {
+      clearInterval(countdownInterval.value!)
+      countdownInterval.value = null
+      
+      // Final haptic feedback
+      if ('vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100])
+      }
+      
+      // Navigate to workout after a brief pause
+      setTimeout(() => {
+        showCountdown.value = false
+        router.push(`/workout/${sessionId}`)
+      }, 500)
+    }
+  }, 1000)
+}
+
+const cancelCountdown = () => {
+  if (countdownInterval.value) {
+    clearInterval(countdownInterval.value)
+    countdownInterval.value = null
+  }
+  showCountdown.value = false
+  pendingSessionId.value = null
+  
+  // Haptic feedback for cancellation
+  if ('vibrate' in navigator) {
+    navigator.vibrate([200, 100, 200])
+  }
+}
+
 const startWorkout = async (templateId: string) => {
   try {
     const session = await workoutData.startWorkoutSession(templateId)
@@ -288,8 +412,8 @@ const startWorkout = async (templateId: string) => {
       // Force refresh the UI data to ensure changes are visible immediately
       await workoutData.refreshUIData()
       
-      // Navigate to the workout session
-      router.push(`/workout/${session.id}`)
+      // Start countdown instead of immediate navigation
+      startCountdown(session.id)
     } else {
       alert('Kunne ikke starte økt. Prøv igjen.')
     }
@@ -368,5 +492,13 @@ const getExerciseGroups = (exercises: any[]) => {
   return groups
 }
 
+// Cleanup on component unmount
+import { onUnmounted } from 'vue'
+
+onUnmounted(() => {
+  if (countdownInterval.value) {
+    clearInterval(countdownInterval.value)
+  }
+})
 
 </script> 
