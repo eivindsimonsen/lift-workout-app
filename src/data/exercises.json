@@ -5,7 +5,7 @@
       "name": "Bench Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Armer", "Skuldre"],
+      "muscleGroups": ["Bryst", "Triceps", "Skuldre"],
       "variants": [
         {
           "id": "barbell-bench-press",
@@ -65,7 +65,7 @@
       "name": "Smith Machine Bench Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Armer", "Skuldre"],
+      "muscleGroups": ["Bryst", "Triceps", "Skuldre"],
       "variants": [
         {
           "id": "smith-machine-bench-press",
@@ -107,7 +107,7 @@
       "name": "Floor Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Armer"],
+      "muscleGroups": ["Bryst", "Triceps"],
       "variants": [
         {
           "id": "floor-press",
@@ -122,7 +122,7 @@
       "name": "Spoto Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Armer"],
+      "muscleGroups": ["Bryst", "Triceps"],
       "variants": [
         {
           "id": "spoto-press",
@@ -137,7 +137,7 @@
       "name": "Landmine Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Skuldre", "Armer"],
+      "muscleGroups": ["Bryst", "Skuldre", "Triceps"],
       "variants": [
         {
           "id": "landmine-press",
@@ -158,7 +158,7 @@
       "name": "Banded Bench Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Armer"],
+      "muscleGroups": ["Bryst", "Triceps"],
       "variants": [
         {
           "id": "banded-bench-press",
@@ -173,7 +173,7 @@
       "name": "Plate Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Armer"],
+      "muscleGroups": ["Bryst", "Triceps"],
       "variants": [
         {
           "id": "plate-press",
@@ -188,7 +188,7 @@
       "name": "Isometric Bench Press Hold",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Skuldre", "Armer"],
+      "muscleGroups": ["Bryst", "Skuldre", "Triceps"],
       "variants": [
         {
           "id": "isometric-bench-hold",
@@ -287,7 +287,7 @@
       "name": "Push-ups",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Skuldre", "Armer"],
+      "muscleGroups": ["Bryst", "Skuldre", "Triceps"],
       "variants": [
         {
           "id": "push-ups",
@@ -339,7 +339,7 @@
       "name": "Dips",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Armer"],
+      "muscleGroups": ["Bryst", "Triceps"],
       "variants": [
         {
           "id": "dips-chest",
@@ -354,7 +354,7 @@
       "name": "Machine Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Skuldre", "Armer"],
+      "muscleGroups": ["Bryst", "Skuldre", "Triceps"],
       "variants": [
         {
           "id": "seated-chest-press",
@@ -381,7 +381,7 @@
       "name": "Other Chest Exercises",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Skuldre", "Armer"],
+      "muscleGroups": ["Bryst", "Skuldre", "Triceps"],
       "variants": [
         {
           "id": "medicine-ball-chest-pass",
@@ -409,7 +409,7 @@
       "name": "Shoulder Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer"],
+      "muscleGroups": ["Skuldre", "Triceps"],
       "variants": [
         {
           "id": "overhead-press",
@@ -442,7 +442,7 @@
       "name": "Arnold Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer"],
+      "muscleGroups": ["Skuldre", "Triceps"],
       "variants": [
         {
           "id": "arnold-press",
@@ -457,7 +457,7 @@
       "name": "Z-Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer"],
+      "muscleGroups": ["Skuldre", "Triceps"],
       "variants": [
         {
           "id": "z-press",
@@ -472,7 +472,7 @@
       "name": "Bradford Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer"],
+      "muscleGroups": ["Skuldre", "Triceps"],
       "variants": [
         {
           "id": "bradford-press",
@@ -487,7 +487,7 @@
       "name": "Push Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer", "Kjerne"],
+      "muscleGroups": ["Skuldre", "Triceps", "Kjerne"],
       "variants": [
         {
           "id": "push-press",
@@ -502,7 +502,7 @@
       "name": "Landmine Press (Shoulders)",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer"],
+      "muscleGroups": ["Skuldre", "Triceps"],
       "variants": [
         {
           "id": "landmine-press-shoulders",
@@ -523,7 +523,7 @@
       "name": "Single Arm Dumbbell Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer", "Kjerne"],
+      "muscleGroups": ["Skuldre", "Triceps", "Kjerne"],
       "variants": [
         {
           "id": "single-arm-dumbbell-press",
@@ -568,7 +568,7 @@
       "name": "Overhead Cable Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer"],
+      "muscleGroups": ["Skuldre", "Triceps"],
       "variants": [
         {
           "id": "overhead-cable-press",
@@ -583,7 +583,7 @@
       "name": "Machine Shoulder Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer"],
+      "muscleGroups": ["Skuldre", "Triceps"],
       "variants": [
         {
           "id": "machine-shoulder-press",
@@ -598,7 +598,7 @@
       "name": "Smith Machine Shoulder Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer"],
+      "muscleGroups": ["Skuldre", "Triceps"],
       "variants": [
         {
           "id": "smith-machine-shoulder-press",
@@ -613,7 +613,7 @@
       "name": "Neutral Grip Dumbbell Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Skuldre", "Armer"],
+      "muscleGroups": ["Skuldre", "Triceps"],
       "variants": [
         {
           "id": "neutral-grip-dumbbell-press",
@@ -730,7 +730,7 @@
       "name": "Other Shoulder Exercises",
       "category": "Skuldre",
       "workoutTypes": ["push", "pull", "upper"],
-      "muscleGroups": ["Skuldre", "Armer", "Kjerne"],
+      "muscleGroups": ["Skuldre", "Triceps", "Kjerne"],
       "variants": [
         {
           "id": "upright-rows",
@@ -806,7 +806,7 @@
       "name": "Pull-ups",
       "category": "Rygg",
       "workoutTypes": ["pull", "upper"],
-      "muscleGroups": ["Rygg", "Armer"],
+      "muscleGroups": ["Rygg", "Biceps"],
       "variants": [
         {
           "id": "pull-ups",
@@ -902,7 +902,7 @@
       "name": "Rows",
       "category": "Rygg",
       "workoutTypes": ["pull", "upper"],
-      "muscleGroups": ["Rygg", "Armer"],
+      "muscleGroups": ["Rygg", "Biceps"],
       "variants": [
         {
           "id": "barbell-rows",
@@ -1270,9 +1270,9 @@
     {
       "id": "bicep-curls",
       "name": "Bicep Curls",
-      "category": "Armer",
+      "category": "Biceps",
       "workoutTypes": ["pull", "upper"],
-      "muscleGroups": ["Armer"],
+      "muscleGroups": ["Biceps"],
       "variants": [
         {
           "id": "bicep-curls",
@@ -1399,9 +1399,9 @@
     {
       "id": "tricep-exercises",
       "name": "Tricep Exercises",
-      "category": "Armer",
+      "category": "Triceps",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Armer"],
+      "muscleGroups": ["Triceps"],
       "variants": [
         {
           "id": "tricep-dips",
@@ -1498,9 +1498,9 @@
     {
       "id": "forearm-exercises",
       "name": "Forearm Exercises",
-      "category": "Armer",
+      "category": "Biceps",
       "workoutTypes": ["pull", "upper"],
-      "muscleGroups": ["Underarmer"],
+      "muscleGroups": ["Biceps", "Triceps"],
       "variants": [
         {
           "id": "wrist-curls",
@@ -1519,9 +1519,9 @@
     {
       "id": "other-arm",
       "name": "Other Arm Exercises",
-      "category": "Armer",
+      "category": "Kjerne",
       "workoutTypes": ["full-body"],
-      "muscleGroups": ["Armer", "Underarmer", "Kjerne"],
+      "muscleGroups": ["Biceps", "Triceps", "Kjerne"],
       "variants": [
         {
           "id": "farmer-walks",
@@ -2015,7 +2015,7 @@
       "name": "Olympic Lifts",
       "category": "Kjerne",
       "workoutTypes": ["full-body"],
-      "muscleGroups": ["Kjerne", "Ben", "Skuldre", "Armer"],
+      "muscleGroups": ["Kjerne", "Ben", "Skuldre", "Triceps"],
       "variants": [
         {
           "id": "turkish-get-ups",

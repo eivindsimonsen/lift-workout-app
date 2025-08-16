@@ -392,7 +392,9 @@ const muscleGroupDistribution = computed(() => {
     if (/(roing|row|rygg|pull|nedtrekk|mark)/.test(n)) return 'Rygg'
     if (/(kne|bøy|squat|beins|bein|leg|utfall|calf|tåhev)/.test(n)) return 'Ben'
     if (/(skuld|press|sidehev|fronthev|delt)/.test(n)) return 'Skuldre'
-    if (/(biceps|triceps|curl|dip|pushdown|arm)/.test(n)) return 'Armer'
+    if (/(biceps|curl)/.test(n)) return 'Biceps'
+    if (/(triceps|dip|pushdown|extension)/.test(n)) return 'Triceps'
+    if (/(arm)/.test(n)) return 'Biceps' // Fallback for generic arm exercises
     return 'Kjerne'
   }
   session.value.exercises.forEach(ex => {

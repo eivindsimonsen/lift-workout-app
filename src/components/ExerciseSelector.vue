@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import * as muscleGroupsData from '@/data/muscle-groups.json'
 
 interface ExerciseVariant {
   id: string
@@ -159,6 +160,8 @@ const ALIASES: Record<string, string[]> = {
   skulder: ['skuldre', 'skulder', 'shoulders', 'shoulder', 'delts', 'deltoid'],
   shoulders: ['shoulders', 'shoulder', 'skuldre', 'skulder', 'delts', 'deltoid'],
   armer: ['armer', 'arm', 'arms', 'biceps', 'triceps', 'forearms', 'underarmer'],
+  biceps: ['biceps', 'bicep', 'curl'],
+  triceps: ['triceps', 'tricep', 'extension', 'pushdown'],
   arms: ['arms', 'arm', 'armer', 'biceps', 'triceps', 'forearms', 'underarmer'],
   kjerne: ['kjerne', 'core', 'mage', 'abs'],
   core: ['core', 'kjerne', 'mage', 'abs'],
@@ -206,7 +209,7 @@ const groupedFiltered = computed<GroupSection[]>(() => {
     groups.get(key)!.push(ex)
   }
   // Sort groups in the typical order, including "Annet" at the end
-  const order = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne', 'Annet']
+  const order = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Annet']
   const byOrder = (a: string, b: string) => order.indexOf(a) - order.indexOf(b)
   return Array.from(groups.entries())
     .sort((a, b) => byOrder(a[0], b[0]))

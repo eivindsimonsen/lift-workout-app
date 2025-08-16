@@ -86,6 +86,7 @@ import { computed, ref, watch, nextTick } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
 import * as workoutTypesData from '@/data/workout-types.json'
 import * as exercisesData from '@/data/exercises.json'
+import * as muscleGroupsData from '@/data/muscle-groups.json'
 
 interface ExerciseItem {
   id: string
@@ -119,7 +120,13 @@ const selectedMuscleGroups = ref<string[]>([])
 const searchInput = ref<HTMLInputElement>()
 
 // Get all available muscle groups
-const availableMuscleGroups = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne']
+const availableMuscleGroups = computed(() => muscleGroupsData.muscleGroups.map(group => group.name))
+
+// Get muscle group colors from the JSON data
+const getMuscleGroupColor = (muscleGroup: string): string => {
+  const group = muscleGroupsData.muscleGroups.find(g => g.name === muscleGroup)
+  return group?.color || '#6b7280' // Grå som fallback
+}
 
 // Get all exercises from exercises.json
 const allExercises = computed(() => {
@@ -184,19 +191,6 @@ const filteredResults = computed(() => {
   return exercises.sort((a, b) => a.name.localeCompare(b.name, 'no'))
 })
 
-const getMuscleGroupColor = (muscleGroup: string): string => {
-  const colors: Record<string, string> = {
-    'Bryst': '#f97316',      // Oransje
-    'Rygg': '#3b82f6',      // Blå
-    'Ben': '#10b981',       // Grønn
-    'Skuldre': '#8b5cf6',   // Lilla
-    'Armer': '#f59e0b',     // Gul
-    'Kjerne': '#ef4444',    // Rød
-    'Annet': '#6b7280',    // Grå
-  }
-  return colors[muscleGroup] || '#6b7280' // Grå som fallback
-}
-
 const selectExercise = (ex: ExerciseItem) => {
   emit('select', ex.id)
 }
@@ -204,17 +198,18 @@ const selectExercise = (ex: ExerciseItem) => {
 // Function to get default muscle groups based on workout type
 const getDefaultMuscleGroups = (workoutType: string): string[] => {
   const muscleGroupMap: Record<string, string[]> = {
-    'push': ['Bryst', 'Skuldre', 'Armer'],
-    'pull': ['Rygg', 'Armer'],
+    'push': ['Bryst', 'Skuldre', 'Triceps'],
+    'pull': ['Rygg', 'Biceps'],
     'legs': ['Ben'],
-    'upper': ['Bryst', 'Rygg', 'Skuldre', 'Armer'],
+    'upper': ['Bryst', 'Rygg', 'Skuldre', 'Biceps', 'Triceps'],
     'lower': ['Ben', 'Kjerne'],
-    'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Armer', 'Kjerne'],
+    'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne'],
     'bryst': ['Bryst'],
     'rygg': ['Rygg'],
     'ben': ['Ben'],
     'skuldre': ['Skuldre'],
-    'armer': ['Armer'],
+    'biceps': ['Biceps'],
+    'triceps': ['Triceps'],
     'kjerne': ['Kjerne']
   }
   

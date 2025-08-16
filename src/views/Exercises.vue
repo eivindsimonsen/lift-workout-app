@@ -155,7 +155,7 @@
               >
                 <div class="flex items-center justify-between">
                   <div class="flex-1 min-w-0">
-                    <h3 class="font-medium text-white text-sm truncate">{{ exercise.name }}</h3>
+                    <h3 class="font-medium text-white text-sm truncate text-gray-400">{{ exercise.name }}</h3>
                     <div class="flex items-center gap-2 mt-1">
                       <span v-if="exercise.totalSessions > 0" class="text-xs text-primary-400">
                         {{ exercise.totalSessions }} økter
@@ -169,7 +169,7 @@
               </div>
 
               <!-- Variants -->
-              <div v-if="exercise.variants && exercise.variants.length > 0" class="p-3">
+              <div v-if="exercise.variants && exercise.variants.length > 0" class="pt-2">
                 <div class="grid grid-cols-2 gap-3">
                   <div 
                     v-for="variant in exercise.variants" 
@@ -316,7 +316,7 @@ const searchResults = computed(() => {
 
 
 // Muscle group order for categorization
-const muscleGroupOrder = ['Bryst', 'Rygg', 'Ben', 'Armer', 'Skuldre', 'Kjerne']
+const muscleGroupOrder = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne']
 
 // Computed properties
 const isLoading = computed(() => workoutData.isLoading.value)
@@ -543,12 +543,12 @@ const activeExercises = computed(() => {
 })
 
 const categories = computed(() => {
-  // Get all unique muscle groups from exercises
+  // Get all unique primary muscle groups from exercises
   const allMuscleGroups = new Set<string>()
   allExercises.value?.forEach((exercise: any) => {
-    exercise.muscleGroups?.forEach((group: string) => {
-      allMuscleGroups.add(group)
-    })
+    if (exercise.muscleGroups && exercise.muscleGroups.length > 0) {
+      allMuscleGroups.add(exercise.muscleGroups[0])
+    }
   })
   
   // Return muscle groups in the defined order, only if they exist
@@ -568,7 +568,10 @@ const getCategoryName = (muscleGroup: string): string => {
 }
 
 const getExercisesByCategory = (muscleGroup: string) => {
-  return allExercises.value?.filter(exercise => exercise.muscleGroups?.includes(muscleGroup)) || []
+  return allExercises.value?.filter(exercise => {
+    // Only show exercises under their primary muscle group (first in the array)
+    return exercise.muscleGroups?.[0] === muscleGroup
+  }) || []
 }
 
 const viewExercise = (exerciseId: string) => {
