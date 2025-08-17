@@ -398,8 +398,6 @@ const isSyncingPendingChanges = ref(false)
 const scrollPositionKey = computed(() => `workout-session-scroll-${route.params.id}`)
 const shouldRestoreScroll = ref(false)
 const scrollUpdateTimeout = ref<NodeJS.Timeout | null>(null)
-const isInitialLoad = ref(true)
-const lastSessionAccessKey = computed(() => `workout-session-last-access-${route.params.id}`)
 
 
 // Computed
@@ -1173,10 +1171,7 @@ const restoreScrollPosition = () => {
       const scrollY = parseInt(savedPosition, 10)
       const currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
       
-      // Only restore if the stored position is significantly different from current position
-      // This prevents unnecessary scrolling when the PWA app is opened fresh
-      // Also check if this is not the initial load to prevent scrolling on app open
-      if (scrollY > 50 && Math.abs(currentScroll - scrollY) > 100 && !isInitialLoad.value) {
+      if (scrollY > 0) {
         console.log('📱 Attempting to restore scroll position:', scrollY, '(current:', currentScroll, ')')
         
         // Use nextTick to ensure DOM is fully rendered
@@ -1225,8 +1220,7 @@ const restoreScrollPosition = () => {
 const clearScrollPosition = () => {
   try {
     localStorage.removeItem(scrollPositionKey.value)
-    localStorage.removeItem(lastSessionAccessKey.value)
-    console.log('📱 Cleared scroll position and last access time for session:', route.params.id)
+    console.log('📱 Cleared scroll position for session:', route.params.id)
   } catch (error) {
     console.warn('⚠️ Failed to clear scroll position:', error)
   }
@@ -1272,8 +1266,8 @@ const saveScrollPositionEnhanced = () => {
 
 // Handle app state changes (important for PWA)
 const handleAppStateChange = () => {
-  if (document.visibilityState === 'visible' && shouldRestoreScroll.value && !isInitialLoad.value) {
-    // App became visible again, restore scroll position (but not on initial load)
+  if (document.visibilityState === 'visible' && shouldRestoreScroll.value) {
+    // App became visible again, restore scroll position
     console.log('📱 App became visible, restoring scroll position')
     setTimeout(() => {
       restoreScrollPosition()
@@ -1284,7 +1278,7 @@ const handleAppStateChange = () => {
 // Handle page focus events (important for mobile/PWA)
 const handlePageFocus = () => {
   // When page regains focus, check if we should restore scroll
-  if (document.visibilityState === 'visible' && shouldRestoreScroll.value && !isInitialLoad.value) {
+  if (document.visibilityState === 'visible' && shouldRestoreScroll.value) {
     console.log('📱 Page regained focus, checking for scroll restoration')
     
     // Check if we're on mobile/PWA
@@ -1307,7 +1301,7 @@ const handlePageFocus = () => {
 
 // Handle mobile keyboard appearance and viewport changes
 const handleMobileViewportChange = () => {
-  if (shouldRestoreScroll.value && !isInitialLoad.value) {
+  if (shouldRestoreScroll.value) {
     // When mobile keyboard appears/disappears, we need to re-check scroll position
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     if (isMobile) {
