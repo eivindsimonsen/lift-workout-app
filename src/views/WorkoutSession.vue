@@ -398,6 +398,8 @@ const isSyncingPendingChanges = ref(false)
 const scrollPositionKey = computed(() => `workout-session-scroll-${route.params.id}`)
 const shouldRestoreScroll = ref(false)
 const scrollUpdateTimeout = ref<NodeJS.Timeout | null>(null)
+const isInitialLoad = ref(true)
+const lastSessionAccessKey = computed(() => `workout-session-last-access-${route.params.id}`)
 
 
 // Computed
@@ -1169,8 +1171,13 @@ const restoreScrollPosition = () => {
     
     if (savedPosition && shouldRestoreScroll.value) {
       const scrollY = parseInt(savedPosition, 10)
-      if (scrollY > 0) {
-        console.log('📱 Attempting to restore scroll position:', scrollY)
+      const currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
+      
+      // Only restore if the stored position is significantly different from current position
+      // This prevents unnecessary scrolling when the PWA app is opened fresh
+      // Also check if this is not the initial load to prevent scrolling on app open
+      if (scrollY > 50 && Math.abs(currentScroll - scrollY) > 100 && !isInitialLoad.value) {
+        console.log('📱 Attempting to restore scroll position:', scrollY, '(current:', currentScroll, ')')
         
         // Use nextTick to ensure DOM is fully rendered
         nextTick(() => {
@@ -1218,7 +1225,8 @@ const restoreScrollPosition = () => {
 const clearScrollPosition = () => {
   try {
     localStorage.removeItem(scrollPositionKey.value)
-    console.log('📱 Cleared scroll position for session:', route.params.id)
+    localStorage.removeItem(lastSessionAccessKey.value)
+    console.log('📱 Cleared scroll position and last access time for session:', route.params.id)
   } catch (error) {
     console.warn('⚠️ Failed to clear scroll position:', error)
   }
@@ -1264,8 +1272,8 @@ const saveScrollPositionEnhanced = () => {
 
 // Handle app state changes (important for PWA)
 const handleAppStateChange = () => {
-  if (document.visibilityState === 'visible' && shouldRestoreScroll.value) {
-    // App became visible again, restore scroll position
+  if (document.visibilityState === 'visible' && shouldRestoreScroll.value && !isInitialLoad.value) {
+    // App became visible again, restore scroll position (but not on initial load)
     console.log('📱 App became visible, restoring scroll position')
     setTimeout(() => {
       restoreScrollPosition()
@@ -1276,7 +1284,7 @@ const handleAppStateChange = () => {
 // Handle page focus events (important for mobile/PWA)
 const handlePageFocus = () => {
   // When page regains focus, check if we should restore scroll
-  if (document.visibilityState === 'visible' && shouldRestoreScroll.value) {
+  if (document.visibilityState === 'visible' && shouldRestoreScroll.value && !isInitialLoad.value) {
     console.log('📱 Page regained focus, checking for scroll restoration')
     
     // Check if we're on mobile/PWA
@@ -1299,7 +1307,7 @@ const handlePageFocus = () => {
 
 // Handle mobile keyboard appearance and viewport changes
 const handleMobileViewportChange = () => {
-  if (shouldRestoreScroll.value) {
+  if (shouldRestoreScroll.value && !isInitialLoad.value) {
     // When mobile keyboard appears/disappears, we need to re-check scroll position
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     if (isMobile) {
@@ -1343,7 +1351,22 @@ onMounted(async () => {
   
   // Check if we should restore scroll position (returning to same session)
   const hasStoredPosition = localStorage.getItem(scrollPositionKey.value)
-  shouldRestoreScroll.value = !!hasStoredPosition
+  const lastAccessTime = localStorage.getItem(lastSessionAccessKey.value)
+  const currentTime = Date.now()
+  
+  // Check if this is a fresh app open or returning to an existing session
+  // If more than 5 minutes have passed since last access, treat as fresh open
+  const isFreshAppOpen = !lastAccessTime || (currentTime - parseInt(lastAccessTime, 10)) > 5 * 60 * 1000
+  const isReturningToSession = !!hasStoredPosition && !isFreshAppOpen
+  
+  // Only restore scroll if we're actually returning to a session (not just opening the app)
+  // Check if the stored position is significantly different from current position
+  const currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
+  const storedPosition = hasStoredPosition ? parseInt(hasStoredPosition, 10) : 0
+  
+  // Only restore scroll if we have a stored position AND we're not already at the top
+  // This prevents unnecessary scrolling when the PWA app is opened fresh
+  shouldRestoreScroll.value = isReturningToSession && storedPosition > 50 && currentScroll < 100 && !isInitialLoad.value
   
   // Check if we're on mobile/PWA
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -1355,7 +1378,10 @@ onMounted(async () => {
     shouldRestoreScroll: shouldRestoreScroll.value,
     storedPosition: hasStoredPosition ? parseInt(hasStoredPosition, 10) : null,
     isMobile,
-    isPWA
+    isPWA,
+    lastAccessTime: lastAccessTime ? new Date(parseInt(lastAccessTime, 10)).toISOString() : null,
+    isFreshAppOpen,
+    isReturningToSession
   })
   
   // Wait for data to be loaded if it's still loading
@@ -1381,8 +1407,11 @@ onMounted(async () => {
         session.value = retrySession
         startTime.value = new Date(retrySession.date)
         
-        // Restore scroll position after session is loaded
-        if (shouldRestoreScroll.value) {
+        // Update last access time for this session
+        localStorage.setItem(lastSessionAccessKey.value, currentTime.toString())
+        
+        // Restore scroll position after session is loaded (but not on initial app open)
+        if (shouldRestoreScroll.value && !isInitialLoad.value) {
           // Use longer delay for mobile/PWA
           const delay = (isMobile || isPWA) ? 1000 : 500
           setTimeout(() => {
@@ -1403,8 +1432,11 @@ onMounted(async () => {
   session.value = foundSession
   startTime.value = new Date(foundSession.date)
   
-  // Restore scroll position after session is loaded
-  if (shouldRestoreScroll.value) {
+  // Update last access time for this session
+  localStorage.setItem(lastSessionAccessKey.value, currentTime.toString())
+  
+  // Restore scroll position after session is loaded (but not on initial app open)
+  if (shouldRestoreScroll.value && !isInitialLoad.value) {
     // Use longer delay for mobile/PWA to ensure everything is stable
     const delay = (isMobile || isPWA) ? 1000 : 500
     console.log(`📱 Will restore scroll position in ${delay}ms (mobile: ${isMobile}, PWA: ${isPWA})`)
@@ -1415,6 +1447,15 @@ onMounted(async () => {
   
   // Initial state update to App.vue
   updateAppSaveState()
+  
+  // Mark initial load as complete after a short delay
+  setTimeout(() => {
+    isInitialLoad.value = false
+    console.log('📱 Initial load complete, scroll restoration enabled')
+  }, 1000)
+  
+  // Update last access time for this session
+  localStorage.setItem(lastSessionAccessKey.value, currentTime.toString())
   
   // Add keyboard shortcut for saving (Ctrl+S)
   const handleKeydown = (event: KeyboardEvent) => {
@@ -1531,9 +1572,10 @@ onMounted(async () => {
 
 // Watch for route changes to warn about unsaved changes
 watch(() => route.params.id, async (newId, oldId) => {
-  if (newId && newId !== oldId) {
+  // Only handle actual route changes, not when returning to the same session
+  if (newId && oldId && newId !== oldId) {
     // Save scroll position before navigating away
-    if (oldId && shouldRestoreScroll.value) {
+    if (shouldRestoreScroll.value) {
       saveScrollPosition()
     }
     
@@ -1552,12 +1594,19 @@ watch(() => route.params.id, async (newId, oldId) => {
       startTime.value = new Date(foundSession.date)
       hasUnsavedChanges.value = false // Reset for new session
       
+      // Update last access time for this session
+      localStorage.setItem(lastSessionAccessKey.value, Date.now().toString())
+      
       // Check if we should restore scroll position for new session
       const hasStoredPosition = localStorage.getItem(scrollPositionKey.value)
-      shouldRestoreScroll.value = !!hasStoredPosition
+      const isReturningToSession = !!hasStoredPosition
       
-      // Restore scroll position for new session if available
-      if (shouldRestoreScroll.value) {
+      // Only restore scroll if we have a stored position AND it's significantly different from top
+      const storedPosition = hasStoredPosition ? parseInt(hasStoredPosition, 10) : 0
+      shouldRestoreScroll.value = isReturningToSession && storedPosition > 50
+      
+      // Restore scroll position for new session if available (but not on initial app open)
+      if (shouldRestoreScroll.value && !isInitialLoad.value) {
         // Check if we're on mobile/PWA for better timing
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
         const isPWA = window.matchMedia('(display-mode: standalone)').matches
