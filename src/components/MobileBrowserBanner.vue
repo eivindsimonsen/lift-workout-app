@@ -155,9 +155,14 @@ const handleAppInstalled = () => {
 onMounted(() => {
   detectPlatformAndBrowser()
   
-    if (isMobileBrowser() && !hasInstalledPWA() && !isDevelopment.value) {
-    showBlocker.value = true
+  if (isMobileBrowser() && !hasInstalledPWA()) {
+      showBlocker.value = false
   }
+  
+  // TODO: Uncomment this when we have a production build
+  /* if (isMobileBrowser() && !hasInstalledPWA() && !isDevelopment.value) {
+      showBlocker.value = true
+  } */
   
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.addEventListener('appinstalled', handleAppInstalled)

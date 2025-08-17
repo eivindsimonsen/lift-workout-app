@@ -444,7 +444,7 @@ watch(() => route.path, (newPath, oldPath) => {
       
     } else {
       // Browser version - use smooth scrolling
-      console.log('📱 Browser route change, resetting scroll to top')
+      console.log('📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱 Browser route change, resetting scroll to top')
       window.scrollTo({ top: 0, behavior: 'smooth' })
       
       if (mainContent.value) {
