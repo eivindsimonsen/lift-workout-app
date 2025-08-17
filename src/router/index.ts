@@ -38,17 +38,7 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior(to, from, savedPosition) {
-    // Special handling for workout sessions - allow scroll restoration
-    if (to.name === 'WorkoutSession' && from.name === 'WorkoutSession') {
-      // Same route type, allow scroll restoration
-      if (savedPosition) {
-        return savedPosition;
-      }
-      // Don't force scroll to top for workout sessions
-      return false;
-    }
-    
+  scrollBehavior(to: any, from: any, savedPosition: any) {
     // Always scroll to top when navigating to a new route
     if (to.path !== from.path) {
       return { top: 0, behavior: "smooth" };

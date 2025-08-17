@@ -1127,6 +1127,43 @@ const cleanupSessionData = async (sessionData: WorkoutSession): Promise<WorkoutS
 // Computed property for development mode check
 const isDevelopment = computed(() => import.meta.env.DEV)
 
+// Scroll position persistence - only for this component, doesn't affect route navigation
+const saveScrollPosition = () => {
+  if (!session.value) return
+  
+  const scrollPosition = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
+  const sessionId = session.value.id
+  
+  // Save to sessionStorage (survives page reloads)
+  sessionStorage.setItem(`workout-scroll-${sessionId}`, scrollPosition.toString())
+  
+  // Also save to localStorage as backup
+  localStorage.setItem(`workout-scroll-${sessionId}`, scrollPosition.toString())
+  
+  console.log('💾 Saved scroll position:', { sessionId, scrollPosition })
+}
+
+const restoreScrollPosition = () => {
+  if (!session.value) return
+  
+  const sessionId = session.value.id
+  
+  // Try sessionStorage first, then localStorage as fallback
+  const savedPosition = sessionStorage.getItem(`workout-scroll-${sessionId}`) || 
+                       localStorage.getItem(`workout-scroll-${sessionId}`)
+  
+  if (savedPosition) {
+    const position = parseInt(savedPosition)
+    console.log('🔄 Restoring scroll position:', { sessionId, position })
+    
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      window.scrollTo(0, position)
+      console.log('✅ Scroll position restored to:', position)
+    })
+  }
+}
+
 // Lifecycle
 onMounted(async () => {
   const sessionId = route.params.id as string
@@ -1213,6 +1250,31 @@ onMounted(async () => {
   // Update pending changes count on mount
   await updatePendingChangesCount()
   
+  // Save scroll position when user scrolls (only affects this component)
+  const handleScroll = () => {
+    saveScrollPosition()
+  }
+  
+  // Add scroll event listener
+  window.addEventListener('scroll', handleScroll)
+  
+  // Restore scroll position after a short delay to ensure DOM is ready
+  setTimeout(() => {
+    restoreScrollPosition()
+  }, 300)
+  
+  // Also restore scroll position when the page becomes visible (handles service worker reloads)
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      console.log('👁️ Page became visible, restoring scroll position')
+      setTimeout(() => {
+        restoreScrollPosition()
+      }, 100)
+    }
+  }
+  
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  
   // Add beforeunload listener to warn about unsaved changes
   const handleBeforeUnload = (event: BeforeUnloadEvent) => {
     if (hasUnsavedChanges.value) {
@@ -1225,12 +1287,15 @@ onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
   window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener('scroll', handleScroll)
   
   // Cleanup on unmount
   onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
     window.removeEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
     window.removeEventListener('beforeunload', handleBeforeUnload)
+    window.removeEventListener('scroll', handleScroll)
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
   })
 })
 

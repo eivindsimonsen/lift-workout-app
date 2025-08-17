@@ -191,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
@@ -399,66 +399,5 @@ watch(() => workoutData.isLoading.value, (newValue) => {
   }
 }, { immediate: true })
 
-// Watch for route changes to reset scroll position
-watch(() => route.path, (newPath, oldPath) => {
-  // Only handle actual route changes, not when the app is first opened
-  if (!oldPath || newPath === oldPath) {
-    console.log('📱 App opened fresh or no route change, preserving scroll position')
-    return
-  }
-  
-  // Use nextTick to ensure DOM is updated before scrolling
-  nextTick(() => {
-    // Check if we're navigating between workout sessions
-    const isWorkoutToWorkout = newPath.includes('/workout/')
-    
-    // Don't reset scroll for workout session navigation (let the component handle it)
-    if (isWorkoutToWorkout) {
-      console.log('📱Navigating to workout session, preserving scroll behavior ' + isWorkoutToWorkout);
-      return;
-    }
-    
-    // Reset scroll position when route changes to non-workout routes
-    
-    // Check if we're in PWA mode
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches
-    
-    if (isPWA) {
-      // PWA-specific scroll reset - but only for actual navigation
-      console.log('📱 PWA route change, resetting scroll to top')
-      window.scrollTo({ top: 0, behavior: 'auto' })
-      
-      // Reset main content
-      if (mainContent.value) {
-        mainContent.value.scrollTop = 0
-      }
-      
-      // Reset body and document element
-      if (document.body) {
-        document.body.scrollTop = 0
-      }
-      
-      if (document.documentElement) {
-        document.documentElement.scrollTop = 0
-      }
-      
-    } else {
-      // Browser version - use smooth scrolling
-      console.log('📱 Browser route change, resetting scroll to top')
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-      
-      if (mainContent.value) {
-        mainContent.value.scrollTop = 0
-      }
-      
-      if (document.body) {
-        document.body.scrollTop = 0
-      }
-      
-      if (document.documentElement) {
-        document.documentElement.scrollTop = 0
-      }
-    }
-  })
-})
+// Router's scrollBehavior handles scrolling to top on route changes automatically
 </script> 
