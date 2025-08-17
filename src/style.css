@@ -30,6 +30,29 @@
     height: 100% !important;
   }
 
+  /* Mobile-specific scroll behavior */
+  @media (max-width: 768px) {
+    html,
+    body {
+      -webkit-overflow-scrolling: touch;
+      overflow-scrolling: touch;
+      scroll-behavior: auto; /* Force immediate scroll on mobile */
+    }
+
+    /* Ensure main content can be scrolled on mobile */
+    main {
+      -webkit-overflow-scrolling: touch;
+      overflow-scrolling: touch;
+      scroll-behavior: auto;
+    }
+
+    /* Force scroll to top on mobile route changes */
+    body.route-transitioning main {
+      scroll-top: 0 !important;
+      -webkit-scroll-top: 0 !important;
+    }
+  }
+
   #app {
     min-height: 100vh;
     min-height: 100dvh; /* Dynamic viewport height for mobile */
@@ -131,6 +154,14 @@
     /* Better touch scrolling */
     * {
       -webkit-overflow-scrolling: touch;
+    }
+
+    /* Force immediate scroll behavior in PWA mode */
+    html,
+    body,
+    main {
+      scroll-behavior: auto !important;
+      -webkit-scroll-behavior: auto !important;
     }
 
     /* Prevent zoom on input focus for iOS */

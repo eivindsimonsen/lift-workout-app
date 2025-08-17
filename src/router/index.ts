@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useSupabase } from "@/composables/useSupabase";
-import { scrollToTopGlobal, scrollToTopImmediate } from "@/composables/useScrollToTop";
+import { scrollToTopGlobal, scrollToTopImmediate, scrollToTopMobile } from "@/composables/useScrollToTop";
 
 // View imports
 import TemplateSessions from "@/views/TemplateSessions.vue";
@@ -42,12 +42,25 @@ const router = createRouter({
   scrollBehavior(to: any, from: any, savedPosition: any) {
     // Always scroll to top when navigating to a new route
     if (to.path !== from.path) {
-      return { top: 0, behavior: "smooth" };
+      // For mobile, use immediate scroll to prevent issues
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
+
+      if (isMobile) {
+        return { top: 0, behavior: "auto" };
+      } else {
+        return { top: 0, behavior: "smooth" };
+      }
     }
 
     // If navigating to the same route with different params, also scroll to top
     if (to.name === from.name && to.params !== from.params) {
-      return { top: 0, behavior: "smooth" };
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
+
+      if (isMobile) {
+        return { top: 0, behavior: "auto" };
+      } else {
+        return { top: 0, behavior: "smooth" };
+      }
     }
 
     // If there's a saved position (browser back/forward), restore it
@@ -56,7 +69,13 @@ const router = createRouter({
     }
 
     // Default: always scroll to top
-    return { top: 0, behavior: "smooth" };
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
+
+    if (isMobile) {
+      return { top: 0, behavior: "auto" };
+    } else {
+      return { top: 0, behavior: "smooth" };
+    }
   },
 });
 
@@ -120,8 +139,17 @@ router.afterEach((to: any, from: any) => {
   // Force scroll to top after navigation
   if (to.path !== from.path) {
     console.log("🔄 Router navigation detected:", { from: from.path, to: to.path });
-    // Use immediate scroll to prevent flicker
-    scrollToTopImmediate();
+
+    // Detect mobile and use appropriate scroll method
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
+
+    if (isMobile) {
+      console.log("📱 Using mobile-specific scroll");
+      scrollToTopMobile();
+    } else {
+      console.log("💻 Using desktop scroll");
+      scrollToTopImmediate();
+    }
 
     // Release scroll lock after a short delay
     setTimeout(() => {

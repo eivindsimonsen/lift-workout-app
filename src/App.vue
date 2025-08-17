@@ -203,7 +203,7 @@ import OfflineIndicator from '@/components/OfflineIndicator.vue'
 import MobileBrowserBanner from '@/components/MobileBrowserBanner.vue'
 
 import { useErrorHandler } from '@/composables/useErrorHandler'
-import { scrollToTopGlobal, scrollToTopImmediate } from '@/composables/useScrollToTop'
+import { scrollToTopGlobal, scrollToTopImmediate, scrollToTopMobile } from '@/composables/useScrollToTop'
 
 const route = useRoute()
 const router = useRouter()
@@ -349,6 +349,9 @@ onMounted(async () => {
 
   // Expose scroll to top method globally
   ;(window as any).scrollToTop = scrollToTop
+  
+  // Also expose mobile-specific scroll method
+  ;(window as any).scrollToTopMobile = scrollToTopMobile
 
   // Auto-save is handled automatically, no manual save needed
   const handleKeydown = (event: KeyboardEvent) => {
@@ -391,6 +394,7 @@ onMounted(async () => {
     
     // Remove global scroll method
     delete (window as any).scrollToTop
+    delete (window as any).scrollToTopMobile
   })
 })
 
@@ -422,8 +426,18 @@ watch(() => route.path, (newPath, oldPath) => {
   if (oldPath && newPath !== oldPath) {
     console.log('🔄 App route watcher detected:', { from: oldPath, to: newPath })
     
-    // Use immediate scroll to prevent flicker (router handles scroll locking)
-    scrollToTopImmediate()
+    // Detect mobile and use appropriate scroll method
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                    window.innerWidth <= 768 ||
+                    'ontouchstart' in window;
+    
+    if (isMobile) {
+      console.log('📱 Using mobile-specific scroll in App watcher');
+      scrollToTopMobile();
+    } else {
+      console.log('💻 Using desktop scroll in App watcher');
+      scrollToTopImmediate();
+    }
     
     // Additional fallback: also scroll the main content area if it exists
     if (mainContent.value) {
