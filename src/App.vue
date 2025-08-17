@@ -410,12 +410,12 @@ watch(() => route.path, (newPath, oldPath) => {
   // Use nextTick to ensure DOM is updated before scrolling
   nextTick(() => {
     // Check if we're navigating between workout sessions
-    const isWorkoutToWorkout = newPath.startsWith('/workout/')
+    const isWorkoutToWorkout = newPath.includes('/workout/')
     
     // Don't reset scroll for workout session navigation (let the component handle it)
     if (isWorkoutToWorkout) {
-      console.log('📱 Navigating to workout session, preserving scroll behavior')
-      return
+      console.log('📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱 Navigating to workout session, preserving scroll behavior ' + isWorkoutToWorkout);
+      return;
     }
     
     // Reset scroll position when route changes to non-workout routes
