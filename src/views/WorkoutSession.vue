@@ -127,7 +127,7 @@
                   <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  <span>Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
+                  <span class="whitespace-nowrap overflow-hidden text-ellipsis">Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
                 </div>
               </div>
             
@@ -817,6 +817,15 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   
   const exercise = session.value.exercises[exerciseIndex]
   
+  // Show confirmation dialog before removing
+  const confirmMessage = exercise.sets.length <= 1 
+    ? `Dette er det siste settet for "${exercise.name}". Øvelsen vil bli fjernet fra økten. Er du sikker?`
+    : `Er du sikker på at du vil fjerne sett ${setIndex + 1} fra "${exercise.name}"?`
+  
+  if (!confirm(confirmMessage)) {
+    return
+  }
+  
   // If this is the last set of the exercise, remove the entire exercise
   if (exercise.sets.length <= 1) {
     session.value.exercises.splice(exerciseIndex, 1)
@@ -1163,15 +1172,37 @@ const restoreScrollPosition = () => {
         
         // Use nextTick to ensure DOM is fully rendered
         nextTick(() => {
-          // Small delay to ensure everything is rendered and stable
+          // Longer delay for mobile/PWA to ensure everything is stable
           setTimeout(() => {
             try {
-              window.scrollTo({ top: scrollY, behavior: 'auto' })
-              console.log('📱 Successfully restored scroll position to:', scrollY)
+              // Check if we're on mobile/PWA
+              const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+              const isPWA = window.matchMedia('(display-mode: standalone)').matches
+              
+              if (isMobile || isPWA) {
+                // For mobile/PWA, use a more reliable scroll method
+                document.documentElement.scrollTop = scrollY
+                document.body.scrollTop = scrollY
+                console.log('📱 Mobile/PWA scroll restored to:', scrollY)
+                
+                // Double-check and retry if needed for mobile
+                setTimeout(() => {
+                  const currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
+                  if (Math.abs(currentScroll - scrollY) > 50) {
+                    console.log('📱 Mobile scroll position mismatch, retrying...')
+                    document.documentElement.scrollTop = scrollY
+                    document.body.scrollTop = scrollY
+                  }
+                }, 200)
+              } else {
+                // For desktop, use the standard method
+                window.scrollTo({ top: scrollY, behavior: 'auto' })
+                console.log('📱 Desktop scroll restored to:', scrollY)
+              }
             } catch (error) {
               console.warn('⚠️ Failed to restore scroll position:', error)
             }
-          }, 150) // Increased delay for better reliability
+          }, 300) // Increased delay for better reliability on mobile
         })
       }
     } else {
@@ -1206,6 +1237,29 @@ const updateCurrentScrollPosition = () => {
   }
 }
 
+// Enhanced scroll position saving for mobile
+const saveScrollPositionEnhanced = () => {
+  try {
+    if (!shouldRestoreScroll.value) return
+    
+    const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
+    if (scrollY > 0) {
+      // Save to localStorage
+      localStorage.setItem(scrollPositionKey.value, scrollY.toString())
+      
+      // Also save to sessionStorage as backup for mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      if (isMobile) {
+        sessionStorage.setItem(scrollPositionKey.value, scrollY.toString())
+      }
+      
+      console.log('📱 Enhanced scroll position saved:', scrollY, '(mobile backup:', isMobile, ')')
+    }
+  } catch (error) {
+    console.warn('⚠️ Failed to save enhanced scroll position:', error)
+  }
+}
+
 // Handle app state changes (important for PWA)
 const handleAppStateChange = () => {
   if (document.visibilityState === 'visible' && shouldRestoreScroll.value) {
@@ -1213,7 +1267,53 @@ const handleAppStateChange = () => {
     console.log('📱 App became visible, restoring scroll position')
     setTimeout(() => {
       restoreScrollPosition()
-    }, 300) // Longer delay for PWA state changes
+    }, 500) // Much longer delay for PWA state changes
+  }
+}
+
+// Handle page focus events (important for mobile/PWA)
+const handlePageFocus = () => {
+  // When page regains focus, check if we should restore scroll
+  if (document.visibilityState === 'visible' && shouldRestoreScroll.value) {
+    console.log('📱 Page regained focus, checking for scroll restoration')
+    
+    // Check if we're on mobile/PWA
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches
+    
+    if (isMobile || isPWA) {
+      // For mobile/PWA, use a longer delay to ensure everything is stable
+      setTimeout(() => {
+        restoreScrollPosition()
+      }, 800) // Much longer delay for mobile/PWA
+    } else {
+      // For desktop, use a shorter delay
+      setTimeout(() => {
+        restoreScrollPosition()
+      }, 300)
+    }
+  }
+}
+
+// Handle mobile keyboard appearance and viewport changes
+const handleMobileViewportChange = () => {
+  if (shouldRestoreScroll.value) {
+    // When mobile keyboard appears/disappears, we need to re-check scroll position
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    if (isMobile) {
+      console.log('📱 Mobile viewport changed, checking scroll position')
+      setTimeout(() => {
+        const savedPosition = localStorage.getItem(scrollPositionKey.value)
+        if (savedPosition) {
+          const scrollY = parseInt(savedPosition, 10)
+          const currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
+          if (Math.abs(currentScroll - scrollY) > 50) {
+            console.log('📱 Mobile viewport change caused scroll mismatch, restoring...')
+            restoreScrollPosition()
+          }
+        }
+      }, 300)
+    }
   }
 }
 
@@ -1243,11 +1343,17 @@ onMounted(async () => {
   const hasStoredPosition = localStorage.getItem(scrollPositionKey.value)
   shouldRestoreScroll.value = !!hasStoredPosition
   
+  // Check if we're on mobile/PWA
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches
+  
   console.log('📱 WorkoutSession mounted:', {
     sessionId,
     hasStoredPosition,
     shouldRestoreScroll: shouldRestoreScroll.value,
-    storedPosition: hasStoredPosition ? parseInt(hasStoredPosition, 10) : null
+    storedPosition: hasStoredPosition ? parseInt(hasStoredPosition, 10) : null,
+    isMobile,
+    isPWA
   })
   
   // Wait for data to be loaded if it's still loading
@@ -1275,7 +1381,11 @@ onMounted(async () => {
         
         // Restore scroll position after session is loaded
         if (shouldRestoreScroll.value) {
-          restoreScrollPosition()
+          // Use longer delay for mobile/PWA
+          const delay = (isMobile || isPWA) ? 1000 : 500
+          setTimeout(() => {
+            restoreScrollPosition()
+          }, delay)
         }
         return
       }
@@ -1293,7 +1403,12 @@ onMounted(async () => {
   
   // Restore scroll position after session is loaded
   if (shouldRestoreScroll.value) {
-    restoreScrollPosition()
+    // Use longer delay for mobile/PWA to ensure everything is stable
+    const delay = (isMobile || isPWA) ? 1000 : 500
+    console.log(`📱 Will restore scroll position in ${delay}ms (mobile: ${isMobile}, PWA: ${isPWA})`)
+    setTimeout(() => {
+      restoreScrollPosition()
+    }, delay)
   }
   
   // Initial state update to App.vue
@@ -1367,7 +1482,8 @@ onMounted(async () => {
     }
     
     scrollUpdateTimeout.value = setTimeout(() => {
-      updateCurrentScrollPosition()
+      // Use enhanced saving for better mobile reliability
+      saveScrollPositionEnhanced()
     }, 100) // Update scroll position 100ms after scrolling stops
   }
   
@@ -1378,6 +1494,12 @@ onMounted(async () => {
   window.addEventListener('focus', handlePageFocus)
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('appstatechange', handleAppStateChange) // Add this listener
+  window.addEventListener('resize', handleMobileViewportChange) // Add this listener
+  
+  // Add visual viewport change listener for mobile keyboard detection
+  if ('visualViewport' in window) {
+    window.visualViewport?.addEventListener('resize', handleMobileViewportChange)
+  }
   
   // Cleanup on unmount
   onUnmounted(() => {
@@ -1388,6 +1510,12 @@ onMounted(async () => {
     window.removeEventListener('focus', handlePageFocus)
     window.removeEventListener('scroll', handleScroll)
     window.removeEventListener('appstatechange', handleAppStateChange) // Remove this listener
+    window.removeEventListener('resize', handleMobileViewportChange) // Remove this listener
+    
+    // Remove visual viewport listener if it exists
+    if ('visualViewport' in window) {
+      window.visualViewport?.removeEventListener('resize', handleMobileViewportChange)
+    }
     
     // Clear any pending scroll update timeout
     if (scrollUpdateTimeout.value) {
@@ -1428,7 +1556,15 @@ watch(() => route.params.id, async (newId, oldId) => {
       
       // Restore scroll position for new session if available
       if (shouldRestoreScroll.value) {
-        restoreScrollPosition()
+        // Check if we're on mobile/PWA for better timing
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches
+        const delay = (isMobile || isPWA) ? 1000 : 500
+        
+        console.log(`📱 Route change: will restore scroll position in ${delay}ms (mobile: ${isMobile}, PWA: ${isPWA})`)
+        setTimeout(() => {
+          restoreScrollPosition()
+        }, delay)
       }
     }
   }
