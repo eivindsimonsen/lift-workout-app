@@ -400,8 +400,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useHybridData } from '@/composables/useHybridData'
+import { useScrollToTop } from '@/composables/useScrollToTop'
 
 const workoutData = useHybridData()
+
+// Ensure scrolling to top when component mounts
+useScrollToTop()
 
 // Loading state
 const isLoading = computed(() => workoutData.isLoading.value)

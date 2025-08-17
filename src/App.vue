@@ -191,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
@@ -203,6 +203,7 @@ import OfflineIndicator from '@/components/OfflineIndicator.vue'
 import MobileBrowserBanner from '@/components/MobileBrowserBanner.vue'
 
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { scrollToTopGlobal, scrollToTopImmediate } from '@/composables/useScrollToTop'
 
 const route = useRoute()
 const router = useRouter()
@@ -325,6 +326,16 @@ const isDevelopment = computed(() => {
 // Methods
 // Auto-save is handled automatically in WorkoutSession.vue
 
+// Scroll to top utility method
+const scrollToTop = () => {
+  scrollToTopGlobal('smooth')
+  
+  // Additional fallback: also scroll the main content area if it exists
+  if (mainContent.value) {
+    mainContent.value.scrollTop = 0
+  }
+}
+
 // Session management - Removed automatic interval to prevent unnecessary data reloading
 
 // Lifecycle
@@ -335,6 +346,9 @@ onMounted(async () => {
     console.error("Error initializing auth:", error)
     // Don't fail the entire app initialization
   }
+
+  // Expose scroll to top method globally
+  ;(window as any).scrollToTop = scrollToTop
 
   // Auto-save is handled automatically, no manual save needed
   const handleKeydown = (event: KeyboardEvent) => {
@@ -374,6 +388,9 @@ onMounted(async () => {
     window.removeEventListener('beforeunload', handleBeforeUnload)
     window.removeEventListener('online', updateNetworkStatus)
     window.removeEventListener('offline', updateNetworkStatus)
+    
+    // Remove global scroll method
+    delete (window as any).scrollToTop
   })
 })
 
@@ -398,6 +415,23 @@ watch(() => workoutData.isLoading.value, (newValue) => {
     hasInitialized.value = true
   }
 }, { immediate: true })
+
+// Ensure scrolling to top on route changes
+watch(() => route.path, (newPath, oldPath) => {
+  // Only scroll to top if we're actually changing routes (not on initial load)
+  if (oldPath && newPath !== oldPath) {
+    console.log('🔄 App route watcher detected:', { from: oldPath, to: newPath })
+    
+    // Use immediate scroll to prevent flicker (router handles scroll locking)
+    scrollToTopImmediate()
+    
+    // Additional fallback: also scroll the main content area if it exists
+    if (mainContent.value) {
+      mainContent.value.scrollTop = 0
+      console.log('✅ Main content scrollTop reset to 0')
+    }
+  }
+})
 
 // Router's scrollBehavior handles scrolling to top on route changes automatically
 </script> 

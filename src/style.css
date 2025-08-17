@@ -22,6 +22,14 @@
     overflow-x: hidden;
   }
 
+  /* Route transition scroll lock */
+  body.route-transitioning {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
   #app {
     min-height: 100vh;
     min-height: 100dvh; /* Dynamic viewport height for mobile */

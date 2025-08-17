@@ -233,11 +233,15 @@ import { useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useSupabase } from '@/composables/useSupabase'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useScrollToTop } from '@/composables/useScrollToTop'
 
 const router = useRouter()
 const workoutData = useHybridData()
 const { supabase } = useSupabase()
 const { showError, showSuccess, showWarning, handleAuthError } = useErrorHandler()
+
+// Ensure scrolling to top when component mounts
+useScrollToTop()
 
 // Loading state
 const isLoading = computed(() => workoutData.isLoading.value)

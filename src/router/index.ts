@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useSupabase } from "@/composables/useSupabase";
+import { scrollToTopGlobal, scrollToTopImmediate } from "@/composables/useScrollToTop";
 
 // View imports
 import TemplateSessions from "@/views/TemplateSessions.vue";
@@ -54,13 +55,19 @@ const router = createRouter({
       return savedPosition;
     }
 
-    // Default: scroll to top
-    return { top: 0 };
+    // Default: always scroll to top
+    return { top: 0, behavior: "smooth" };
   },
 });
 
 // Navigation guard with improved authentication handling
 router.beforeEach(async (to: any, from: any, next: any) => {
+  // Immediately lock scrolling to prevent flicker
+  if (to.path !== from.path) {
+    document.body.classList.add("route-transitioning");
+    console.log("🔒 Scroll lock applied before navigation");
+  }
+
   const { supabase } = useSupabase();
 
   try {
@@ -105,6 +112,22 @@ router.beforeEach(async (to: any, from: any, next: any) => {
     console.error("Navigation guard error:", error);
     // On any unexpected error, redirect to login
     next("/login");
+  }
+});
+
+// Navigation guard to ensure scrolling to top after route changes
+router.afterEach((to: any, from: any) => {
+  // Force scroll to top after navigation
+  if (to.path !== from.path) {
+    console.log("🔄 Router navigation detected:", { from: from.path, to: to.path });
+    // Use immediate scroll to prevent flicker
+    scrollToTopImmediate();
+
+    // Release scroll lock after a short delay
+    setTimeout(() => {
+      document.body.classList.remove("route-transitioning");
+      console.log("🔓 Router scroll lock released");
+    }, 150);
   }
 });
 

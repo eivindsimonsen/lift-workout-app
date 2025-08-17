@@ -237,9 +237,13 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
+import { useScrollToTop } from '@/composables/useScrollToTop'
 
 const router = useRouter()
 const workoutData = useHybridData()
+
+// Ensure scrolling to top when component mounts
+useScrollToTop()
 
 // Search
 const searchQuery = ref('')

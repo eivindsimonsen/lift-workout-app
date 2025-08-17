@@ -218,8 +218,12 @@ import { ref, computed } from 'vue'
 import { useHybridData } from '@/composables/useHybridData'
 import FilterModal from '@/components/FilterModal.vue'
 import type { WorkoutSession } from '@/types/workout'
+import { useScrollToTop } from '@/composables/useScrollToTop'
 
 const workoutData = useHybridData()
+
+// Ensure scrolling to top when component mounts
+useScrollToTop()
 
 // Loading state
 const isLoading = computed(() => workoutData.isLoading.value)

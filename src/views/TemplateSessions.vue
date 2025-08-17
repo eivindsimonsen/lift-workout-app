@@ -292,9 +292,13 @@ import { useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import SwipeableCard from '@/components/SwipeableCard.vue'
 import NetworkStatus from '@/components/NetworkStatus.vue'
+import { useScrollToTop } from '@/composables/useScrollToTop'
 
 const router = useRouter()
 const workoutData = useHybridData()
+
+// Ensure scrolling to top when component mounts
+useScrollToTop()
 
 // Countdown state
 const showCountdown = ref(false)
