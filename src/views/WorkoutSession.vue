@@ -133,9 +133,6 @@
             
             <!-- Right Column: Actions -->
             <div class="flex items-center gap-3 ml-4">
-              <span class="text-sm font-medium text-primary-400 bg-primary-500/10 px-3 py-1.5 rounded-full">
-                {{ getCompletedSets(exercise) }}/{{ exercise.sets.length }} sett
-              </span>
               <button 
                 @click="removeExercise(exerciseIndex)"
                 class="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
