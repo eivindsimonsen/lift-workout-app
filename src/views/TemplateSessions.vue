@@ -11,7 +11,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
               </svg>
             </div>
-            <h1 class="text-2xl font-bold text-white">Økter 2.0</h1>
+            <h1 class="text-2xl font-bold text-white">Økter</h1>
           </div>
           <router-link 
             to="/template/create"
