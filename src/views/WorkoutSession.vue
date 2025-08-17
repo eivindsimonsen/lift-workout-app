@@ -182,7 +182,7 @@
                     min="0"
                     required
                     class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
-                    :placeholder="getLastPerformance(exercise.exerciseId)?.reps?.toString() || '8'"
+                    :placeholder="getLastPerformance(exercise.exerciseId)?.reps?.toString() || '0'"
                     @input="(event) => handleRepsInput(event, exerciseIndex, setIndex)"
                     @blur="(event) => handleRepsBlur(event, exerciseIndex, setIndex)"
                   />
@@ -197,7 +197,7 @@
                     step="0.5"
                     required
                     class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
-                    :placeholder="getLastPerformance(exercise.exerciseId)?.weight?.toString() || '20'"
+                    :placeholder="getLastPerformance(exercise.exerciseId)?.weight?.toString() || '0'"
                     @input="(event) => handleWeightInput(event, exerciseIndex, setIndex)"
                     @blur="(event) => handleWeightBlur(event, exerciseIndex, setIndex)"
                   />
