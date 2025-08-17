@@ -1345,22 +1345,7 @@ onMounted(async () => {
   
   // Check if we should restore scroll position (returning to same session)
   const hasStoredPosition = localStorage.getItem(scrollPositionKey.value)
-  const lastAccessTime = localStorage.getItem(lastSessionAccessKey.value)
-  const currentTime = Date.now()
-  
-  // Check if this is a fresh app open or returning to an existing session
-  // If more than 5 minutes have passed since last access, treat as fresh open
-  const isFreshAppOpen = !lastAccessTime || (currentTime - parseInt(lastAccessTime, 10)) > 5 * 60 * 1000
-  const isReturningToSession = !!hasStoredPosition && !isFreshAppOpen
-  
-  // Only restore scroll if we're actually returning to a session (not just opening the app)
-  // Check if the stored position is significantly different from current position
-  const currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
-  const storedPosition = hasStoredPosition ? parseInt(hasStoredPosition, 10) : 0
-  
-  // Only restore scroll if we have a stored position AND we're not already at the top
-  // This prevents unnecessary scrolling when the PWA app is opened fresh
-  shouldRestoreScroll.value = isReturningToSession && storedPosition > 50 && currentScroll < 100 && !isInitialLoad.value
+  shouldRestoreScroll.value = !!hasStoredPosition
   
   // Check if we're on mobile/PWA
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -1372,10 +1357,7 @@ onMounted(async () => {
     shouldRestoreScroll: shouldRestoreScroll.value,
     storedPosition: hasStoredPosition ? parseInt(hasStoredPosition, 10) : null,
     isMobile,
-    isPWA,
-    lastAccessTime: lastAccessTime ? new Date(parseInt(lastAccessTime, 10)).toISOString() : null,
-    isFreshAppOpen,
-    isReturningToSession
+    isPWA
   })
   
   // Wait for data to be loaded if it's still loading
@@ -1401,11 +1383,8 @@ onMounted(async () => {
         session.value = retrySession
         startTime.value = new Date(retrySession.date)
         
-        // Update last access time for this session
-        localStorage.setItem(lastSessionAccessKey.value, currentTime.toString())
-        
-        // Restore scroll position after session is loaded (but not on initial app open)
-        if (shouldRestoreScroll.value && !isInitialLoad.value) {
+        // Restore scroll position after session is loaded
+        if (shouldRestoreScroll.value) {
           // Use longer delay for mobile/PWA
           const delay = (isMobile || isPWA) ? 1000 : 500
           setTimeout(() => {
@@ -1426,11 +1405,8 @@ onMounted(async () => {
   session.value = foundSession
   startTime.value = new Date(foundSession.date)
   
-  // Update last access time for this session
-  localStorage.setItem(lastSessionAccessKey.value, currentTime.toString())
-  
-  // Restore scroll position after session is loaded (but not on initial app open)
-  if (shouldRestoreScroll.value && !isInitialLoad.value) {
+  // Restore scroll position after session is loaded
+  if (shouldRestoreScroll.value) {
     // Use longer delay for mobile/PWA to ensure everything is stable
     const delay = (isMobile || isPWA) ? 1000 : 500
     console.log(`📱 Will restore scroll position in ${delay}ms (mobile: ${isMobile}, PWA: ${isPWA})`)
@@ -1441,15 +1417,6 @@ onMounted(async () => {
   
   // Initial state update to App.vue
   updateAppSaveState()
-  
-  // Mark initial load as complete after a short delay
-  setTimeout(() => {
-    isInitialLoad.value = false
-    console.log('📱 Initial load complete, scroll restoration enabled')
-  }, 1000)
-  
-  // Update last access time for this session
-  localStorage.setItem(lastSessionAccessKey.value, currentTime.toString())
   
   // Add keyboard shortcut for saving (Ctrl+S)
   const handleKeydown = (event: KeyboardEvent) => {
@@ -1588,19 +1555,12 @@ watch(() => route.params.id, async (newId, oldId) => {
       startTime.value = new Date(foundSession.date)
       hasUnsavedChanges.value = false // Reset for new session
       
-      // Update last access time for this session
-      localStorage.setItem(lastSessionAccessKey.value, Date.now().toString())
-      
       // Check if we should restore scroll position for new session
       const hasStoredPosition = localStorage.getItem(scrollPositionKey.value)
-      const isReturningToSession = !!hasStoredPosition
+      shouldRestoreScroll.value = !!hasStoredPosition
       
-      // Only restore scroll if we have a stored position AND it's significantly different from top
-      const storedPosition = hasStoredPosition ? parseInt(hasStoredPosition, 10) : 0
-      shouldRestoreScroll.value = isReturningToSession && storedPosition > 50
-      
-      // Restore scroll position for new session if available (but not on initial app open)
-      if (shouldRestoreScroll.value && !isInitialLoad.value) {
+      // Restore scroll position for new session if available
+      if (shouldRestoreScroll.value) {
         // Check if we're on mobile/PWA for better timing
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
         const isPWA = window.matchMedia('(display-mode: standalone)').matches
