@@ -414,7 +414,7 @@ watch(() => route.path, (newPath, oldPath) => {
     
     // Don't reset scroll for workout session navigation (let the component handle it)
     if (isWorkoutToWorkout) {
-      console.log('📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱 Navigating to workout session, preserving scroll behavior ' + isWorkoutToWorkout);
+      console.log('📱Navigating to workout session, preserving scroll behavior ' + isWorkoutToWorkout);
       return;
     }
     
@@ -444,7 +444,7 @@ watch(() => route.path, (newPath, oldPath) => {
       
     } else {
       // Browser version - use smooth scrolling
-      console.log('📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱 Browser route change, resetting scroll to top')
+      console.log('📱 Browser route change, resetting scroll to top')
       window.scrollTo({ top: 0, behavior: 'smooth' })
       
       if (mainContent.value) {
