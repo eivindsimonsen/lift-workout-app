@@ -1161,7 +1161,12 @@ const saveScrollPosition = () => {
 
 const restoreScrollPosition = () => {
   try {
-    const savedPosition = localStorage.getItem(scrollPositionKey.value)
+    // Try localStorage first, then sessionStorage as fallback
+    let savedPosition = localStorage.getItem(scrollPositionKey.value)
+    if (!savedPosition) {
+      savedPosition = sessionStorage.getItem(scrollPositionKey.value)
+    }
+    
     if (savedPosition && shouldRestoreScroll.value) {
       const scrollY = parseInt(savedPosition, 10)
       if (scrollY > 0) {
