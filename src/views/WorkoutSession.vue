@@ -42,6 +42,9 @@
           >
             {{ getWorkoutTypeName(session?.workoutType || '') }}
           </span>
+          
+
+          
           <!-- Abandon workout button (desktop only) -->
           <button 
             @click="handleAbandonWorkout"
@@ -99,34 +102,34 @@
              <div class="flex-1 h-px bg-dark-600"></div>
            </div>
                      <!-- Exercise Header -->
-           <div class="flex items-start justify-between mb-4">
+           <div class="flex items-start justify-between mb-6">
              <!-- Left Column: Exercise Info -->
              <div class="flex-1 min-w-0">
-               <!-- Last Performance -->
-               <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-2 text-sm text-dark-300 mb-2">
-                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                 </svg>
-                 <span>Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
-               </div>
-               
-               <h3 class="text-xl font-bold text-white mb-2">{{ exercise.name }}</h3>
-               
-               <!-- Muscle Groups -->
-               <div v-if="getExerciseMuscleGroups(exercise.exerciseId)" class="flex flex-wrap gap-1">
-                 <span 
-                   v-for="muscleGroup in getExerciseMuscleGroups(exercise.exerciseId)" 
-                   :key="muscleGroup"
-                   class="inline-block px-2 py-1 text-xs font-medium rounded-full"
-                   :style="{
-                     backgroundColor: getMuscleGroupColor(muscleGroup) + '20',
-                     color: getMuscleGroupColor(muscleGroup)
-                   }"
-                 >
-                   {{ muscleGroup }}
-                 </span>
-               </div>
-             </div>
+                <!-- Muscle Groups - moved above exercise title -->
+                <div v-if="getExerciseMuscleGroups(exercise.exerciseId)" class="flex flex-wrap gap-1 mb-2">
+                  <span 
+                    v-for="muscleGroup in getExerciseMuscleGroups(exercise.exerciseId)" 
+                    :key="muscleGroup"
+                    class="inline-block px-2 py-1 text-xs font-medium rounded-full"
+                    :style="{
+                      backgroundColor: getMuscleGroupColor(muscleGroup) + '20',
+                      color: getMuscleGroupColor(muscleGroup)
+                    }"
+                  >
+                    {{ muscleGroup }}
+                  </span>
+                </div>
+                
+                <h3 class="text-xl font-bold text-white mb-2">{{ exercise.name }}</h3>
+                
+                <!-- Last Performance - moved below exercise title -->
+                <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-2 text-sm text-dark-300">
+                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
+                </div>
+              </div>
             
             <!-- Right Column: Actions -->
             <div class="flex items-center gap-3 ml-4">
@@ -150,13 +153,13 @@
             <div 
               v-for="(set, setIndex) in exercise.sets" 
               :key="set.id"
-              class="p-5 transition-all duration-200"
+              class="py-5 px-6 transition-all duration-200"
               :class="{ 
                 'bg-primary-500/5 border-l-4 border-l-primary-500': set.isCompleted,
                 'border-b border-dark-600': setIndex < exercise.sets.length - 1
               }"
             >
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center justify-between">
                 <button 
                   @click="removeSet(exerciseIndex, setIndex)"
                   class="text-dark-400 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
@@ -371,7 +374,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, type Ref, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, type Ref, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useErrorHandler } from '@/composables/useErrorHandler'
@@ -394,7 +397,10 @@ const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
 const isSyncingPendingChanges = ref(false)
 
-
+// Scroll position persistence
+const scrollPositionKey = computed(() => `workout-session-scroll-${route.params.id}`)
+const shouldRestoreScroll = ref(false)
+const scrollUpdateTimeout = ref<NodeJS.Timeout | null>(null)
 
 
 // Computed
@@ -592,6 +598,9 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   // Mark as having unsaved changes
   hasUnsavedChanges.value = true
   
+  // Update scroll position during workout
+  updateCurrentScrollPosition()
+  
   // Save immediately to IndexedDB for instant persistence
   if (!isSaving.value) {
     try {
@@ -690,6 +699,9 @@ const addSet = (exerciseIndex: number) => {
   
   exercise.sets.push(newSet)
   
+  // Update scroll position during workout
+  updateCurrentScrollPosition()
+  
   // Mark as having unsaved changes and save immediately
   hasUnsavedChanges.value = true
   if (!isSaving.value) {
@@ -757,6 +769,9 @@ const addExerciseToSession = () => {
   session.value.exercises.push(newExercise)
   console.log('✅ Exercise added to session. New exercises array:', session.value.exercises)
   
+  // Update scroll position during workout
+  updateCurrentScrollPosition()
+  
   // Mark as having unsaved changes and save immediately
   hasUnsavedChanges.value = true
   if (!isSaving.value) {
@@ -787,6 +802,9 @@ const removeExercise = (index: number) => {
   
   session.value.exercises.splice(index, 1)
   
+  // Update scroll position during workout
+  updateCurrentScrollPosition()
+  
   // Mark as having unsaved changes and save immediately
   hasUnsavedChanges.value = true
   if (!isSaving.value) {
@@ -803,6 +821,9 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   if (exercise.sets.length <= 1) {
     session.value.exercises.splice(exerciseIndex, 1)
     
+    // Update scroll position during workout
+    updateCurrentScrollPosition()
+    
     // Mark as having unsaved changes and save immediately
     hasUnsavedChanges.value = true
     if (!isSaving.value) {
@@ -813,6 +834,9 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   
   // Otherwise, just remove the set
   exercise.sets.splice(setIndex, 1)
+  
+  // Update scroll position during workout
+  updateCurrentScrollPosition()
   
   // Mark as having unsaved changes and save immediately
   hasUnsavedChanges.value = true
@@ -998,6 +1022,9 @@ const abandonWorkout = async () => {
       exercises: cleanedSession.exercises
     })
     
+    // Clear scroll position since workout is abandoned
+    clearScrollPosition()
+    
     // Now abandon the workout with clean data
     await workoutData.abandonWorkoutSession(session.value.id)
     router.push('/')
@@ -1034,6 +1061,9 @@ const completeWorkout = async () => {
     await workoutData.updateWorkoutSessionOffline(session.value.id, {
       exercises: cleanedSession.exercises
     })
+    
+    // Clear scroll position since workout is completed
+    clearScrollPosition()
     
     // Now complete the workout with clean data
     await workoutData.completeWorkoutSession(session.value.id)
@@ -1108,9 +1138,117 @@ const cleanupSessionData = async (sessionData: WorkoutSession): Promise<WorkoutS
   return cleanedSession
 }
 
+// Scroll position management methods
+const saveScrollPosition = () => {
+  try {
+    if (!shouldRestoreScroll.value) return
+    
+    const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
+    if (scrollY > 0) {
+      localStorage.setItem(scrollPositionKey.value, scrollY.toString())
+      console.log('📱 Saved scroll position:', scrollY)
+    }
+  } catch (error) {
+    console.warn('⚠️ Failed to save scroll position:', error)
+  }
+}
+
+const restoreScrollPosition = () => {
+  try {
+    const savedPosition = localStorage.getItem(scrollPositionKey.value)
+    if (savedPosition && shouldRestoreScroll.value) {
+      const scrollY = parseInt(savedPosition, 10)
+      if (scrollY > 0) {
+        console.log('📱 Attempting to restore scroll position:', scrollY)
+        
+        // Use nextTick to ensure DOM is fully rendered
+        nextTick(() => {
+          // Small delay to ensure everything is rendered and stable
+          setTimeout(() => {
+            try {
+              window.scrollTo({ top: scrollY, behavior: 'auto' })
+              console.log('📱 Successfully restored scroll position to:', scrollY)
+            } catch (error) {
+              console.warn('⚠️ Failed to restore scroll position:', error)
+            }
+          }, 150) // Increased delay for better reliability
+        })
+      }
+    } else {
+      console.log('📱 No scroll position to restore or restoration disabled')
+    }
+  } catch (error) {
+    console.warn('⚠️ Failed to restore scroll position:', error)
+  }
+}
+
+const clearScrollPosition = () => {
+  try {
+    localStorage.removeItem(scrollPositionKey.value)
+    console.log('📱 Cleared scroll position for session:', route.params.id)
+  } catch (error) {
+    console.warn('⚠️ Failed to clear scroll position:', error)
+  }
+}
+
+// Update scroll position during workout (called when exercises are modified)
+const updateCurrentScrollPosition = () => {
+  try {
+    if (shouldRestoreScroll.value) {
+      const currentScrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
+      if (currentScrollY > 0) {
+        localStorage.setItem(scrollPositionKey.value, currentScrollY.toString())
+        console.log('📱 Updated scroll position during workout:', currentScrollY)
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Failed to update scroll position:', error)
+  }
+}
+
+// Handle app state changes (important for PWA)
+const handleAppStateChange = () => {
+  if (document.visibilityState === 'visible' && shouldRestoreScroll.value) {
+    // App became visible again, restore scroll position
+    console.log('📱 App became visible, restoring scroll position')
+    setTimeout(() => {
+      restoreScrollPosition()
+    }, 300) // Longer delay for PWA state changes
+  }
+}
+
+// Debug method for testing scroll position functionality
+const debugScrollPosition = () => {
+  const currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
+  const storedPosition = localStorage.getItem(scrollPositionKey.value)
+  
+  console.log('📱 Scroll Position Debug:', {
+    currentScroll,
+    storedPosition: storedPosition ? parseInt(storedPosition, 10) : null,
+    shouldRestoreScroll: shouldRestoreScroll.value,
+    scrollPositionKey: scrollPositionKey.value
+  })
+  
+  alert(`Current scroll: ${currentScroll}px\nStored position: ${storedPosition || 'none'}px\nRestore enabled: ${shouldRestoreScroll.value}`)
+}
+
+// Computed property for development mode check
+const isDevelopment = computed(() => import.meta.env.DEV)
+
 // Lifecycle
 onMounted(async () => {
   const sessionId = route.params.id as string
+  
+  // Check if we should restore scroll position (returning to same session)
+  const hasStoredPosition = localStorage.getItem(scrollPositionKey.value)
+  shouldRestoreScroll.value = !!hasStoredPosition
+  
+  console.log('📱 WorkoutSession mounted:', {
+    sessionId,
+    hasStoredPosition,
+    shouldRestoreScroll: shouldRestoreScroll.value,
+    storedPosition: hasStoredPosition ? parseInt(hasStoredPosition, 10) : null
+  })
   
   // Wait for data to be loaded if it's still loading
   if (workoutData.isLoading.value) {
@@ -1134,6 +1272,11 @@ onMounted(async () => {
       if (retrySession) {
         session.value = retrySession
         startTime.value = new Date(retrySession.date)
+        
+        // Restore scroll position after session is loaded
+        if (shouldRestoreScroll.value) {
+          restoreScrollPosition()
+        }
         return
       }
     } catch (error) {
@@ -1147,6 +1290,11 @@ onMounted(async () => {
   
   session.value = foundSession
   startTime.value = new Date(foundSession.date)
+  
+  // Restore scroll position after session is loaded
+  if (shouldRestoreScroll.value) {
+    restoreScrollPosition()
+  }
   
   // Initial state update to App.vue
   updateAppSaveState()
@@ -1193,23 +1341,72 @@ onMounted(async () => {
     }
   }
   
+  // Add visibility change listener to save scroll position when app goes to background
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden') {
+      saveScrollPosition()
+    }
+  }
+  
+  // Add page focus listener to handle PWA focus events
+  const handlePageFocus = () => {
+    // When page regains focus, check if we should restore scroll
+    if (document.visibilityState === 'visible' && shouldRestoreScroll.value) {
+      // Small delay to ensure everything is stable
+      setTimeout(() => {
+        restoreScrollPosition()
+      }, 200)
+    }
+  }
+  
+  // Add scroll listener to continuously track position during workout
+  const handleScroll = () => {
+    // Debounce scroll updates to avoid excessive localStorage writes
+    if (scrollUpdateTimeout.value) {
+      clearTimeout(scrollUpdateTimeout.value)
+    }
+    
+    scrollUpdateTimeout.value = setTimeout(() => {
+      updateCurrentScrollPosition()
+    }, 100) // Update scroll position 100ms after scrolling stops
+  }
+  
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
   window.addEventListener('beforeunload', handleBeforeUnload)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  window.addEventListener('focus', handlePageFocus)
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  window.addEventListener('appstatechange', handleAppStateChange) // Add this listener
   
   // Cleanup on unmount
   onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
     window.removeEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
     window.removeEventListener('beforeunload', handleBeforeUnload)
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.removeEventListener('focus', handlePageFocus)
+    window.removeEventListener('scroll', handleScroll)
+    window.removeEventListener('appstatechange', handleAppStateChange) // Remove this listener
     
-
+    // Clear any pending scroll update timeout
+    if (scrollUpdateTimeout.value) {
+      clearTimeout(scrollUpdateTimeout.value)
+    }
+    
+    // Save scroll position before unmounting
+    saveScrollPosition()
   })
 })
 
 // Watch for route changes to warn about unsaved changes
 watch(() => route.params.id, async (newId, oldId) => {
   if (newId && newId !== oldId) {
+    // Save scroll position before navigating away
+    if (oldId && shouldRestoreScroll.value) {
+      saveScrollPosition()
+    }
+    
     // Check if there are unsaved changes before navigating away
     if (hasUnsavedChanges.value) {
       const shouldLeave = confirm('Vil du lagre endringene først?')
@@ -1224,6 +1421,15 @@ watch(() => route.params.id, async (newId, oldId) => {
       session.value = foundSession
       startTime.value = new Date(foundSession.date)
       hasUnsavedChanges.value = false // Reset for new session
+      
+      // Check if we should restore scroll position for new session
+      const hasStoredPosition = localStorage.getItem(scrollPositionKey.value)
+      shouldRestoreScroll.value = !!hasStoredPosition
+      
+      // Restore scroll position for new session if available
+      if (shouldRestoreScroll.value) {
+        restoreScrollPosition()
+      }
     }
   }
 })

@@ -403,7 +403,16 @@ watch(() => workoutData.isLoading.value, (newValue) => {
 watch(() => route.path, () => {
   // Use nextTick to ensure DOM is updated before scrolling
   nextTick(() => {
-    // Reset scroll position when route changes
+    // Check if we're navigating between workout sessions
+    const isWorkoutToWorkout = route.path.startsWith('/workout/')
+    
+    // Don't reset scroll for workout session navigation (let the component handle it)
+    if (isWorkoutToWorkout) {
+      console.log('📱 Navigating to workout session, preserving scroll behavior')
+      return
+    }
+    
+    // Reset scroll position when route changes to non-workout routes
     
     // Check if we're in PWA mode
     const isPWA = window.matchMedia('(display-mode: standalone)').matches
