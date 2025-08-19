@@ -45,6 +45,8 @@
           
 
           
+       
+
           <!-- Abandon workout button (desktop only) -->
           <button 
             @click="handleAbandonWorkout"
@@ -85,6 +87,9 @@
           </button>
         </div>
       </div>
+
+      <!-- Remove Local changes indicator -->
+      <!-- Remove Manual save button -->
 
              <!-- Exercises -->
        <div v-if="session" class="mt-8">
@@ -350,8 +355,9 @@
          </div>
        </div>
        
-       <!-- Complete Button - moved below summary box -->
-       <div class="mt-6">
+                 <!-- Save and Complete Buttons -->
+          <div class="mt-6 space-y-3">
+            <!-- Complete Button -->
          <button 
            @click="handleCompleteWorkout"
            class="w-full btn-primary py-3 flex items-center justify-center gap-2"
@@ -589,91 +595,11 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
     set.isCompleted = isCompleted
   }
   
-  // Mark as having unsaved changes
-  hasUnsavedChanges.value = true
-  
-  // Save immediately to IndexedDB for instant persistence
-  if (!isSaving.value) {
-    try {
-      saveSessionChanges()
-    } catch (error) {
-      console.error('❌ Error in updateSetCompletion:', error)
-    }
-  }
+  // Save to local storage instead of making API calls
+  saveToLocalStorage(exerciseIndex, setIndex)
 }
 
-const saveSessionChanges = async () => {
-  if (!session.value || !hasUnsavedChanges.value) return
-  
-  console.log('💾 Starting to save session changes...')
-  isSaving.value = true
-  
-  try {
-    // Create a clean, serializable copy of the exercises data
-    const cleanExercises = session.value.exercises.map(exercise => ({
-      exerciseId: exercise.exerciseId,
-      name: exercise.name,
-      sets: exercise.sets.map(set => ({
-        id: set.id,
-        reps: Number(set.reps) || 0,
-        weight: Number(set.weight) || 0,
-        duration: set.duration,
-        distance: set.distance,
-        isCompleted: Boolean(set.isCompleted)
-      }))
-    }))
-    
-    console.log('💾 Clean exercises data:', cleanExercises)
-    
-    // Use offline-first save function with clean data
-    console.log('💾 Calling updateWorkoutSessionOffline with session ID:', session.value.id)
-    const result = await workoutData.updateWorkoutSessionOffline(session.value.id, {
-      exercises: cleanExercises
-    })
-    
-    console.log('💾 Save result:', result)
-    
-    // Check if the result indicates offline mode
-    if (result && typeof result === 'object' && 'offline' in result && result.offline) {
-      console.log('📱 Changes saved offline, will sync when online')
-    } else {
-      console.log('✅ Session saved and synced successfully')
-    }
-    
-    // Clear unsaved changes flag
-    hasUnsavedChanges.value = false
-    
-  } catch (error: any) {
-    console.error('❌ Error saving session:', error)
-    console.error('❌ Error details:', {
-      message: error?.message || 'Unknown error',
-      stack: error?.stack || 'No stack trace',
-      sessionId: session.value?.id,
-      exercisesCount: session.value?.exercises?.length
-    })
-    
-    // Check if it's an authentication error
-    if (error.message && (
-      error.message.includes("not authenticated") || 
-      error.message.includes("Session expired") ||
-      error.message.includes("Please log in again")
-    )) {
-      console.log("🔄 Authentication error detected in saveSessionChanges")
-      
-      // Show a more user-friendly message
-      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.")
-      
-      // Redirect to login
-      router.push('/login')
-      return
-    }
-    
-    // Keep the unsaved changes flag so user can retry
-  } finally {
-    isSaving.value = false
-    console.log('💾 Save operation completed')
-  }
-}
+// saveSessionChanges function removed - replaced with local storage solution
 
 const addSet = (exerciseIndex: number) => {
   if (!session.value) return
@@ -690,11 +616,8 @@ const addSet = (exerciseIndex: number) => {
   
   exercise.sets.push(newSet)
   
-  // Mark as having unsaved changes and save immediately
-  hasUnsavedChanges.value = true
-  if (!isSaving.value) {
-    saveSessionChanges()
-  }
+  // Save to local storage instead of making API calls
+  saveToLocalStorage(exerciseIndex, exercise.sets.length - 1)
 }
 
 const addExerciseToSession = () => {
@@ -757,10 +680,24 @@ const addExerciseToSession = () => {
   session.value.exercises.push(newExercise)
   console.log('✅ Exercise added to session. New exercises array:', session.value.exercises)
   
-  // Mark as having unsaved changes and save immediately
-  hasUnsavedChanges.value = true
-  if (!isSaving.value) {
-    saveSessionChanges()
+  // Save to local storage instead of making API calls
+  if (session.value) {
+    const sessionId = session.value.id
+    const key = getLocalStorageKey(sessionId)
+    
+    try {
+      const existingData = JSON.parse(localStorage.getItem(key) || '{}')
+      existingData.exercises = [...session.value.exercises]
+      existingData.lastUpdated = Date.now()
+      existingData.sessionId = sessionId
+      
+      localStorage.setItem(key, JSON.stringify(existingData))
+      hasUnsavedChanges.value = true;
+      console.log('💾 Saved new exercise to local storage');
+    } catch (error) {
+      console.error('❌ Error saving new exercise to local storage:', error);
+      hasUnsavedChanges.value = true;
+    }
   }
 
   // Reset form and close modal
@@ -787,10 +724,24 @@ const removeExercise = (index: number) => {
   
   session.value.exercises.splice(index, 1)
   
-  // Mark as having unsaved changes and save immediately
-  hasUnsavedChanges.value = true
-  if (!isSaving.value) {
-    saveSessionChanges()
+  // Save to local storage instead of making API calls
+  if (session.value) {
+    const sessionId = session.value.id
+    const key = getLocalStorageKey(sessionId)
+    
+    try {
+      const existingData = JSON.parse(localStorage.getItem(key) || '{}')
+      existingData.exercises = [...session.value.exercises]
+      existingData.lastUpdated = Date.now()
+      existingData.sessionId = sessionId
+      
+      localStorage.setItem(key, JSON.stringify(existingData))
+      hasUnsavedChanges.value = true;
+      console.log('💾 Saved exercise removal to local storage');
+    } catch (error) {
+      console.error('❌ Error saving exercise removal to local storage:', error);
+      hasUnsavedChanges.value = true;
+    }
   }
 }
 
@@ -812,10 +763,25 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   if (exercise.sets.length <= 1) {
     session.value.exercises.splice(exerciseIndex, 1)
     
-    // Mark as having unsaved changes and save immediately
-    hasUnsavedChanges.value = true
-    if (!isSaving.value) {
-      saveSessionChanges()
+    // Save to local storage instead of making API calls
+    // Note: We'll save the entire session since we added a new exercise
+    if (session.value) {
+      const sessionId = session.value.id
+      const key = getLocalStorageKey(sessionId)
+      
+      try {
+        const existingData = JSON.parse(localStorage.getItem(key) || '{}')
+        existingData.exercises = [...session.value.exercises]
+        existingData.lastUpdated = Date.now()
+        existingData.sessionId = sessionId
+        
+        localStorage.setItem(key, JSON.stringify(existingData))
+        hasUnsavedChanges.value = true;
+        console.log('💾 Saved new exercise to local storage');
+      } catch (error) {
+        console.error('❌ Error saving new exercise to local storage:', error);
+        hasUnsavedChanges.value = true;
+      }
     }
     return
   }
@@ -823,11 +789,8 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   // Otherwise, just remove the set
   exercise.sets.splice(setIndex, 1)
   
-  // Mark as having unsaved changes and save immediately
-  hasUnsavedChanges.value = true
-  if (!isSaving.value) {
-    saveSessionChanges()
-  }
+  // Save to local storage instead of making API calls
+  saveToLocalStorage(exerciseIndex, 0) // Save the first set to update the exercise structure
 }
 
 const formatNumber = (num: number): string => {
@@ -999,16 +962,60 @@ const abandonWorkout = async () => {
   if (!session.value) return
   
   try {
+    // Get all local changes first
+    const sessionId = session.value.id
+    const localChanges = getLocalChanges(sessionId)
+    
     // Clean up session data before abandoning to avoid storing unnecessary 0-values
     const cleanedSession = await cleanupSessionData(session.value)
     
-    // Update the session with cleaned data before abandoning
-    await workoutData.updateWorkoutSessionOffline(session.value.id, {
+    // If we have local changes, merge them with the cleaned session
+    if (localChanges && localChanges.exercises) {
+      console.log('🔄 Merging local changes before abandoning workout')
+      
+      // Merge local changes with cleaned data
+      const mergedExercises = cleanedSession.exercises.map((exercise, exerciseIndex) => {
+        const localExercise = localChanges.exercises[exerciseIndex]
+        if (localExercise && localExercise.sets) {
+          return {
+            ...exercise,
+            sets: exercise.sets.map((set, setIndex) => {
+              const localSet = localExercise.sets[setIndex]
+              if (localSet) {
+                return {
+                  ...set,
+                  weight: localSet.weight || set.weight,
+                  reps: localSet.reps || set.reps,
+                  isCompleted: localSet.isCompleted || set.isCompleted
+                }
+              }
+              return set
+            })
+          }
+        }
+        return exercise
+      })
+      
+      // Update the session with merged data before abandoning
+      await workoutData.updateWorkoutSessionOffline(sessionId, {
+        exercises: mergedExercises
+      })
+      
+      console.log('✅ Local changes merged before abandoning workout')
+    } else {
+      // No local changes, just update with cleaned data
+      await workoutData.updateWorkoutSessionOffline(sessionId, {
       exercises: cleanedSession.exercises
     })
+    }
     
-    // Now abandon the workout with clean data
-    await workoutData.abandonWorkoutSession(session.value.id)
+    // Now abandon the workout
+    await workoutData.abandonWorkoutSession(sessionId)
+    
+    // Clear local changes after successful abandonment
+    clearLocalChanges(sessionId)
+    
+    console.log('✅ Workout abandoned and synced successfully')
     router.push('/')
   } catch (error: any) {
     console.error("❌ Error abandoning workout:", error)
@@ -1036,17 +1043,61 @@ const completeWorkout = async () => {
   if (!session.value) return
   
   try {
+    // Get all local changes first
+    const sessionId = session.value.id
+    const localChanges = getLocalChanges(sessionId)
+    
     // Clean up session data before completing to avoid storing unnecessary 0-values
     const cleanedSession = await cleanupSessionData(session.value)
     
-    // Update the session with cleaned data
-    await workoutData.updateWorkoutSessionOffline(session.value.id, {
+    // If we have local changes, merge them with the cleaned session
+    if (localChanges && localChanges.exercises) {
+      console.log('🔄 Merging local changes with cleaned session data')
+      
+      // Merge local changes with cleaned data
+      const mergedExercises = cleanedSession.exercises.map((exercise, exerciseIndex) => {
+        const localExercise = localChanges.exercises[exerciseIndex]
+        if (localExercise && localExercise.sets) {
+          return {
+            ...exercise,
+            sets: exercise.sets.map((set, setIndex) => {
+              const localSet = localExercise.sets[setIndex]
+              if (localSet) {
+                return {
+                  ...set,
+                  weight: localSet.weight || set.weight,
+                  reps: localSet.reps || set.reps,
+                  isCompleted: localSet.isCompleted || set.isCompleted
+                }
+              }
+              return set
+            })
+          }
+        }
+        return exercise
+      })
+      
+      // Update the session with merged data
+      await workoutData.updateWorkoutSessionOffline(sessionId, {
+        exercises: mergedExercises
+      })
+      
+      console.log('✅ Local changes merged and synced with Supabase')
+    } else {
+      // No local changes, just update with cleaned data
+      await workoutData.updateWorkoutSessionOffline(sessionId, {
       exercises: cleanedSession.exercises
     })
+    }
     
-    // Now complete the workout with clean data
-    await workoutData.completeWorkoutSession(session.value.id)
-    router.push(`/session/${session.value.id}`)
+    // Now complete the workout
+    await workoutData.completeWorkoutSession(sessionId)
+    
+    // Clear local changes after successful completion
+    clearLocalChanges(sessionId)
+    
+    console.log('✅ Workout completed and synced successfully')
+    router.push(`/session/${sessionId}`)
   } catch (error: any) {
     console.error("❌ Error completing workout:", error)
     
@@ -1117,12 +1168,309 @@ const cleanupSessionData = async (sessionData: WorkoutSession): Promise<WorkoutS
   return cleanedSession
 }
 
+// ===== LOCAL STORAGE SOLUTION =====
+// These functions replace the excessive API calls with local storage
 
+const getLocalStorageInfo = () => {
+  try {
+    const keys = Object.keys(localStorage);
+    const workoutKeys = keys.filter(key => key.startsWith('workout-session-'));
+    
+    if (workoutKeys.length === 0) return '';
+    
+    const totalSize = workoutKeys.reduce((total, key) => {
+      try {
+        const data = localStorage.getItem(key);
+        return total + (data ? new Blob([data]).size : 0);
+      } catch {
+        return total;
+      }
+    }, 0);
+    
+    return `(${(totalSize / 1024).toFixed(1)} KB)`;
+  } catch {
+    return '';
+  }
+};
 
+const getLocalStorageKey = (sessionId: string) => `workout-session-${sessionId}`;
 
+const saveToLocalStorage = (exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return;
+  
+  // Check if localStorage is available
+  if (!isLocalStorageAvailable()) {
+    console.warn('⚠️ localStorage not available, falling back to memory-only mode');
+    hasUnsavedChanges.value = true;
+    return;
+  }
+  
+  const sessionId = session.value.id;
+  const key = getLocalStorageKey(sessionId);
+  
+  try {
+    // Get existing data or create new
+    const existingData = JSON.parse(localStorage.getItem(key) || '{}');
+    
+    // Initialize structure if it doesn't exist
+    if (!existingData.exercises) {
+      existingData.exercises = [...session.value.exercises];
+    }
+    
+    // Ensure exercise exists
+    if (!existingData.exercises[exerciseIndex]) {
+      existingData.exercises[exerciseIndex] = { ...session.value.exercises[exerciseIndex] };
+    }
+    
+    // Ensure sets array exists
+    if (!existingData.exercises[exerciseIndex].sets) {
+      existingData.exercises[exerciseIndex].sets = [...session.value.exercises[exerciseIndex].sets];
+    }
+    
+    // Update only the specific set
+    existingData.exercises[exerciseIndex].sets[setIndex] = {
+      ...session.value.exercises[exerciseIndex].sets[setIndex]
+    };
+    
+    // Add metadata
+    existingData.lastUpdated = Date.now();
+    existingData.sessionId = sessionId;
+    
+    // Check storage size before saving
+    const dataSize = new Blob([JSON.stringify(existingData)]).size;
+    const maxSize = 5 * 1024 * 1024; // 5MB limit
+    
+    if (dataSize > maxSize) {
+      console.warn('⚠️ Local data too large, clearing old data');
+      clearOldWorkoutData();
+    }
+    
+    // Save to localStorage
+    localStorage.setItem(key, JSON.stringify(existingData));
+    
+    // Mark as having unsaved changes
+    hasUnsavedChanges.value = true;
+    
+    console.log('💾 Saved to local storage:', { exerciseIndex, setIndex, key });
+    
+  } catch (error) {
+    console.error('❌ Error saving to local storage:', error);
+    // Fallback to memory-only mode if localStorage fails
+    hasUnsavedChanges.value = true;
+  }
+};
 
+const isLocalStorageAvailable = () => {
+  try {
+    const test = '__localStorage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
+const clearOldWorkoutData = () => {
+  try {
+    const keys = Object.keys(localStorage);
+    const workoutKeys = keys.filter(key => key.startsWith('workout-session-'));
+    
+    // Sort by last updated and keep only the 5 most recent
+    const workoutData = workoutKeys.map(key => {
+      try {
+        const data = JSON.parse(localStorage.getItem(key) || '{}');
+        return { key, lastUpdated: data.lastUpdated || 0 };
+      } catch {
+        return { key, lastUpdated: 0 };
+      }
+    });
+    
+    workoutData.sort((a, b) => b.lastUpdated - a.lastUpdated);
+    
+    // Remove old workout data (keep only 5 most recent)
+    workoutData.slice(5).forEach(({ key }) => {
+      localStorage.removeItem(key);
+      console.log('🗑️ Removed old workout data:', key);
+    });
+    
+    // Log storage usage for debugging
+    const totalSize = workoutKeys.reduce((total, key) => {
+      try {
+        const data = localStorage.getItem(key);
+        return total + (data ? new Blob([data]).size : 0);
+      } catch {
+        return total;
+      }
+    }, 0);
+    
+    console.log(`💾 Local storage usage: ${(totalSize / 1024).toFixed(2)} KB`);
+  } catch (error) {
+    console.error('❌ Error clearing old workout data:', error);
+  }
+};
 
+const getLocalChanges = (sessionId: string) => {
+  try {
+    const key = getLocalStorageKey(sessionId);
+    const localData = localStorage.getItem(key);
+    
+    if (localData) {
+      return JSON.parse(localData);
+    }
+  } catch (error) {
+    console.error('❌ Error reading local changes:', error);
+  }
+  
+  return null;
+};
+
+const clearLocalChanges = (sessionId: string) => {
+  try {
+    const key = getLocalStorageKey(sessionId);
+    localStorage.removeItem(key);
+    console.log('🗑️ Cleared local changes for session:', sessionId);
+  } catch (error) {
+    console.error('❌ Error clearing local changes:', error);
+  }
+};
+
+const restoreLocalChanges = async () => {
+  if (!session.value) return;
+  
+  try {
+    const sessionId = session.value.id;
+    const localChanges = getLocalChanges(sessionId);
+    
+    if (localChanges && localChanges.exercises) {
+      console.log('🔄 Restoring local changes for session:', sessionId);
+      
+      // Merge local changes with current session
+      session.value.exercises = session.value.exercises.map((exercise, exerciseIndex) => {
+        const localExercise = localChanges.exercises[exerciseIndex];
+        if (localExercise && localExercise.sets) {
+          return {
+            ...exercise,
+            sets: exercise.sets.map((set, setIndex) => {
+              const localSet = localExercise.sets[setIndex];
+              if (localSet) {
+                return {
+                  ...set,
+                  weight: localSet.weight || set.weight,
+                  reps: localSet.reps || set.reps,
+                  isCompleted: localSet.isCompleted || set.isCompleted
+                };
+              }
+              return set;
+            })
+          };
+        }
+        return exercise;
+      });
+      
+      // Mark as having unsaved changes since we restored local data
+      hasUnsavedChanges.value = true;
+      
+      console.log('✅ Local changes restored successfully');
+    }
+  } catch (error) {
+    console.error('❌ Error restoring local changes:', error);
+  }
+};
+
+// Handle offline sync when coming back online
+const handleOnlineSync = async () => {
+  if (!session.value || !workoutData.isOnline.value) return;
+  
+  try {
+    const sessionId = session.value.id;
+    const localChanges = getLocalChanges(sessionId);
+    
+    if (localChanges && localChanges.exercises && hasUnsavedChanges.value) {
+      console.log('🌐 Back online - syncing local changes automatically');
+      
+      // Auto-sync when coming back online
+      await syncLocalChangesToSupabase();
+    }
+  } catch (error) {
+    console.error('❌ Error in automatic online sync:', error);
+  }
+};
+
+// ===== END LOCAL STORAGE SOLUTION =====
+
+// Manual sync function for Ctrl+S or manual save
+const syncLocalChangesToSupabase = async () => {
+  if (!session.value || !hasUnsavedChanges.value || isSaving.value) return;
+  
+  console.log('💾 Manually syncing local changes to Supabase...');
+  isSaving.value = true;
+  
+  try {
+    const sessionId = session.value.id;
+    const localChanges = getLocalChanges(sessionId);
+    
+    if (localChanges && localChanges.exercises) {
+      console.log('🔄 Syncing local changes to Supabase');
+      
+      // Merge local changes with current session data
+      const mergedExercises = session.value.exercises.map((exercise, exerciseIndex) => {
+        const localExercise = localChanges.exercises[exerciseIndex];
+        if (localExercise && localExercise.sets) {
+          return {
+            ...exercise,
+            sets: exercise.sets.map((set, setIndex) => {
+              const localSet = localExercise.sets[setIndex];
+              if (localSet) {
+                return {
+                  ...set,
+                  weight: localSet.weight || set.weight,
+                  reps: localSet.reps || set.reps,
+                  isCompleted: localSet.isCompleted || set.isCompleted
+                };
+              }
+              return set;
+            })
+          };
+        }
+        return exercise;
+      });
+      
+      // Update in Supabase
+      await workoutData.updateWorkoutSessionOffline(sessionId, {
+        exercises: mergedExercises
+      });
+      
+      // Clear local changes after successful sync
+      clearLocalChanges(sessionId);
+      hasUnsavedChanges.value = false;
+      
+      console.log('✅ Local changes synced to Supabase successfully');
+    } else {
+      console.log('ℹ️ No local changes to sync');
+      hasUnsavedChanges.value = false;
+    }
+  } catch (error: any) {
+    console.error('❌ Error syncing local changes:', error);
+    
+    // Check if it's an authentication error
+    if (error.message && (
+      error.message.includes("not authenticated") || 
+      error.message.includes("Session expired") ||
+      error.message.includes("Please log in again")
+    )) {
+      console.log("🔄 Authentication error detected in syncLocalChangesToSupabase");
+      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.");
+      router.push('/login');
+      return;
+    }
+    
+    // Keep the unsaved changes flag so user can retry
+  } finally {
+    isSaving.value = false;
+    console.log('💾 Manual sync operation completed');
+  }
+};
 
 // Computed property for development mode check
 const isDevelopment = computed(() => import.meta.env.DEV)
@@ -1217,12 +1565,15 @@ onMounted(async () => {
   // Initial state update to App.vue
   updateAppSaveState()
   
+  // Restore local changes if they exist
+  await restoreLocalChanges()
+  
   // Add keyboard shortcut for saving (Ctrl+S)
   const handleKeydown = (event: KeyboardEvent) => {
     if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault()
       if (hasUnsavedChanges.value && !isSaving.value) {
-        saveSessionChanges()
+        syncLocalChangesToSupabase()
       }
     }
   }
@@ -1230,7 +1581,7 @@ onMounted(async () => {
   // Listen for save event from App.vue
   const handleSaveEvent = (event: CustomEvent) => {
     if (event.detail.sessionId === session.value?.id && hasUnsavedChanges.value && !isSaving.value) {
-      saveSessionChanges()
+      syncLocalChangesToSupabase()
     }
   }
   
@@ -1249,6 +1600,26 @@ onMounted(async () => {
 
   // Update pending changes count on mount
   await updatePendingChangesCount()
+  
+  // Clean up old local storage data periodically
+  setInterval(() => {
+    clearOldWorkoutData()
+  }, 5 * 60 * 1000) // Every 5 minutes
+  
+  // Listen for network status changes to auto-sync when coming back online
+  const handleNetworkChange = () => {
+    if (workoutData.isOnline.value && hasUnsavedChanges.value) {
+      console.log('🌐 Network back online - checking for local changes to sync');
+      // Small delay to ensure network is stable
+      setTimeout(() => {
+        if (workoutData.isOnline.value) {
+          handleOnlineSync();
+        }
+      }, 2000);
+    }
+  };
+  
+  window.addEventListener('online', handleNetworkChange);
   
   // Save scroll position when user scrolls (only affects this component)
   const handleScroll = () => {
@@ -1279,8 +1650,8 @@ onMounted(async () => {
   const handleBeforeUnload = (event: BeforeUnloadEvent) => {
     if (hasUnsavedChanges.value) {
       event.preventDefault()
-      event.returnValue = 'Er du sikker på at du vil forlate siden?'
-      return 'Er du sikker på at du vil forlate siden?'
+      event.returnValue = 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
+      return 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
     }
   }
   
@@ -1295,6 +1666,7 @@ onMounted(async () => {
     window.removeEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
     window.removeEventListener('beforeunload', handleBeforeUnload)
     window.removeEventListener('scroll', handleScroll)
+    window.removeEventListener('online', handleNetworkChange)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   })
 })
@@ -1307,7 +1679,7 @@ watch(() => route.params.id, async (newId, oldId) => {
     if (hasUnsavedChanges.value) {
       const shouldLeave = confirm('Vil du lagre endringene først?')
       if (shouldLeave) {
-        await saveSessionChanges()
+        await syncLocalChangesToSupabase()
       }
     }
     
