@@ -384,6 +384,7 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { WorkoutSession } from '@/types/workout'
 import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
+import * as muscleGroupsData from '@/data/muscle-groups.json'
 
 const route = useRoute()
 const router = useRouter()
@@ -845,59 +846,6 @@ const getExerciseMuscleGroups = (exerciseId: string): string[] => {
 }
 
 const getMuscleGroupColor = (muscleGroupName: string): string => {
-  // Import muscle groups data
-  const muscleGroupsData = {
-    "muscleGroups": [
-      {
-        "id": "bryst",
-        "name": "Bryst",
-        "displayName": "Bryst",
-        "description": "Brystmuskulatur inkludert pectoralis major og minor",
-        "color": "#f97316"
-      },
-      {
-        "id": "rygg",
-        "name": "Rygg",
-        "displayName": "Rygg",
-        "description": "Ryggmuskulatur inkludert latissimus dorsi, rhomboids og trapezius",
-        "color": "#3b82f6"
-      },
-      {
-        "id": "ben",
-        "name": "Ben",
-        "displayName": "Ben",
-        "description": "Bekkemuskulatur inkludert quadriceps, hamstrings og glutes",
-        "color": "#10b981"
-      },
-      {
-        "id": "skuldre",
-        "name": "Skuldre",
-        "displayName": "Skuldre",
-        "description": "Skuldermuskulatur inkludert deltoids",
-        "color": "#8b5cf6"
-      },
-      {
-        "id": "biceps",
-        "name": "Biceps",
-        "displayName": "Biceps",
-        "color": "#f59e0b"
-      },
-      {
-        "id": "triceps",
-        "name": "Triceps",
-        "displayName": "Triceps",
-        "color": "#ec4899"
-      },
-      {
-        "id": "kjerne",
-        "name": "Kjerne",
-        "displayName": "Kjerne",
-        "description": "Kjerne- og mage-muskulatur inkludert abs og obliques",
-        "color": "#ef4444"
-      }
-    ]
-  }
-  
   // Find the muscle group by name and return its color
   const muscleGroup = muscleGroupsData.muscleGroups.find(mg => 
     mg.name.toLowerCase() === muscleGroupName.toLowerCase() ||
