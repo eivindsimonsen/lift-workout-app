@@ -1,3 +1,4 @@
+// src/router/index.ts
 import { createRouter, createWebHistory } from "vue-router";
 import { useSupabase } from "@/composables/useSupabase";
 import { scrollToTopImmediate, scrollToTopMobile } from "@/composables/useScrollToTop";
@@ -29,7 +30,7 @@ const routes = [
   { path: "/session/:id", name: "SessionDetails", component: SessionDetails, meta: { requiresAuth: true } },
   { path: "/exercise/:id", name: "ExerciseDetail", component: ExerciseDetail, meta: { requiresAuth: true } },
   { path: "/exercises", name: "Exercises", component: Exercises, meta: { requiresAuth: true } },
-  // Catch all route
+  // Catch-all
   { path: "/:pathMatch(.*)*", redirect: "/login" },
 ];
 
@@ -39,14 +40,12 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior(to, from, savedPosition) {
-    // ✅ For WorkoutSession: preserve scroll entirely (no forced top)
+    // ✅ Preserve scroll for WorkoutSession: do nothing (keep current scroll)
     if (to.name === "WorkoutSession") {
-      // Use browser's saved position on popstate if available, else keep current
-      if (savedPosition) return savedPosition;
-      return undefined; // do nothing -> keep current scroll
+      if (savedPosition) return savedPosition; // popstate/back-forward
+      return undefined; // leave scroll as-is
     }
 
-    // For other routes keep your current behavior
     const goingToDifferentPath = to.path !== from.path;
     const sameRouteDifferentParams = to.name === from.name && to.params !== from.params;
 
@@ -56,12 +55,12 @@ const router = createRouter({
 
     if (savedPosition) return savedPosition;
 
-    // Default for non-workout routes: go to top
+    // Default for non-workout routes
     return { top: 0, behavior: isMobile() ? "auto" : "smooth" };
   },
 });
 
-// Navigation guard with improved authentication handling
+// Navigation guard with redirect preservation
 router.beforeEach(async (to: any, from: any, next: any) => {
   if (to.path !== from.path) {
     document.body.classList.add("route-transitioning");
@@ -78,6 +77,7 @@ router.beforeEach(async (to: any, from: any, next: any) => {
       return;
     }
 
+    // Check current session
     const {
       data: { session },
       error,
@@ -85,41 +85,55 @@ router.beforeEach(async (to: any, from: any, next: any) => {
 
     if (error) {
       console.error("Auth check error:", error);
-      next("/login");
+      next({ path: "/login", query: { redirect: to.fullPath } });
       return;
     }
 
     const isAuthenticated = !!session;
 
-    if (isAuthenticated) {
-      next();
-    } else {
-      next("/login");
-    }
-
-    if (to.path === "/login" && isAuthenticated) {
-      next("/");
+    if (!isAuthenticated) {
+      // Carry intended route to login
+      next({ path: "/login", query: { redirect: to.fullPath } });
       return;
     }
-  } catch (error) {
-    console.error("Navigation guard error:", error);
-    next("/login");
+
+    // If already authenticated and going to /login, send to intended target if present
+    if (to.path === "/login") {
+      const redirectTarget = (to.query?.redirect as string) || "/";
+      next(redirectTarget);
+      return;
+    }
+
+    next();
+  } catch (err) {
+    console.error("Navigation guard error:", err);
+    next({ path: "/login", query: { redirect: to.fullPath } });
   }
 });
 
-// After-each: DO NOT force scroll for WorkoutSession
+// After-each: don't force scroll for WorkoutSession; store lastRoute
 router.afterEach((to: any, from: any) => {
   if (to.path !== from.path) {
     console.log("🔄 Router navigation detected:", { from: from.path, to: to.path });
 
     if (to.name !== "WorkoutSession") {
       if (isMobile()) {
-        console.log("🔄 Mobile: scroll to top");
         scrollToTopMobile();
       } else {
-        console.log("🔄 Desktop: scroll to top");
         scrollToTopImmediate();
       }
+    }
+
+    // ✅ Remember last route for restore on cold start
+    try {
+      const { supabase } = useSupabase();
+      supabase.auth.getSession().then(({ data }) => {
+        if (data?.session) {
+          sessionStorage.setItem("lastRoute", to.fullPath);
+        }
+      });
+    } catch (err) {
+      console.warn("Could not store last route", err);
     }
 
     setTimeout(() => {
