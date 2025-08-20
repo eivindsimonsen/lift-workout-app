@@ -577,34 +577,52 @@ const createSupabaseData = () => {
     }
   };
 
+  // Sync pending changes when back online
   const syncPendingChanges = async () => {
     if (!isOnline.value || !currentUser.value || !indexedDB.isSupported.value) return;
+
     try {
-      const pending = await indexedDB.getPendingChanges();
-      if (pending.length === 0) {
+      const pendingChanges = await indexedDB.getPendingChanges();
+      if (pendingChanges.length === 0) {
         pendingChangesCount.value = 0;
         return;
       }
-      console.log(`🔄 Syncing ${pending.length} pending changes...`);
-      for (const change of pending) {
+
+      console.log(`🔄 Syncing ${pendingChanges.length} pending changes...`);
+
+      for (const change of pendingChanges) {
+        // Narrow the ID (it should exist for rows read from IDB, but TS needs proof)
+        const hasId = typeof (change as any).id === "number";
         try {
           await performSupabaseOperation(change.type, change.data);
-          await indexedDB.removePendingChange(change.id);
-          console.log(`✅ Synced pending change: ${change.type}`);
-        } catch (e) {
-          console.error(`❌ Failed to sync pending change: ${change.type}`, e);
+
+          if (hasId) {
+            await indexedDB.removePendingChange((change as any).id as number);
+            console.log(`✅ Synced pending change: ${change.type}`);
+          } else {
+            console.warn("⚠️ Pending change had no ID; cannot remove. Skipping cleanup.", change);
+          }
+        } catch (error) {
+          console.error(`❌ Failed to sync pending change: ${change.type}`, error);
+
+          // Increment retry count (in-memory copy only; removal logic below still works)
           change.retryCount = (change.retryCount || 0) + 1;
           if (change.retryCount > 3) {
-            try {
-              await indexedDB.removePendingChange(change.id);
-            } catch (re) {
-              console.warn("⚠️ Failed to remove failed pending change:", re);
+            if (hasId) {
+              try {
+                await indexedDB.removePendingChange((change as any).id as number);
+                console.log(`🗑️ Removed failed pending change after 3 attempts: ${change.type}`);
+              } catch (removeError) {
+                console.warn("⚠️ Failed to remove failed pending change:", removeError);
+              }
+            } else {
+              console.warn("⚠️ Failed pending change has no ID; cannot remove. It may reappear.");
             }
           }
         }
       }
-    } catch (e) {
-      console.error("❌ Error syncing pending changes:", e);
+    } catch (error) {
+      console.error("❌ Error syncing pending changes:", error);
     } finally {
       await refreshPendingChangesCount();
     }

@@ -332,11 +332,11 @@ const formatDate = (date: Date): string => {
 }
 
 const getWorkoutTypeName = (typeId: string): string => {
-  return workoutData.getWorkoutType.value(typeId)
+  return workoutData.getWorkoutType(typeId)
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  return workoutData.getWorkoutTypeColor.value(typeId)
+  return workoutData.getWorkoutTypeColor(typeId)
 }
 
 const getMotivationalText = (): string => {
@@ -483,7 +483,7 @@ const getExerciseGroups = (exercises: any[]) => {
   
   exercises.forEach(exercise => {
     // Find the exercise data using getExerciseById which can handle both main exercises and variants
-    const exerciseData = workoutData.getExerciseById.value(exercise.exerciseId)
+    const exerciseData = workoutData.getExerciseById(exercise.exerciseId)
     if (exerciseData && exerciseData.muscleGroups && exerciseData.muscleGroups.length > 0) {
       // Use the first muscle group as the primary category
       const primaryGroup = exerciseData.muscleGroups[0]
