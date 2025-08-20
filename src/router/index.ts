@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useSupabase } from "@/composables/useSupabase";
-import { scrollToTopGlobal, scrollToTopImmediate, scrollToTopMobile } from "@/composables/useScrollToTop";
+import { scrollToTopImmediate, scrollToTopMobile } from "@/composables/useScrollToTop";
 
 // View imports
 import TemplateSessions from "@/views/TemplateSessions.vue";
@@ -29,66 +29,40 @@ const routes = [
   { path: "/session/:id", name: "SessionDetails", component: SessionDetails, meta: { requiresAuth: true } },
   { path: "/exercise/:id", name: "ExerciseDetail", component: ExerciseDetail, meta: { requiresAuth: true } },
   { path: "/exercises", name: "Exercises", component: Exercises, meta: { requiresAuth: true } },
-  // Catch all route - redirect to login if not authenticated, økter if authenticated
-  {
-    path: "/:pathMatch(.*)*",
-    redirect: "/login",
-  },
+  // Catch all route
+  { path: "/:pathMatch(.*)*", redirect: "/login" },
 ];
+
+const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior(to: any, from: any, savedPosition: any) {
-    // Always scroll to top when navigating to a new route
-    if (to.path !== from.path) {
-      console.log("🔄🔄🔄 BUG CHECK 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
-      // For mobile, use immediate scroll to prevent issues
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
-
-      if (isMobile) {
-        console.log("🔄🔄🔄 BUG CHECK MOBILE 1 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
-        return { top: 0, behavior: "auto" };
-      } else {
-        console.log("🔄🔄🔄 BUG CHECK DESKTOP 1 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
-        return { top: 0, behavior: "smooth" };
-      }
+  scrollBehavior(to, from, savedPosition) {
+    // ✅ For WorkoutSession: preserve scroll entirely (no forced top)
+    if (to.name === "WorkoutSession") {
+      // Use browser's saved position on popstate if available, else keep current
+      if (savedPosition) return savedPosition;
+      return undefined; // do nothing -> keep current scroll
     }
 
-    // If navigating to the same route with different params, also scroll to top
-    if (to.name === from.name && to.params !== from.params) {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
+    // For other routes keep your current behavior
+    const goingToDifferentPath = to.path !== from.path;
+    const sameRouteDifferentParams = to.name === from.name && to.params !== from.params;
 
-      if (isMobile) {
-        console.log("🔄🔄🔄 BUG CHECK MOBILE 2 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
-        return { top: 0, behavior: "auto" };
-      } else {
-        console.log("🔄🔄🔄 BUG CHECK DESKTOP 2 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
-        return { top: 0, behavior: "smooth" };
-      }
+    if (goingToDifferentPath || sameRouteDifferentParams) {
+      return { top: 0, behavior: isMobile() ? "auto" : "smooth" };
     }
 
-    // If there's a saved position (browser back/forward), restore it
-    if (savedPosition) {
-      return savedPosition;
-    }
+    if (savedPosition) return savedPosition;
 
-    // Default: always scroll to top
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
-
-    if (isMobile) {
-      console.log("🔄🔄🔄 BUG CHECK MOBILE 3 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
-      return { top: 0, behavior: "auto" };
-    } else {
-      console.log("🔄🔄🔄 BUG CHECK DESKTOP 3 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
-      return { top: 0, behavior: "smooth" };
-    }
+    // Default for non-workout routes: go to top
+    return { top: 0, behavior: isMobile() ? "auto" : "smooth" };
   },
 });
 
 // Navigation guard with improved authentication handling
 router.beforeEach(async (to: any, from: any, next: any) => {
-  // Immediately lock scrolling to prevent flicker
   if (to.path !== from.path) {
     document.body.classList.add("route-transitioning");
     console.log("🔒 Scroll lock applied before navigation");
@@ -97,16 +71,13 @@ router.beforeEach(async (to: any, from: any, next: any) => {
   const { supabase } = useSupabase();
 
   try {
-    // Check if route requires authentication
-    const requiresAuth = to.meta.requiresAuth !== false; // Default to true unless explicitly set to false
+    const requiresAuth = to.meta.requiresAuth !== false;
 
     if (!requiresAuth) {
-      // Public routes - allow access
       next();
       return;
     }
 
-    // For protected routes, check authentication
     const {
       data: { session },
       error,
@@ -114,7 +85,6 @@ router.beforeEach(async (to: any, from: any, next: any) => {
 
     if (error) {
       console.error("Auth check error:", error);
-      // On error, redirect to login
       next("/login");
       return;
     }
@@ -122,43 +92,36 @@ router.beforeEach(async (to: any, from: any, next: any) => {
     const isAuthenticated = !!session;
 
     if (isAuthenticated) {
-      // User is authenticated - allow access
       next();
     } else {
-      // User is not authenticated - redirect to login
       next("/login");
     }
 
-    // Handle case where authenticated user tries to access login page
     if (to.path === "/login" && isAuthenticated) {
       next("/");
       return;
     }
   } catch (error) {
     console.error("Navigation guard error:", error);
-    // On any unexpected error, redirect to login
     next("/login");
   }
 });
 
-// Navigation guard to ensure scrolling to top after route changes
+// After-each: DO NOT force scroll for WorkoutSession
 router.afterEach((to: any, from: any) => {
-  // Force scroll to top after navigation
   if (to.path !== from.path) {
     console.log("🔄 Router navigation detected:", { from: from.path, to: to.path });
 
-    // Detect mobile and use appropriate scroll method
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
-
-    if (isMobile) {
-      console.log("🔄🔄🔄 BUG CHECK MOBILE 4 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
-      scrollToTopMobile();
-    } else {
-      console.log("🔄🔄🔄 BUG CHECK DESKTOP 4 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
-      scrollToTopImmediate();
+    if (to.name !== "WorkoutSession") {
+      if (isMobile()) {
+        console.log("🔄 Mobile: scroll to top");
+        scrollToTopMobile();
+      } else {
+        console.log("🔄 Desktop: scroll to top");
+        scrollToTopImmediate();
+      }
     }
 
-    // Release scroll lock after a short delay
     setTimeout(() => {
       document.body.classList.remove("route-transitioning");
       console.log("🔓 Router scroll lock released");

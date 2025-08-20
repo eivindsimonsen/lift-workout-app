@@ -191,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
@@ -421,35 +421,38 @@ watch(() => workoutData.isLoading.value, (newValue) => {
 }, { immediate: true })
 
 // Ensure scrolling to top on route changes
-watch(() => route.path, (newPath, oldPath) => {
-  // Only scroll to top if we're actually changing routes (not on initial load)
-  if (oldPath && newPath !== oldPath) {
-    console.log('🔄 App route watcher detected:', { from: oldPath, to: newPath })
-    
-    // Detect mobile and use appropriate scroll method
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                    window.innerWidth <= 768 ||
-                    'ontouchstart' in window;
-    
-    // TODO EIVIND
-    if (isMobile && !route.path.startsWith('/workout/')) {
-      console.log('�🔄🔄 BUG CHECK MOBILE 5 🔄🔄🔄 Router navigation detected:', { from: oldPath, to: newPath });
-      scrollToTopMobile();
-    } 
+watch(
+  () => route.path,
+  (newPath, oldPath) => {
+    if (!oldPath || newPath === oldPath) return;
 
-    if (!isMobile && !route.path.startsWith('/workout/')) {
-      console.log('�🔄🔄 BUG CHECK DESKTOP 5 🔄🔄🔄 Router navigation detected:', { from: oldPath, to: newPath });
+    const goingToWorkout = newPath.startsWith("/workout/");
+
+    // ✅ Skip ALL scroll resets for WorkoutSession route
+    if (goingToWorkout) {
+      console.log("⏭️ Skipping global scroll reset (WorkoutSession)");
+      return;
+    }
+
+    console.log("🔄 App route watcher:", { from: oldPath, to: newPath });
+
+    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      window.innerWidth <= 768 ||
+      "ontouchstart" in window;
+
+    if (mobile) {
+      scrollToTopMobile();
+    } else {
       scrollToTopImmediate();
     }
-    // TODO EIVIND END
-    
-    // Additional fallback: also scroll the main content area if it exists
-    if (mainContent.value) {
-      mainContent.value.scrollTop = 0
-      console.log('✅ Main content scrollTop reset to 0')
-    }
-  }
-})
 
-// Router's scrollBehavior handles scrolling to top on route changes automatically
+    // Fallback: only reset main content for non-workout routes
+    if (mainContent.value) {
+      mainContent.value.scrollTop = 0;
+      console.log("✅ Main content scrollTop reset to 0");
+    }
+  },
+  { immediate: false }
+);
+
 </script> 
