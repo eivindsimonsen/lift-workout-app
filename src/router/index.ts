@@ -36,10 +36,13 @@ const routes = [
 
 const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
 
+// Define ScrollPosition type
+type ScrollPosition = { left: number; top: number } | null;
+
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior(to: any, from: any, savedPosition: ScrollPosition) {
     // ✅ Preserve scroll for WorkoutSession: do nothing (keep current scroll)
     if (to.name === "WorkoutSession") {
       if (savedPosition) return savedPosition; // popstate/back-forward
@@ -127,7 +130,7 @@ router.afterEach((to: any, from: any) => {
     // ✅ Remember last route for restore on cold start
     try {
       const { supabase } = useSupabase();
-      supabase.auth.getSession().then(({ data }) => {
+      supabase.auth.getSession().then(({ data }: { data: { session: any } }) => {
         if (data?.session) {
           sessionStorage.setItem("lastRoute", to.fullPath);
         }
