@@ -1288,7 +1288,7 @@ const clearOldWorkoutData = () => {
     
     workoutData.sort((a, b) => b.lastUpdated - a.lastUpdated);
     
-    // Remove old workout data (keep only 5 most recent)
+    // Remove old workout data (keep only 5 sessions in local storage at the time)
     workoutData.slice(5).forEach(({ key }) => {
       localStorage.removeItem(key);
       console.log('🗑️ Removed old workout data:', key);
@@ -1602,9 +1602,9 @@ onMounted(async () => {
   await updatePendingChangesCount()
   
   // Clean up old local storage data periodically
-  setInterval(() => {
-    clearOldWorkoutData()
-  }, 5 * 60 * 1000) // Every 5 minutes
+  // setInterval(() => {
+  //   clearOldWorkoutData()
+  // }, 5 * 60 * 1000) // Every 5 minutes
   
   // Listen for network status changes to auto-sync when coming back online
   const handleNetworkChange = () => {
@@ -1669,6 +1669,9 @@ onMounted(async () => {
     window.removeEventListener('online', handleNetworkChange)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   })
+
+  // Clear old workout data every 5 minutes
+    clearOldWorkoutData();
 })
 
 // Watch for route changes to warn about unsaved changes
