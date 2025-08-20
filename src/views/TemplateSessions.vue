@@ -103,7 +103,7 @@
       </div>
 
       <!-- Debug info section -->
-      <div class="mb-4 p-4 bg-gray-500/10 border border-gray-500/20 rounded-lg">
+      <!-- <div class="mb-4 p-4 bg-gray-500/10 border border-gray-500/20 rounded-lg">
         <div class="flex items-center gap-3 mb-2">
           <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -113,7 +113,7 @@
         <div class="text-xs text-gray-400 space-y-1">
           <p>Sist synkronisert: {{ workoutData.lastSyncTime.value ? new Date(workoutData.lastSyncTime.value).toLocaleString('no-NO') : 'Aldri' }}</p>
         </div>
-      </div>
+      </div> -->
 
       <!-- Loading State -->
       <div v-if="isLoading" class="mt-4">
