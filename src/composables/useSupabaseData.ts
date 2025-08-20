@@ -1,13 +1,16 @@
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed } from "vue";
 import { useSupabase } from "./useSupabase";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 import { useIndexedDB } from "@/composables/useIndexedDB";
-import type { WorkoutTemplate, WorkoutSession, WorkoutType } from "@/types/workout";
+import type { WorkoutTemplate, WorkoutSession } from "@/types/workout";
 
 // Console logging utility
 const logSupabaseAccess = (operation: string, details?: any) => {
   const timestamp = new Date().toLocaleTimeString("no-NO");
 };
+
+let __syncSeq = 0;
+const tick = (seq: number, msg: string) => console.log(`[sync ${seq}] ${msg} @ ${new Date().toISOString()}`);
 
 // Helper function to create serializable user object for IndexedDB storage
 const createSerializableUser = (user: any) => {
@@ -124,6 +127,41 @@ const ensureSerializable = (data: any): any => {
   return null;
 };
 
+// Abortable timeout wrapper for Supabase/PostgREST
+const withTimeout = async <T>(makeRequest: (signal: AbortSignal) => Promise<T>, ms: number, label = "request"): Promise<T> => {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(`Timeout ${ms}ms: ${label}`), ms);
+
+  try {
+    return await makeRequest(ctrl.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+// Hard timeout wrapper that does not rely on abort support.
+// Even if the underlying promise never settles, this will reject at `ms`.
+class TimeoutError extends Error {
+  constructor(public label: string, public ms: number) {
+    super(`Timeout after ${ms}ms: ${label}`);
+    this.name = "TimeoutError";
+  }
+}
+
+const withHardTimeout = async <T>(promiseFactory: () => Promise<T>, ms: number, label = "request"): Promise<T> => {
+  let timeoutId: any;
+  const timeoutP = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new TimeoutError(label, ms)), ms);
+  });
+  try {
+    // Start the actual promise lazily so construction errors also get caught
+    const p = promiseFactory();
+    return (await Promise.race([p, timeoutP])) as T;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 // Singleton instance
 let supabaseDataInstance: ReturnType<typeof createSupabaseData> | null = null;
 let isInitializing = false;
@@ -142,8 +180,29 @@ const createSupabaseData = () => {
   const isOnline = ref(navigator.onLine);
   const lastSyncTime = ref<number | null>(null);
 
+  // FIX: async computed → ref + updater
+  const pendingChangesCount = ref(0);
+  const refreshPendingChangesCount = async () => {
+    if (!indexedDB.isSupported.value || !currentUser.value) {
+      pendingChangesCount.value = 0;
+      return;
+    }
+    try {
+      const pendingChanges = await indexedDB.getPendingChanges();
+      pendingChangesCount.value = pendingChanges.length;
+    } catch (error) {
+      console.error("❌ Error getting pending changes count:", error);
+      pendingChangesCount.value = 0;
+    }
+  };
+
   // Debounce visibility change to prevent rapid tab switching from triggering loads
-  let visibilityChangeTimeout: NodeJS.Timeout | null = null;
+  let visibilityChangeTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  // Will hold auth subscription to clean up
+  let authSub: {
+    data?: { subscription?: { unsubscribe?: () => void } };
+  } | null = null;
 
   // Network status monitoring
   const updateNetworkStatus = () => {
@@ -155,9 +214,10 @@ const createSupabaseData = () => {
     if (wasOffline && isOnline.value && currentUser.value && indexedDB.isSupported.value) {
       console.log("🌐 Network back online, syncing pending changes...");
       // Use a small delay to ensure network is stable
-      setTimeout(() => {
+      setTimeout(async () => {
         if (isOnline.value && currentUser.value) {
-          syncPendingChanges();
+          await syncPendingChanges();
+          await refreshPendingChangesCount();
         }
       }, 1000);
     }
@@ -222,6 +282,8 @@ const createSupabaseData = () => {
       console.log("✅ UI data refreshed immediately");
     } catch (error) {
       console.error("❌ Error refreshing UI data:", error);
+    } finally {
+      await refreshPendingChangesCount();
     }
   };
 
@@ -262,6 +324,7 @@ const createSupabaseData = () => {
           // Check if there are pending changes that haven't been synced yet
           const pendingChanges = await indexedDB.getPendingChanges();
           hasPendingChanges = pendingChanges.length > 0;
+          pendingChangesCount.value = pendingChanges.length;
 
           if (cachedData && !forceRefresh) {
             console.log("📱 Loading data from cache...");
@@ -311,9 +374,10 @@ const createSupabaseData = () => {
 
       // Load from Supabase if online and cache is stale or forced, AND no pending changes
       if (isOnline.value && (!hasPendingChanges || forceRefresh)) {
-        console.log("🌐 Syncing with Supabase...");
         try {
+          console.log("🌐 Syncing with Supabase...");
           await syncWithSupabase();
+          console.log("✅ Supabase synced successfully");
         } catch (syncError) {
           console.error("❌ Supabase sync failed:", syncError);
           // If sync fails, try to use cached data if available
@@ -440,41 +504,115 @@ const createSupabaseData = () => {
       if (shouldShowLoading) {
         isLoading.value = false;
       }
+      await refreshPendingChangesCount();
     }
   };
 
-  // Sync with Supabase
+  // Quick cache-first refresh for focus/visibility
+  const refreshOnResume = async () => {
+    try {
+      if (indexedDB.isSupported.value && currentUser.value) {
+        const cached = await indexedDB.getUserData(currentUser.value.id);
+        if (cached) {
+          templates.value = cached.templates || [];
+          sessions.value = (cached.sessions || []).map((s) => ({ ...s, date: new Date(s.date) }));
+          lastSyncTime.value = cached.lastSync ?? null;
+        }
+      }
+      if (isOnline.value && currentUser.value) {
+        syncWithSupabase().catch((e) => console.warn("resume sync failed:", e));
+      }
+    } finally {
+      refreshPendingChangesCount();
+    }
+  };
+
+  // Ensure Supabase auth is usable before hitting PostgREST
+  const ensureActiveSession = async () => {
+    try {
+      // Fast check: get current session (bound by timeout)
+      const { data, error } = await withTimeout(
+        async (signal) => {
+          // supabase-js doesn't accept signal here; but getSession is cheap and quick.
+          return await supabase.auth.getSession();
+        },
+        4000,
+        "auth.getSession"
+      );
+
+      if (error) {
+        console.warn("⚠️ getSession error:", error);
+        return false;
+      }
+      const session = data?.session;
+      if (!session) return false;
+
+      const exp = session.expires_at ? session.expires_at * 1000 : 0;
+      const expSoon = exp && exp < Date.now() + 60_000; // expires within 60s
+
+      if (expSoon) {
+        console.log("🔐 Token expiring soon — refreshing session...");
+        // Bound the refresh so PostgREST calls don't queue forever behind it
+        const refreshed = await withTimeout(
+          async (signal) => {
+            const res = await supabase.auth.refreshSession();
+            return !res.error;
+          },
+          5000,
+          "auth.refreshSession"
+        );
+        return refreshed;
+      }
+      return true;
+    } catch (e) {
+      console.warn("⚠️ ensureActiveSession failed:", e);
+      return false;
+    }
+  };
+
   const syncWithSupabase = async () => {
     if (!currentUser.value || !isOnline.value) return;
 
-    try {
-      // Load templates for the current user
-      const { data: templatesData, error: templatesError } = await supabase.from("workout_templates").select("*").eq("user_id", currentUser.value.id).order("created_at", { ascending: true });
+    const seq = ++__syncSeq;
+    tick(seq, "begin syncWithSupabase");
 
-      if (templatesError) {
-        console.error("Error loading templates:", templatesError);
-        throw templatesError;
+    try {
+      // Preflight auth (keep your existing ensureActiveSession if present)
+      if (typeof ensureActiveSession === "function") {
+        tick(seq, "ensureActiveSession:start");
+        const ok = await withHardTimeout(() => ensureActiveSession(), 5000, "ensureActiveSession");
+        tick(seq, `ensureActiveSession:done ok=${ok}`);
+        if (!ok) {
+          tick(seq, "ensureActiveSession:not-ok -> bail (use cache)");
+          return;
+        }
       }
 
-      logSupabaseAccess("Get templates", `${templatesData.length} templates`);
-      const formattedTemplates = templatesData.map((template: any) => ({
+      console.log("🌐 Syncing with Supabase...");
+      tick(seq, "templates:query:start");
+
+      // Templates query with hard timeout
+      const { data: templatesData, error: templatesError } = await withHardTimeout(() => supabase.from("workout_templates").select("*").eq("user_id", currentUser.value.id).order("created_at", { ascending: true }), 8000, "load templates");
+
+      tick(seq, "templates:query:end");
+      if (templatesError) throw templatesError;
+
+      const formattedTemplates = (templatesData || []).map((template: any) => ({
         id: template.id,
         name: template.name,
         workoutType: template.workout_type,
         exercises: template.exercises,
       }));
 
-      // Load sessions for the current user
-      const { data: sessionsData, error: sessionsError } = await supabase.from("workout_sessions").select("*").eq("user_id", currentUser.value.id).order("date", { ascending: false });
+      tick(seq, "sessions:query:start");
 
-      if (sessionsError) {
-        console.error("Error loading sessions:", sessionsError);
-        throw sessionsError;
-      }
+      // Sessions query with hard timeout
+      const { data: sessionsData, error: sessionsError } = await withHardTimeout(() => supabase.from("workout_sessions").select("*").eq("user_id", currentUser.value.id).order("date", { ascending: false }), 8000, "load sessions");
 
-      logSupabaseAccess("Get sessions", `${sessionsData.length} sessions`);
-      const formattedSessions = sessionsData.map((session: any) => {
-        // Ensure exercises data is properly formatted with numbers
+      tick(seq, "sessions:query:end");
+      if (sessionsError) throw sessionsError;
+
+      const formattedSessions = (sessionsData || []).map((session: any) => {
         const exercises =
           session.exercises?.map((exercise: any) => ({
             ...exercise,
@@ -486,15 +624,9 @@ const createSupabaseData = () => {
               })) || [],
           })) || [];
 
-        // Recalculate total volume based on corrected weights
-        const recalculatedTotalVolume = exercises.reduce((exerciseTotal: number, exercise: any) => {
-          const exerciseVolume = exercise.sets.reduce((setTotal: number, set: any) => {
-            if (set.isCompleted && set.weight && set.reps) {
-              return setTotal + set.weight * set.reps;
-            }
-            return setTotal;
-          }, 0);
-          return exerciseTotal + exerciseVolume;
+        const total = exercises.reduce((acc: number, ex: any) => {
+          const vol = ex.sets.reduce((s: number, set: any) => (set.isCompleted && set.weight && set.reps ? s + set.weight * set.reps : s), 0);
+          return acc + vol;
         }, 0);
 
         return {
@@ -505,58 +637,40 @@ const createSupabaseData = () => {
           date: new Date(session.date),
           duration: session.duration || 0,
           exercises,
-          totalVolume: Math.round(recalculatedTotalVolume), // Ensure integer for database
+          totalVolume: Math.round(total),
           isCompleted: session.is_completed || false,
         };
       });
 
-      // Update local state
+      // State + cache
+      tick(seq, "state:update");
       templates.value = formattedTemplates;
       sessions.value = formattedSessions;
       lastSyncTime.value = Date.now();
 
-      // Cache the data - only store serializable user properties
       if (indexedDB.isSupported.value) {
-        try {
-          console.log("📱 Caching synced data locally...");
-          const serializableUser = createSerializableUser(currentUser.value);
-
-          if (!serializableUser) {
-            console.warn("⚠️ Cannot cache synced data - invalid user object");
-            return;
-          }
-
-          // Extract raw data to avoid reactive object issues
-          const rawTemplates = Array.isArray(formattedTemplates) ? [...formattedTemplates] : [];
-          const rawSessions = Array.isArray(formattedSessions) ? [...formattedSessions] : [];
-
-          const userDataToCache = {
-            templates: ensureSerializable(rawTemplates),
-            sessions: ensureSerializable(rawSessions),
-            lastSync: Date.now(),
-            user: serializableUser,
-          };
-
-          console.log("📱 Caching synced data structure:", {
-            templatesCount: userDataToCache.templates.length,
-            sessionsCount: userDataToCache.sessions.length,
-            userKeys: Object.keys(userDataToCache.user),
-          });
-
-          await indexedDB.storeUserData(currentUser.value.id, userDataToCache);
-          console.log("✅ Synced data cached successfully");
-        } catch (cacheError) {
-          console.warn("⚠️ Failed to cache synced data locally:", cacheError);
-          // Don't fail the sync operation if caching fails
-        }
-      } else {
-        console.log("📱 IndexedDB not supported, skipping cache");
+        tick(seq, "cache:store:start");
+        await withHardTimeout(
+          () =>
+            indexedDB.storeUserData(currentUser.value.id, {
+              templates: ensureSerializable([...formattedTemplates]),
+              sessions: ensureSerializable([...formattedSessions]),
+              lastSync: Date.now(),
+              user: createSerializableUser(currentUser.value),
+            }),
+          4000,
+          "cache storeUserData"
+        );
+        tick(seq, "cache:store:end");
       }
 
-      console.log("✅ Data synced and cached successfully");
-    } catch (error) {
-      console.error("❌ Error syncing with Supabase:", error);
-      throw error;
+      tick(seq, "done ok");
+    } catch (err: any) {
+      tick(seq, `error: ${err?.name || ""} ${err?.message || err}`);
+      throw err;
+    } finally {
+      tick(seq, "finally");
+      await refreshPendingChangesCount();
     }
   };
 
@@ -602,18 +716,20 @@ const createSupabaseData = () => {
       }
 
       // Listen for auth changes (only set up once)
-      supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+      authSub = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
         if (event === "SIGNED_IN" && session?.user) {
           currentUser.value = session.user;
           isAuthenticated.value = true;
 
           // Load data (will use cache if available)
           await loadData();
+          await refreshPendingChangesCount();
         } else if (event === "SIGNED_OUT") {
           currentUser.value = null;
           isAuthenticated.value = false;
           templates.value = [];
           sessions.value = [];
+          pendingChangesCount.value = 0;
 
           // Clear cached data for this user
           if (indexedDB.isSupported.value) {
@@ -652,6 +768,8 @@ const createSupabaseData = () => {
               console.warn("⚠️ Failed to retrieve cached user data for update:", error);
             }
           }
+
+          await refreshPendingChangesCount();
         }
       });
 
@@ -691,14 +809,18 @@ const createSupabaseData = () => {
                     }
 
                     // Then load data (will use cache if pending changes exist)
-                    loadData(0, true); // Force refresh
+                    // use non-blocking refresh that prefers cache first
+                    await refreshOnResume();
                   }
                 }, 200); // Reduced delay for better responsiveness
               } else {
                 console.log("📱 Page visible, cache is fresh, no sync needed");
+                // Still refresh the count (cheap)
+                refreshPendingChangesCount();
               }
             } else {
               console.log("📱 Page visible, no sync needed (offline, no user, or already loading)");
+              refreshPendingChangesCount();
             }
           }
         };
@@ -712,8 +834,14 @@ const createSupabaseData = () => {
       }
 
       // Set up network status monitoring
-      window.addEventListener("online", updateNetworkStatus);
-      window.addEventListener("offline", updateNetworkStatus);
+      window.addEventListener("online", async () => {
+        updateNetworkStatus();
+        await refreshPendingChangesCount();
+      });
+      window.addEventListener("offline", async () => {
+        updateNetworkStatus();
+        await refreshPendingChangesCount();
+      });
 
       // Add focus handler to sync data when app gains focus - only if cache is stale
       const handleFocus = () => {
@@ -741,12 +869,16 @@ const createSupabaseData = () => {
                 }
 
                 // Then load data (will use cache if pending changes exist)
-                loadData(0, true); // Force refresh
+                await loadData(0, true); // Force refresh
+                await refreshPendingChangesCount();
               }
             }, 100);
           } else {
             console.log("📱 App gained focus, cache is fresh, no sync needed");
+            refreshPendingChangesCount();
           }
+        } else {
+          refreshPendingChangesCount();
         }
       };
       window.addEventListener("focus", handleFocus);
@@ -771,6 +903,7 @@ const createSupabaseData = () => {
       isInitialized.value = false; // Reset on error
     } finally {
       isInitializing = false;
+      await refreshPendingChangesCount();
     }
   };
 
@@ -790,6 +923,7 @@ const createSupabaseData = () => {
       templates.value = [];
       sessions.value = [];
       isLoading.value = false;
+      pendingChangesCount.value = 0;
 
       // Don't clear remembered credentials - keep them for easy re-login
     } catch (error) {
@@ -800,6 +934,7 @@ const createSupabaseData = () => {
       templates.value = [];
       sessions.value = [];
       isLoading.value = false;
+      pendingChangesCount.value = 0;
 
       // Don't clear remembered credentials even on error
     }
@@ -813,6 +948,7 @@ const createSupabaseData = () => {
     isAuthenticated.value = false;
     templates.value = [];
     sessions.value = [];
+    pendingChangesCount.value = 0;
   };
 
   // Cleanup function to remove event listeners
@@ -824,8 +960,8 @@ const createSupabaseData = () => {
       }
 
       // Remove network status listeners
-      window.removeEventListener("online", updateNetworkStatus);
-      window.removeEventListener("offline", updateNetworkStatus);
+      window.removeEventListener("online", updateNetworkStatus as any);
+      window.removeEventListener("offline", updateNetworkStatus as any);
 
       // Remove focus handler
       const focusHandler = (window as any).__focusHandler;
@@ -838,6 +974,14 @@ const createSupabaseData = () => {
         clearTimeout(visibilityChangeTimeout);
         visibilityChangeTimeout = null;
       }
+
+      // Unsubscribe auth listener
+      try {
+        authSub?.data?.subscription?.unsubscribe?.();
+      } catch (e) {
+        console.warn("⚠️ Failed to unsubscribe auth listener:", e);
+      }
+      authSub = null;
     }
   };
 
@@ -915,7 +1059,9 @@ const createSupabaseData = () => {
       // If online, sync with Supabase immediately
       if (isOnline.value) {
         console.log("🌐 Online - syncing immediately");
-        return await performSupabaseOperation(operation, data);
+        const res = await performSupabaseOperation(operation, data);
+        await refreshPendingChangesCount();
+        return res;
       } else {
         // If offline, queue for later sync
         console.log("📱 Offline - queuing for later sync");
@@ -942,20 +1088,24 @@ const createSupabaseData = () => {
             // Safety check - ensure we have valid data to store
             if (!serializableData) {
               console.warn("⚠️ Serialized data is null/undefined, skipping offline change");
+              await refreshPendingChangesCount();
               return { success: true, offline: true, cacheFailed: true };
             }
 
             await indexedDB.storePendingChange(operation, serializableData);
             console.log("✅ Offline change queued successfully");
+            await refreshPendingChangesCount();
             return { success: true, offline: true };
           } catch (cacheError) {
             console.warn("⚠️ Failed to queue offline change:", cacheError);
             console.error("❌ Offline change error details:", cacheError);
+            await refreshPendingChangesCount();
             // Return success anyway since the data was saved locally
             return { success: true, offline: true, cacheFailed: true };
           }
         } else {
           console.log("📱 IndexedDB not supported, offline change not queued");
+          await refreshPendingChangesCount();
           return { success: true, offline: true, cacheFailed: true };
         }
       }
@@ -983,7 +1133,10 @@ const createSupabaseData = () => {
 
     try {
       const pendingChanges = await indexedDB.getPendingChanges();
-      if (pendingChanges.length === 0) return;
+      if (pendingChanges.length === 0) {
+        pendingChangesCount.value = 0;
+        return;
+      }
 
       console.log(`🔄 Syncing ${pendingChanges.length} pending changes...`);
 
@@ -1009,6 +1162,8 @@ const createSupabaseData = () => {
       }
     } catch (error) {
       console.error("❌ Error syncing pending changes:", error);
+    } finally {
+      await refreshPendingChangesCount();
     }
   };
 
@@ -1085,18 +1240,10 @@ const createSupabaseData = () => {
   });
 
   const recentSessions = computed(() => {
-    return completedSessions.value.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
-  });
-
-  const pendingChangesCount = computed(async () => {
-    if (!indexedDB.isSupported.value || !currentUser.value) return 0;
-    try {
-      const pendingChanges = await indexedDB.getPendingChanges();
-      return pendingChanges.length;
-    } catch (error) {
-      console.error("❌ Error getting pending changes count:", error);
-      return 0;
-    }
+    return completedSessions.value
+      .slice()
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 3);
   });
 
   const workoutStats = computed(() => {
@@ -1201,6 +1348,8 @@ const createSupabaseData = () => {
       // Use error handler to show user-friendly error
       const { showError } = useErrorHandler();
       showError("Kunne ikke opprette økt. Prøv igjen.");
+    } finally {
+      await refreshPendingChangesCount();
     }
   };
 
@@ -1226,6 +1375,8 @@ const createSupabaseData = () => {
     if (index !== -1) {
       templates.value[index] = { ...templates.value[index], ...updates };
     }
+
+    await refreshPendingChangesCount();
   };
 
   const deleteTemplate = async (id: string) => {
@@ -1239,6 +1390,7 @@ const createSupabaseData = () => {
     }
 
     templates.value = templates.value.filter((t) => t.id !== id);
+    await refreshPendingChangesCount();
   };
 
   const startWorkoutSession = async (templateId: string): Promise<WorkoutSession | null> => {
@@ -1362,6 +1514,7 @@ const createSupabaseData = () => {
         }
       }
 
+      await refreshPendingChangesCount();
       return session;
     } catch (error) {
       console.error("Error in startWorkoutSession:", error);
@@ -1377,8 +1530,8 @@ const createSupabaseData = () => {
 
     if (updates.exercises) {
       // Ensure all weights and reps are numbers before saving
-      updates.exercises.forEach((exercise: any, index: number) => {
-        exercise.sets.forEach((set: any, setIndex: number) => {
+      updates.exercises.forEach((exercise: any) => {
+        exercise.sets.forEach((set: any) => {
           // Ensure weight and reps are numbers
           if (typeof set.weight === "string") {
             set.weight = parseFloat(set.weight) || 0;
@@ -1435,6 +1588,8 @@ const createSupabaseData = () => {
     } catch (error) {
       console.error("❌ Error in updateWorkoutSession:", error);
       throw error;
+    } finally {
+      await refreshPendingChangesCount();
     }
   };
 
@@ -1516,6 +1671,8 @@ const createSupabaseData = () => {
     } catch (error) {
       console.error("❌ Error in completeWorkoutSession:", error);
       throw error;
+    } finally {
+      await refreshPendingChangesCount();
     }
   };
 
@@ -1552,6 +1709,8 @@ const createSupabaseData = () => {
       // Use error handler to show user-friendly error
       const { showError } = useErrorHandler();
       showError("Kunne ikke aktivere treningsøkt. Prøv igjen.");
+    } finally {
+      await refreshPendingChangesCount();
     }
   };
 
@@ -1601,6 +1760,8 @@ const createSupabaseData = () => {
     } catch (error) {
       console.error("❌ Error deleting session:", error);
       throw error;
+    } finally {
+      await refreshPendingChangesCount();
     }
   };
 
@@ -1651,6 +1812,8 @@ const createSupabaseData = () => {
     } catch (error) {
       console.error("❌ Error abandoning session:", error);
       throw error;
+    } finally {
+      await refreshPendingChangesCount();
     }
   };
 
@@ -1668,6 +1831,8 @@ const createSupabaseData = () => {
     } catch (error) {
       console.error("❌ Force sync of pending changes failed:", error);
       throw error;
+    } finally {
+      await refreshPendingChangesCount();
     }
   };
 
@@ -1685,6 +1850,8 @@ const createSupabaseData = () => {
     } catch (error) {
       console.error("❌ Force sync failed:", error);
       throw error;
+    } finally {
+      await refreshPendingChangesCount();
     }
   };
 
@@ -1707,6 +1874,8 @@ const createSupabaseData = () => {
     workoutStats,
     getSessionById,
     getTemplatesByType,
+
+    // FIXED: was async computed; now a ref + updater
     pendingChangesCount,
 
     // Actions
@@ -1733,6 +1902,9 @@ const createSupabaseData = () => {
     watchNetworkStatus,
     forceSyncData,
     forceSyncPendingChanges,
+
+    // Expose the updater in case UI wants to trigger it explicitly
+    refreshPendingChangesCount,
   };
 };
 
