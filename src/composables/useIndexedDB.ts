@@ -74,10 +74,12 @@ export const useIndexedDB = () => {
 
   // Store user data
   const storeUserData = async (userId: string, data: Partial<UserData>): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
+    if (!db) {
+      throw new Error("Database not initialized");
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["userData"], "readwrite");
+      const transaction = db!.transaction(["userData"], "readwrite");
       const store = transaction.objectStore("userData");
 
       // Final data sanitization to ensure IndexedDB compatibility
@@ -137,10 +139,12 @@ export const useIndexedDB = () => {
 
   // Get user data
   const getUserData = async (userId: string): Promise<UserData | null> => {
-    if (!db) throw new Error("Database not initialized");
+    if (!db) {
+      throw new Error("Database not initialized");
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["userData"], "readonly");
+      const transaction = db!.transaction(["userData"], "readonly");
       const store = transaction.objectStore("userData");
       const request = store.get(userId);
 
@@ -157,10 +161,12 @@ export const useIndexedDB = () => {
 
   // Store cache item
   const storeCache = async <T>(key: string, data: T, ttlMinutes: number = 60): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
+    if (!db) {
+      throw new Error("Database not initialized");
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["cache"], "readwrite");
+      const transaction = db!.transaction(["cache"], "readwrite");
       const store = transaction.objectStore("cache");
 
       const cacheItem: CacheItem<T> = {
@@ -178,10 +184,12 @@ export const useIndexedDB = () => {
 
   // Get cache item
   const getCache = async <T>(key: string): Promise<T | null> => {
-    if (!db) throw new Error("Database not initialized");
+    if (!db) {
+      throw new Error("Database not initialized");
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["cache"], "readonly");
+      const transaction = db!.transaction(["cache"], "readonly");
       const store = transaction.objectStore("cache");
       const request = store.get(key);
 
@@ -208,10 +216,12 @@ export const useIndexedDB = () => {
 
   // Delete cache item
   const deleteCache = async (key: string): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
+    if (!db) {
+      throw new Error("Database not initialized");
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["cache"], "readwrite");
+      const transaction = db!.transaction(["cache"], "readwrite");
       const store = transaction.objectStore("cache");
       const request = store.delete(key);
 
@@ -222,10 +232,12 @@ export const useIndexedDB = () => {
 
   // Store pending change for later sync
   const storePendingChange = async (type: string, data: any): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
+    if (!db) {
+      throw new Error("Database not initialized");
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["pendingChanges"], "readwrite");
+      const transaction = db!.transaction(["pendingChanges"], "readwrite");
       const store = transaction.objectStore("pendingChanges");
 
       const pendingChange = {
@@ -243,10 +255,12 @@ export const useIndexedDB = () => {
 
   // Get pending changes
   const getPendingChanges = async (): Promise<any[]> => {
-    if (!db) throw new Error("Database not initialized");
+    if (!db) {
+      throw new Error("Database not initialized");
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["pendingChanges"], "readonly");
+      const transaction = db!.transaction(["pendingChanges"], "readonly");
       const store = transaction.objectStore("pendingChanges");
       const request = store.getAll();
 
@@ -257,10 +271,12 @@ export const useIndexedDB = () => {
 
   // Remove pending change after successful sync
   const removePendingChange = async (id: number): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
+    if (!db) {
+      throw new Error("Database not initialized");
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["pendingChanges"], "readwrite");
+      const transaction = db!.transaction(["pendingChanges"], "readwrite");
       const store = transaction.objectStore("pendingChanges");
       const request = store.delete(id);
 
@@ -274,7 +290,7 @@ export const useIndexedDB = () => {
     if (!db) return;
 
     try {
-      const transaction = db.transaction(["cache"], "readwrite");
+      const transaction = db!.transaction(["cache"], "readwrite");
       const store = transaction.objectStore("cache");
       const index = store.index("expiresAt");
       const now = Date.now();
@@ -295,10 +311,12 @@ export const useIndexedDB = () => {
 
   // Clear all data for a user
   const clearUserData = async (userId: string): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
+    if (!db) {
+      throw new Error("Database not initialized");
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["userData", "cache", "pendingChanges"], "readwrite");
+      const transaction = db!.transaction(["userData", "cache", "pendingChanges"], "readwrite");
 
       // Clear user data
       const userDataStore = transaction.objectStore("userData");

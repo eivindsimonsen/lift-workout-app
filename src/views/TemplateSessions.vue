@@ -410,54 +410,67 @@ const cancelCountdown = () => {
 }
 
 const startWorkout = async (templateId: string) => {
+  // 1) Do ONLY the primary action in a guarded try/catch
+  let session: { id: string } | null = null;
   try {
-    const session = await workoutData.startWorkoutSession(templateId)
-    if (session) {
-      // Force refresh the UI data to ensure changes are visible immediately
-      await workoutData.refreshUIData()
-      
-      // Start countdown instead of immediate navigation
-      startCountdown(session.id)
-    } else {
-      alert('Kunne ikke starte økt. Prøv igjen.')
-    }
+    session = await workoutData.startWorkoutSession(templateId);
   } catch (error) {
-    console.error('Error starting workout:', error)
-    alert('Kunne ikke starte økt. Prøv igjen.')
+    console.error("Error starting workout:", error);
+    alert("Kunne ikke starte økt. Prøv igjen.");
+    return;
   }
-}
+
+  if (!session) {
+    // explicit null/undefined -> primary action failed
+    alert("Kunne ikke starte økt. Prøv igjen.");
+    return;
+  }
+
+  // 2) Kick off a best-effort refresh, but don't block UX or show alerts if it fails
+  workoutData
+    .refreshUIData?.()
+    .catch((e: unknown) => console.warn("refreshUIData failed (non-fatal):", e));
+
+  // 3) Proceed with UX
+  startCountdown(session.id);
+};
+
 
 const continueWorkout = (sessionId: string) => {
   router.push(`/workout/${sessionId}`)
 }
 
 const abandonWorkout = async (sessionId: string) => {
-  if (confirm('Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent.')) {
-    try {
-      // Haptic feedback on mobile
-      if ('vibrate' in navigator) {
-        navigator.vibrate(100)
-      }
-      
-      await workoutData.abandonWorkoutSession(sessionId)
-      
-      // Force refresh the UI data to ensure changes are visible immediately
-      await workoutData.refreshUIData()
-      
-      // Success feedback
-      if ('vibrate' in navigator) {
-        navigator.vibrate([50, 100, 50])
-      }
-    } catch (error) {
-      console.error('Error abandoning workout:', error)
-      // Error feedback
-      if ('vibrate' in navigator) {
-        navigator.vibrate([200, 100, 200])
-      }
-      alert('Kunne ikke avbryte økt. Prøv igjen.')
-    }
+  if (
+    !confirm(
+      "Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent."
+    )
+  ) {
+    return;
   }
-}
+
+  // Haptic feedback on mobile
+  if ("vibrate" in navigator) navigator.vibrate(100);
+
+  // 1) Do ONLY the primary action in a guarded try/catch
+  try {
+    await workoutData.abandonWorkoutSession(sessionId);
+  } catch (error) {
+    console.error("Error abandoning workout:", error);
+    if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
+    alert("Kunne ikke avbryte økt. Prøv igjen.");
+    return;
+  }
+
+  // 2) Best-effort refresh that won't trigger alerts on failure
+  workoutData
+    .refreshUIData?.()
+    .catch((e: unknown) => console.warn("refreshUIData failed (non-fatal):", e));
+
+  // Success feedback
+  if ("vibrate" in navigator) navigator.vibrate([50, 100, 50]);
+};
+
 
 // Helper methods for exercise grouping
 const getExerciseGroups = (exercises: any[]) => {
