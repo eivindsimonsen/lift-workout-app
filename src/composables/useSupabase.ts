@@ -87,19 +87,20 @@ export interface Database {
 // -----------------------------
 const TIMEOUT_MS = 10_000;
 
-const fetchWithTimeout: typeof fetch = (input, init = {}) => {
+const fetchWithTimeout: typeof fetch = (input, init: RequestInit = {}) => {
   const controller = new AbortController();
-  const userSignal = (init as RequestInit).signal as AbortSignal | undefined;
+  const userSignal = init.signal as AbortSignal | undefined;
 
+  // Link user-provided AbortSignal so either can abort
   if (userSignal) {
     if (userSignal.aborted) {
-      controller.abort(userSignal.reason);
+      controller.abort(userSignal.reason ?? new Error("Aborted by caller"));
     } else {
-      userSignal.addEventListener("abort", () => controller.abort(userSignal.reason), { once: true });
+      userSignal.addEventListener("abort", () => controller.abort(userSignal.reason ?? new Error("Aborted by caller")), { once: true });
     }
   }
 
-  const timeoutId = setTimeout(() => controller.abort(`Timeout ${TIMEOUT_MS}ms (global fetch)`), TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(new Error(`Timeout ${TIMEOUT_MS}ms (global fetch)`)), TIMEOUT_MS);
 
   const mergedInit: RequestInit = { ...init, signal: controller.signal };
 
@@ -111,39 +112,49 @@ let supabaseInstance: any = null;
 
 // Mock client for development/testing
 const createMockClient = () => ({
+  __isMock: true as const,
   auth: {
-    signUp: async () => ({ error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." } }),
-    signInWithPassword: async () => ({ error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." } }),
+    signUp: async () => ({ data: null, error: new Error("Mock: no auth available") }),
+    signInWithPassword: async () => ({ data: null, error: new Error("Mock: no auth available") }),
     signOut: async () => ({ data: { user: null, session: null }, error: null }),
-    updateUser: async () => ({ error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." } }),
-    resetPasswordForEmail: async () => ({ error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." } }),
+    updateUser: async () => ({ data: null, error: new Error("Mock: no auth available") }),
+    resetPasswordForEmail: async () => ({ data: null, error: new Error("Mock: no auth available") }),
     getSession: async () => ({ data: { session: null }, error: null }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-    setSession: async () => ({ error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." } }),
-    refreshSession: async () => ({ data: { session: null }, error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." } }),
+    setSession: async () => ({ data: null, error: new Error("Mock: no auth available") }),
+    refreshSession: async () => ({ data: { session: null }, error: new Error("Mock: no auth available") }),
+    // Optional helpers on real client; safe no-ops here
+    startAutoRefresh: () => {},
+    stopAutoRefresh: () => {},
   },
   from: () => ({
-    insert: async () => ({ error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." } }),
-    select: async () => ({ data: [], error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." } }),
-    update: async () => ({ error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." } }),
-    delete: async () => ({ error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." } }),
+    insert: async () => ({ data: null, error: new Error("Mock: no DB available") }),
+    select: async () => ({ data: [], error: new Error("Mock: no DB available") }),
+    update: async () => ({ data: null, error: new Error("Mock: no DB available") }),
+    delete: async () => ({ data: null, error: new Error("Mock: no DB available") }),
   }),
 });
 
-// Wire visibility-based refresh guards
+// Visibility-based auth auto-refresh guards (prevents token refresh churn in background)
 const wireAutoRefreshVisibilityGuards = (supabase: any) => {
+  const start = () => supabase.auth.startAutoRefresh?.();
+  const stop = () => supabase.auth.stopAutoRefresh?.();
+
   const onVisibleChange = () => {
     if (document.visibilityState === "visible") {
       console.log("🔐 startAutoRefresh (visible)");
-      supabase.auth.startAutoRefresh?.();
+      start();
     } else {
       console.log("🔐 stopAutoRefresh (hidden)");
-      supabase.auth.stopAutoRefresh?.();
+      stop();
     }
   };
+
   document.addEventListener("visibilitychange", onVisibleChange, { passive: true });
-  window.addEventListener("focus", () => supabase.auth.startAutoRefresh?.(), { passive: true });
-  window.addEventListener("blur", () => supabase.auth.stopAutoRefresh?.(), { passive: true });
+  window.addEventListener("focus", start, { passive: true });
+  window.addEventListener("blur", stop, { passive: true });
+
+  // Initialize based on current state
   onVisibleChange();
 };
 
@@ -160,7 +171,7 @@ export const useSupabase = () => {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-          detectSessionInUrl: false, // safer for SPA
+          detectSessionInUrl: false, // safer for SPA unless you have an OAuth callback page here
           flowType: "pkce",
           storageKey: "lift-auth",
         },
@@ -186,7 +197,8 @@ export const useSupabase = () => {
     }
   }
 
-  const isMockClient = computed(() => !supabaseInstance || error.value === "Supabase ikke konfigurert");
+  // Helper for consumers to know whether to treat errors as fatal or mock-mode noise
+  const isMockClient = computed(() => !!supabaseInstance?.__isMock || error.value === "Supabase ikke konfigurert");
 
   const getAuthStatus = async () => {
     if (isMockClient.value) {
@@ -197,9 +209,17 @@ export const useSupabase = () => {
         data: { session },
         error: sessionError,
       } = await supabaseInstance.auth.getSession();
-      return { isAuthenticated: !!session?.user, user: session?.user || null, error: sessionError?.message || null };
+      return {
+        isAuthenticated: !!session?.user,
+        user: session?.user || null,
+        error: sessionError?.message || null,
+      };
     } catch (e: unknown) {
-      return { isAuthenticated: false, user: null, error: e instanceof Error ? e.message : "Unknown error" };
+      return {
+        isAuthenticated: false,
+        user: null,
+        error: e instanceof Error ? e.message : "Unknown error",
+      };
     }
   };
 
