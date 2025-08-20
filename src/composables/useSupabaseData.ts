@@ -348,7 +348,7 @@ const createSupabaseData = () => {
   };
 
   // ---- auth/init ----
-  const initializeAuth = async () => {
+  const initializeAuth = async (): Promise<void> => {
     if (isInitialized.value || isInitializing) return;
     isInitializing = true;
     isInitialized.value = true;
@@ -1157,11 +1157,6 @@ const createSupabaseData = () => {
 export function useSupabaseData() {
   if (!supabaseDataInstance) {
     supabaseDataInstance = createSupabaseData();
-    setTimeout(() => {
-      if (supabaseDataInstance && !supabaseDataInstance.isInitialized.value) {
-        supabaseDataInstance.initializeAuth();
-      }
-    }, 0);
   }
   return supabaseDataInstance;
 }

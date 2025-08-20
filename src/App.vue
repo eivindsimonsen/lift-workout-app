@@ -287,14 +287,6 @@ const scrollToTop = () => {
 
 // --- Lifecycle ---
 onMounted(async () => {
-  try {
-    // Initialize auth; router also guards, but this improves cold start UX
-    await workoutData.initializeAuth()
-  } catch (error) {
-    console.error("Error initializing auth:", error)
-    // Continue mounting; guard will still protect routes
-  }
-
   // ✅ Restore last route on cold start if authenticated & currently at "/"
   const lastRoute = sessionStorage.getItem('lastRoute')
   if (
