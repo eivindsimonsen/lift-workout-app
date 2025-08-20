@@ -103,7 +103,7 @@
       </div>
 
       <!-- Debug info section -->
-      <div class="mb-4 p-4 bg-gray-500/10 border border-gray-500/20 rounded-lg">
+      <!-- <div class="mb-4 p-4 bg-gray-500/10 border border-gray-500/20 rounded-lg">
         <div class="flex items-center gap-3 mb-2">
           <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -113,7 +113,7 @@
         <div class="text-xs text-gray-400 space-y-1">
           <p>Sist synkronisert: {{ workoutData.lastSyncTime.value ? new Date(workoutData.lastSyncTime.value).toLocaleString('no-NO') : 'Aldri' }}</p>
         </div>
-      </div>
+      </div> -->
 
       <!-- Loading State -->
       <div v-if="isLoading" class="mt-4">
@@ -332,11 +332,11 @@ const formatDate = (date: Date): string => {
 }
 
 const getWorkoutTypeName = (typeId: string): string => {
-  return workoutData.getWorkoutType.value(typeId)
+  return workoutData.getWorkoutType(typeId)
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  return workoutData.getWorkoutTypeColor.value(typeId)
+  return workoutData.getWorkoutTypeColor(typeId)
 }
 
 const getMotivationalText = (): string => {
@@ -410,54 +410,67 @@ const cancelCountdown = () => {
 }
 
 const startWorkout = async (templateId: string) => {
+  // 1) Do ONLY the primary action in a guarded try/catch
+  let session: { id: string } | null = null;
   try {
-    const session = await workoutData.startWorkoutSession(templateId)
-    if (session) {
-      // Force refresh the UI data to ensure changes are visible immediately
-      await workoutData.refreshUIData()
-      
-      // Start countdown instead of immediate navigation
-      startCountdown(session.id)
-    } else {
-      alert('Kunne ikke starte økt. Prøv igjen.')
-    }
+    session = await workoutData.startWorkoutSession(templateId);
   } catch (error) {
-    console.error('Error starting workout:', error)
-    alert('Kunne ikke starte økt. Prøv igjen.')
+    console.error("Error starting workout:", error);
+    alert("Kunne ikke starte økt. Prøv igjen.");
+    return;
   }
-}
+
+  if (!session) {
+    // explicit null/undefined -> primary action failed
+    alert("Kunne ikke starte økt. Prøv igjen.");
+    return;
+  }
+
+  // 2) Kick off a best-effort refresh, but don't block UX or show alerts if it fails
+  workoutData
+    .refreshUIData?.()
+    .catch((e: unknown) => console.warn("refreshUIData failed (non-fatal):", e));
+
+  // 3) Proceed with UX
+  startCountdown(session.id);
+};
+
 
 const continueWorkout = (sessionId: string) => {
   router.push(`/workout/${sessionId}`)
 }
 
 const abandonWorkout = async (sessionId: string) => {
-  if (confirm('Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent.')) {
-    try {
-      // Haptic feedback on mobile
-      if ('vibrate' in navigator) {
-        navigator.vibrate(100)
-      }
-      
-      await workoutData.abandonWorkoutSession(sessionId)
-      
-      // Force refresh the UI data to ensure changes are visible immediately
-      await workoutData.refreshUIData()
-      
-      // Success feedback
-      if ('vibrate' in navigator) {
-        navigator.vibrate([50, 100, 50])
-      }
-    } catch (error) {
-      console.error('Error abandoning workout:', error)
-      // Error feedback
-      if ('vibrate' in navigator) {
-        navigator.vibrate([200, 100, 200])
-      }
-      alert('Kunne ikke avbryte økt. Prøv igjen.')
-    }
+  if (
+    !confirm(
+      "Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent."
+    )
+  ) {
+    return;
   }
-}
+
+  // Haptic feedback on mobile
+  if ("vibrate" in navigator) navigator.vibrate(100);
+
+  // 1) Do ONLY the primary action in a guarded try/catch
+  try {
+    await workoutData.abandonWorkoutSession(sessionId);
+  } catch (error) {
+    console.error("Error abandoning workout:", error);
+    if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
+    alert("Kunne ikke avbryte økt. Prøv igjen.");
+    return;
+  }
+
+  // 2) Best-effort refresh that won't trigger alerts on failure
+  workoutData
+    .refreshUIData?.()
+    .catch((e: unknown) => console.warn("refreshUIData failed (non-fatal):", e));
+
+  // Success feedback
+  if ("vibrate" in navigator) navigator.vibrate([50, 100, 50]);
+};
+
 
 // Helper methods for exercise grouping
 const getExerciseGroups = (exercises: any[]) => {
@@ -470,7 +483,7 @@ const getExerciseGroups = (exercises: any[]) => {
   
   exercises.forEach(exercise => {
     // Find the exercise data using getExerciseById which can handle both main exercises and variants
-    const exerciseData = workoutData.getExerciseById.value(exercise.exerciseId)
+    const exerciseData = workoutData.getExerciseById(exercise.exerciseId)
     if (exerciseData && exerciseData.muscleGroups && exerciseData.muscleGroups.length > 0) {
       // Use the first muscle group as the primary category
       const primaryGroup = exerciseData.muscleGroups[0]

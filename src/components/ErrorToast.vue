@@ -114,11 +114,14 @@ const props = withDefaults(defineProps<Props>(), {
   showDetails: false
 })
 
-const { globalError, errorId: globalErrorId, clearError } = useErrorHandler()
+const { globalError, clearError } = useErrorHandler();
+
+// Access the error ID directly
+const globalErrorId = globalError.value ? globalError.value.id : null;
 
 // Use props or global error
 const error = computed(() => props.error || globalError.value)
-const errorId = computed(() => props.errorId || globalErrorId.value)
+const errorId = computed(() => props.errorId || globalErrorId)
 
 // Auto-close functionality
 const isVisible = ref(true)

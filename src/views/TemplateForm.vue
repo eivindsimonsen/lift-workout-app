@@ -332,7 +332,7 @@ const handleSelectExercise = (exerciseId: string) => {
 
 const getExerciseName = (id: string): string => {
   if (!id) return ''
-  const exercise = workoutData.getExerciseById.value(id)
+  const exercise = workoutData.getExerciseById(id)
   if (!exercise?.name) return ''
   
   // Extract variant name from "Main Exercise - Variant" format
@@ -377,7 +377,7 @@ const deleteTemplate = async () => {
 const saveTemplate = async () => {
   // Update exercise names based on selected exercise IDs
   const exercisesWithNames = templateForm.value.exercises.map(exercise => {
-    const exerciseData = workoutData.getExerciseById.value(exercise.exerciseId)
+    const exerciseData = workoutData.getExerciseById(exercise.exerciseId)
     return {
       ...exercise,
       name: exerciseData?.name || exercise.name

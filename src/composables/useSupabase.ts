@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClientOptions } from "@supabase/supabase-js";
 import { ref, computed } from "vue";
 
 // Database types - Only user data tables
@@ -82,52 +82,81 @@ export interface Database {
   };
 }
 
+// -----------------------------
+// Global fetch timeout (10s)
+// -----------------------------
+const TIMEOUT_MS = 10_000;
+
+const fetchWithTimeout: typeof fetch = (input, init: RequestInit = {}) => {
+  const controller = new AbortController();
+  const userSignal = init.signal as AbortSignal | undefined;
+
+  // Link user-provided AbortSignal so either can abort
+  if (userSignal) {
+    if (userSignal.aborted) {
+      controller.abort(userSignal.reason ?? new Error("Aborted by caller"));
+    } else {
+      userSignal.addEventListener("abort", () => controller.abort(userSignal.reason ?? new Error("Aborted by caller")), { once: true });
+    }
+  }
+
+  const timeoutId = setTimeout(() => controller.abort(new Error(`Timeout ${TIMEOUT_MS}ms (global fetch)`)), TIMEOUT_MS);
+
+  const mergedInit: RequestInit = { ...init, signal: controller.signal };
+
+  return fetch(input as any, mergedInit).finally(() => clearTimeout(timeoutId));
+};
+
 // Singleton instance
 let supabaseInstance: any = null;
 
 // Mock client for development/testing
 const createMockClient = () => ({
+  __isMock: true as const,
   auth: {
-    signUp: async () => ({
-      error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." },
-    }),
-    signInWithPassword: async () => ({
-      error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." },
-    }),
-    signOut: async () => ({
-      data: { user: null, session: null },
-      error: null,
-    }),
-    updateUser: async () => ({
-      error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." },
-    }),
-    resetPasswordForEmail: async () => ({
-      error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." },
-    }),
+    signUp: async () => ({ data: null, error: new Error("Mock: no auth available") }),
+    signInWithPassword: async () => ({ data: null, error: new Error("Mock: no auth available") }),
+    signOut: async () => ({ data: { user: null, session: null }, error: null }),
+    updateUser: async () => ({ data: null, error: new Error("Mock: no auth available") }),
+    resetPasswordForEmail: async () => ({ data: null, error: new Error("Mock: no auth available") }),
     getSession: async () => ({ data: { session: null }, error: null }),
-    onAuthStateChange: () => ({
-      data: { subscription: { unsubscribe: () => {} } },
-    }),
-    setSession: async () => ({
-      error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." },
-    }),
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    setSession: async () => ({ data: null, error: new Error("Mock: no auth available") }),
+    refreshSession: async () => ({ data: { session: null }, error: new Error("Mock: no auth available") }),
+    // Optional helpers on real client; safe no-ops here
+    startAutoRefresh: () => {},
+    stopAutoRefresh: () => {},
   },
   from: () => ({
-    insert: async () => ({
-      error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." },
-    }),
-    select: async () => ({
-      data: [],
-      error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." },
-    }),
-    update: async () => ({
-      error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." },
-    }),
-    delete: async () => ({
-      error: { message: "Database er ikke tilgjengelig. Vennligst prøv igjen senere." },
-    }),
+    insert: async () => ({ data: null, error: new Error("Mock: no DB available") }),
+    select: async () => ({ data: [], error: new Error("Mock: no DB available") }),
+    update: async () => ({ data: null, error: new Error("Mock: no DB available") }),
+    delete: async () => ({ data: null, error: new Error("Mock: no DB available") }),
   }),
 });
+
+// Visibility-based auth auto-refresh guards (prevents token refresh churn in background)
+const wireAutoRefreshVisibilityGuards = (supabase: any) => {
+  const start = () => supabase.auth.startAutoRefresh?.();
+  const stop = () => supabase.auth.stopAutoRefresh?.();
+
+  const onVisibleChange = () => {
+    if (document.visibilityState === "visible") {
+      console.log("🔐 startAutoRefresh (visible)");
+      start();
+    } else {
+      console.log("🔐 stopAutoRefresh (hidden)");
+      stop();
+    }
+  };
+
+  document.addEventListener("visibilitychange", onVisibleChange, { passive: true });
+  window.addEventListener("focus", start, { passive: true });
+  window.addEventListener("blur", stop, { passive: true });
+
+  // Initialize based on current state
+  onVisibleChange();
+};
 
 export const useSupabase = () => {
   const isInitialized = ref(false);
@@ -138,20 +167,27 @@ export const useSupabase = () => {
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
     if (supabaseUrl && supabaseAnonKey) {
-      // Initialize Supabase client
-      supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+      const options: SupabaseClientOptions<"public"> = {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-          detectSessionInUrl: true,
+          detectSessionInUrl: false, // safer for SPA unless you have an OAuth callback page here
           flowType: "pkce",
           storageKey: "lift-auth",
         },
-      });
+        global: {
+          fetch: fetchWithTimeout,
+        },
+      };
+
+      supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, options);
+
+      // Attach visibility guards right after client is created
+      wireAutoRefreshVisibilityGuards(supabaseInstance);
+
       isInitialized.value = true;
-      console.log("✅ Supabase client initialized successfully");
+      console.log("✅ Supabase client initialized successfully (global timeout enabled)");
     } else {
-      // Use mock client for missing configuration
       console.warn("⚠️ Missing Supabase environment variables. Using mock client.");
       console.warn("Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env.local file");
 
@@ -161,17 +197,13 @@ export const useSupabase = () => {
     }
   }
 
-  // Add method to check if we're using mock client
-  const isMockClient = computed(() => {
-    return !supabaseInstance || error.value === "Supabase ikke konfigurert";
-  });
+  // Helper for consumers to know whether to treat errors as fatal or mock-mode noise
+  const isMockClient = computed(() => !!supabaseInstance?.__isMock || error.value === "Supabase ikke konfigurert");
 
-  // Add method to get authentication status
   const getAuthStatus = async () => {
     if (isMockClient.value) {
       return { isAuthenticated: false, user: null, error: "Mock client - no real authentication" };
     }
-
     try {
       const {
         data: { session },
@@ -182,11 +214,11 @@ export const useSupabase = () => {
         user: session?.user || null,
         error: sessionError?.message || null,
       };
-    } catch (error) {
+    } catch (e: unknown) {
       return {
         isAuthenticated: false,
         user: null,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: e instanceof Error ? e.message : "Unknown error",
       };
     }
   };

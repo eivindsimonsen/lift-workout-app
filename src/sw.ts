@@ -52,7 +52,8 @@ if ("serviceWorker" in navigator) {
         // Listen for skip waiting from the service worker itself
         if (registration.waiting) {
           registration.waiting.addEventListener("message", (event) => {
-            if (event.data && event.data.type === "SKIP_WAITING") {
+            const messageEvent = event as MessageEvent;
+            if (messageEvent.data && messageEvent.data.type === "SKIP_WAITING") {
               console.log("🔧 SW: Service worker received SKIP_WAITING, activating...");
               registration.waiting?.postMessage({ type: "SKIP_WAITING" });
             }

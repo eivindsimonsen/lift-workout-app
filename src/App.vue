@@ -191,17 +191,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
 import UpdateNotification from '@/components/UpdateNotification.vue'
 import UpdateTest from '@/components/UpdateTest.vue'
-
 import OfflineIndicator from '@/components/OfflineIndicator.vue'
 import MobileBrowserBanner from '@/components/MobileBrowserBanner.vue'
-
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { scrollToTopGlobal, scrollToTopImmediate, scrollToTopMobile } from '@/composables/useScrollToTop'
 
@@ -219,157 +217,107 @@ const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
 const networkStatus = ref<'online' | 'offline'>('online')
 
-// Network status monitoring
+// --- Network status monitoring ---
 const updateNetworkStatus = () => {
   networkStatus.value = navigator.onLine ? 'online' : 'offline'
   console.log(`🌐 App: Network status changed to ${networkStatus.value}`)
-  
+
   // If we're back online, sync pending changes
   if (networkStatus.value === 'online') {
     workoutData.syncPendingChanges()
   }
 }
 
-// Format last sync time
+// Format last sync time (kept if you display this somewhere)
 const formatLastSyncTime = (timestamp: number) => {
   const now = Date.now()
   const diff = now - timestamp
-  
-  if (diff < 60000) { // Less than 1 minute
-    return 'Nettopp'
-  } else if (diff < 3600000) { // Less than 1 hour
-    const minutes = Math.floor(diff / 60000)
-    return `${minutes} minutter siden`
-  } else if (diff < 86400000) { // Less than 1 day
-    const hours = Math.floor(diff / 3600000)
-    return `${hours} timer siden`
-  } else {
-    const days = Math.floor(diff / 86400000)
-    return `${days} dager siden`
-  }
+
+  if (diff < 60000) return 'Nettopp'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} minutter siden`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} timer siden`
+  return `${Math.floor(diff / 86400000)} dager siden`
 }
 
-// Watch for network status changes
+// Keep network status in sync with store
 watch(() => workoutData.isOnline.value, (isOnline) => {
   networkStatus.value = isOnline ? 'online' : 'offline'
   console.log(`🌐 App: Network status updated to ${networkStatus.value}`)
-  
-  // If we're back online, sync pending changes
   if (isOnline) {
     workoutData.syncPendingChanges()
   }
 })
 
-// Computed properties
+// --- Computed ---
 const isAuthenticated = computed(() => workoutData.isAuthenticated.value)
 const currentUser = computed(() => workoutData.currentUser.value)
-const isLoading = computed(() => {
-  // Show loading only during initial auth setup, not on subsequent data loads
-  // This prevents showing the loading screen every time the app is opened
-  return !hasInitialized.value
-})
+const isLoading = computed(() => !hasInitialized.value) // initial app loading only
 
-const isWorkoutSession = computed(() => {
-  return route.path.startsWith('/workout/')
-})
+const isWorkoutSession = computed(() => route.path.startsWith('/workout/'))
 
 const workoutProgress = computed(() => {
-  if (!isWorkoutSession.value) {
-    return { percentage: 0 }
-  }
-  
-  // Get the current workout session from the route
+  if (!isWorkoutSession.value) return { percentage: 0 }
+
   const sessionId = route.params.id as string
-  const session = workoutData.getSessionById.value(sessionId)
-  
-  if (!session) {
-    return { percentage: 0 }
-  }
-  
-  // Calculate progress based on completed sets
-  const totalSets = session.exercises.reduce((total, exercise) => {
-    return total + exercise.sets.length
-  }, 0)
-  
-  const completedSets = session.exercises.reduce((total, exercise) => {
-    return total + exercise.sets.filter(set => set.isCompleted).length
-  }, 0)
-  
+  const s = workoutData.getSessionById(sessionId)
+  if (!s) return { percentage: 0 }
+
+  const totalSets = s.exercises.reduce((t, e) => t + e.sets.length, 0)
+  const completedSets = s.exercises.reduce((t, e) => t + e.sets.filter(set => set.isCompleted).length, 0)
   const percentage = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0
-  
   return { percentage }
 })
 
 const userInitials = computed(() => {
   if (!currentUser.value?.email) return ''
-  
-  // Extract name from email or use email
   const name = currentUser.value.user_metadata?.name || currentUser.value.email.split('@')[0]
-  
-  // Split name into parts and get initials
-  const nameParts = name.split(' ')
-  if (nameParts.length >= 2) {
-    return (nameParts[0][0] + nameParts[1][0]).toUpperCase()
-  } else {
-    return name.substring(0, 2).toUpperCase()
-  }
+  const parts = name.split(' ')
+  return (parts.length >= 2 ? parts[0][0] + parts[1][0] : name.substring(0, 2)).toUpperCase()
 })
 
-const isPWA = computed(() => {
-  return window.matchMedia('(display-mode: standalone)').matches
-})
+const isPWA = computed(() => window.matchMedia('(display-mode: standalone)').matches)
+const isDevelopment = computed(() => import.meta.env.DEV)
 
-const isDevelopment = computed(() => {
-  return import.meta.env.DEV
-})
-
-// Methods
-// Auto-save is handled automatically in WorkoutSession.vue
-
-// Scroll to top utility method
+// --- Methods ---
+// Global scroll helper (kept for other views)
 const scrollToTop = () => {
   scrollToTopGlobal('smooth')
-  
-  // Additional fallback: also scroll the main content area if it exists
-  if (mainContent.value) {
-    mainContent.value.scrollTop = 0
-  }
+  if (mainContent.value) mainContent.value.scrollTop = 0
 }
 
-// Session management - Removed automatic interval to prevent unnecessary data reloading
-
-// Lifecycle
+// --- Lifecycle ---
 onMounted(async () => {
-  try {
-    await workoutData.initializeAuth()
-  } catch (error) {
-    console.error("Error initializing auth:", error)
-    // Don't fail the entire app initialization
+  // ✅ Restore last route on cold start if authenticated & currently at "/"
+  const lastRoute = sessionStorage.getItem('lastRoute')
+  if (
+    workoutData.isAuthenticated.value &&
+    route.path === '/' &&
+    lastRoute &&
+    lastRoute !== '/'
+  ) {
+    console.log('🔄 Restoring last route:', lastRoute)
+    router.replace(lastRoute)
   }
 
-  // Expose scroll to top method globally
+  // Expose scroll helpers (if used elsewhere)
   ;(window as any).scrollToTop = scrollToTop
-  
-  // Also expose mobile-specific scroll method
   ;(window as any).scrollToTopMobile = scrollToTopMobile
 
-  // Auto-save is handled automatically, no manual save needed
+  // Disable Ctrl+S (WorkoutSession handles auto-save)
   const handleKeydown = (event: KeyboardEvent) => {
-    // Disable Ctrl+S since auto-save handles everything
     if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault()
-      // Show a message that auto-save is active
       console.log('📱 Auto-save is active - no manual save needed')
     }
   }
-  
-  // Listen for save state updates from WorkoutSession.vue
+
+  // Receive save-state updates from WorkoutSession
   const handleSaveStateUpdate = (event: CustomEvent) => {
     hasUnsavedChanges.value = event.detail.hasUnsavedChanges
     isSaving.value = event.detail.isSaving
   }
-  
-  // Add beforeunload listener to warn about unsaved changes
+
+  // Warn on unload if there are unsaved changes
   const handleBeforeUnload = (event: BeforeUnloadEvent) => {
     if (hasUnsavedChanges.value) {
       event.preventDefault()
@@ -377,22 +325,20 @@ onMounted(async () => {
       return 'Er du sikker på at du vil forlate siden?'
     }
   }
-  
+
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('updateAppSaveState', handleSaveStateUpdate as EventListener)
   window.addEventListener('beforeunload', handleBeforeUnload)
   window.addEventListener('online', updateNetworkStatus)
   window.addEventListener('offline', updateNetworkStatus)
-  
-  // Cleanup on unmount
+
   onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
     window.removeEventListener('updateAppSaveState', handleSaveStateUpdate as EventListener)
     window.removeEventListener('beforeunload', handleBeforeUnload)
     window.removeEventListener('online', updateNetworkStatus)
     window.removeEventListener('offline', updateNetworkStatus)
-    
-    // Remove global scroll method
+
     delete (window as any).scrollToTop
     delete (window as any).scrollToTopMobile
   })
@@ -402,50 +348,64 @@ onUnmounted(() => {
   workoutData.cleanup()
 })
 
-// Watchers
-watch(isAuthenticated, (newValue) => {
-  if (newValue || !workoutData.isLoading.value) {
-    hasInitialized.value = true
-  }
-  
-  // Redirect to login if not authenticated and not on login page
-  if (!newValue && route.path !== '/login' && route.path !== '/reset-password') {
-    router.push('/login')
-  }
-}, { immediate: true })
-
-watch(() => workoutData.isLoading.value, (newValue) => {
-  if (!newValue) {
-    hasInitialized.value = true
-  }
-}, { immediate: true })
-
-// Ensure scrolling to top on route changes
-watch(() => route.path, (newPath, oldPath) => {
-  // Only scroll to top if we're actually changing routes (not on initial load)
-  if (oldPath && newPath !== oldPath) {
-    console.log('🔄 App route watcher detected:', { from: oldPath, to: newPath })
-    
-    // Detect mobile and use appropriate scroll method
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                    window.innerWidth <= 768 ||
-                    'ontouchstart' in window;
-    
-    if (isMobile) {
-      console.log('📱 Using mobile-specific scroll in App watcher');
-      scrollToTopMobile();
-    } else {
-      console.log('💻 Using desktop scroll in App watcher');
-      scrollToTopImmediate();
+// --- Watchers ---
+// Auth watcher: finalize init; redirect unauth’d to login WITH redirect back to the page they wanted
+watch(
+  isAuthenticated,
+  (newValue) => {
+    if (newValue || !workoutData.isLoading.value) {
+      hasInitialized.value = true
     }
-    
-    // Additional fallback: also scroll the main content area if it exists
+
+    if (!newValue && route.path !== '/login' && route.path !== '/reset-password') {
+      router.push({ path: '/login', query: { redirect: route.fullPath } })
+    }
+  },
+  { immediate: true }
+)
+
+// Also end initial loading when the store loading completes
+watch(
+  () => workoutData.isLoading.value,
+  (newValue) => {
+    if (!newValue) {
+      hasInitialized.value = true
+    }
+  },
+  { immediate: true }
+)
+
+// Global route watcher: **skip all scroll resets for WorkoutSession**
+watch(
+  () => route.path,
+  (newPath, oldPath) => {
+    if (!oldPath || newPath === oldPath) return
+
+    const goingToWorkout = newPath.startsWith('/workout/')
+    if (goingToWorkout) {
+      console.log('⏭️ Skipping global scroll reset (WorkoutSession)')
+      return
+    }
+
+    console.log('🔄 App route watcher:', { from: oldPath, to: newPath })
+
+    const mobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      window.innerWidth <= 768 ||
+      'ontouchstart' in window
+
+    if (mobile) {
+      scrollToTopMobile()
+    } else {
+      scrollToTopImmediate()
+    }
+
+    // Only reset main content for non-workout routes
     if (mainContent.value) {
       mainContent.value.scrollTop = 0
       console.log('✅ Main content scrollTop reset to 0')
     }
-  }
-})
-
-// Router's scrollBehavior handles scrolling to top on route changes automatically
-</script> 
+  },
+  { immediate: false }
+)
+</script>

@@ -7,6 +7,7 @@ import type { WorkoutType, ExerciseData } from "@/types/workout";
 // Console logging utility
 const logHybridAccess = (operation: string, details?: unknown) => {
   const timestamp = new Date().toLocaleTimeString("no-NO");
+  console.log(`[HybridData][${timestamp}] ${operation}`, details ?? "");
 };
 
 export const useHybridData = () => {
@@ -18,42 +19,33 @@ export const useHybridData = () => {
   // Load workout types from JSON file
   const workoutTypes = ref<WorkoutType[]>(workoutTypesData.workoutTypes);
 
-  // Helper functions for workout types
-  const getWorkoutTypeColor = computed(() => {
-    return (id: string): string => {
-      const workoutType = workoutTypes.value.find((wt: WorkoutType) => wt.id === id);
-      return workoutType?.color || "#6b7280";
-    };
-  });
+  // ---- Workout type helpers ----
+  const getWorkoutTypeColor = (id: string): string => {
+    const workoutType = workoutTypes.value.find((wt: WorkoutType) => wt.id === id);
+    return workoutType?.color || "#6b7280";
+  };
 
-  const getWorkoutType = computed(() => {
-    return (id: string): string => {
-      const workoutType = workoutTypes.value.find((wt: WorkoutType) => wt.id === id);
-      return workoutType?.name || id;
-    };
-  });
+  const getWorkoutType = (id: string): string => {
+    const workoutType = workoutTypes.value.find((wt: WorkoutType) => wt.id === id);
+    return workoutType?.name || id;
+  };
 
-  // Helper functions for exercises with variants
-  const getExerciseById = computed(() => {
-    return (id: string) => {
-      for (const exercise of exercises.value) {
-        if (exercise.id === id) return exercise;
-        if (exercise.variants) {
-          const variant = exercise.variants.find((v) => v.id === id);
-          if (variant) {
-            return { ...exercise, ...variant };
-          }
+  // ---- Exercise helpers (variants supported) ----
+  const getExerciseById = (id: string) => {
+    for (const exercise of exercises.value) {
+      if (exercise.id === id) return exercise;
+      if (exercise.variants) {
+        const variant = exercise.variants.find((v) => v.id === id);
+        if (variant) {
+          // Merge variant over base (variant props win)
+          return { ...exercise, ...variant };
         }
       }
-      return null;
-    };
-  });
+    }
+    return null;
+  };
 
-  const getMainExerciseByVariantId = computed(() => {
-    return (variantId: string) => {
-      return exercises.value.find((exercise) => exercise.variants?.some((v) => v.id === variantId));
-    };
-  });
+  const getMainExerciseByVariantId = (variantId: string) => exercises.value.find((exercise) => exercise.variants?.some((v) => v.id === variantId));
 
   const getFlattenedExercises = computed(() => {
     const flattened: Array<{
@@ -73,14 +65,12 @@ export const useHybridData = () => {
     exercises.value.forEach((exercise) => {
       if (exercise.variants && exercise.variants.length > 0) {
         exercise.variants.forEach((variant) => {
-          // Skip variants that have the same ID as the main exercise to avoid conflicts
-          if (variant.id === exercise.id) {
-            return;
-          }
+          // Skip variants that accidentally reuse the main id
+          if (variant.id === exercise.id) return;
 
           flattened.push({
             id: variant.id,
-            name: variant.name, // Use only the variant name, not the main exercise name
+            name: variant.name,
             category: exercise.category,
             workoutTypes: exercise.workoutTypes,
             muscleGroups: exercise.muscleGroups,
@@ -106,19 +96,38 @@ export const useHybridData = () => {
     return flattened;
   });
 
-  const getTemplatesByType = computed(() => {
-    return (workoutType: string) => {
-      logHybridAccess("Get templates by type", workoutType);
-      return userData.getTemplatesByType.value(workoutType);
-    };
-  });
+  // ---- Pass-through helpers to userData ----
+  const getTemplatesByType = (workoutType: string) => {
+    logHybridAccess("Get templates by type", workoutType);
+    return userData.getTemplatesByType.value(workoutType);
+  };
 
-  const getSessionById = computed(() => {
-    return (id: string) => {
-      logHybridAccess("Get session by id", id);
-      return userData.getSessionById.value(id);
-    };
-  });
+  const getSessionById = (id: string) => {
+    logHybridAccess("Get session by id", id);
+    return userData.getSessionById.value(id);
+  };
+
+  // ---- API compatibility shims ----
+  // Old name used in components → map to the new cache repaint helper
+  const refreshUIData = async () => {
+    // Prefer new name if available
+    const fn = (userData as any).refreshOnResume || (userData as any).refreshUIData;
+    if (typeof fn === "function") {
+      return await fn();
+    }
+    // Nothing to do; keep app stable
+    return;
+  };
+
+  // Old exported helper; network watching is internal now, so this is a safe no-op
+  const watchNetworkStatus = async () => {
+    const maybeFn = (userData as any).watchNetworkStatus;
+    if (typeof maybeFn === "function") {
+      return await maybeFn();
+    }
+    // No-op
+    return;
+  };
 
   return {
     // User data from Supabase
@@ -162,13 +171,19 @@ export const useHybridData = () => {
     abandonWorkoutSession: userData.abandonWorkoutSession,
     signOut: userData.signOut,
     cleanup: userData.cleanup,
-    refreshUIData: userData.refreshUIData,
+
+    // Compatibility shim (old name → new behavior)
+    refreshUIData,
 
     // Offline-first functions
     updateTemplateOffline: userData.updateTemplateOffline,
     updateWorkoutSessionOffline: userData.updateWorkoutSessionOffline,
     syncPendingChanges: userData.syncPendingChanges,
-    watchNetworkStatus: userData.watchNetworkStatus,
+
+    // Compatibility shim for older code paths (safe no-op if not present)
+    watchNetworkStatus,
+
+    // If you still want a manual network sync:
     forceSyncData: userData.forceSyncData,
   };
 };

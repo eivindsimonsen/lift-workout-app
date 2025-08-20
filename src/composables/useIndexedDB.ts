@@ -14,154 +14,165 @@ interface UserData {
   user: any;
 }
 
+type PendingChange = {
+  id?: number; // autoIncrement key (present when fetched)
+  type: string;
+  data: any;
+  timestamp: number;
+  retryCount: number;
+};
+
 export const useIndexedDB = () => {
   const isSupported = ref(false);
-  const dbName = "LIFTDB";
-  const version = 1;
+
+  // Keep version at 1 unless you change the schema (then bump).
+  const DB_NAME = "LIFTDB";
+  const DB_VERSION = 1;
+
   let db: IDBDatabase | null = null;
 
-  // Check if IndexedDB is supported
+  // ----- helpers -----
+  const hasWindow = () => typeof window !== "undefined";
   const checkSupport = () => {
-    isSupported.value = "indexedDB" in window;
+    isSupported.value = hasWindow() && "indexedDB" in window;
     return isSupported.value;
   };
 
-  // Initialize database
-  const initDB = (): Promise<void> => {
-    return new Promise((resolve, reject) => {
+  const ensureDB = () => {
+    if (!db) throw new Error("Database not initialized");
+  };
+
+  // ----- init -----
+  const initDB = (): Promise<void> =>
+    new Promise((resolve, reject) => {
       if (!checkSupport()) {
         reject(new Error("IndexedDB not supported"));
         return;
       }
 
-      const request = indexedDB.open(dbName, version);
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
         console.error("❌ IndexedDB error:", request.error);
         reject(request.error);
       };
 
-      request.onsuccess = () => {
-        db = request.result;
-        console.log("✅ IndexedDB initialized successfully");
-        resolve();
+      request.onblocked = () => {
+        console.warn("⚠️ IndexedDB open request is blocked by another tab/session.");
       };
 
       request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
+        const upgradedDB = (event.target as IDBOpenDBRequest).result;
 
-        // Create object stores
-        if (!db.objectStoreNames.contains("userData")) {
-          const userDataStore = db.createObjectStore("userData", { keyPath: "userId" });
+        // userData: { userId (keyPath), templates, sessions, lastSync, user }
+        if (!upgradedDB.objectStoreNames.contains("userData")) {
+          const userDataStore = upgradedDB.createObjectStore("userData", { keyPath: "userId" });
           userDataStore.createIndex("lastSync", "lastSync", { unique: false });
         }
 
-        if (!db.objectStoreNames.contains("cache")) {
-          const cacheStore = db.createObjectStore("cache", { keyPath: "key" });
+        // cache: { key (keyPath), data, timestamp, expiresAt }
+        if (!upgradedDB.objectStoreNames.contains("cache")) {
+          const cacheStore = upgradedDB.createObjectStore("cache", { keyPath: "key" });
           cacheStore.createIndex("expiresAt", "expiresAt", { unique: false });
         }
 
-        if (!db.objectStoreNames.contains("pendingChanges")) {
-          const pendingStore = db.createObjectStore("pendingChanges", { keyPath: "id", autoIncrement: true });
+        // pendingChanges: autoIncrement id + { type, data, timestamp, retryCount }
+        if (!upgradedDB.objectStoreNames.contains("pendingChanges")) {
+          const pendingStore = upgradedDB.createObjectStore("pendingChanges", { keyPath: "id", autoIncrement: true });
           pendingStore.createIndex("type", "type", { unique: false });
           pendingStore.createIndex("timestamp", "timestamp", { unique: false });
         }
 
-        console.log("✅ IndexedDB schema upgraded");
+        console.log("✅ IndexedDB schema prepared/updated");
       };
-    });
-  };
-
-  // Store user data
-  const storeUserData = async (userId: string, data: Partial<UserData>): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["userData"], "readwrite");
-      const store = transaction.objectStore("userData");
-
-      // Final data sanitization to ensure IndexedDB compatibility
-      const sanitizeData = (obj: any): any => {
-        if (obj === null || obj === undefined) return null;
-        if (typeof obj !== "object") return obj;
-        if (obj instanceof Date) return obj.toISOString();
-
-        if (Array.isArray(obj)) {
-          return obj.map((item) => sanitizeData(item));
-        }
-
-        const clean: any = {};
-        for (const [key, value] of Object.entries(obj)) {
-          // Skip Vue reactive properties and functions
-          if (key.startsWith("__v_") || typeof value === "function") {
-            continue;
-          }
-
-          // Skip undefined values
-          if (value === undefined) {
-            continue;
-          }
-
-          try {
-            // Test if this value can be serialized
-            JSON.stringify(value);
-            clean[key] = sanitizeData(value);
-          } catch {
-            // Skip non-serializable values
-            console.warn(`⚠️ Skipping non-serializable property: ${key}`, value);
-            continue;
-          }
-        }
-        return clean;
-      };
-
-      const userData: UserData = {
-        templates: sanitizeData(data.templates) || [],
-        sessions: sanitizeData(data.sessions) || [],
-        lastSync: data.lastSync || Date.now(),
-        user: sanitizeData(data.user) || null,
-      };
-
-      console.log("🧹 Final sanitized data for IndexedDB:", {
-        templatesCount: userData.templates?.length || 0,
-        sessionsCount: userData.sessions?.length || 0,
-        userKeys: userData.user ? Object.keys(userData.user) : [],
-      });
-
-      const request = store.put({ userId, ...userData });
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  };
-
-  // Get user data
-  const getUserData = async (userId: string): Promise<UserData | null> => {
-    if (!db) throw new Error("Database not initialized");
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["userData"], "readonly");
-      const store = transaction.objectStore("userData");
-      const request = store.get(userId);
 
       request.onsuccess = () => {
-        if (request.result) {
-          resolve(request.result);
-        } else {
-          resolve(null);
-        }
+        db = request.result;
+
+        // Close the DB if a versionchange happens elsewhere (avoid blocked upgrades)
+        db.onversionchange = () => {
+          console.warn("ℹ️ IndexedDB version change detected; closing old connection.");
+          db?.close();
+          db = null;
+        };
+
+        console.log("✅ IndexedDB initialized successfully");
+        resolve();
       };
-      request.onerror = () => reject(request.error);
+    });
+
+  // ----- sanitize to keep only serializable data -----
+  const sanitize = (obj: any): any => {
+    if (obj === null || obj === undefined) return null;
+    if (typeof obj !== "object") return obj;
+    if (obj instanceof Date) return obj.toISOString();
+    if (Array.isArray(obj)) return obj.map((v) => sanitize(v));
+
+    const clean: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (key.startsWith("__v_") || typeof value === "function") continue;
+      if (value === undefined) continue;
+
+      try {
+        JSON.stringify(value); // probe serializability
+        clean[key] = sanitize(value);
+      } catch {
+        console.warn(`⚠️ Skipping non-serializable property: ${key}`, value);
+      }
+    }
+    return clean;
+  };
+
+  // ----- user data -----
+  const storeUserData = async (userId: string, data: Partial<UserData>): Promise<void> => {
+    ensureDB();
+    return new Promise((resolve, reject) => {
+      const tx = db!.transaction(["userData"], "readwrite");
+      const store = tx.objectStore("userData");
+
+      const userData: UserData = {
+        templates: sanitize(data.templates) || [],
+        sessions: sanitize(data.sessions) || [],
+        lastSync: data.lastSync ?? Date.now(),
+        user: sanitize(data.user) ?? null,
+      };
+
+      // Simple telemetry (safe)
+      try {
+        console.log("🧹 Final sanitized data:", {
+          templatesCount: Array.isArray(userData.templates) ? userData.templates.length : 0,
+          sessionsCount: Array.isArray(userData.sessions) ? userData.sessions.length : 0,
+          userKeys: userData.user ? Object.keys(userData.user) : [],
+        });
+      } catch {
+        // ignore console failures
+      }
+
+      const req = store.put({ userId, ...userData });
+
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
     });
   };
 
-  // Store cache item
-  const storeCache = async <T>(key: string, data: T, ttlMinutes: number = 60): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
-
+  const getUserData = async (userId: string): Promise<UserData | null> => {
+    ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["cache"], "readwrite");
-      const store = transaction.objectStore("cache");
+      const tx = db!.transaction(["userData"], "readonly");
+      const store = tx.objectStore("userData");
+      const req = store.get(userId);
+
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  };
+
+  // ----- generic cache -----
+  const storeCache = async <T>(key: string, data: T, ttlMinutes = 60): Promise<void> => {
+    ensureDB();
+    return new Promise((resolve, reject) => {
+      const tx = db!.transaction(["cache"], "readwrite");
+      const store = tx.objectStore("cache");
 
       const cacheItem: CacheItem<T> = {
         key,
@@ -170,165 +181,153 @@ export const useIndexedDB = () => {
         expiresAt: Date.now() + ttlMinutes * 60 * 1000,
       };
 
-      const request = store.put(cacheItem);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      const req = store.put(cacheItem);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
     });
   };
 
-  // Get cache item
   const getCache = async <T>(key: string): Promise<T | null> => {
-    if (!db) throw new Error("Database not initialized");
-
+    ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["cache"], "readonly");
-      const store = transaction.objectStore("cache");
-      const request = store.get(key);
+      const tx = db!.transaction(["cache"], "readonly");
+      const store = tx.objectStore("cache");
+      const req = store.get(key);
 
-      request.onsuccess = () => {
-        if (request.result) {
-          const item: CacheItem<T> = request.result;
-
-          // Check if expired
-          if (item.expiresAt && Date.now() > item.expiresAt) {
-            // Remove expired item
-            deleteCache(key);
-            resolve(null);
-            return;
-          }
-
-          resolve(item.data);
-        } else {
+      req.onsuccess = () => {
+        const item = req.result as CacheItem<T> | undefined;
+        if (!item) {
           resolve(null);
+          return;
         }
+
+        if (item.expiresAt && Date.now() > item.expiresAt) {
+          // clean up expired entry (best-effort, separate tx)
+          deleteCache(key).catch(() => {});
+          resolve(null);
+          return;
+        }
+
+        resolve(item.data);
       };
-      request.onerror = () => reject(request.error);
+      req.onerror = () => reject(req.error);
     });
   };
 
-  // Delete cache item
   const deleteCache = async (key: string): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
-
+    ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["cache"], "readwrite");
-      const store = transaction.objectStore("cache");
-      const request = store.delete(key);
+      const tx = db!.transaction(["cache"], "readwrite");
+      const store = tx.objectStore("cache");
+      const req = store.delete(key);
 
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
     });
   };
 
-  // Store pending change for later sync
-  const storePendingChange = async (type: string, data: any): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
-
+  // ----- pending changes -----
+  const storePendingChange = async (type: string, data: any): Promise<number | void> => {
+    ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["pendingChanges"], "readwrite");
-      const store = transaction.objectStore("pendingChanges");
+      const tx = db!.transaction(["pendingChanges"], "readwrite");
+      const store = tx.objectStore("pendingChanges");
 
-      const pendingChange = {
+      const payload: PendingChange = {
         type,
-        data,
+        data: sanitize(data),
         timestamp: Date.now(),
         retryCount: 0,
       };
 
-      const request = store.add(pendingChange);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      const req = store.add(payload);
+      req.onsuccess = () => {
+        // Return the generated id for debugging if needed
+        resolve(req.result as number);
+      };
+      req.onerror = () => reject(req.error);
     });
   };
 
-  // Get pending changes
-  const getPendingChanges = async (): Promise<any[]> => {
-    if (!db) throw new Error("Database not initialized");
-
+  const getPendingChanges = async (): Promise<PendingChange[]> => {
+    ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["pendingChanges"], "readonly");
-      const store = transaction.objectStore("pendingChanges");
-      const request = store.getAll();
+      const tx = db!.transaction(["pendingChanges"], "readonly");
+      const store = tx.objectStore("pendingChanges");
+      const req = store.getAll();
 
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(request.error);
+      req.onsuccess = () => resolve((req.result as PendingChange[]) || []);
+      req.onerror = () => reject(req.error);
     });
   };
 
-  // Remove pending change after successful sync
   const removePendingChange = async (id: number): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
-
+    ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["pendingChanges"], "readwrite");
-      const store = transaction.objectStore("pendingChanges");
-      const request = store.delete(id);
+      const tx = db!.transaction(["pendingChanges"], "readwrite");
+      const store = tx.objectStore("pendingChanges");
+      const req = store.delete(id);
 
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
     });
   };
 
-  // Clear expired cache items
+  // ----- maintenance -----
   const cleanupExpiredCache = async (): Promise<void> => {
-    if (!db) return;
-
+    if (!db) return; // no-op if not initialized
     try {
-      const transaction = db.transaction(["cache"], "readwrite");
-      const store = transaction.objectStore("cache");
+      const tx = db.transaction(["cache"], "readwrite");
+      const store = tx.objectStore("cache");
       const index = store.index("expiresAt");
       const now = Date.now();
 
-      const request = index.openCursor(IDBKeyRange.upperBound(now));
-
-      request.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest).result;
+      const req = index.openCursor(IDBKeyRange.upperBound(now));
+      req.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
         if (cursor) {
           store.delete(cursor.primaryKey);
           cursor.continue();
         }
       };
-    } catch (error) {
-      console.error("Error cleaning up expired cache:", error);
+      // errors are purposely swallowed (background maintenance)
+    } catch (err) {
+      console.error("Error cleaning up expired cache:", err);
     }
   };
 
-  // Clear all data for a user
   const clearUserData = async (userId: string): Promise<void> => {
-    if (!db) throw new Error("Database not initialized");
-
+    ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["userData", "cache", "pendingChanges"], "readwrite");
+      const tx = db!.transaction(["userData", "cache", "pendingChanges"], "readwrite");
 
-      // Clear user data
-      const userDataStore = transaction.objectStore("userData");
-      userDataStore.delete(userId);
+      tx.objectStore("userData").delete(userId);
+      tx.objectStore("cache").clear();
+      tx.objectStore("pendingChanges").clear();
 
-      // Clear cache
-      const cacheStore = transaction.objectStore("cache");
-      cacheStore.clear();
-
-      // Clear pending changes
-      const pendingStore = transaction.objectStore("pendingChanges");
-      pendingStore.clear();
-
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
     });
   };
 
   return {
     isSupported,
     initDB,
+
+    // user data
     storeUserData,
     getUserData,
+    clearUserData,
+
+    // cache
     storeCache,
     getCache,
     deleteCache,
+    cleanupExpiredCache,
+
+    // pending changes
     storePendingChange,
     getPendingChanges,
     removePendingChange,
-    cleanupExpiredCache,
-    clearUserData,
   };
 };

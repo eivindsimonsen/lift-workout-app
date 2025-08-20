@@ -1,136 +1,143 @@
-import { ref } from 'vue'
+import { ref } from "vue";
 
 interface AppError {
-  message: string
-  details?: string
-  stack?: string
-  type?: 'error' | 'warning' | 'info' | 'success'
+  id: string;
+  message: string;
+  details?: string;
+  stack?: string;
+  type?: "error" | "warning" | "info" | "success";
+  severity?: "critical" | "non-critical";
+  handled?: boolean; // whether it's already shown to the user
 }
 
 // Global error state
-const globalError = ref<AppError | null>(null)
-const errorId = ref<string>('')
+const globalError = ref<AppError | null>(null);
+const lastErrorMessage = ref<string>("");
+const lastErrorTime = ref<number>(0);
 
 // Generate unique error ID
 const generateErrorId = (): string => {
-  return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-}
+  return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// Normalize any input into an Error-like object
+const normalizeError = (err: unknown, fallbackMessage = "Ukjent feil"): Error => {
+  if (err instanceof Error) return err;
+  if (typeof err === "string") return new Error(err);
+  return new Error(fallbackMessage);
+};
 
 // Global error handler
-const handleError = (error: any, context?: string): void => {
-  console.error('Global error handler:', error, context)
-  
-  const appError: AppError = {
-    message: error.message || 'En uventet feil oppstod',
-    details: error.stack || context || 'Ingen detaljer tilgjengelig',
-    stack: error.stack,
-    type: 'error'
+const handleError = (error: unknown, context?: string, severity: "critical" | "non-critical" = "critical"): void => {
+  const err = normalizeError(error);
+
+  // Prevent spamming identical errors within 1s
+  const now = Date.now();
+  if (err.message === lastErrorMessage.value && now - lastErrorTime.value < 1000) {
+    return;
   }
-  
-  globalError.value = appError
-  errorId.value = generateErrorId()
-  
-  // Log for debugging
-  console.error('Error ID:', errorId.value)
-  console.error('Error context:', context)
-  console.error('Full error:', error)
-}
+  lastErrorMessage.value = err.message;
+  lastErrorTime.value = now;
 
-// Handle specific error types
-const handleNetworkError = (error: any): void => {
-  handleError({
-    message: 'Nettverksfeil',
-    stack: error.stack
-  }, 'Network error')
-}
+  const appError: AppError = {
+    id: generateErrorId(),
+    message: err.message || "En uventet feil oppstod",
+    details: context || err.stack || "Ingen detaljer tilgjengelig",
+    stack: err.stack,
+    type: "error",
+    severity,
+    handled: false,
+  };
 
-const handleAuthError = (error: any): void => {
-  handleError({
-    message: 'Autentiseringsfeil - prøv å logge inn på nytt',
-    stack: error.stack
-  }, 'Authentication error')
-}
+  globalError.value = appError;
 
-const handleDatabaseError = (error: any): void => {
-  handleError({
-    message: 'Databasefeil - data kunne ikke lastes',
-    stack: error.stack
-  }, 'Database error')
-}
+  // Debug logging
+  console.error("❌ Global error handler:", {
+    id: appError.id,
+    message: appError.message,
+    context,
+    severity,
+    full: err,
+  });
+};
 
-const handleValidationError = (error: any): void => {
-  handleError({
-    message: 'Valideringsfeil - sjekk at alle felter er riktig utfylt',
-    stack: error.stack
-  }, 'Validation error')
-}
+// Specific error helpers
+const handleNetworkError = (error: unknown) => handleError(error, "Network error", "non-critical");
+
+const handleAuthError = (error: unknown) => handleError(error, "Authentication error");
+
+const handleDatabaseError = (error: unknown) => handleError(error, "Database error");
+
+const handleValidationError = (error: unknown) => handleError(error, "Validation error", "non-critical");
 
 // Clear error
 const clearError = (): void => {
-  globalError.value = null
-  errorId.value = ''
-}
+  globalError.value = null;
+  lastErrorMessage.value = "";
+  lastErrorTime.value = 0;
+};
 
-// Show user-friendly error message
-const showError = (message: string, details?: string): void => {
+// Show helpers (user-facing)
+const showError = (message: string, details?: string) => {
   globalError.value = {
+    id: generateErrorId(),
     message,
     details,
-    type: 'error'
-  }
-  errorId.value = generateErrorId()
-}
+    type: "error",
+    severity: "critical",
+    handled: true,
+  };
+};
 
-// Show warning
-const showWarning = (message: string, details?: string): void => {
+const showWarning = (message: string, details?: string) => {
   globalError.value = {
+    id: generateErrorId(),
     message,
     details,
-    type: 'warning'
-  }
-  errorId.value = generateErrorId()
-}
+    type: "warning",
+    severity: "non-critical",
+    handled: true,
+  };
+};
 
-// Show info
-const showInfo = (message: string, details?: string): void => {
+const showInfo = (message: string, details?: string) => {
   globalError.value = {
+    id: generateErrorId(),
     message,
     details,
-    type: 'info'
-  }
-  errorId.value = generateErrorId()
-}
+    type: "info",
+    severity: "non-critical",
+    handled: true,
+  };
+};
 
-// Show success
-const showSuccess = (message: string, details?: string): void => {
+const showSuccess = (message: string, details?: string) => {
   globalError.value = {
+    id: generateErrorId(),
     message,
     details,
-    type: 'success'
-  }
-  errorId.value = generateErrorId()
-}
+    type: "success",
+    severity: "non-critical",
+    handled: true,
+  };
+};
 
-// Handle async operations with error catching
-const withErrorHandling = async <T>(
-  operation: () => Promise<T>,
-  errorMessage?: string
-): Promise<T | null> => {
+// Wrap async operations with error catching
+const withErrorHandling = async <T>(operation: () => Promise<T>, userMessage?: string): Promise<T | null> => {
   try {
-    return await operation()
-  } catch (error: any) {
-    const message = errorMessage || error.message || 'Operasjonen feilet'
-    handleError(error, message)
-    return null
+    return await operation();
+  } catch (err: unknown) {
+    const e = normalizeError(err);
+    handleError(e, userMessage || e.message);
+    return null;
   }
-}
+};
 
 export function useErrorHandler() {
   return {
     // State
     globalError,
-    errorId,
-    
+
     // Methods
     handleError,
     handleNetworkError,
@@ -142,6 +149,6 @@ export function useErrorHandler() {
     showWarning,
     showInfo,
     showSuccess,
-    withErrorHandling
-  }
-} 
+    withErrorHandling,
+  };
+}
