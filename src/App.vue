@@ -280,7 +280,7 @@ const workoutProgress = computed(() => {
   
   // Get the current workout session from the route
   const sessionId = route.params.id as string
-  const session = workoutData.getSessionById.value(sessionId)
+  const session = workoutData.getSessionById(sessionId)
   
   if (!session) {
     return { percentage: 0 }
@@ -431,13 +431,17 @@ watch(() => route.path, (newPath, oldPath) => {
                     window.innerWidth <= 768 ||
                     'ontouchstart' in window;
     
-    if (isMobile) {
-      console.log('📱 Using mobile-specific scroll in App watcher');
+    // TODO EIVIND
+    if (isMobile && !route.path.startsWith('/workout/')) {
+      console.log('�🔄🔄 BUG CHECK MOBILE 5 🔄🔄🔄 Router navigation detected:', { from: oldPath, to: newPath });
       scrollToTopMobile();
-    } else {
-      console.log('💻 Using desktop scroll in App watcher');
+    } 
+
+    if (!isMobile && !route.path.startsWith('/workout/')) {
+      console.log('�🔄🔄 BUG CHECK DESKTOP 5 🔄🔄🔄 Router navigation detected:', { from: oldPath, to: newPath });
       scrollToTopImmediate();
     }
+    // TODO EIVIND END
     
     // Additional fallback: also scroll the main content area if it exists
     if (mainContent.value) {

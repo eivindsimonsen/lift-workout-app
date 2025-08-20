@@ -312,11 +312,11 @@ const formatNumber = (num: number): string => {
 }
 
 const getWorkoutTypeName = (typeId: string): string => {
-  return workoutData.getWorkoutType.value(typeId)
+  return workoutData.getWorkoutType(typeId)
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  return workoutData.getWorkoutTypeColor.value(typeId)
+  return workoutData.getWorkoutTypeColor(typeId)
 }
 
 const getTotalSets = (session: WorkoutSession): number => {
@@ -452,7 +452,7 @@ const viewExercise = (exerciseId: string) => {
 // Lifecycle
 onMounted(() => {
   const sessionId = route.params.id as string
-  const foundSession = workoutData.getSessionById.value(sessionId)
+  const foundSession = workoutData.getSessionById(sessionId)
   
   if (foundSession) {
     session.value = foundSession

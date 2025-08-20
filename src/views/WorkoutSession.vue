@@ -483,11 +483,11 @@ const syncPendingChanges = async () => {
 
 // Methods
 const getWorkoutTypeName = (typeId: string): string => {
-  return workoutData.getWorkoutType.value(typeId)
+  return workoutData.getWorkoutType(typeId)
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  return workoutData.getWorkoutTypeColor.value(typeId)
+  return workoutData.getWorkoutTypeColor(typeId)
 }
 
 const getCompletedSets = (exercise: any): number => {
@@ -840,7 +840,7 @@ const getLastPerformance = (exerciseId: string) => {
 }
 
 const getExerciseMuscleGroups = (exerciseId: string): string[] => {
-  const exerciseData = workoutData.getExerciseById.value(exerciseId)
+  const exerciseData = workoutData.getExerciseById(exerciseId)
   return exerciseData?.muscleGroups || []
 }
 
@@ -1538,13 +1538,13 @@ onMounted(async () => {
     })
   }
   
-  const foundSession = workoutData.getSessionById.value(sessionId)
+  const foundSession = workoutData.getSessionById(sessionId)
   
   if (!foundSession) {
     // Try to load data again if session not found
     try {
       await workoutData.loadData()
-      const retrySession = workoutData.getSessionById.value(sessionId)
+      const retrySession = workoutData.getSessionById(sessionId)
       if (retrySession) {
         session.value = retrySession
         startTime.value = new Date(retrySession.date)
@@ -1684,7 +1684,7 @@ watch(() => route.params.id, async (newId, oldId) => {
     }
     
     // Load new session
-    const foundSession = workoutData.getSessionById.value(newId as string)
+    const foundSession = workoutData.getSessionById(newId as string)
     if (foundSession) {
       session.value = foundSession
       startTime.value = new Date(foundSession.date)
@@ -1692,6 +1692,4 @@ watch(() => route.params.id, async (newId, oldId) => {
     }
   }
 })
-
-
 </script> 

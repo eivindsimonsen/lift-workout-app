@@ -594,11 +594,11 @@ const formatDate = (date: Date): string => {
 }
 
 const getWorkoutTypeName = (typeId: string): string => {
-  return workoutData.getWorkoutType.value(typeId)
+  return workoutData.getWorkoutType(typeId)
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  return workoutData.getWorkoutTypeColor.value(typeId)
+  return workoutData.getWorkoutTypeColor(typeId)
 }
 
 const getWeeklyProgressPercentage = (volume: number): number => {
@@ -796,7 +796,7 @@ const powerExerciseRecords = computed(() => {
     
     if (bestSet) {
       // Get exercise name from exercises data using the new helper function
-      const exerciseData = workoutData.getExerciseById.value(exerciseId)
+      const exerciseData = workoutData.getExerciseById(exerciseId)
       if (exerciseData) {
         records.push({
           exercise: exerciseData.name,
@@ -818,14 +818,14 @@ const powerExerciseRecords = computed(() => {
 
 // Helper function to get better exercise display names
 const getExerciseDisplayName = (exerciseId: string): string => {
-  const mainExercise = workoutData.getMainExerciseByVariantId.value(exerciseId)
+  const mainExercise = workoutData.getMainExerciseByVariantId(exerciseId)
   if (mainExercise && mainExercise.variants) {
     const variant = mainExercise.variants.find((v: any) => v.id === exerciseId)
     return variant ? `${mainExercise.name} - ${variant.name}` : mainExercise.name
   }
   
   // Fallback to direct exercise lookup
-  const exerciseData = workoutData.getExerciseById.value(exerciseId)
+  const exerciseData = workoutData.getExerciseById(exerciseId)
   return exerciseData?.name || exerciseId
 }
 

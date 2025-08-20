@@ -303,11 +303,11 @@ const formatNumber = (num: number): string => {
 }
 
 const getWorkoutTypeName = (typeId: string): string => {
-  return workoutData.getWorkoutType.value(typeId)
+  return workoutData.getWorkoutType(typeId)
 }
 
 const getWorkoutTypeColor = (typeId: string): string => {
-  return workoutData.getWorkoutTypeColor.value(typeId)
+  return workoutData.getWorkoutTypeColor(typeId)
 }
 
 const getTotalSets = (session: WorkoutSession): number => {

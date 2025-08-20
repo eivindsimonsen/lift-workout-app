@@ -42,12 +42,15 @@ const router = createRouter({
   scrollBehavior(to: any, from: any, savedPosition: any) {
     // Always scroll to top when navigating to a new route
     if (to.path !== from.path) {
+      console.log("🔄🔄🔄 BUG CHECK 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
       // For mobile, use immediate scroll to prevent issues
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
 
       if (isMobile) {
+        console.log("🔄🔄🔄 BUG CHECK MOBILE 1 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
         return { top: 0, behavior: "auto" };
       } else {
+        console.log("🔄🔄🔄 BUG CHECK DESKTOP 1 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
         return { top: 0, behavior: "smooth" };
       }
     }
@@ -57,8 +60,10 @@ const router = createRouter({
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
 
       if (isMobile) {
+        console.log("🔄🔄🔄 BUG CHECK MOBILE 2 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
         return { top: 0, behavior: "auto" };
       } else {
+        console.log("🔄🔄🔄 BUG CHECK DESKTOP 2 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
         return { top: 0, behavior: "smooth" };
       }
     }
@@ -72,8 +77,10 @@ const router = createRouter({
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
 
     if (isMobile) {
+      console.log("🔄🔄🔄 BUG CHECK MOBILE 3 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
       return { top: 0, behavior: "auto" };
     } else {
+      console.log("🔄🔄🔄 BUG CHECK DESKTOP 3 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
       return { top: 0, behavior: "smooth" };
     }
   },
@@ -144,10 +151,10 @@ router.afterEach((to: any, from: any) => {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
 
     if (isMobile) {
-      console.log("📱 Using mobile-specific scroll");
+      console.log("🔄🔄🔄 BUG CHECK MOBILE 4 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
       scrollToTopMobile();
     } else {
-      console.log("💻 Using desktop scroll");
+      console.log("🔄🔄🔄 BUG CHECK DESKTOP 4 🔄🔄🔄 Router navigation detected:", { from: from.path, to: to.path });
       scrollToTopImmediate();
     }
 
