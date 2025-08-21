@@ -29,37 +29,100 @@ const routes = [
   { path: "/template/edit/:id", name: "EditTemplate", component: TemplateForm, meta: { requiresAuth: true } },
   { path: "/session/:id", name: "SessionDetails", component: SessionDetails, meta: { requiresAuth: true } },
   { path: "/exercise/:id", name: "ExerciseDetail", component: ExerciseDetail, meta: { requiresAuth: true } },
-  { path: "/exercises", name: "Exercises", component: Exercises, meta: { requiresAuth: true } },
+  { path: "/exercises", name: "Exercises", meta: { requiresAuth: true }, component: Exercises },
   // Catch-all
   { path: "/:pathMatch(.*)*", redirect: "/login" },
 ];
 
 const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
 
-// Define ScrollPosition type
 type ScrollPosition = { left: number; top: number } | null;
+
+/**
+ * Force all likely scroll containers to top (in addition to window/document).
+ * If you know your real scroll root, add a data attribute to it:
+ *   <main data-scroll-root>...</main>
+ * and this will pick it up reliably.
+ */
+
+// helper near the top of router/index.ts
+function getSavedWorkoutScrollY(id: string): number | null {
+  try {
+    const s = sessionStorage.getItem(`workout-scroll-${id}`) || localStorage.getItem(`workout-scroll-${id}`);
+    if (!s) return null;
+    const y = parseInt(s, 10);
+    return Number.isFinite(y) ? y : null;
+  } catch {
+    return null;
+  }
+}
+
+function forceAllScrollRootsToTop() {
+  // Window & document
+  try {
+    window.scrollTo(0, 0);
+  } catch {}
+  try {
+    if (document.scrollingElement) (document.scrollingElement as HTMLElement).scrollTop = 0;
+  } catch {}
+  try {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  } catch {}
+
+  // App-level containers commonly used as scroll roots
+  const selectors = [
+    "[data-scroll-root]", // <== add this to your real scroll container if possible
+    "#app",
+    "main",
+    ".scroll-container",
+    ".app-main",
+    ".content",
+  ];
+  selectors.forEach((sel) => {
+    document.querySelectorAll(sel).forEach((el) => {
+      try {
+        (el as HTMLElement).scrollTop = 0;
+      } catch {}
+    });
+  });
+}
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior(to: any, from: any, savedPosition: ScrollPosition) {
-    // ✅ Preserve scroll for WorkoutSession: do nothing (keep current scroll)
+  // inside createRouter({ ..., scrollBehavior(to, from, savedPosition) { ... } })
+  scrollBehavior(to: any, from: any, savedPosition: { left: number; top: number } | null) {
+    // 🏋️ workout route special handling
     if (to.name === "WorkoutSession") {
-      if (savedPosition) return savedPosition; // popstate/back-forward
-      return undefined; // leave scroll as-is
+      const fromIsEmpty = !from || !from.name || (Array.isArray(from.matched) && from.matched.length === 0); // cold start
+      const fromIsWorkout = from && from.name === "WorkoutSession";
+      const newWorkout = !fromIsWorkout || from.params.id !== to.params.id;
+
+      // ✅ COLD START: if we have a saved scroll for this workout, restore it immediately
+      if (fromIsEmpty) {
+        const y = getSavedWorkoutScrollY(String(to.params.id));
+        if (y !== null) {
+          return { left: 0, top: y, behavior: "auto" };
+        }
+        // no saved scroll → just top
+        return { top: 0, behavior: "auto" };
+      }
+
+      if (newWorkout) {
+        // navigation to a DIFFERENT workout id inside the app
+        return { top: 0, behavior: "auto" };
+      }
+
+      // resuming the SAME workout via in-app nav/back/forward
+      if (savedPosition) return savedPosition;
+      return false;
     }
-
-    const goingToDifferentPath = to.path !== from.path;
-    const sameRouteDifferentParams = to.name === from.name && to.params !== from.params;
-
-    if (goingToDifferentPath || sameRouteDifferentParams) {
-      return { top: 0, behavior: isMobile() ? "auto" : "smooth" };
-    }
-
-    if (savedPosition) return savedPosition;
 
     // Default for non-workout routes
-    return { top: 0, behavior: isMobile() ? "auto" : "smooth" };
+    if (savedPosition) return savedPosition;
+    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
+    return { top: 0, behavior: mobile ? "auto" : "smooth" };
   },
 });
 
@@ -80,7 +143,6 @@ router.beforeEach(async (to: any, from: any, next: any) => {
       return;
     }
 
-    // Check current session
     const {
       data: { session },
       error,
@@ -95,12 +157,10 @@ router.beforeEach(async (to: any, from: any, next: any) => {
     const isAuthenticated = !!session;
 
     if (!isAuthenticated) {
-      // Carry intended route to login
       next({ path: "/login", query: { redirect: to.fullPath } });
       return;
     }
 
-    // If already authenticated and going to /login, send to intended target if present
     if (to.path === "/login") {
       const redirectTarget = (to.query?.redirect as string) || "/";
       next(redirectTarget);
@@ -114,20 +174,52 @@ router.beforeEach(async (to: any, from: any, next: any) => {
   }
 });
 
-// After-each: don't force scroll for WorkoutSession; store lastRoute
+// After-each: handle workout resume/new & scroll containers explicitly
 router.afterEach((to: any, from: any) => {
   if (to.path !== from.path) {
     console.log("🔄 Router navigation detected:", { from: from.path, to: to.path });
 
-    if (to.name !== "WorkoutSession") {
-      if (isMobile()) {
+    if (to.name === "WorkoutSession") {
+      const coldStart = !from || !from.name || (Array.isArray(from.matched) && from.matched.length === 0);
+      const fromIsWorkout = from && from.name === "WorkoutSession";
+      const sameId = fromIsWorkout && from.params.id === to.params.id;
+
+      if (coldStart) {
+        // ✅ Cold start directly into a workout
+        const y = getSavedWorkoutScrollY(String(to.params.id));
+        if (y !== null) {
+          // mark for component restore safety (in case component wants to re-apply after mount)
+          sessionStorage.setItem(`workout-restore-${to.params.id}`, "1");
+        }
+        // don't force scroll here; scrollBehavior already positioned us
+      } else if (sameId) {
+        // ✅ Resuming same workout inside the app
+        sessionStorage.setItem(`workout-restore-${to.params.id}`, "1");
+      } else {
+        // ✅ Switching to a different workout id: start fresh
+        sessionStorage.removeItem(`workout-restore-${to.params.id}`);
+        sessionStorage.removeItem(`workout-scroll-${to.params.id}`);
+        localStorage.removeItem(`workout-scroll-${to.params.id}`);
+
+        // optional: nudge containers to top
+        const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
+        if (mobile) {
+          scrollToTopMobile();
+        } else {
+          scrollToTopImmediate();
+        }
+      }
+    } else {
+      // non-workout routes: your existing scroll-to-top behavior
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || "ontouchstart" in window;
+      if (mobile) {
         scrollToTopMobile();
       } else {
         scrollToTopImmediate();
       }
     }
 
-    // ✅ Remember last route for restore on cold start
+    // remember last route (unchanged)
     try {
       const { supabase } = useSupabase();
       supabase.auth.getSession().then(({ data }: { data: { session: any } }) => {

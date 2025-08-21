@@ -488,80 +488,62 @@ const getCompletedSets = (exercise: any): number => {
 
 const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number) => {
   if (!session.value) return
-
   const target = event.target as HTMLInputElement
   const value = target.value
-
   const weight = value === '' ? 0 : parseFloat(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
-
   updateSetCompletion(exerciseIndex, setIndex)
-  // Persist for safety on each meaningful change
   persistExercisesToLocal()
 }
 
 const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
   if (!session.value) return
-
   const target = event.target as HTMLInputElement
   const value = target.value
-
   const weight = value === '' ? 0 : parseFloat(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
-
   updateSetCompletion(exerciseIndex, setIndex)
   persistExercisesToLocal()
 }
 
 const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) => {
   if (!session.value) return
-
   const target = event.target as HTMLInputElement
   const value = target.value
-
   const reps = value === '' ? 0 : parseInt(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
-
   updateSetCompletion(exerciseIndex, setIndex)
   persistExercisesToLocal()
 }
 
 const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
   if (!session.value) return
-
   const target = event.target as HTMLInputElement
   const value = target.value
-
   const reps = value === '' ? 0 : parseInt(value) || 0
   session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
-
   updateSetCompletion(exerciseIndex, setIndex)
   persistExercisesToLocal()
 }
 
 const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   if (!session.value) return
-
   const set = session.value.exercises[exerciseIndex].sets[setIndex]
-
   if (typeof set.weight === 'string') {
     set.weight = parseFloat(set.weight) || 0
   }
   if (typeof set.reps === 'string') {
     set.reps = parseInt(set.reps) || 0
   }
-
   const isCompleted = Boolean(
     set.weight &&
     set.reps &&
     set.weight > 0 &&
     set.reps > 0
   )
-
   if (set.isCompleted !== isCompleted) {
     set.isCompleted = isCompleted
   }
-
   hasUnsavedChanges.value = true
 }
 
@@ -593,7 +575,6 @@ const persistExercisesToLocal = () => {
   try {
     localStorage.setItem(key, JSON.stringify(payload))
     hasUnsavedChanges.value = true
-    // optional: size guard / cleanup
     clearOldWorkoutData()
   } catch (e) {
     console.error('❌ Error persisting exercises to localStorage:', e)
@@ -655,7 +636,6 @@ const restoreLocalChanges = async () => {
 
     const parsed = JSON.parse(localData)
     if (parsed && Array.isArray(parsed.exercises)) {
-      // LOCAL is the source of truth for in-progress sessions
       session.value.exercises = parsed.exercises
       hasUnsavedChanges.value = true
       console.log('✅ Restored exercises from local (source of truth)')
@@ -666,9 +646,38 @@ const restoreLocalChanges = async () => {
 }
 // === end local helpers ===
 
+// ===== Scroll position persistence (WorkoutSession-only) =====
+const shouldRestoreScroll = () => {
+  if (!session.value) return false
+  return sessionStorage.getItem(`workout-restore-${session.value.id}`) === '1'
+}
+
+const onScrollCapture = () => {
+  if (!session.value) return
+  const y =
+    window.scrollY ||
+    window.pageYOffset ||
+    document.documentElement.scrollTop ||
+    0
+  const id = session.value.id
+  sessionStorage.setItem(`workout-scroll-${id}`, String(y))
+  localStorage.setItem(`workout-scroll-${id}`, String(y))
+}
+
+const restoreScrollPosition = () => {
+  if (!session.value) return
+  const id = session.value.id
+  const saved =
+    sessionStorage.getItem(`workout-scroll-${id}`) ||
+    localStorage.getItem(`workout-scroll-${id}`)
+  if (!saved) return
+  const y = parseInt(saved, 10) || 0
+  requestAnimationFrame(() => window.scrollTo(0, y))
+}
+// ===== end scroll section =====
+
 const addSet = (exerciseIndex: number) => {
   if (!session.value) return
-
   const exercise = session.value.exercises[exerciseIndex]
   const newSet = {
     id: `set-${Date.now()}-${exercise.sets.length}`,
@@ -678,7 +687,6 @@ const addSet = (exerciseIndex: number) => {
     distance: undefined as number | undefined,
     isCompleted: false
   }
-
   exercise.sets.push(newSet)
   persistExercisesToLocal()
 }
@@ -878,14 +886,12 @@ const abandonWorkout = async () => {
     const sessionId = session.value.id
     const localChanges = getLocalChanges(sessionId)
 
-    // Always clean current session first
     const cleanedSession = await cleanupSessionData(session.value)
 
     // Prefer LOCAL exercises if present (source of truth)
     let exercisesToPersist = cleanedSession.exercises
     if (localChanges?.exercises) {
       exercisesToPersist = localChanges.exercises
-      // Optional: run cleanup on local too
       const tmpSession: WorkoutSession = {
         ...session.value,
         exercises: exercisesToPersist
@@ -931,7 +937,6 @@ const completeWorkout = async () => {
     let exercisesToPersist = cleanedSession.exercises
     if (localChanges?.exercises) {
       exercisesToPersist = localChanges.exercises
-      // Optional: run cleanup on local too
       const tmpSession: WorkoutSession = {
         ...session.value,
         exercises: exercisesToPersist
@@ -1015,11 +1020,9 @@ const syncLocalChangesToSupabase = async () => {
     const local = getLocalChanges(sessionId)
 
     if (local?.exercises) {
-      // LOCAL is source of truth for in-progress changes
       await workoutData.updateWorkoutSessionOffline(sessionId, {
         exercises: local.exercises
       })
-
       clearLocalChanges(sessionId)
       hasUnsavedChanges.value = false
       console.log('✅ Local changes synced to Supabase successfully')
@@ -1046,41 +1049,16 @@ const syncLocalChangesToSupabase = async () => {
 
 const isDevelopment = computed(() => import.meta.env.DEV)
 
-// Scroll position persistence
-const saveScrollPosition = () => {
-  if (!session.value) return
-  const scrollPosition = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
-  const sessionId = session.value.id
-  sessionStorage.setItem(`workout-scroll-${sessionId}`, scrollPosition.toString())
-  localStorage.setItem(`workout-scroll-${sessionId}`, scrollPosition.toString())
-  console.log('💾 Saved scroll position:', { sessionId, scrollPosition })
-}
-
-const restoreScrollPosition = () => {
-  if (!session.value) return
-  const sessionId = session.value.id
-  const savedPosition = sessionStorage.getItem(`workout-scroll-${sessionId}`) ||
-    localStorage.getItem(`workout-scroll-${sessionId}`)
-  if (savedPosition) {
-    const position = parseInt(savedPosition)
-    console.log('🔄 Restoring scroll position:', { sessionId, position })
-    requestAnimationFrame(() => {
-      window.scrollTo(0, position)
-      console.log('✅ Scroll position restored to:', position)
-    })
-  }
-}
-
 // Lifecycle
 onMounted(async () => {
   const sessionId = route.params.id as string
 
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   const isPWA = window.matchMedia('(display-mode: standalone)').matches
 
   console.log('📱 WorkoutSession mounted:', {
     sessionId,
-    isMobile,
+    isMobile: isMobileUA,
     isPWA
   })
 
@@ -1179,24 +1157,29 @@ onMounted(async () => {
 
   window.addEventListener('online', handleNetworkChange)
 
-  const handleScroll = () => {
-    saveScrollPosition()
-  }
-  window.addEventListener('scroll', handleScroll)
+  // ===== Scroll wiring (attach once, restore only on resume flag) =====
+  window.addEventListener('scroll', onScrollCapture)
 
   setTimeout(() => {
-    restoreScrollPosition()
+    if (shouldRestoreScroll()) {
+      restoreScrollPosition()
+      // consume flag so we don't keep restoring
+      sessionStorage.removeItem(`workout-restore-${session.value!.id}`)
+    }
   }, 300)
 
   const handleVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
-      console.log('👁️ Page became visible, restoring scroll position')
-      setTimeout(() => {
-        restoreScrollPosition()
-      }, 100)
+      if (shouldRestoreScroll()) {
+        setTimeout(() => {
+          restoreScrollPosition()
+          sessionStorage.removeItem(`workout-restore-${session.value!.id}`)
+        }, 100)
+      }
     }
   }
   document.addEventListener('visibilitychange', handleVisibilityChange)
+  // ===== End scroll wiring =====
 
   const handleBeforeUnload = (event: BeforeUnloadEvent) => {
     if (hasUnsavedChanges.value) {
@@ -1209,13 +1192,12 @@ onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
   window.addEventListener('beforeunload', handleBeforeUnload)
-  window.addEventListener('scroll', handleScroll)
 
   onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
     window.removeEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
     window.removeEventListener('beforeunload', handleBeforeUnload)
-    window.removeEventListener('scroll', handleScroll)
+    window.removeEventListener('scroll', onScrollCapture)
     window.removeEventListener('online', handleNetworkChange)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   })
@@ -1242,3 +1224,4 @@ watch(() => route.params.id, async (newId, oldId) => {
   }
 })
 </script>
+
