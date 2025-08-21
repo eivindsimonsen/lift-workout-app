@@ -745,9 +745,11 @@ const handleAddExerciseFromPanel = (exerciseId: string) => {
   isMobileExercisePanelOpen.value = false
 }
 
-const removeExercise = (index: number) => {
+const removeExercise = (exerciseIndex: number) => {
+  const confirmDeletion = confirm('Er du sikker på at du vil slette denne øvelsen?');
+  if (!confirmDeletion) return;
   if (!session.value) return
-  session.value.exercises.splice(index, 1)
+  session.value.exercises.splice(exerciseIndex, 1)
   persistExercisesToLocal()
 }
 
@@ -769,6 +771,12 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
 
   exercise.sets.splice(setIndex, 1)
   persistExercisesToLocal()
+
+  // Blur the "Legg til sett" button to remove focus
+  const addButton = document.querySelector('.btn-secondary');
+  if (addButton) {
+    (addButton as HTMLElement).blur();
+  }
 }
 
 const formatNumber = (num: number): string => {
