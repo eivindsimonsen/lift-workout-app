@@ -201,7 +201,6 @@ import UpdateTest from '@/components/UpdateTest.vue'
 import OfflineIndicator from '@/components/OfflineIndicator.vue'
 import MobileBrowserBanner from '@/components/MobileBrowserBanner.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
-import { scrollToTopGlobal, scrollToTopImmediate, scrollToTopMobile } from '@/composables/useScrollToTop'
 
 const route = useRoute()
 const router = useRouter()
@@ -279,11 +278,6 @@ const isPWA = computed(() => window.matchMedia('(display-mode: standalone)').mat
 const isDevelopment = computed(() => import.meta.env.DEV)
 
 // --- Methods ---
-// Global scroll helper (kept for other views)
-const scrollToTop = () => {
-  scrollToTopGlobal('smooth')
-  if (mainContent.value) mainContent.value.scrollTop = 0
-}
 
 // --- Lifecycle ---
 onMounted(async () => {
@@ -298,10 +292,6 @@ onMounted(async () => {
     console.log('🔄 Restoring last route:', lastRoute)
     router.replace(lastRoute)
   }
-
-  // Expose scroll helpers (if used elsewhere)
-  ;(window as any).scrollToTop = scrollToTop
-  ;(window as any).scrollToTopMobile = scrollToTopMobile
 
   // Disable Ctrl+S (WorkoutSession handles auto-save)
   const handleKeydown = (event: KeyboardEvent) => {
@@ -338,9 +328,6 @@ onMounted(async () => {
     window.removeEventListener('beforeunload', handleBeforeUnload)
     window.removeEventListener('online', updateNetworkStatus)
     window.removeEventListener('offline', updateNetworkStatus)
-
-    delete (window as any).scrollToTop
-    delete (window as any).scrollToTopMobile
   })
 })
 
@@ -373,39 +360,5 @@ watch(
     }
   },
   { immediate: true }
-)
-
-// Global route watcher: **skip all scroll resets for WorkoutSession**
-watch(
-  () => route.path,
-  (newPath, oldPath) => {
-    if (!oldPath || newPath === oldPath) return
-
-    const goingToWorkout = newPath.startsWith('/workout/')
-    if (goingToWorkout) {
-      console.log('⏭️ Skipping global scroll reset (WorkoutSession)')
-      return
-    }
-
-    console.log('🔄 App route watcher:', { from: oldPath, to: newPath })
-
-    const mobile =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-      window.innerWidth <= 768 ||
-      'ontouchstart' in window
-
-    if (mobile) {
-      scrollToTopMobile()
-    } else {
-      scrollToTopImmediate()
-    }
-
-    // Only reset main content for non-workout routes
-    if (mainContent.value) {
-      mainContent.value.scrollTop = 0
-      console.log('✅ Main content scrollTop reset to 0')
-    }
-  },
-  { immediate: false }
 )
 </script>
