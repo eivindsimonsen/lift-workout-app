@@ -771,6 +771,12 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
 
   exercise.sets.splice(setIndex, 1)
   persistExercisesToLocal()
+
+  // Blur the "Legg til sett" button to remove focus
+  const addButton = document.querySelector('.btn-secondary');
+  if (addButton) {
+    (addButton as HTMLElement).blur();
+  }
 }
 
 const formatNumber = (num: number): string => {
