@@ -381,7 +381,7 @@
       "name": "Other Chest Exercises",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Skuldre", "Triceps"],
+      "muscleGroups": ["Bryst"],
       "variants": [
         {
           "id": "medicine-ball-chest-pass",
@@ -730,7 +730,7 @@
       "name": "Other Shoulder Exercises",
       "category": "Skuldre",
       "workoutTypes": ["push", "pull", "upper"],
-      "muscleGroups": ["Skuldre", "Triceps", "Kjerne"],
+      "muscleGroups": ["Skuldre"],
       "variants": [
         {
           "id": "upright-rows",
@@ -1028,7 +1028,7 @@
       "name": "Other Back Exercises",
       "category": "Rygg",
       "workoutTypes": ["pull", "upper", "lower", "core"],
-      "muscleGroups": ["Rygg", "Skuldre", "Bryst", "Ben", "Mage"],
+      "muscleGroups": ["Rygg"],
       "variants": [
         {
           "id": "face-pulls-back",
@@ -1521,7 +1521,7 @@
       "name": "Other Arm Exercises",
       "category": "Kjerne",
       "workoutTypes": ["full-body"],
-      "muscleGroups": ["Biceps", "Triceps", "Kjerne"],
+      "muscleGroups": ["Biceps", "Triceps"],
       "variants": [
         {
           "id": "farmer-walks",
@@ -1807,7 +1807,7 @@
       "name": "Other Leg Exercises",
       "category": "Ben",
       "workoutTypes": ["legs", "lower", "full-body"],
-      "muscleGroups": ["Ben", "Rygg", "Sete", "Kjerne"],
+      "muscleGroups": ["Ben"],
       "variants": [
         {
           "id": "stiff-legged-deadlift",
