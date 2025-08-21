@@ -384,24 +384,17 @@ const exerciseVolumes = computed(() => {
 const muscleGroupDistribution = computed(() => {
   if (!session.value) return [] as Array<{ name: string; percentage: number }>
   const groups: Record<string, number> = {}
-  // We infer muscle group from exercise name by simple keywords (fallback)
-  // Since the session doesn't carry muscle group, we approximate
-  const mapExerciseToGroup = (name: string): string => {
-    const n = name.toLowerCase()
-    if (/(benk|chest|bryst)/.test(n)) return 'Bryst'
-    if (/(roing|row|rygg|pull|nedtrekk|mark)/.test(n)) return 'Rygg'
-    if (/(kne|bøy|squat|beins|bein|leg|utfall|calf|tåhev)/.test(n)) return 'Ben'
-    if (/(skuld|press|sidehev|fronthev|delt)/.test(n)) return 'Skuldre'
-    if (/(biceps|curl)/.test(n)) return 'Biceps'
-    if (/(triceps|dip|pushdown|extension)/.test(n)) return 'Triceps'
-    if (/(arm)/.test(n)) return 'Biceps' // Fallback for generic arm exercises
-    return 'Kjerne'
-  }
+
   session.value.exercises.forEach(ex => {
-    const g = mapExerciseToGroup(ex.name)
-    const vol = ex.sets.reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0)
-    groups[g] = (groups[g] || 0) + vol
+    const exerciseData = workoutData.getExerciseById(ex.exerciseId)
+    if (exerciseData && exerciseData.muscleGroups) {
+      const vol = ex.sets.reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0)
+      exerciseData.muscleGroups.forEach(muscleGroup => {
+        groups[muscleGroup] = (groups[muscleGroup] || 0) + vol
+      })
+    }
   })
+
   const total = Object.values(groups).reduce((s, v) => s + v, 0) || 1
   return Object.entries(groups)
     .map(([name, vol]) => ({ name, percentage: Math.round((vol / total) * 100) }))
