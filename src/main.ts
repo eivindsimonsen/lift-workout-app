@@ -5,25 +5,24 @@ import router from "./router";
 import "./style.css";
 import "./sw.ts";
 import { useHybridData } from "@/composables/useHybridData";
+import { initSupabase } from "@/composables/useSupabase";
 
 async function bootstrap() {
-  const app = createApp(App);
+  // Initialize Supabase once, picking persistence based on last choice
+  const persistPref = localStorage.getItem("rememberMe") === "false" ? "session" : "local";
+  initSupabase(persistPref);
 
-  // Register router first so any composables that reference it are safe
+  const app = createApp(App);
   app.use(router);
 
-  // Initialize auth BEFORE mount to avoid refresh→login→index bounce
   try {
     const workoutData = useHybridData();
     await workoutData.initializeAuth();
   } catch (err) {
     console.error("[bootstrap] initializeAuth failed:", err);
-    // Continue; router guards still protect routes.
   }
 
-  // Ensure initial route is resolved (prevents flicker)
   await router.isReady();
-
   app.mount("#app");
 }
 

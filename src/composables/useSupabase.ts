@@ -1,7 +1,9 @@
-import { createClient, type SupabaseClientOptions } from "@supabase/supabase-js";
+import { createClient, type SupabaseClientOptions, type SupabaseClient } from "@supabase/supabase-js";
 import { ref, computed } from "vue";
 
-// Database types - Only user data tables
+/** -----------------------------
+ *  DB Types (unchanged)
+ *  ----------------------------- */
 export interface Database {
   public: {
     Tables: {
@@ -82,16 +84,15 @@ export interface Database {
   };
 }
 
-// -----------------------------
-// Global fetch timeout (10s)
-// -----------------------------
+/** -----------------------------
+ *  Global fetch timeout (10s)
+ *  ----------------------------- */
 const TIMEOUT_MS = 10_000;
 
 const fetchWithTimeout: typeof fetch = (input, init: RequestInit = {}) => {
   const controller = new AbortController();
   const userSignal = init.signal as AbortSignal | undefined;
 
-  // Link user-provided AbortSignal so either can abort
   if (userSignal) {
     if (userSignal.aborted) {
       controller.abort(userSignal.reason ?? new Error("Aborted by caller"));
@@ -101,16 +102,30 @@ const fetchWithTimeout: typeof fetch = (input, init: RequestInit = {}) => {
   }
 
   const timeoutId = setTimeout(() => controller.abort(new Error(`Timeout ${TIMEOUT_MS}ms (global fetch)`)), TIMEOUT_MS);
-
   const mergedInit: RequestInit = { ...init, signal: controller.signal };
-
   return fetch(input as any, mergedInit).finally(() => clearTimeout(timeoutId));
 };
 
-// Singleton instance
-let supabaseInstance: any = null;
+/** -----------------------------
+ *  Remember-me backed storage
+ *  ----------------------------- */
+export type AuthPersistence = "local" | "session";
 
-// Mock client for development/testing
+/** Read preference saved by the login page. Defaults to 'local'. */
+const getPersistPref = (): AuthPersistence => {
+  const v = localStorage.getItem("rememberMe");
+  return v === "false" ? "session" : "local";
+};
+
+const storageFor = (pref: AuthPersistence): Storage => (pref === "local" ? window.localStorage : window.sessionStorage);
+
+/** -----------------------------
+ *  Singletons
+ *  ----------------------------- */
+let supabaseInstance: SupabaseClient<Database> | null = null;
+let wiredVisibility = false;
+
+/** Mock client (unchanged API) */
 const createMockClient = () => ({
   __isMock: true as const,
   auth: {
@@ -123,7 +138,6 @@ const createMockClient = () => ({
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     setSession: async () => ({ data: null, error: new Error("Mock: no auth available") }),
     refreshSession: async () => ({ data: { session: null }, error: new Error("Mock: no auth available") }),
-    // Optional helpers on real client; safe no-ops here
     startAutoRefresh: () => {},
     stopAutoRefresh: () => {},
   },
@@ -135,8 +149,11 @@ const createMockClient = () => ({
   }),
 });
 
-// Visibility-based auth auto-refresh guards (prevents token refresh churn in background)
+/** Visibility-based auth auto-refresh guards */
 const wireAutoRefreshVisibilityGuards = (supabase: any) => {
+  if (wiredVisibility) return; // only wire once per app
+  wiredVisibility = true;
+
   const start = () => supabase.auth.startAutoRefresh?.();
   const stop = () => supabase.auth.stopAutoRefresh?.();
 
@@ -154,51 +171,88 @@ const wireAutoRefreshVisibilityGuards = (supabase: any) => {
   window.addEventListener("focus", start, { passive: true });
   window.addEventListener("blur", stop, { passive: true });
 
-  // Initialize based on current state
   onVisibleChange();
 };
 
+/** -----------------------------
+ *  Init / Re-init helpers
+ *  ----------------------------- */
+const createOptions = (persist: AuthPersistence): SupabaseClientOptions<"public"> => ({
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false, // SPA friendly unless you host an OAuth callback here
+    flowType: "pkce",
+    storage: storageFor(persist), // <-- key bit
+    storageKey: "lift-auth",
+  },
+  global: { fetch: fetchWithTimeout },
+});
+
+/** Create or replace the client using the chosen persistence. */
+export const initSupabase = (persist?: AuthPersistence) => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  const pref = persist ?? getPersistPref();
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn("⚠️ Missing Supabase env. Using mock client.");
+    supabaseInstance = createMockClient() as unknown as SupabaseClient<Database>;
+    return supabaseInstance;
+  }
+
+  supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, createOptions(pref));
+  wireAutoRefreshVisibilityGuards(supabaseInstance);
+  console.log(`✅ Supabase initialized (persistence=${pref})`);
+  return supabaseInstance;
+};
+
+/**
+ * OPTIONAL: switch persistence at runtime without a full reload.
+ * - Copies the current session into the new client so the user stays logged in.
+ */
+export const reinitSupabase = async (persist: AuthPersistence) => {
+  const current = supabaseInstance;
+  const previousSession = current ? (await current.auth.getSession()).data.session : null;
+
+  // stop background refresh on old client (best-effort)
+  current?.auth.stopAutoRefresh?.();
+
+  // replace client
+  const next = initSupabase(persist);
+
+  // if we had a session, move it into the new storage
+  if (previousSession) {
+    await next.auth.setSession({
+      access_token: previousSession.access_token,
+      refresh_token: previousSession.refresh_token,
+    });
+  }
+
+  return next;
+};
+
+/** -----------------------------
+ *  Main composable
+ *  ----------------------------- */
 export const useSupabase = () => {
   const isInitialized = ref(false);
   const error = ref<string | null>(null);
 
   if (!supabaseInstance) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    initSupabase(); // uses saved rememberMe pref or defaults to 'local'
+    isInitialized.value = true;
 
-    if (supabaseUrl && supabaseAnonKey) {
-      const options: SupabaseClientOptions<"public"> = {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: false, // safer for SPA unless you have an OAuth callback page here
-          flowType: "pkce",
-          storageKey: "lift-auth",
-        },
-        global: {
-          fetch: fetchWithTimeout,
-        },
-      };
-
-      supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, options);
-
-      // Attach visibility guards right after client is created
-      wireAutoRefreshVisibilityGuards(supabaseInstance);
-
-      isInitialized.value = true;
-      console.log("✅ Supabase client initialized successfully (global timeout enabled)");
-    } else {
-      console.warn("⚠️ Missing Supabase environment variables. Using mock client.");
-      console.warn("Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env.local file");
-
-      supabaseInstance = createMockClient();
+    if ((supabaseInstance as any)?.__isMock) {
       error.value = "Supabase ikke konfigurert";
       console.error("❌ Supabase not configured - using mock client");
+    } else {
+      console.log("✅ Supabase client initialized successfully (global timeout enabled)");
     }
   }
 
-  // Helper for consumers to know whether to treat errors as fatal or mock-mode noise
-  const isMockClient = computed(() => !!supabaseInstance?.__isMock || error.value === "Supabase ikke konfigurert");
+  const isMockClient = computed(() => !!(supabaseInstance as any)?.__isMock || error.value === "Supabase ikke konfigurert");
 
   const getAuthStatus = async () => {
     if (isMockClient.value) {
@@ -208,7 +262,7 @@ export const useSupabase = () => {
       const {
         data: { session },
         error: sessionError,
-      } = await supabaseInstance.auth.getSession();
+      } = await supabaseInstance!.auth.getSession();
       return {
         isAuthenticated: !!session?.user,
         user: session?.user || null,
@@ -224,10 +278,12 @@ export const useSupabase = () => {
   };
 
   return {
-    supabase: supabaseInstance,
+    supabase: supabaseInstance!,
     isInitialized,
     error,
     isMockClient,
     getAuthStatus,
+    /** expose reinit for runtime switching (optional) */
+    reinitSupabase,
   };
 };
