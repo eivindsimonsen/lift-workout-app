@@ -42,10 +42,6 @@
           >
             {{ getWorkoutTypeName(session?.workoutType || '') }}
           </span>
-          
-
-          
-       
 
           <!-- Abandon workout button (desktop only) -->
           <button 
@@ -88,53 +84,53 @@
         </div>
       </div>
 
-      <!-- Remove Local changes indicator -->
-      <!-- Remove Manual save button -->
+      <!-- Exercises -->
+      <div v-if="session" class="mt-8">
+        <div 
+          v-for="(exercise, exerciseIndex) in session.exercises" 
+          :key="exercise.exerciseId"
+          class="mb-10 last:mb-0"
+        >
+          <!-- Exercise Separator -->
+          <div v-if="exerciseIndex > 0" class="mb-8 flex items-center">
+            <div class="flex-1 h-px bg-dark-600"></div>
+            <div class="mx-4 px-3 py-1 bg-dark-700 rounded-full border border-dark-600">
+              <span class="text-xs font-medium text-dark-400">Øvelse {{ exerciseIndex + 1 }}</span>
+            </div>
+            <div class="flex-1 h-px bg-dark-600"></div>
+          </div>
 
-             <!-- Exercises -->
-       <div v-if="session" class="mt-8">
-         <div 
-           v-for="(exercise, exerciseIndex) in session.exercises" 
-           :key="exercise.exerciseId"
-           class="mb-10 last:mb-0"
-         >
-           <!-- Exercise Separator -->
-           <div v-if="exerciseIndex > 0" class="mb-8 flex items-center">
-             <div class="flex-1 h-px bg-dark-600"></div>
-             <div class="mx-4 px-3 py-1 bg-dark-700 rounded-full border border-dark-600">
-               <span class="text-xs font-medium text-dark-400">Øvelse {{ exerciseIndex + 1 }}</span>
-             </div>
-             <div class="flex-1 h-px bg-dark-600"></div>
-           </div>
-                     <!-- Exercise Header -->
-           <div class="flex items-start justify-between mb-6">
-             <!-- Left Column: Exercise Info -->
-             <div class="flex-1 min-w-0">
-                <!-- Muscle Groups - moved above exercise title -->
-                <div v-if="getExerciseMuscleGroups(exercise.exerciseId)" class="flex flex-wrap gap-1 mb-2">
-                  <span 
-                    v-for="muscleGroup in getExerciseMuscleGroups(exercise.exerciseId)" 
-                    :key="muscleGroup"
-                    class="inline-block px-2 py-1 text-xs font-medium rounded-full"
-                    :style="{
-                      backgroundColor: getMuscleGroupColor(muscleGroup) + '20',
-                      color: getMuscleGroupColor(muscleGroup)
-                    }"
-                  >
-                    {{ muscleGroup }}
-                  </span>
-                </div>
-                
-                <h3 class="text-xl font-bold text-white mb-2">{{ exercise.name }}</h3>
-                
-                <!-- Last Performance - moved below exercise title -->
-                <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-2 text-sm text-dark-300">
-                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <span class="whitespace-nowrap overflow-hidden text-ellipsis">Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
-                </div>
+          <!-- Exercise Header -->
+          <div class="flex items-start justify-between mb-6">
+            <!-- Left Column: Exercise Info -->
+            <div class="flex-1 min-w-0">
+              <!-- Muscle Groups -->
+              <div v-if="getExerciseMuscleGroups(exercise.exerciseId)" class="flex flex-wrap gap-1 mb-2">
+                <span 
+                  v-for="muscleGroup in getExerciseMuscleGroups(exercise.exerciseId)" 
+                  :key="muscleGroup"
+                  class="inline-block px-2 py-1 text-xs font-medium rounded-full"
+                  :style="{
+                    backgroundColor: getMuscleGroupColor(muscleGroup) + '20',
+                    color: getMuscleGroupColor(muscleGroup)
+                  }"
+                >
+                  {{ muscleGroup }}
+                </span>
               </div>
+              
+              <h3 class="text-xl font-bold text-white mb-2">{{ exercise.name }}</h3>
+              
+              <!-- Last Performance -->
+              <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-2 text-sm text-dark-300">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span class="whitespace-nowrap overflow-hidden text-ellipsis">
+                  Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}
+                </span>
+              </div>
+            </div>
             
             <!-- Right Column: Actions -->
             <div class="flex items-center gap-3 ml-4">
@@ -152,71 +148,79 @@
 
           <!-- Sets -->
           <div class="bg-dark-800/50 border border-dark-700 rounded-xl overflow-hidden">
-            <div 
-              v-for="(set, setIndex) in exercise.sets" 
-              :key="set.id"
-              class="py-5 px-6 transition-all duration-200"
-              :class="{ 
-                'bg-primary-500/5 border-l-4 border-l-primary-500': set.isCompleted,
-                'border-b border-dark-600': setIndex < exercise.sets.length - 1
-              }"
+            <!-- Animate add/remove of sets -->
+            <TransitionGroup
+              name="set"
+              tag="div"
+              enter-active-class="transition duration-200 ease-out"
+              leave-active-class="transition duration-200 ease-in"
             >
-              <div class="flex items-center justify-between">
-                <button 
-                  @click="removeSet(exerciseIndex, setIndex)"
-                  class="text-dark-400 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
-                  title="Slett sett"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-                <span class="text-sm font-semibold text-white bg-dark-700 px-3 py-1.5 rounded-full">Sett {{ setIndex + 1 }}</span>
-              </div>
-
-              <div class="grid grid-cols-2 gap-6">
-                <div>
-                  <label class="block text-sm font-medium text-dark-300 mb-3">Reps</label>
-                  <input
-                    :value="set.reps === 0 ? '' : set.reps"
-                    type="number"
-                    inputmode="numeric"
-                    min="0"
-                    required
-                    class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
-                    :placeholder="getLastPerformance(exercise.exerciseId)?.reps?.toString() || '0'"
-                    @input="(event) => handleRepsInput(event, exerciseIndex, setIndex)"
-                    @blur="(event) => handleRepsBlur(event, exerciseIndex, setIndex)"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-dark-300 mb-3">Vekt (kg)</label>
-                  <input
-                    :value="set.weight === 0 ? '' : set.weight"
-                    type="number"
-                    inputmode="decimal"
-                    min="0"
-                    step="0.5"
-                    required
-                    class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
-                    :placeholder="getLastPerformance(exercise.exerciseId)?.weight?.toString() || '0'"
-                    @input="(event) => handleWeightInput(event, exerciseIndex, setIndex)"
-                    @blur="(event) => handleWeightBlur(event, exerciseIndex, setIndex)"
-                  />
-                </div>
-              </div>
-
-              <!-- Volume Display -->
-              <div v-if="set.weight && set.reps" class="mt-4 pt-4 border-t border-dark-600">
+              <div 
+                v-for="(set, setIndex) in exercise.sets" 
+                :key="set.id"
+                class="py-5 px-6 transition-all duration-200"
+                :class="{ 
+                  'bg-primary-500/5 border-l-4 border-l-primary-500': set.isCompleted,
+                  'border-b border-dark-600': setIndex < exercise.sets.length - 1
+                }"
+              >
                 <div class="flex items-center justify-between">
-                  <span class="text-dark-300 font-medium text-sm">Volum:</span>
-                  <span class="text-primary-400 font-bold text-base">
-                    {{ set.weight * set.reps }} kg
-                  </span>
+                  <button 
+                    @click="removeSet(exerciseIndex, setIndex)"
+                    class="text-dark-400 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
+                    title="Slett sett"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <span class="text-sm font-semibold text-white bg-dark-700 px-3 py-1.5 rounded-full">Sett {{ setIndex + 1 }}</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                  <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-3">Reps</label>
+                    <input
+                      :value="set.reps === 0 ? '' : set.reps"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      required
+                      class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
+                      :placeholder="getLastPerformance(exercise.exerciseId)?.reps?.toString() || '0'"
+                      @input="(event) => handleRepsInput(event, exerciseIndex, setIndex)"
+                      @blur="(event) => handleRepsBlur(event, exerciseIndex, setIndex)"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-3">Vekt (kg)</label>
+                    <input
+                      :value="set.weight === 0 ? '' : set.weight"
+                      type="number"
+                      inputmode="decimal"
+                      min="0"
+                      step="0.5"
+                      required
+                      class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
+                      :placeholder="getLastPerformance(exercise.exerciseId)?.weight?.toString() || '0'"
+                      @input="(event) => handleWeightInput(event, exerciseIndex, setIndex)"
+                      @blur="(event) => handleWeightBlur(event, exerciseIndex, setIndex)"
+                    />
+                  </div>
+                </div>
+
+                <!-- Volume Display -->
+                <div v-if="set.weight && set.reps" class="mt-4 pt-4 border-t border-dark-600">
+                  <div class="flex items-center justify-between">
+                    <span class="text-dark-300 font-medium text-sm">Volum:</span>
+                    <span class="text-primary-400 font-bold text-base">
+                      {{ set.weight * set.reps }} kg
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-            
+            </TransitionGroup>
+
             <!-- Add Set Button -->
             <div class="p-5 border-t border-dark-600">
               <button 
@@ -335,46 +339,46 @@
         </div>
       </div>
 
-       <!-- Summary -->
-       <div class="mt-8">
-         <div class="card">
-           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div class="text-center">
-               <p class="text-2xl font-bold text-primary-500">{{ completedSets }} av {{ totalSets }}</p>
-               <p class="text-sm text-dark-300">Sett gjennomført</p>
-             </div>
-             <div class="text-center">
-               <p class="text-2xl font-bold text-primary-500">{{ formatNumber(estimatedVolume) }}</p>
-               <p class="text-sm text-dark-300">Estimert volum (kg)</p>
-             </div>
-             <div class="text-center">
-               <p class="text-2xl font-bold text-primary-500">{{ sessionDuration }}</p>
-               <p class="text-sm text-dark-300">Varighet</p>
-             </div>
-           </div>
-         </div>
-       </div>
-       
-                 <!-- Save and Complete Buttons -->
-          <div class="mt-6 space-y-3">
-            <!-- Complete Button -->
-         <button 
-           @click="handleCompleteWorkout"
-           class="w-full btn-primary py-3 flex items-center justify-center gap-2"
-           :disabled="completedSets === 0"
-         >
-           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-           </svg>
-           Fullfør Økt
-         </button>
-         <p v-if="completedSets === 0" class="text-xs text-dark-400 text-center mt-2">
-           Du må fullføre minst ett sett for å kunne fullføre økten
-         </p>
-       </div>
+      <!-- Summary -->
+      <div class="mt-8">
+        <div class="card">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="text-center">
+              <p class="text-2xl font-bold text-primary-500">{{ completedSets }} av {{ totalSets }}</p>
+              <p class="text-sm text-dark-300">Sett gjennomført</p>
+            </div>
+            <div class="text-center">
+              <p class="text-2xl font-bold text-primary-500">{{ formatNumber(estimatedVolume) }}</p>
+              <p class="text-sm text-dark-300">Estimert volum (kg)</p>
+            </div>
+            <div class="text-center">
+              <p class="text-2xl font-bold text-primary-500">{{ sessionDuration }}</p>
+              <p class="text-sm text-dark-300">Varighet</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Save and Complete Buttons -->
+      <div class="mt-6 space-y-3">
+        <button 
+          @click="handleCompleteWorkout"
+          class="w-full btn-primary py-3 flex items-center justify-center gap-2"
+          :disabled="completedSets === 0"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Fullfør Økt
+        </button>
+        <p v-if="completedSets === 0" class="text-xs text-dark-400 text-center mt-2">
+          Du må fullføre minst ett sett for å kunne fullføre økten
+        </p>
+      </div>
     </div>
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref, computed, onMounted, type Ref, onUnmounted, watch } from 'vue'
@@ -757,11 +761,6 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   if (!session.value) return
 
   const exercise = session.value.exercises[exerciseIndex]
-  const confirmMessage = exercise.sets.length <= 1
-    ? `Dette er det siste settet for "${exercise.name}". Øvelsen vil bli fjernet fra økten. Er du sikker?`
-    : `Er du sikker på at du vil fjerne sett ${setIndex + 1} fra "${exercise.name}"?`
-
-  if (!confirm(confirmMessage)) return
 
   if (exercise.sets.length <= 1) {
     session.value.exercises.splice(exerciseIndex, 1)
@@ -771,12 +770,6 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
 
   exercise.sets.splice(setIndex, 1)
   persistExercisesToLocal()
-
-  // Blur the "Legg til sett" button to remove focus
-  const addButton = document.querySelector('.btn-secondary');
-  if (addButton) {
-    (addButton as HTMLElement).blur();
-  }
 }
 
 const formatNumber = (num: number): string => {
@@ -1232,4 +1225,9 @@ watch(() => route.params.id, async (newId, oldId) => {
   }
 })
 </script>
+
+<style scoped>
+.set-enter-from, .set-leave-to { opacity: 0; }
+.set-leave-from, .set-enter-to { opacity: 1; }
+</style>
 

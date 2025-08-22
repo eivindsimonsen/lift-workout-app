@@ -33,6 +33,7 @@
                 required
                 class="input-field w-full"
                 placeholder="Skriv inn ditt navn"
+                autocomplete="name"
               />
             </div>
 
@@ -47,6 +48,8 @@
                 required
                 class="input-field w-full"
                 placeholder="Skriv inn din e-post"
+                autocomplete="email"
+                inputmode="email"
               />
             </div>
 
@@ -63,11 +66,13 @@
                   class="input-field w-full pr-10"
                   :placeholder="isRegistering ? 'Minst 6 tegn' : 'Skriv inn passord'"
                   minlength="6"
+                  autocomplete="current-password"
                 />
                 <button
                   type="button"
                   @click="showPassword = !showPassword"
                   class="absolute inset-y-0 right-0 pr-3 flex items-center text-dark-400 hover:text-dark-300 transition-colors"
+                  aria-label="Vis/skjul passord"
                 >
                   <svg v-if="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
@@ -93,11 +98,13 @@
                   class="input-field w-full pr-10"
                   placeholder="Skriv inn passord igjen"
                   minlength="6"
+                  autocomplete="new-password"
                 />
                 <button
                   type="button"
                   @click="showConfirmPassword = !showConfirmPassword"
                   class="absolute inset-y-0 right-0 pr-3 flex items-center text-dark-400 hover:text-dark-300 transition-colors"
+                  aria-label="Vis/skjul bekreftelsespassord"
                 >
                   <svg v-if="showConfirmPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
@@ -119,8 +126,8 @@
                 />
                 <span class="ml-2 text-sm text-dark-300 cursor-pointer">Husk meg</span>
               </label>
-              
-              <button 
+
+              <button
                 type="button"
                 @click="forgotPassword"
                 class="text-sm text-primary-500 hover:text-primary-400 transition-colors"
@@ -136,7 +143,7 @@
             <button
               type="submit"
               class="btn-primary w-full"
-              :disabled="isLoading"
+              :disabled="isLoading || !isFormValid"
             >
               <span v-if="isLoading" class="flex items-center justify-center">
                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -152,7 +159,7 @@
           <div class="mt-6 text-center">
             <p class="text-dark-300 text-sm">
               {{ isRegistering ? 'Har du allerede en konto?' : 'Har du ikke en konto?' }}
-              <button 
+              <button
                 @click="toggleMode"
                 class="text-primary-500 hover:text-primary-400 transition-colors font-medium"
               >
@@ -164,9 +171,9 @@
 
         <div class="mt-8 text-center">
           <p class="text-xs text-dark-400">
-            Ved å {{ isRegistering ? 'registrere deg' : 'logge inn' }} godtar du våre 
-            <a href="#" class="text-primary-500 hover:text-primary-400">vilkår</a> 
-            og 
+            Ved å {{ isRegistering ? 'registrere deg' : 'logge inn' }} godtar du våre
+            <a href="#" class="text-primary-500 hover:text-primary-400">vilkår</a>
+            og
             <a href="#" class="text-primary-500 hover:text-primary-400">personvernregler</a>
           </p>
         </div>
@@ -179,6 +186,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSupabase } from '@/composables/useSupabase'
+import { reinitSupabase } from '@/composables/useSupabase'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useSignupProtection } from '@/composables/useSignupProtection'
 
@@ -201,22 +209,16 @@ const isRegistering = ref(false)
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 
-// Check if user is already authenticated and redirect
+// Prefill remembered email + rememberMe (no password)
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (session?.user) {
-    // User is already logged in, redirect to økter
     router.push('/')
   } else {
-    // Check if we have remembered credentials
-    const rememberedEmail = localStorage.getItem('rememberedEmail')
-    const rememberedPassword = localStorage.getItem('rememberedPassword')
-    const rememberedMe = localStorage.getItem('rememberMe')
-    
-    if (rememberedEmail && rememberedPassword && rememberedMe === 'true') {
-      // Auto-fill the form with remembered credentials
-      email.value = rememberedEmail
-      password.value = rememberedPassword
+    const savedEmail = localStorage.getItem('rememberedEmail')
+    const savedPref = localStorage.getItem('rememberMe')
+    if (savedEmail && savedPref === 'true') {
+      email.value = savedEmail
       rememberMe.value = true
     }
   }
@@ -225,22 +227,21 @@ onMounted(async () => {
 // Computed
 const isFormValid = computed(() => {
   if (isRegistering.value) {
-    return name.value.trim() && 
-           email.value.trim() && 
-           password.value.length >= 6 && 
-           password.value === confirmPassword.value
+    return !!(name.value.trim() &&
+      email.value.trim() &&
+      password.value.length >= 6 &&
+      password.value === confirmPassword.value)
   }
-  return email.value.trim() && password.value.length >= 6
+  return !!(email.value.trim() && password.value.length >= 6)
 })
 
 // Methods
 const clearForm = () => {
   name.value = ''
-  // Don't clear email and password if "Remember me" is active
   if (!rememberMe.value) {
     email.value = ''
-    password.value = ''
   }
+  password.value = ''
   confirmPassword.value = ''
   errorMessage.value = ''
   showPassword.value = false
@@ -254,16 +255,13 @@ const toggleMode = () => {
 
 const handleSubmit = async () => {
   if (!isFormValid.value) {
-    errorMessage.value = isRegistering.value 
+    errorMessage.value = isRegistering.value
       ? 'Vennligst fyll ut alle felter og sørg for at passordene matcher'
       : 'Vennligst fyll ut alle felter'
     return
   }
 
-  // Prevent multiple submissions
-  if (isLoading.value) {
-    return
-  }
+  if (isLoading.value) return
 
   isLoading.value = true
   errorMessage.value = ''
@@ -283,22 +281,18 @@ const handleSubmit = async () => {
 }
 
 const handleRegister = async () => {
-  // Check if user recently attempted to sign up
   if (isRecentlySignedUp(email.value)) {
     errorMessage.value = 'Du har nylig forsøkt å registrere deg. Vennligst vent litt før du prøver igjen.'
     return
   }
 
-  // Mark this signup attempt
   markSignupAttempt(email.value)
 
   const { data, error } = await supabase.auth.signUp({
     email: email.value,
     password: password.value,
     options: {
-      data: {
-        name: name.value
-      }
+      data: { name: name.value }
     }
   })
 
@@ -308,18 +302,10 @@ const handleRegister = async () => {
   }
 
   if (data.user) {
-
-    // Show success message and switch to login mode
     showSuccess('Registrering vellykket! Sjekk din e-post for bekreftelse.')
-    
-    // Clear form and switch to login mode
     clearForm()
     isRegistering.value = false
-    
-    // Keep user on login page
-    // router.push('/') - removed this line
   } else {
-    // If signup failed, clear the signup attempt marker
     clearSignupAttempt(email.value)
   }
 }
@@ -337,20 +323,18 @@ const handleLogin = async () => {
     }
 
     if (data.user) {
-      // If "Remember me" is checked, save credentials to localStorage
+      // Remember preference + email (optional). Never store password.
       if (rememberMe.value) {
-        localStorage.setItem('rememberedEmail', email.value)
-        localStorage.setItem('rememberedPassword', password.value)
         localStorage.setItem('rememberMe', 'true')
+        localStorage.setItem('rememberedEmail', email.value)
       } else {
-        // Only clear credentials if user explicitly unchecks "Remember me"
+        localStorage.setItem('rememberMe', 'false')
         localStorage.removeItem('rememberedEmail')
-        localStorage.removeItem('rememberedPassword')
-        localStorage.removeItem('rememberMe')
       }
 
-      // Keep loading state active during redirect to prevent double header
-      // The loading state will be cleared when the component unmounts
+      // OPTIONAL: immediately apply chosen persistence for this session
+      await reinitSupabase(rememberMe.value ? 'local' : 'session')
+
       // Redirect to økter
       router.push('/')
     }
@@ -365,16 +349,13 @@ const forgotPassword = async () => {
     errorMessage.value = 'Vennligst skriv inn din e-post først'
     return
   }
-
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
       redirectTo: `${window.location.origin}/reset-password`
     })
-
     if (error) {
       errorMessage.value = error.message
     } else {
-      // Show success message
       errorMessage.value = ''
       showSuccess('Tilbakestillingslenke sendt til din e-post! Sjekk innboksen din og følg lenken for å tilbakestille passordet.')
     }
@@ -384,11 +365,9 @@ const forgotPassword = async () => {
   }
 }
 
-// Function to clear remembered credentials (can be called from profile or settings)
+// Optional helper to clear email preference somewhere in settings
 const clearRememberedCredentials = () => {
   localStorage.removeItem('rememberedEmail')
-  localStorage.removeItem('rememberedPassword')
   localStorage.removeItem('rememberMe')
-  
 }
-</script> 
+</script>

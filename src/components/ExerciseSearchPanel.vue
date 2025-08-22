@@ -242,10 +242,10 @@ watch(() => props.isOpen, async (open) => {
     }
     
     // Focus the search input after the slide-over is fully rendered
-    await nextTick()
+    /* await nextTick()
     if (searchInput.value) {
       searchInput.value.focus()
-    }
+    } */
   }
 })
 </script>
