@@ -186,12 +186,12 @@ const createSupabaseData = () => {
   };
 
   // ---- loadData: cache first, sync only if explicitly forced OR throttled allows it ----
-  const loadData = async (retryCount = 0, forceRefresh = false) => {
+  const loadData = async (retryCount = 0, forceRefresh = false, showLoading = false) => {
     void retryCount; // unused now
     if (!currentUser.value) return;
     if (isLoading.value) return;
 
-    const shouldShowLoading = !!forceRefresh; // spinner only on explicit force
+    const shouldShowLoading = showLoading && !!forceRefresh; // spinner only on explicit force
     if (shouldShowLoading) isLoading.value = true;
 
     try {
@@ -744,6 +744,9 @@ const createSupabaseData = () => {
         workoutType: data.workout_type,
         exercises: data.exercises,
       });
+
+      // Refresh UI data immediately after adding a template
+      await loadData(0, true, false);
     } catch (e) {
       console.error("Error in addTemplate:", e);
       showError("Kunne ikke opprette økt. Prøv igjen.");
@@ -771,6 +774,10 @@ const createSupabaseData = () => {
 
     const idx = templates.value.findIndex((t) => t.id === id);
     if (idx !== -1) templates.value[idx] = { ...templates.value[idx], ...updates };
+
+    // Refresh UI data immediately after updating a template
+    await loadData(0, true, false);
+
     await refreshPendingChangesCount();
   };
 
@@ -782,6 +789,7 @@ const createSupabaseData = () => {
       return;
     }
     templates.value = templates.value.filter((t) => t.id !== id);
+    await loadData(0, true, false);
     await refreshPendingChangesCount();
   };
 
