@@ -178,6 +178,7 @@
         <button 
           type="submit"
           class="flex-1 btn-primary"
+          :disabled="isSaving"
         >
           {{ isEditing ? 'Oppdater Økt' : 'Opprett Økt' }}
         </button>
@@ -374,7 +375,10 @@ const deleteTemplate = async () => {
   }
 }
 
+const isSaving = ref(false)
+
 const saveTemplate = async () => {
+  isSaving.value = true
   // Update exercise names based on selected exercise IDs
   const exercisesWithNames = templateForm.value.exercises.map(exercise => {
     const exerciseData = workoutData.getExerciseById(exercise.exerciseId)
@@ -411,6 +415,8 @@ const saveTemplate = async () => {
   } catch (error) {
     console.error('Error saving template:', error)
     alert('Kunne ikke lagre økt. Prøv igjen.')
+  } finally {
+    isSaving.value = false
   }
 }
 
