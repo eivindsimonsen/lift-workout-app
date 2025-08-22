@@ -1,0 +1,5 @@
+---
+description: For this project, always think PWA mobile app first. The app must be suitable for all the most used browsers
+globs: ["**/*"]
+alwaysApply: true
+---
