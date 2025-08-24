@@ -135,8 +135,6 @@
             <!-- Right Column: Actions -->
             <div class="flex items-center gap-3 ml-4">
               <button 
-                @mousedown.prevent
-                @touchstart.prevent
                 @click="removeExercise(exerciseIndex)"
                 class="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
                 title="Slett øvelse"
@@ -807,6 +805,12 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   if (document.activeElement) {
     (document.activeElement as HTMLElement).blur();
   }
+
+  document.addEventListener('touchend', () => {
+  if (document.activeElement) {
+    (document.activeElement as HTMLElement).blur();
+  }
+});
 }
 
 const formatNumber = (num: number): string => {
