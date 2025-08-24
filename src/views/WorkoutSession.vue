@@ -135,6 +135,8 @@
             <!-- Right Column: Actions -->
             <div class="flex items-center gap-3 ml-4">
               <button 
+                @mousedown.prevent
+                @touchstart.prevent
                 @click="removeExercise(exerciseIndex)"
                 class="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
                 title="Slett øvelse"
@@ -166,6 +168,8 @@
               >
                 <div class="flex items-center justify-between">
                   <button 
+                    @mousedown.prevent
+                    @touchstart.prevent
                     @click="removeSet(exerciseIndex, setIndex)"
                     class="text-dark-400 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
                     title="Slett sett"
@@ -182,12 +186,17 @@
                     <label class="block text-sm font-medium text-dark-300 mb-3">Reps</label>
                     <input
                       :value="set.reps === 0 ? '' : set.reps"
-                      type="number"
+                      type="text"
                       inputmode="numeric"
+                      pattern="[0-9]*"
                       min="0"
                       required
                       class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
                       :placeholder="getLastPerformance(exercise.exerciseId)?.reps?.toString() || '0'"
+                      :data-exercise-index="exerciseIndex"
+                      :data-set-index="setIndex"
+                      :ref="el => registerInputRef(exerciseIndex, setIndex, 'reps', el as HTMLInputElement)"
+                      @focus="markFocus"
                       @input="(event) => handleRepsInput(event, exerciseIndex, setIndex)"
                       @blur="(event) => handleRepsBlur(event, exerciseIndex, setIndex)"
                     />
@@ -196,13 +205,18 @@
                     <label class="block text-sm font-medium text-dark-300 mb-3">Vekt (kg)</label>
                     <input
                       :value="set.weight === 0 ? '' : set.weight"
-                      type="number"
+                      type="text"
                       inputmode="decimal"
+                      pattern="^[0-9]+([\\.,][0-9]{1,2})?$"
                       min="0"
                       step="0.5"
                       required
                       class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
                       :placeholder="getLastPerformance(exercise.exerciseId)?.weight?.toString() || '0'"
+                      :data-exercise-index="exerciseIndex"
+                      :data-set-index="setIndex"
+                      :ref="el => registerInputRef(exerciseIndex, setIndex, 'weight', el as HTMLInputElement)"
+                      @focus="markFocus"
                       @input="(event) => handleWeightInput(event, exerciseIndex, setIndex)"
                       @blur="(event) => handleWeightBlur(event, exerciseIndex, setIndex)"
                     />
@@ -380,8 +394,9 @@
 </template>
 
 
+
 <script setup lang="ts">
-import { ref, computed, onMounted, type Ref, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, type Ref, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useErrorHandler } from '@/composables/useErrorHandler'
@@ -477,6 +492,32 @@ const syncPendingChanges = async () => {
   }
 }
 
+// === Input focus helpers ===
+type Field = 'reps' | 'weight'
+const inputRefs = new Map<string, HTMLInputElement>()
+const keyOf = (ex: number, set: number, field: Field) => `${ex}-${set}-${field}`
+
+function registerInputRef(ex: number, set: number, field: Field, el?: HTMLInputElement) {
+  const k = keyOf(ex, set, field)
+  if (el) inputRefs.set(k, el)
+  else inputRefs.delete(k) // cleanup on unmount
+}
+
+let justFocusedAt = 0
+function markFocus() { justFocusedAt = Date.now() }
+
+function focusAfterTick(ex: number, set: number, field: Field = 'reps') {
+  nextTick(() => {
+    const delay = Math.max(0, 150 - (Date.now() - justFocusedAt))
+    setTimeout(() => {
+      inputRefs.get(keyOf(ex, set, field))?.focus({ preventScroll: true })
+    }, delay)
+  })
+}
+
+// === Utilities for parsing numbers (locale friendly) ===
+const toNumber = (v: string) => parseFloat(v.replace(',', '.')) || 0
+
 // Methods
 const getWorkoutTypeName = (typeId: string): string => {
   return workoutData.getWorkoutType(typeId)
@@ -494,7 +535,7 @@ const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number
   if (!session.value) return
   const target = event.target as HTMLInputElement
   const value = target.value
-  const weight = value === '' ? 0 : parseFloat(value) || 0
+  const weight = value === '' ? 0 : toNumber(value)
   session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
   updateSetCompletion(exerciseIndex, setIndex)
   persistExercisesToLocal()
@@ -504,7 +545,7 @@ const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number)
   if (!session.value) return
   const target = event.target as HTMLInputElement
   const value = target.value
-  const weight = value === '' ? 0 : parseFloat(value) || 0
+  const weight = value === '' ? 0 : toNumber(value)
   session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
   updateSetCompletion(exerciseIndex, setIndex)
   persistExercisesToLocal()
@@ -551,7 +592,7 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   hasUnsavedChanges.value = true
 }
 
-// === Local persistence helpers (reworked) ===
+// === Local persistence helpers ===
 const getLocalStorageKey = (sessionId: string) => `workout-session-${sessionId}`
 
 const isLocalStorageAvailable = () => {
@@ -763,13 +804,28 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   const exercise = session.value.exercises[exerciseIndex]
 
   if (exercise.sets.length <= 1) {
+    // Removing the only set removes the whole exercise; no focus restore
     session.value.exercises.splice(exerciseIndex, 1)
     persistExercisesToLocal()
     return
   }
 
+  // Decide where to focus next (same exercise)
+  let nextEx = exerciseIndex
+  let nextSet = setIndex < exercise.sets.length - 1 ? setIndex : setIndex - 1
+
+  // Remove the set
   exercise.sets.splice(setIndex, 1)
   persistExercisesToLocal()
+
+  // Restore focus to the next/previous set if it still exists
+  /* if (nextSet >= 0 && session.value.exercises[nextEx]?.sets[nextSet]) {
+    focusAfterTick(nextEx, nextSet, 'reps') // or 'weight' if you prefer
+  } */
+
+  if (document.activeElement) {
+    (document.activeElement as HTMLElement).blur();
+  }
 }
 
 const formatNumber = (num: number): string => {
@@ -1225,6 +1281,7 @@ watch(() => route.params.id, async (newId, oldId) => {
   }
 })
 </script>
+
 
 <style scoped>
 .set-enter-from, .set-leave-to { opacity: 0; }
