@@ -237,7 +237,7 @@
             <div class="p-5 border-t border-dark-600">
               <button
                 @click="addSet(exerciseIndex)"
-                @mousedown.prevent
+                tabindex="-1"
                 class="w-full btn-secondary text-sm py-4 border-dashed border-2 border-dark-600 hover:border-primary-500 hover:bg-primary-500/10 transition-all duration-200"
               >
                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
