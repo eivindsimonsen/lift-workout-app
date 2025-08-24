@@ -469,7 +469,38 @@ const availableExercises = computed(() => {
 })
 
 // Pending changes functionality
-const pendingChangesCount = ref(0)
+const pendingChangesCount = ref(0);
+
+// Singleton hidden focus target in <body>
+let _focusSink: HTMLElement | null = null;
+function getFocusSink(): HTMLElement {
+  if (_focusSink) return _focusSink;
+  const el = document.createElement('span');
+  el.setAttribute('aria-hidden', 'true');
+  el.style.position = 'fixed';
+  el.style.inset = '0';
+  el.style.width = '0';
+  el.style.height = '0';
+  el.style.opacity = '0';
+  el.style.pointerEvents = 'none';
+  el.tabIndex = -1;                 // programmatically focusable, not tabbable
+  document.body.appendChild(el);
+  _focusSink = el;
+  return el;
+}
+
+// Call after DOM updates to absorb any fallback focus
+function absorbFocusAfterDomUpdate() {
+  nextTick(() => {
+    // two rAFs ensures we're after TransitionGroup's leave frame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        getFocusSink().focus({ preventScroll: true });
+      });
+    });
+  });
+}
+
 
 const updatePendingChangesCount = async () => {
   pendingChangesCount.value = 0
@@ -787,21 +818,24 @@ const removeExercise = (exerciseIndex: number) => {
 }
 
 const removeSet = (exerciseIndex: number, setIndex: number) => {
-  if (!session.value) return
+  if (!session.value) return;
+  const ex = session.value.exercises[exerciseIndex];
 
-  const exercise = session.value.exercises[exerciseIndex]
-
-  if (exercise.sets.length <= 1) {
-    // Removing the only set removes the whole exercise; no focus restore
-    session.value.exercises.splice(exerciseIndex, 1)
-    persistExercisesToLocal()
-    return
+  if (ex.sets.length <= 1) {
+    // Removing the only set → remove the whole exercise
+    session.value.exercises.splice(exerciseIndex, 1);
+    persistExercisesToLocal();
+    absorbFocusAfterDomUpdate();   // ⬅️ prevent jumping to "Legg til sett"
+    return;
   }
 
-  // Remove the set
-  exercise.sets.splice(setIndex, 1)
-  persistExercisesToLocal()
-}
+  // Remove just this set
+  ex.sets.splice(setIndex, 1);
+  persistExercisesToLocal();
+
+  absorbFocusAfterDomUpdate();     // ⬅️ prevent jumping to the next ❌
+};
+
 
 const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('no-NO').format(Math.round(num))
@@ -1261,27 +1295,5 @@ watch(() => route.params.id, async (newId, oldId) => {
 <style scoped>
 .set-enter-from, .set-leave-to { opacity: 0; }
 .set-leave-from, .set-enter-to { opacity: 1; }
-
-/* globals.css or base.css */
-
-/* Hide default focus ring when focus is programmatic/auto-moved */
-button:focus {
-  outline: none;
-}
-
-/* Show focus styles only when the user navigates with keyboard (Tab) */
-button:focus-visible {
-  outline: 2px solid var(--primary, #22d3ee);
-  outline-offset: 2px;
-}
-
-/* Optional: avoid sticky :hover on touch devices */
-@media (hover: none) {
-  .btn-secondary:hover,
-  .btn-primary:hover {
-    background: inherit;
-  }
-}
-
 </style>
 
