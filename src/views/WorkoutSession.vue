@@ -168,8 +168,6 @@
               >
                 <div class="flex items-center justify-between">
                   <button 
-                    @mousedown.prevent
-                    @touchstart.prevent
                     @click="removeSet(exerciseIndex, setIndex)"
                     class="text-dark-400 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
                     title="Slett sett"
@@ -237,8 +235,9 @@
 
             <!-- Add Set Button -->
             <div class="p-5 border-t border-dark-600">
-              <button 
+              <button
                 @click="addSet(exerciseIndex)"
+                @mousedown.prevent
                 class="w-full btn-secondary text-sm py-4 border-dashed border-2 border-dark-600 hover:border-primary-500 hover:bg-primary-500/10 transition-all duration-200"
               >
                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -505,15 +504,6 @@ function registerInputRef(ex: number, set: number, field: Field, el?: HTMLInputE
 
 let justFocusedAt = 0
 function markFocus() { justFocusedAt = Date.now() }
-
-function focusAfterTick(ex: number, set: number, field: Field = 'reps') {
-  nextTick(() => {
-    const delay = Math.max(0, 150 - (Date.now() - justFocusedAt))
-    setTimeout(() => {
-      inputRefs.get(keyOf(ex, set, field))?.focus({ preventScroll: true })
-    }, delay)
-  })
-}
 
 // === Utilities for parsing numbers (locale friendly) ===
 const toNumber = (v: string) => parseFloat(v.replace(',', '.')) || 0
@@ -810,22 +800,9 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
     return
   }
 
-  // Decide where to focus next (same exercise)
-  let nextEx = exerciseIndex
-  let nextSet = setIndex < exercise.sets.length - 1 ? setIndex : setIndex - 1
-
   // Remove the set
   exercise.sets.splice(setIndex, 1)
   persistExercisesToLocal()
-
-  // Restore focus to the next/previous set if it still exists
-  /* if (nextSet >= 0 && session.value.exercises[nextEx]?.sets[nextSet]) {
-    focusAfterTick(nextEx, nextSet, 'reps') // or 'weight' if you prefer
-  } */
-
-  if (document.activeElement) {
-    (document.activeElement as HTMLElement).blur();
-  }
 }
 
 const formatNumber = (num: number): string => {
