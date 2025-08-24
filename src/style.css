@@ -55,10 +55,11 @@
 
   #app {
     min-height: 100dvh; /* Use dynamic viewport height for better mobile compatibility */
-    padding-top: 0; /* Remove top padding */
+    padding-top: env(safe-area-inset-top); /* Add padding to prevent content from flowing into the top area */
     padding-bottom: 0; /* Remove bottom padding */
     /* Optionally, add a fixed padding for aesthetics */
     padding-bottom: 1rem; /* Example fixed padding */
+    background-color: inherit; /* Ensure background matches the app's background */
     padding-left: calc(var(--safe-area-inset-left) * 0.2);
     padding-right: calc(var(--safe-area-inset-right) * 0.2);
   }
