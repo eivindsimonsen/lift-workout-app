@@ -167,7 +167,7 @@
                 <div class="flex items-center justify-between">
                   <button 
                     @click="removeSet(exerciseIndex, setIndex)"
-                    class="text-dark-400 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
+                    class="text-dark-400 transition-colors p-2 rounded-lg flex items-center justify-center w-8 h-8"
                     title="Slett sett"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,9 +235,7 @@
             <div class="p-5 border-t border-dark-600">
               <button
                 @click="addSet(exerciseIndex)"
-                tabindex="-1"
-                class="w-full btn-secondary text-sm py-4 border-dashed border-2 border-dark-600 hover:border-primary-500 hover:bg-primary-500/10 transition-all duration-200"
-              >
+                class="w-full btn-secondary text-sm py-4 border-2 border-dark-600">
                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
@@ -470,37 +468,6 @@ const availableExercises = computed(() => {
 
 // Pending changes functionality
 const pendingChangesCount = ref(0);
-
-// Singleton hidden focus target in <body>
-let _focusSink: HTMLElement | null = null;
-function getFocusSink(): HTMLElement {
-  if (_focusSink) return _focusSink;
-  const el = document.createElement('span');
-  el.setAttribute('aria-hidden', 'true');
-  el.style.position = 'fixed';
-  el.style.inset = '0';
-  el.style.width = '0';
-  el.style.height = '0';
-  el.style.opacity = '0';
-  el.style.pointerEvents = 'none';
-  el.tabIndex = -1;                 // programmatically focusable, not tabbable
-  document.body.appendChild(el);
-  _focusSink = el;
-  return el;
-}
-
-// Call after DOM updates to absorb any fallback focus
-function absorbFocusAfterDomUpdate() {
-  nextTick(() => {
-    // two rAFs ensures we're after TransitionGroup's leave frame
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        getFocusSink().focus({ preventScroll: true });
-      });
-    });
-  });
-}
-
 
 const updatePendingChangesCount = async () => {
   pendingChangesCount.value = 0
@@ -818,24 +785,21 @@ const removeExercise = (exerciseIndex: number) => {
 }
 
 const removeSet = (exerciseIndex: number, setIndex: number) => {
-  if (!session.value) return;
-  const ex = session.value.exercises[exerciseIndex];
+  if (!session.value) return
 
-  if (ex.sets.length <= 1) {
-    // Removing the only set → remove the whole exercise
-    session.value.exercises.splice(exerciseIndex, 1);
-    persistExercisesToLocal();
-    absorbFocusAfterDomUpdate();   // ⬅️ prevent jumping to "Legg til sett"
-    return;
+  const exercise = session.value.exercises[exerciseIndex]
+
+  if (exercise.sets.length <= 1) {
+    // Removing the only set removes the whole exercise; no focus restore
+    session.value.exercises.splice(exerciseIndex, 1)
+    persistExercisesToLocal()
+    return
   }
 
-  // Remove just this set
-  ex.sets.splice(setIndex, 1);
-  persistExercisesToLocal();
-
-  absorbFocusAfterDomUpdate();     // ⬅️ prevent jumping to the next ❌
-};
-
+  // Remove the set
+  exercise.sets.splice(setIndex, 1)
+  persistExercisesToLocal()
+}
 
 const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('no-NO').format(Math.round(num))
