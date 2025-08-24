@@ -266,7 +266,7 @@ const searchResults = computed(() => {
         name: exercise.name,
         displayName: exercise.name,
         category: exercise.category || '',
-        isVariant: false,
+        isVariant: exercise.isVariant || false,
         // Include exercise details
         equipment: exercise.equipment,
         angle: exercise.angle,
@@ -274,25 +274,6 @@ const searchResults = computed(() => {
         position: exercise.position,
         direction: exercise.direction,
         focus: exercise.focus
-      })
-    }
-  })
-  
-  // Also search in main exercises that might not be in flattened list
-  workoutData.exercises.value?.forEach(exercise => {
-    if (seenIds.has(exercise.id)) {
-      return
-    }
-    
-    // Search in the main exercise name
-    if (exercise.name.toLowerCase().includes(q)) {
-      seenIds.add(exercise.id)
-      results.push({
-        id: exercise.id,
-        name: exercise.name,
-        displayName: exercise.name,
-        category: exercise.muscleGroups?.[0] || '',
-        isVariant: false
       })
     }
   })
