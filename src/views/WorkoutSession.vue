@@ -803,6 +803,10 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   // Remove the set
   exercise.sets.splice(setIndex, 1)
   persistExercisesToLocal()
+
+  if (document.activeElement) {
+    (document.activeElement as HTMLElement).blur();
+  }
 }
 
 const formatNumber = (num: number): string => {
