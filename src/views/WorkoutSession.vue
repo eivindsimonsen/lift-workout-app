@@ -801,16 +801,6 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   // Remove the set
   exercise.sets.splice(setIndex, 1)
   persistExercisesToLocal()
-
-  if (document.activeElement) {
-    (document.activeElement as HTMLElement).blur();
-  }
-
-  document.addEventListener('touchend', () => {
-  if (document.activeElement) {
-    (document.activeElement as HTMLElement).blur();
-  }
-});
 }
 
 const formatNumber = (num: number): string => {
@@ -1271,5 +1261,27 @@ watch(() => route.params.id, async (newId, oldId) => {
 <style scoped>
 .set-enter-from, .set-leave-to { opacity: 0; }
 .set-leave-from, .set-enter-to { opacity: 1; }
+
+/* globals.css or base.css */
+
+/* Hide default focus ring when focus is programmatic/auto-moved */
+button:focus {
+  outline: none;
+}
+
+/* Show focus styles only when the user navigates with keyboard (Tab) */
+button:focus-visible {
+  outline: 2px solid var(--primary, #22d3ee);
+  outline-offset: 2px;
+}
+
+/* Optional: avoid sticky :hover on touch devices */
+@media (hover: none) {
+  .btn-secondary:hover,
+  .btn-primary:hover {
+    background: inherit;
+  }
+}
+
 </style>
 
