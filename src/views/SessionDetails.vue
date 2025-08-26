@@ -78,9 +78,15 @@
         <div class="flex items-start justify-between">
           <div>
             <h2 class="text-2xl font-bold text-white mb-2">{{ session.templateName }}</h2>
-            <p class="text-dark-300 mb-4">
+            <p class="text-dark-300">
               {{ formatDate(session.date) }} • {{ session.duration }} minutter
             </p>
+            <p class="text-sm font-semibold text-primary-500 whitespace-nowrap tabular-nums">
+              {{ formatNumber(session.totalVolume || 0) }} kg
+            </p>
+            <p class="text-[10px] text-dark-300 leading-tight">Total volum</p>
+          </div>
+          <div class="text-right">
             <span 
               class="px-3 py-1 rounded-full text-sm font-medium"
               :style="{ 
@@ -91,35 +97,39 @@
               {{ getWorkoutTypeName(session.workoutType) }}
             </span>
           </div>
-          <div class="text-right">
-            <p class="text-sm font-semibold text-primary-500 whitespace-nowrap tabular-nums">
-              {{ formatNumber(session.totalVolume || 0) }} kg
-            </p>
-            <p class="text-[10px] text-dark-300 leading-tight">Total volum</p>
-          </div>
         </div>
       </div>
       
       <!-- Metrics Grid (ordered: Øvelser, Sett, Reps, Varighet, Volum/min) -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-dark-700 rounded-lg p-4 text-center">
-          <p class="text-lg font-bold text-primary-500 tabular-nums">{{ session.exercises.length }}</p>
+          <p class="text-lg font-bold text-primary-500 tabular-nums">
+            {{ session.exercises.length }}
+          </p>
           <p class="text-xs text-dark-300">Øvelser</p>
         </div>
         <div class="bg-dark-700 rounded-lg p-4 text-center">
-          <p class="text-lg font-bold text-primary-500 tabular-nums">{{ getTotalSets(session) }}</p>
+          <p class="text-lg font-bold text-primary-500 tabular-nums">
+            {{ getTotalSets(session) }}
+          </p>
           <p class="text-xs text-dark-300">Sett</p>
         </div>
         <div class="bg-dark-700 rounded-lg p-4 text-center">
-          <p class="text-lg font-bold text-primary-500 tabular-nums">{{ totalReps }} reps</p>
+          <p class="text-lg font-bold text-primary-500 tabular-nums">
+            {{ totalReps }} reps
+          </p>
           <p class="text-xs text-dark-300">Reps</p>
         </div>
         <div class="bg-dark-700 rounded-lg p-4 text-center">
-          <p class="text-lg font-bold text-primary-500 tabular-nums">{{ session.duration }} min</p>
+          <p class="text-lg font-bold text-primary-500 tabular-nums">
+            {{ session.duration }} min
+          </p>
           <p class="text-xs text-dark-300">Varighet</p>
         </div>
         <div class="bg-dark-700 rounded-lg p-4 text-center">
-          <p class="text-lg font-bold text-primary-500 tabular-nums">{{ volumePerMinute }} kg/min</p>
+          <p class="text-lg font-bold text-primary-500 tabular-nums">
+            {{ volumePerMinute }} kg/min
+          </p>
           <p class="text-xs text-dark-300">Volum per minutt</p>
         </div>
       </div>
@@ -127,29 +137,67 @@
       
 
       <!-- Rep ranges -->
-      <div class="card">
+      <!-- <div class="card">
         <h3 class="text-xl font-semibold text-white mb-4">Rep-områder</h3>
         <div class="space-y-3">
           <div class="flex items-center gap-3">
             <div class="w-44 whitespace-nowrap truncate flex-shrink-0 text-xs text-dark-300">Styrke (1–5)</div>
             <div class="flex-1 h-2 bg-dark-700 rounded overflow-hidden">
-              <div class="h-2 bg-primary-500" :style="{ width: repRangePct.strength + '%' }"></div>
+              <div class="h-2" :style="{ width: repRangePct.strength + '%', backgroundColor: getWorkoutTypeColor(session.workoutType) }"></div>
             </div>
             <div class="w-10 text-right text-xs text-white tabular-nums">{{ repRangePct.strength }}%</div>
           </div>
           <div class="flex items-center gap-3">
             <div class="w-44 whitespace-nowrap truncate flex-shrink-0 text-xs text-dark-300">Hypertrofi (6–12)</div>
             <div class="flex-1 h-2 bg-dark-700 rounded overflow-hidden">
-              <div class="h-2 bg-primary-500/80" :style="{ width: repRangePct.hypertrophy + '%' }"></div>
+              <div class="h-2" :style="{ width: repRangePct.hypertrophy + '%', backgroundColor: getWorkoutTypeColor(session.workoutType) }"></div>
             </div>
             <div class="w-10 text-right text-xs text-white tabular-nums">{{ repRangePct.hypertrophy }}%</div>
           </div>
           <div class="flex items-center gap-3">
             <div class="w-44 whitespace-nowrap truncate flex-shrink-0 text-xs text-dark-300">Utholdenhet (13+)</div>
             <div class="flex-1 h-2 bg-dark-700 rounded overflow-hidden">
-              <div class="h-2 bg-primary-500/60" :style="{ width: repRangePct.endurance + '%' }"></div>
+              <div class="h-2" :style="{ width: repRangePct.endurance + '%', backgroundColor: getWorkoutTypeColor(session.workoutType) }"></div>
             </div>
             <div class="w-10 text-right text-xs text-white tabular-nums">{{ repRangePct.endurance }}%</div>
+          </div>
+        </div>
+      </div> -->
+
+      <!-- Rep ranges -->
+      <div class="card">
+        <h3 class="text-xl font-semibold text-white mb-4">Rep-områder</h3>
+        <div class="space-y-3 mb-4">
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-white truncate">Styrke (1-5)</span>
+              <span class="text-dark-300 tabular-nums">{{ repRangePct.strength }}%</span>
+            </div>
+            <div class="w-full h-2 bg-dark-700 rounded overflow-hidden">
+              <div class="h-2" :style="{ width: repRangePct.strength + '%', backgroundColor: getWorkoutTypeColor(session.workoutType) }"></div>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-3 mb-4">
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-white truncate">Hypertrofi (6-12)</span>
+              <span class="text-dark-300 tabular-nums">{{ repRangePct.hypertrophy }}%</span>
+            </div>
+            <div class="w-full h-2 bg-dark-700 rounded overflow-hidden">
+              <div class="h-2" :style="{ width: repRangePct.hypertrophy + '%', backgroundColor: getWorkoutTypeColor(session.workoutType) }"></div>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-3 mb-4">
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-white truncate">Utholdenhet (13+)</span>
+              <span class="text-dark-300 tabular-nums">{{ repRangePct.endurance }}%</span>
+            </div>
+            <div class="w-full h-2 bg-dark-700 rounded overflow-hidden">
+              <div class="h-2" :style="{ width: repRangePct.endurance + '%', backgroundColor: getWorkoutTypeColor(session.workoutType) }"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -164,7 +212,7 @@
               <span class="text-dark-300 tabular-nums">{{ formatNumber(ex.volume) }} kg ({{ ex.percentage }}%)</span>
             </div>
             <div class="w-full h-2 bg-dark-700 rounded overflow-hidden">
-              <div class="h-2 bg-primary-500" :style="{ width: ex.percentage + '%' }"></div>
+              <div class="h-2" :style="{ width: ex.percentage + '%', backgroundColor: getWorkoutTypeColor(session.workoutType) }"></div>
             </div>
           </div>
         </div>
