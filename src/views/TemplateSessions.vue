@@ -391,13 +391,22 @@ const startCountdown = (sessionId: string) => {
   }, 1000)
 }
 
-const cancelCountdown = () => {
+const cancelCountdown = async () => {
   if (countdownInterval.value) {
     clearInterval(countdownInterval.value)
     countdownInterval.value = null
   }
   showCountdown.value = false
-  pendingSessionId.value = null
+  
+  // Cancel the workout session in the backend
+  if (pendingSessionId.value) {
+    try {
+      await workoutData.abandonWorkoutSession(pendingSessionId.value)
+    } catch (error) {
+      console.error("Error abandoning workout session:", error)
+    }
+    pendingSessionId.value = null
+  }
   
   // Haptic feedback for cancellation
   if ('vibrate' in navigator) {

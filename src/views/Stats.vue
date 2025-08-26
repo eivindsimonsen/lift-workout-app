@@ -328,6 +328,24 @@
       </div>
     </div>
 
+    <div class="card">
+      <h4 class="text-md font-medium text-white mb-4">Totale rep-områder</h4>
+      <div class="space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="flex-1 text-sm text-white">Styrke (1-5)</div>
+          <div class="text-sm font-medium text-primary-500">{{ totalRepRanges.strength }}%</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex-1 text-sm text-white">Hypertrofi (6-12)</div>
+          <div class="text-sm font-medium text-primary-500">{{ totalRepRanges.hypertrophy }}%</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex-1 text-sm text-white">Utholdenhet (13+)</div>
+          <div class="text-sm font-medium text-primary-500">{{ totalRepRanges.endurance }}%</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Achievements and Motivation -->
     <div class="card">
       <h3 class="text-lg font-semibold text-white mb-6">Prestasjoner og Motivasjon</h3>
@@ -400,6 +418,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useHybridData } from '@/composables/useHybridData'
+import muscleGroupsData from '@/data/muscle-groups.json';
 
 const workoutData = useHybridData()
 
@@ -829,9 +848,15 @@ const muscleGroupDistribution = computed(() => {
   const totalVolume = muscleGroupStats.value.reduce((sum, group) => sum + group.volume, 0)
   if (totalVolume === 0) return []
 
+  // Create a map of muscle group colors from the JSON data
+  const muscleGroupColors = muscleGroupsData.muscleGroups.reduce((acc, group) => {
+    acc[group.name] = group.color;
+    return acc;
+  }, {} as Record<string, string>);
+
   return muscleGroupStats.value.map(group => ({
     name: group.name,
-    color: getWorkoutTypeColor(group.name), // Assuming muscle groups are workout types for now
+    color: muscleGroupColors[group.name] || '#6b7280', // Default to gray if not found
     percentage: Math.round((group.volume / totalVolume) * 100)
   }))
 })
@@ -851,6 +876,27 @@ const trainingTypeBalance = computed(() => {
     percentage: Math.round((typeCounts[type.id] || 0) / totalSessions * 100)
   }))
 })
+
+const totalRepRanges = computed(() => {
+  const ranges = { strength: 0, hypertrophy: 0, endurance: 0 };
+  workoutData.completedSessions.value.forEach(session => {
+    session.exercises.forEach(exercise => {
+      exercise.sets.forEach(set => {
+        if (set.isCompleted && set.reps) {
+          if (set.reps <= 5) ranges.strength += set.reps;
+          else if (set.reps <= 12) ranges.hypertrophy += set.reps;
+          else ranges.endurance += set.reps;
+        }
+      });
+    });
+  });
+  const totalReps = ranges.strength + ranges.hypertrophy + ranges.endurance;
+  return {
+    strength: totalReps > 0 ? Math.round((ranges.strength / totalReps) * 100) : 0,
+    hypertrophy: totalReps > 0 ? Math.round((ranges.hypertrophy / totalReps) * 100) : 0,
+    endurance: totalReps > 0 ? Math.round((ranges.endurance / totalReps) * 100) : 0
+  };
+});
 
 type Achievement = { id: string; icon: string; title: string; description: string; earned: boolean }
 

@@ -26,7 +26,7 @@
               LIFT
             </router-link>
 
-                         <nav class="flex items-center gap-6">
+            <nav class="flex items-center gap-6">
                <router-link 
                  to="/" 
                  class="text-dark-300 hover:text-white transition-colors flex items-center gap-2"
@@ -106,7 +106,8 @@
 
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
-        <nav v-if="isAuthenticated" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation pb-6" :style="isPWA ? 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))' : ''">
+        <nav v-if="isAuthenticated" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
+        <!-- <nav v-if="isAuthenticated" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation pb-6" :style="isPWA ? 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))' : ''"> -->
           <!-- Progress Bar as border-top - only show if in workout session -->
           <div v-if="isWorkoutSession" class="w-full h-1 bg-dark-600">
             <div 
@@ -115,7 +116,7 @@
             ></div>
           </div>
           
-          <div class="flex justify-around pb-5">
+          <div class="flex justify-around">
             <router-link 
               to="/" 
               class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"

@@ -69,7 +69,7 @@
           <div class="flex gap-1 flex-wrap justify-end">
             <span
               v-if="ex.category"
-              class="px-2 py-1 text-xs font-medium rounded-full bg-dark-600"
+              class="px-2 py-1 text-sm font-medium rounded-full bg-dark-600"
               :style="{ color: getMuscleGroupColor(ex.category) }"
             >
               {{ ex.category }}
