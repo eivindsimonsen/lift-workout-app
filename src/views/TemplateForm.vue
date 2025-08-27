@@ -156,7 +156,7 @@
           
           <!-- Add Exercise Button at bottom -->
           <button 
-            @click="addExercise"
+            @click="openMobilePicker(templateForm.exercises.length)"
             type="button"
             class="w-full btn-secondary py-3 flex items-center justify-center"
           >
@@ -315,6 +315,14 @@ const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
 const activeExerciseIndex: Ref<number | null> = ref(null)
 
 const openMobilePicker = (index: number) => {
+  if (index === templateForm.value.exercises.length) {
+    templateForm.value.exercises.push({
+      exerciseId: '',
+      name: '',
+      sets: 0, // Will be configured during workout session
+      reps: 0 // Will be configured during workout session
+    })
+  }
   activeExerciseIndex.value = index
   isMobileExercisePanelOpen.value = true
 }
@@ -324,10 +332,26 @@ const closeMobilePicker = () => {
 }
 
 const handleSelectExercise = (exerciseId: string) => {
-  if (activeExerciseIndex.value === null) return
-  const idx = activeExerciseIndex.value
-  if (!templateForm.value.exercises[idx]) return
-  templateForm.value.exercises[idx].exerciseId = exerciseId
+  const exerciseData = workoutData.getExerciseById(exerciseId)
+  if (!exerciseData) {
+    console.error('Invalid exercise data for id:', exerciseId)
+    return
+  }
+
+  if (activeExerciseIndex.value === null) {
+    // Add a new exercise if none is active
+    templateForm.value.exercises.push({
+      exerciseId,
+      name: exerciseData.name,
+      sets: 0, // Will be configured during workout session
+      reps: 0 // Will be configured during workout session
+    })
+  } else {
+    const idx = activeExerciseIndex.value
+    if (!templateForm.value.exercises[idx]) return
+    templateForm.value.exercises[idx].exerciseId = exerciseId
+    templateForm.value.exercises[idx].name = exerciseData.name
+  }
   isMobileExercisePanelOpen.value = false
 }
 
