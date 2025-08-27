@@ -266,7 +266,7 @@ const createSupabaseData = () => {
       console.log("🌐 Syncing with Supabase...");
       tick(seq, "templates:query:start");
 
-      const { data: templatesData, error: templatesError } = await withHardTimeout<{ data: any[]; error: any }>(() => supabase.from("workout_templates").select("*").eq("user_id", currentUser.value.id).order("created_at", { ascending: true }), 8000, "load templates");
+      const { data: templatesData, error: templatesError } = await withHardTimeout(async () => await supabase.from("workout_templates").select("*").eq("user_id", currentUser.value.id).order("created_at", { ascending: true }), 8000, "load templates");
 
       tick(seq, "templates:query:end");
       if (templatesError) throw templatesError;
@@ -280,7 +280,7 @@ const createSupabaseData = () => {
 
       tick(seq, "sessions:query:start");
 
-      const { data: sessionsData, error: sessionsError } = await withHardTimeout<{ data: any[]; error: any }>(() => supabase.from("workout_sessions").select("*").eq("user_id", currentUser.value.id).order("date", { ascending: false }), 8000, "load sessions");
+      const { data: sessionsData, error: sessionsError } = await withHardTimeout(async () => await supabase.from("workout_sessions").select("*").eq("user_id", currentUser.value.id).order("date", { ascending: false }), 8000, "load sessions");
 
       tick(seq, "sessions:query:end");
       if (sessionsError) throw sessionsError;
