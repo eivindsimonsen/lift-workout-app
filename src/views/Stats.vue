@@ -502,7 +502,7 @@ const muscleGroupStats = computed(() => {
   workoutData.completedSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
       // Get exercise data to find muscle groups
-      const exerciseData = workoutData.exercises.value.find(e => e.id === exercise.exerciseId)
+      const exerciseData = workoutData.exercises.value.find(e => e.categoryId === exercise.exerciseId)
       const muscleGroups = exerciseData?.muscleGroups || []
       
       exercise.sets.forEach(set => {

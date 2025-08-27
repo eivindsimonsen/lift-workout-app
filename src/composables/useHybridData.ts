@@ -33,7 +33,7 @@ export const useHybridData = () => {
   // ---- Exercise helpers (variants supported) ----
   const getExerciseById = (id: string) => {
     for (const exercise of exercises.value) {
-      if (exercise.id === id) return exercise;
+      if (exercise.categoryId === id) return exercise;
       if (exercise.variants) {
         const variant = exercise.variants.find((v) => v.id === id);
         if (variant) {
@@ -66,7 +66,7 @@ export const useHybridData = () => {
       if (exercise.variants && exercise.variants.length > 0) {
         exercise.variants.forEach((variant) => {
           // Skip variants that accidentally reuse the main id
-          if (variant.id === exercise.id) return;
+          if (variant.id === exercise.categoryId) return;
 
           flattened.push({
             id: variant.id,
@@ -84,7 +84,7 @@ export const useHybridData = () => {
         });
       } else {
         flattened.push({
-          id: exercise.id,
+          id: exercise.categoryId,
           name: exercise.name,
           category: exercise.category,
           workoutTypes: exercise.workoutTypes,

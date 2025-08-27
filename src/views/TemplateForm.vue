@@ -275,7 +275,7 @@ const availableExercises = computed(() => {
         } else {
           // Exercises without variants
           exercises.push({
-            id: exercise.id,
+            id: exercise.categoryId,
             name: exercise.name,
             category: exercise.category,
             muscleGroups: exercise.muscleGroups
@@ -299,7 +299,7 @@ const availableExercises = computed(() => {
       } else {
         // Exercises without variants
         exercises.push({
-          id: exercise.id,
+          id: exercise.categoryId,
           name: exercise.name,
           category: exercise.category,
           muscleGroups: exercise.muscleGroups
@@ -460,7 +460,7 @@ onMounted(() => {
           const matchingExercise = workoutData.exercises.value.find(e => e.name === exercise.name)
           return {
             ...exercise,
-            exerciseId: exercise.exerciseId || matchingExercise?.id || ''
+            exerciseId: exercise.exerciseId || matchingExercise?.categoryId || ''
           }
         })
       }
