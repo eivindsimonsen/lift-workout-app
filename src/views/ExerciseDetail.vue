@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- Breadcrumbs - moved above header -->
+    <!-- Breadcrumbs -->
     <Breadcrumbs 
       :breadcrumbs="[
         { name: 'Øvelser', path: '/exercises' },
@@ -20,7 +20,7 @@
           </svg>
         </router-link>
         <h1 class="text-2xl font-bold text-white">{{ exercise?.name }}</h1>
-        
+
         <!-- Muscle Groups -->
         <div v-if="exercise?.muscleGroups && exercise.muscleGroups.length > 0" class="mt-2">
           <div class="flex flex-wrap gap-2">
@@ -40,9 +40,8 @@
       </div>
     </div>
 
-    <!-- Loading State for Exercise Details -->
+    <!-- Loading -->
     <div v-if="isLoading" class="space-y-6 animate-pulse">
-      <!-- Variant Details Skeleton -->
       <div class="card">
         <div class="h-6 bg-dark-600 rounded w-32 mb-4"></div>
         <div class="flex flex-wrap gap-3">
@@ -50,7 +49,6 @@
         </div>
       </div>
 
-      <!-- Stats Overview Skeleton -->
       <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div v-for="i in 6" :key="i" class="card text-center space-y-2">
           <div class="h-8 bg-dark-600 rounded w-16 mx-auto"></div>
@@ -58,13 +56,11 @@
         </div>
       </div>
 
-      <!-- Performance Chart Skeleton -->
       <div class="card">
         <div class="h-6 bg-dark-600 rounded w-48 mb-4"></div>
         <div class="h-64 bg-dark-700 rounded-lg"></div>
       </div>
 
-      <!-- Recent Sessions Skeleton -->
       <div class="card">
         <div class="h-6 bg-dark-600 rounded w-40 mb-4"></div>
         <div class="space-y-3">
@@ -76,8 +72,9 @@
       </div>
     </div>
 
+    <!-- Main -->
     <div v-else-if="exercise" class="space-y-6">
-      <!-- Variant Details (if this is a variant) -->
+      <!-- Variant Details -->
       <div v-if="exercise.equipment || exercise.angle || exercise.grip" class="card">
         <h3 class="text-lg font-semibold text-white mb-4">Variant Detaljer</h3>
         <div class="flex flex-wrap gap-3">
@@ -130,69 +127,41 @@
         </div>
       </div>
 
-      <!-- Performance Chart -->
+      <!-- Fremgang over tid (ApexCharts) -->
       <div class="card">
-        <h3 class="text-lg font-semibold text-white mb-4">Fremgang over tid</h3>
-        <div class="h-64 relative">
-          <!-- Chart container -->
-          <div class="absolute inset-0 flex items-end justify-between">
-            <!-- Y-axis labels -->
-            <div class="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-dark-400">
-              <span>{{ maxWeight }}kg</span>
-              <span>{{ Math.round(maxWeight * 0.75) }}kg</span>
-              <span>{{ Math.round(maxWeight * 0.5) }}kg</span>
-              <span>{{ Math.round(maxWeight * 0.25) }}kg</span>
-              <span>0kg</span>
-            </div>
-            
-            <!-- Chart area -->
-            <div class="flex-1 ml-8 relative">
-              <!-- Grid lines -->
-              <div class="absolute inset-0 flex flex-col justify-between">
-                <div class="border-t border-dark-600"></div>
-                <div class="border-t border-dark-600"></div>
-                <div class="border-t border-dark-600"></div>
-                <div class="border-t border-dark-600"></div>
-                <div class="border-t border-dark-600"></div>
-              </div>
-              
-              <!-- Line chart -->
-              <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <polyline
-                  :points="lineChartPoints"
-                  fill="none"
-                  stroke="#3B82F6"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <!-- Data points -->
-                <circle
-                  v-for="(point, index) in lineChartPointsArray"
-                  :key="index"
-                  :cx="point.x"
-                  :cy="point.y"
-                  r="3"
-                  fill="#3B82F6"
-                  stroke="#1E293B"
-                  stroke-width="1"
-                />
-              </svg>
-            </div>
-          </div>
-          
-          <!-- X-axis labels -->
-          <div class="absolute bottom-0 left-8 right-0 flex justify-between text-xs text-dark-400">
-            <span v-for="(week, index) in weeklyData" :key="index" class="text-center">
-              Uke {{ week.weekNumber }}
-            </span>
-          </div>
+        <h3 class="text-lg font-semibold text-white mb-4">Fremgang (beste sett per uke)</h3>
+        <div v-if="progressCategories.length > 0" class="h-72">
+          <VueApexCharts
+            :options="progressOptions"
+            :series="progressSeries"
+            type="line"
+            height="100%"
+          />
+        </div>
+        <div v-else class="h-32 flex items-center justify-center text-dark-300 text-sm">
+          Ingen data ennå for denne øvelsen.
+        </div>
+      </div>
+
+      <!-- Estimert 1RM (Epley) (ApexCharts) -->
+      <div class="card">
+        <h3 class="text-lg font-semibold text-white mb-4">Estimert 1RM (Epley) per uke</h3>
+        <div v-if="epleyCategories.length > 0" class="h-72">
+          <VueApexCharts
+            :options="epleyOptions"
+            :series="epleySeries"
+            type="line"
+            height="100%"
+          />
+        </div>
+        <div v-else class="h-32 flex items-center justify-center text-dark-300 text-sm">
+          Ingen data ennå for denne øvelsen.
         </div>
       </div>
 
       <!-- PR-tavle -->
       <div class="card">
-        <h3 class="text-lg font-semibold text-white mb-4">PR‑tavle</h3>
+        <h3 class="text-lg font-semibold text-white mb-4">PR-tavle</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div 
             v-for="rep in repTargets" 
@@ -200,40 +169,10 @@
             class="bg-dark-700 rounded-lg p-3 text-center"
           >
             <div class="text-xs text-dark-300 mb-1">{{ rep }} ×</div>
-            <div class="text-xl font-bold text-primary-500">{{ prBoard[rep]?.weight ?? '-' }}<span v-if="prBoard[rep]?.weight">kg</span></div>
-            <div class="text-xs text-dark-400" v-if="prBoard[rep]?.date">{{ formatDate(prBoard[rep].date) }}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Estimert 1RM (Epley) -->
-      <div class="card">
-        <h3 class="text-lg font-semibold text-white mb-4">Estimert 1RM (Epley)</h3>
-        <div class="h-64 relative">
-          <div class="absolute inset-0 flex items-end justify-between">
-            <div class="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-dark-400">
-              <span>{{ estimatedMax1RM }}kg</span>
-              <span>{{ Math.round(estimatedMax1RM * 0.75) }}kg</span>
-              <span>{{ Math.round(estimatedMax1RM * 0.5) }}kg</span>
-              <span>{{ Math.round(estimatedMax1RM * 0.25) }}kg</span>
-              <span>0kg</span>
+            <div class="text-xl font-bold text-primary-500">
+              {{ prBoard[rep]?.weight ?? '-' }}<span v-if="prBoard[rep]?.weight">kg</span>
             </div>
-            <div class="flex-1 ml-8 relative">
-              <div class="absolute inset-0 flex flex-col justify-between">
-                <div class="border-t border-dark-600"></div>
-                <div class="border-t border-dark-600"></div>
-                <div class="border-t border-dark-600"></div>
-                <div class="border-t border-dark-600"></div>
-                <div class="border-t border-dark-600"></div>
-              </div>
-              <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <polyline :points="estimatedLineChartPoints" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                <circle v-for="(point, idx) in estimatedLineChartPointsArray" :key="idx" :cx="point.x" :cy="point.y" r="3" fill="#F97316" stroke="#1E293B" stroke-width="1" />
-              </svg>
-            </div>
-          </div>
-          <div class="absolute bottom-0 left-8 right-0 flex justify-between text-xs text-dark-400">
-            <span v-for="(week, index) in estimated1RMWeeklyData" :key="index" class="text-center">Uke {{ week.weekNumber }}</span>
+            <div class="text-xs text-dark-400" v-if="prBoard[rep]?.date">{{ formatDate(prBoard[rep]!.date) }}</div>
           </div>
         </div>
       </div>
@@ -263,7 +202,7 @@
               <span class="text-white font-medium">{{ formatNumber(volumeWeekStats.bestMonth.volume) }} kg ({{ volumeWeekStats.bestMonth.label }})</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-dark-300">4‑ukers trend</span>
+              <span class="text-dark-300">4-ukers trend</span>
               <span :class="volumeWeekStats.trendDelta >= 0 ? 'text-green-400' : 'text-red-400'">
                 {{ volumeWeekStats.trendDelta >= 0 ? '+' : '' }}{{ Math.round(volumeWeekStats.trendDelta) }}%
               </span>
@@ -272,7 +211,7 @@
         </div>
       </div>
 
-      <!-- Recent Performances (last 3 sets) -->
+      <!-- Siste prestasjoner -->
       <div class="card">
         <h3 class="text-lg font-semibold text-white mb-4">Siste prestasjoner</h3>
         <div v-if="recentPerformances.length === 0" class="text-center py-8">
@@ -304,33 +243,6 @@
         </div>
       </div>
 
-      <!-- Reps- og settsammensetning -->
-      <div class="card">
-        <h3 class="text-lg font-semibold text-white mb-4">Reps- og settsammensetning</h3>
-        <div class="space-y-3">
-          <div class="flex items-center gap-3">
-            <div class="w-24 text-xs text-dark-300">Styrke (1–5)</div>
-            <div class="flex-1 h-2 bg-dark-700 rounded">
-              <div class="h-2 rounded bg-primary-500" :style="{ width: repRangeDistribution.strength + '%' }"></div>
-            </div>
-            <div class="w-10 text-right text-xs text-white">{{ repRangeDistribution.strength }}%</div>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="w-24 text-xs text-dark-300">Hypertrofi (6–12)</div>
-            <div class="flex-1 h-2 bg-dark-700 rounded">
-              <div class="h-2 rounded bg-primary-500/80" :style="{ width: repRangeDistribution.hypertrophy + '%' }"></div>
-            </div>
-            <div class="w-10 text-right text-xs text-white">{{ repRangeDistribution.hypertrophy }}%</div>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="w-24 text-xs text-dark-300">Utholdenhet (13+)</div>
-            <div class="flex-1 h-2 bg-dark-700 rounded">
-              <div class="h-2 rounded bg-primary-500/60" :style="{ width: repRangeDistribution.endurance + '%' }"></div>
-            </div>
-            <div class="w-10 text-right text-xs text-white">{{ repRangeDistribution.endurance }}%</div>
-          </div>
-        </div>
-      </div>
       <!-- Google Search Button -->
       <div class="mb-6 flex justify-end">
         <button 
@@ -358,396 +270,444 @@ import { useHybridData } from '@/composables/useHybridData'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import muscleGroups from '@/data/muscle-groups.json'
 
+// Charts
+import VueApexCharts from 'vue3-apexcharts'
+import type { ApexOptions } from 'apexcharts'
+
+/** ========= Types ========= */
+type Performance = {
+  id: string
+  weight: number
+  reps: number
+  volume: number
+  date: Date
+  sessionName?: string
+}
+type WeeklyIntensityItem = { weekKey: number; weekNumber: number; intensity: number }
+type VolumeWeekStats = {
+  bestWeek: { weekNumber: number; volume: number }
+  bestMonth: { label: string; volume: number }
+  trendDelta: number
+}
+type PRItem = { weight: number; date: Date }
+
+/** ========= Setup ========= */
 const route = useRoute()
 const router = useRouter()
 const workoutData = useHybridData()
 
-// Loading state
-const isLoading = computed(() => workoutData.isLoading.value)
+/** ========= Helpers ========= */
+// ID-match uansett type (string/number)
+const sameId = (a: any, b: any) => String(a) === String(b)
 
+// Parse numbers (støtter komma og enheter som "kg")
+const parseNum = (v: any): number | null => {
+  if (typeof v === 'number') return isFinite(v) ? v : null
+  if (typeof v === 'string') {
+    const norm = v.replace(',', '.')
+    const m = norm.match(/-?\d+(\.\d+)?/)
+    if (!m) return null
+    const n = Number(m[0])
+    return isFinite(n) ? n : null
+  }
+  return null
+}
+
+const toDate = (d: any): Date => (d instanceof Date ? d : new Date(d))
+
+const parseMaybeDate = (v: any): Date | null => {
+  if (!v && v !== 0) return null
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v
+
+  if (typeof v === 'number') {
+    if (v > 10_000_000_000) {
+      const ms = new Date(v)
+      return isNaN(ms.getTime()) ? null : ms
+    }
+    const sec = new Date(v * 1000)
+    return isNaN(sec.getTime()) ? null : sec
+  }
+
+  if (typeof v === 'string') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v)
+    if (m) {
+      const [, y, mon, d] = m
+      const dt = new Date(Date.UTC(Number(y), Number(mon) - 1, Number(d)))
+      return isNaN(dt.getTime()) ? null : dt
+    }
+    const d2 = new Date(v)
+    return isNaN(d2.getTime()) ? null : d2
+  }
+  return null
+}
+
+const getSafeDate = (session: any, set?: any): Date => {
+  const candidates = [
+    session?.date,
+    session?.completedAt,
+    session?.startedAt,
+    session?.createdAt,
+    set?.date,
+    set?.completedAt,
+  ]
+  for (const c of candidates) {
+    const d = parseMaybeDate(c)
+    if (d) return d
+  }
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return today
+}
+
+const startOfIsoWeek = (input: Date): Date => {
+  const d = new Date(input)
+  const day = (d.getDay() + 6) % 7 // Mon=0..Sun=6
+  d.setDate(d.getDate() - day)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+const getWeekNumber = (date: Date): number => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+}
+const safeWeekKey = (d: Date): number => startOfIsoWeek(d).getTime()
+
+/** ========= State ========= */
+const isLoading = computed(() => workoutData.isLoading.value)
 const exercise = ref<any>(null)
 
-// Computed properties
-const performances = computed(() => {
+/** ========= Core computed data ========= */
+
+// Alle gyldige sett for denne øvelsen
+const performances = computed<Performance[]>(() => {
   if (!exercise.value) return []
-  
-  const allPerformances: any[] = []
-  
-  workoutData.sessions.value
-    .filter(session => session.isCompleted)
-    .forEach(session => {
-      const sessionExercise = session.exercises.find(e => e.exerciseId === exercise.value.id)
-      if (sessionExercise) {
-        sessionExercise.sets.forEach(set => {
-          if (set.isCompleted && set.weight && set.reps) {
-            // Ensure weight and reps are valid numbers
-            const weight = Number(set.weight)
-            const reps = Number(set.reps)
-            
-            if (!isNaN(weight) && isFinite(weight) && !isNaN(reps) && isFinite(reps) && weight > 0 && reps > 0) {
-              allPerformances.push({
-                id: `${session.id}-${set.id}`,
-                weight: weight,
-                reps: reps,
-                volume: weight * reps,
-                date: session.date,
-                sessionName: session.templateName
-              })
-            }
-          }
+  const allPerformances: Performance[] = []
+
+  ;(workoutData.sessions.value || [])
+    .filter((session: any) => (session.isCompleted ?? true)) // tillat hvis undefined
+    .forEach((session: any) => {
+      const sessionExercise = session.exercises?.find((e: any) => sameId(e.exerciseId, exercise.value.id))
+      if (!sessionExercise) return
+
+      ;(sessionExercise.sets || []).forEach((set: any) => {
+        if (set.isCompleted === false) return
+        if (!(set.weight && set.reps)) return
+
+        const weight = parseNum(set.weight)
+        const reps = parseNum(set.reps)
+        if (weight === null || reps === null) return
+        if (weight <= 0 || reps <= 0) return
+
+        const d = getSafeDate(session, set)
+
+        allPerformances.push({
+          id: `${session.id}-${set.id}`,
+          weight,
+          reps,
+          volume: weight * reps,
+          date: d,
+          sessionName: session.templateName
         })
-      }
+      })
     })
-  
+
   return allPerformances
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 200)
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 500)
 })
 
-// Recent last 3 sets
+// Siste 3 sett
 const recentPerformances = computed(() => performances.value.slice(0, 3))
 
-// Weekly progression data
-const weeklyData = computed(() => {
-  if (performances.value.length === 0) return []
-  
-  // Group performances by week
-  const weeklyPerformances: { [key: string]: any[] } = {}
-  
-  performances.value.forEach(performance => {
-    const date = new Date(performance.date)
-    const weekStart = new Date(date)
-    weekStart.setDate(date.getDate() - date.getDay()) // Start of week (Sunday)
-    const weekKey = weekStart.toISOString().split('T')[0]
-    
-    if (!weeklyPerformances[weekKey]) {
-      weeklyPerformances[weekKey] = []
+/** ========= Weekly buckets for charts ========= */
+const weeksToShow = 12
+
+const weeklyBuckets = computed(() => {
+  // key: weekStart (ms) → { weekNumber, label, maxWeight, maxEpley }
+  const m = new Map<number, { weekNumber: number; label: string; maxWeight: number; maxEpley: number }>()
+  performances.value.forEach(p => {
+    const ws = safeWeekKey(p.date)
+    const d = new Date(ws)
+    const wNum = getWeekNumber(d)
+    const label = `Uke ${wNum}`
+    const epley = p.weight * (1 + (p.reps || 0) / 30)
+
+    if (!m.has(ws)) {
+      m.set(ws, { weekNumber: wNum, label, maxWeight: p.weight, maxEpley: epley })
+    } else {
+      const cur = m.get(ws)!
+      cur.maxWeight = Math.max(cur.maxWeight, p.weight)
+      cur.maxEpley = Math.max(cur.maxEpley, epley)
     }
-    weeklyPerformances[weekKey].push(performance)
   })
-  
-  // Convert to array and get best performance per week
-  return Object.entries(weeklyPerformances)
-    .map(([weekKey, weekPerformances]) => {
-      // Filter out invalid performances
-      const validPerformances = weekPerformances.filter(p => 
-        p.weight && !isNaN(p.weight) && isFinite(p.weight)
-      )
-      
-      if (validPerformances.length === 0) return null
-      
-      const bestPerformance = validPerformances.reduce((best, current) => {
-        return current.weight > best.weight ? current : best
-      })
-      
-      return {
-        weekKey,
-        weekNumber: getWeekNumber(new Date(weekKey)),
-        weight: bestPerformance.weight,
-        date: new Date(weekKey)
-      }
-    })
-    .filter(week => week !== null) // Remove null entries
-    .sort((a, b) => new Date(a.weekKey).getTime() - new Date(b.weekKey).getTime())
-    .slice(-8) // Last 8 weeks
+
+  return Array.from(m.entries())
+    .sort((a, b) => a[0] - b[0])
+    .slice(-weeksToShow)
+    .map(([ws, v]) => ({ ...v, ws }))
 })
 
-// PR board (best weight for exact rep counts)
-type PRItem = { weight: number; date: Date }
+/** ========= Charts: progress (weight) ========= */
+const progressCategories = computed(() => weeklyBuckets.value.map(b => b.label))
+const progressSeries = computed(() => [{
+  name: 'Maks kg',
+  data: weeklyBuckets.value.map(b => Math.round(b.maxWeight))
+}])
+
+const progressOptions = computed<ApexOptions>(() => ({
+  chart: { 
+    id: 'progress-weight', 
+    toolbar: { show: false }, 
+    foreColor: '#CBD5E1' // Update this to your app's text color
+  },
+  stroke: { 
+    curve: 'smooth', 
+    width: 3, 
+    colors: ['#FF5733'] // Update this to your app's primary color
+  },
+  markers: { 
+    size: 4, 
+    colors: ['#FF5733'] // Update this to your app's primary color
+  },
+  grid: { 
+    borderColor: '#CBD5E1' // Update this to your app's grid color
+  },
+  xaxis: { 
+    categories: progressCategories.value, 
+    labels: { 
+      rotate: 0, 
+      style: { 
+        colors: '#CBD5E1', // Update this to your app's text color
+        fontSize: '12px', 
+        fontFamily: 'Inter, system-ui, sans-serif' // Update this to your app's font
+      }
+    }
+  },
+  yaxis: { 
+    labels: { 
+      formatter: (v) => `${Math.round(v)} kg`,
+      style: { 
+        colors: '#CBD5E1', // Update this to your app's text color
+        fontSize: '12px', 
+        fontFamily: 'Inter, system-ui, sans-serif' // Update this to your app's font
+      }
+    }
+  },
+  tooltip: { 
+    y: { 
+      formatter: (v) => `${Math.round(v)} kg` 
+    }
+  }
+}))
+
+/** ========= Charts: Epley 1RM ========= */
+const epleyCategories = computed(() => weeklyBuckets.value.map(b => b.label))
+const epleySeries = computed(() => [{
+  name: 'Estimert 1RM',
+  data: weeklyBuckets.value.map(b => Math.round(b.maxEpley))
+}])
+
+const epleyOptions = computed<ApexOptions>(() => ({
+  chart: { 
+    id: 'epley-1rm', 
+    toolbar: { show: false }, 
+    foreColor: '#CBD5E1' // Update this to your app's text color
+  },
+  stroke: { 
+    curve: 'smooth', 
+    width: 3, 
+    colors: ['#FF5733'] // Update this to your app's primary color
+  },
+  markers: { 
+    size: 4, 
+    colors: ['#FF5733'] // Update this to your app's primary color
+  },
+  grid: { 
+    borderColor: '#CBD5E1' // Update this to your app's grid color
+  },
+  xaxis: { 
+    categories: epleyCategories.value, 
+    labels: { 
+      rotate: 0, 
+      style: { 
+        colors: '#CBD5E1', // Update this to your app's text color
+        fontSize: '12px', 
+        fontFamily: 'Inter, system-ui, sans-serif' // Update this to your app's font
+      }
+    }
+  },
+  yaxis: { 
+    labels: { 
+      formatter: (v) => `${Math.round(v)} kg`,
+      style: { 
+        colors: '#CBD5E1', // Update this to your app's text color
+        fontSize: '12px', 
+        fontFamily: 'Inter, system-ui, sans-serif' // Update this to your app's font
+      }
+    }
+  },
+  tooltip: { 
+    y: { 
+      formatter: (v) => `${Math.round(v)} kg` 
+    }
+  }
+}))
+
+/** ========= Other stats ========= */
 const repTargets = [1, 3, 4, 6, 8, 10, 12, 14]
 const prBoard = computed<Record<number, PRItem | undefined>>(() => {
-  const targets = repTargets
   const best: Record<number, PRItem | undefined> = {}
   performances.value.forEach(p => {
     if (!p.reps || !p.weight) return
-    if (targets.includes(p.reps)) {
+    if (repTargets.includes(p.reps)) {
       const existing = best[p.reps]
       if (!existing || p.weight > existing.weight) {
-        best[p.reps] = { weight: p.weight, date: new Date(p.date) }
+        best[p.reps] = { weight: p.weight, date: toDate(p.date) }
       }
     }
   })
   return best
 })
 
-// Estimated 1RM (Epley) progression per week
-const estimated1RMWeeklyData = computed(() => {
+const weeklyIntensityData = computed<WeeklyIntensityItem[]>(() => {
   if (performances.value.length === 0) return []
-  const byWeek: { [key: string]: { weekNumber: number; ests: number[]; date: Date } } = {}
+  const byWeek: Record<number, { weekNumber: number; vol: number; reps: number; date: Date }> = {}
   performances.value.forEach(p => {
-    const d = new Date(p.date)
-    const weekStart = new Date(d)
-    weekStart.setDate(d.getDate() - d.getDay())
-    const key = weekStart.toISOString().split('T')[0]
-    const est = p.weight * (1 + (p.reps || 0) / 30)
-    if (!isFinite(est) || isNaN(est)) return
-    if (!byWeek[key]) byWeek[key] = { weekNumber: getWeekNumber(weekStart), ests: [], date: weekStart }
-    byWeek[key].ests.push(est)
+    const d = toDate(p.date)
+    if (isNaN(d.getTime())) return
+    const wk = safeWeekKey(d)
+    if (!byWeek[wk]) byWeek[wk] = { weekNumber: getWeekNumber(new Date(wk)), vol: 0, reps: 0, date: new Date(wk) }
+    byWeek[wk].vol += p.weight * (p.reps || 0)
+    byWeek[wk].reps += (p.reps || 0)
   })
-  const arr = Object.values(byWeek).map(w => ({
-    weekKey: w.date.toISOString(),
-    weekNumber: w.weekNumber,
-    value: Math.max(...w.ests)
-  })).sort((a, b) => new Date(a.weekKey).getTime() - new Date(b.weekKey).getTime()).slice(-8)
-  return arr
+  return Object.entries(byWeek)
+    .map(([k, w]) => ({ weekKey: Number(k), weekNumber: w.weekNumber, intensity: w.reps > 0 ? w.vol / w.reps : 0 }))
+    .sort((a, b) => a.weekKey - b.weekKey)
 })
 
-const estimatedMax1RM = computed(() => {
-  if (estimated1RMWeeklyData.value.length === 0) return 100
-  return Math.round(Math.max(...estimated1RMWeeklyData.value.map(w => w.value)))
-})
+const volumeWeekStats = computed<VolumeWeekStats>(() => {
+  const weekMap: Record<number, number> = {}
+  const monthMap: Record<string, number> = {}
 
-const estimatedLineChartPoints = computed(() => {
-  if (estimated1RMWeeklyData.value.length === 0) return ''
-  const data = estimated1RMWeeklyData.value
-  const maxVal = Math.max(...data.map(w => w.value))
-  if (maxVal <= 0) return ''
-  const pts = data.map((w, i) => {
-    const x = (i / (data.length - 1)) * 80 + 10
-    const y = 90 - ((w.value / maxVal) * 80)
-    if (!isFinite(x) || !isFinite(y)) return '10,90'
-    return `${x},${y}`
-  })
-  return pts.join(' ')
-})
-
-const estimatedLineChartPointsArray = computed(() => {
-  if (estimated1RMWeeklyData.value.length === 0) return []
-  const data = estimated1RMWeeklyData.value
-  const maxVal = Math.max(...data.map(w => w.value))
-  if (maxVal <= 0) return []
-  return data.map((w, i) => {
-    const x = (i / (data.length - 1)) * 80 + 10
-    const y = 90 - ((w.value / maxVal) * 80)
-    if (!isFinite(x) || !isFinite(y)) return { x: 10, y: 90 }
-    return { x, y }
-  })
-})
-
-// Weekly intensity: sum(weight*reps)/sum(reps)
-const weeklyIntensityData = computed(() => {
-  if (performances.value.length === 0) return []
-  const byWeek: { [key: string]: { weekNumber: number; vol: number; reps: number; date: Date } } = {}
   performances.value.forEach(p => {
-    const d = new Date(p.date)
-    const weekStart = new Date(d)
-    weekStart.setDate(d.getDate() - d.getDay())
-    const key = weekStart.toISOString().split('T')[0]
-    if (!byWeek[key]) byWeek[key] = { weekNumber: getWeekNumber(weekStart), vol: 0, reps: 0, date: weekStart }
-    byWeek[key].vol += p.weight * (p.reps || 0)
-    byWeek[key].reps += (p.reps || 0)
-  })
-  return Object.values(byWeek)
-    .map(w => ({ weekKey: w.date.toISOString(), weekNumber: w.weekNumber, intensity: w.reps > 0 ? w.vol / w.reps : 0 }))
-    .sort((a, b) => new Date(a.weekKey).getTime() - new Date(b.weekKey).getTime())
-})
+    const d = toDate(p.date)
+    const ws = startOfIsoWeek(d).getTime()
+    weekMap[ws] = (weekMap[ws] || 0) + p.weight * (p.reps || 0)
 
-// Volume best week/month and 4-week rolling trend
-const volumeWeekStats = computed(() => {
-  const byWeek: { label: string; weekNumber: number; volume: number; weekStart: Date }[] = []
-  const byMonth: { label: string; volume: number }[] = []
-  const weekMap: { [k: string]: number } = {}
-  const monthMap: { [k: string]: number } = {}
-  performances.value.forEach(p => {
-    const d = new Date(p.date)
-    // week
-    const ws = new Date(d)
-    ws.setDate(d.getDate() - d.getDay())
-    ws.setHours(0, 0, 0, 0)
-    const wKey = ws.toISOString()
-    weekMap[wKey] = (weekMap[wKey] || 0) + p.weight * (p.reps || 0)
-    // month
     const mKey = `${d.getFullYear()}-${d.getMonth()}`
     monthMap[mKey] = (monthMap[mKey] || 0) + p.weight * (p.reps || 0)
   })
-  Object.entries(weekMap).forEach(([k, v]) => {
-    const d = new Date(k)
-    byWeek.push({ label: k, weekNumber: getWeekNumber(d), volume: Math.round(v), weekStart: d })
-  })
-  Object.entries(monthMap).forEach(([k, v]) => {
-    const [y, m] = k.split('-').map(Number)
-    const label = new Intl.DateTimeFormat('no-NO', { month: 'short', year: 'numeric' }).format(new Date(y, m, 1))
-    byMonth.push({ label, volume: Math.round(v) })
-  })
-  const bestWeek = byWeek.sort((a, b) => b.volume - a.volume)[0] || { label: '', weekNumber: 0, volume: 0, weekStart: new Date() }
-  const bestMonth = byMonth.sort((a, b) => b.volume - a.volume)[0] || { label: '', volume: 0 }
 
-  // rolling 4 weeks vs previous 4 weeks
+  const bestWeekEntry = Object.entries(weekMap)
+    .map(([k, v]) => ({ date: new Date(Number(k)), volume: v }))
+    .sort((a, b) => b.volume - a.volume)[0] ?? { date: new Date(), volume: 0 }
+  const bestWeek = { weekNumber: getWeekNumber(bestWeekEntry.date), volume: Math.round(bestWeekEntry.volume) }
+
+  const bestMonthEntry = Object.entries(monthMap)
+    .map(([k, v]) => {
+      const [y, m] = k.split('-').map(Number)
+      return { label: new Intl.DateTimeFormat('no-NO', { month: 'short', year: 'numeric' }).format(new Date(y, m, 1)), volume: Math.round(v) }
+    })
+    .sort((a, b) => b.volume - a.volume)[0] ?? { label: '', volume: 0 }
+
   const sortedWeeks = Object.entries(weekMap)
-    .map(([k, v]) => ({ date: new Date(k), volume: v }))
+    .map(([k, v]) => ({ date: new Date(Number(k)), volume: v }))
     .sort((a, b) => a.date.getTime() - b.date.getTime())
   const last4 = sortedWeeks.slice(-4).reduce((s, x) => s + x.volume, 0)
   const prev4 = sortedWeeks.slice(-8, -4).reduce((s, x) => s + x.volume, 0)
   const trendDelta = prev4 > 0 ? ((last4 - prev4) / prev4) * 100 : 0
-  return { bestWeek: { weekNumber: bestWeek.weekNumber, volume: Math.round(bestWeek.volume) }, bestMonth, trendDelta }
-})
 
-// Rep range distribution
-const repRangeDistribution = computed(() => {
-  let strength = 0, hypertrophy = 0, endurance = 0, totalSetsCount = 0
-  performances.value.forEach(p => {
-    if (!p.reps) return
-    totalSetsCount++
-    if (p.reps <= 5) strength++
-    else if (p.reps <= 12) hypertrophy++
-    else endurance++
-  })
-  if (totalSetsCount === 0) return { strength: 0, hypertrophy: 0, endurance: 0 }
-  const pct = (n: number) => Math.round((n / totalSetsCount) * 100)
-  return { strength: pct(strength), hypertrophy: pct(hypertrophy), endurance: pct(endurance) }
-})
-
-const lineChartPoints = computed(() => {
-  if (weeklyData.value.length === 0) return ''
-  
-  // Filter out invalid weight values and ensure we have valid numbers
-  const validData = weeklyData.value.filter(w => w.weight && !isNaN(w.weight) && isFinite(w.weight))
-  if (validData.length === 0) return ''
-  
-  const maxWeight = Math.max(...validData.map(w => w.weight))
-  if (maxWeight <= 0) return ''
-  
-  const points = validData.map((week, index) => {
-    const x = (index / (validData.length - 1)) * 80 + 10 // 10-90% of width
-    const y = 90 - ((week.weight / maxWeight) * 80) // 10-90% of height, inverted
-    
-    // Ensure x and y are valid numbers
-    if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
-      return '10,90' // Fallback to bottom-left
-    }
-    
-    return `${x},${y}`
-  })
-  
-  return points.join(' ')
-})
-
-const lineChartPointsArray = computed(() => {
-  if (weeklyData.value.length === 0) return []
-  
-  // Filter out invalid weight values and ensure we have valid numbers
-  const validData = weeklyData.value.filter(w => w.weight && !isNaN(w.weight) && isFinite(w.weight))
-  if (validData.length === 0) return []
-  
-  const maxWeight = Math.max(...validData.map(w => w.weight))
-  if (maxWeight <= 0) return []
-  
-  return validData.map((week, index) => {
-    const x = (index / (validData.length - 1)) * 80 + 10
-    const y = 90 - ((week.weight / maxWeight) * 80)
-    
-    // Ensure x and y are valid numbers
-    if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
-      return { x: 10, y: 90 } // Fallback to bottom-left
-    }
-    
-    return { x, y }
-  })
+  return { bestWeek, bestMonth: bestMonthEntry, trendDelta }
 })
 
 const maxWeight = computed(() => {
   if (performances.value.length === 0) return 100
-  
-  // Filter out invalid weight values
-  const validWeights = performances.value
-    .map(p => p.weight)
-    .filter(weight => weight && !isNaN(weight) && isFinite(weight))
-  
+  const validWeights = performances.value.map(p => p.weight).filter(w => isFinite(w))
   if (validWeights.length === 0) return 100
-  
   const max = Math.max(...validWeights)
-  return isNaN(max) || !isFinite(max) ? 100 : max
+  return isFinite(max) ? max : 100
 })
 
 const totalSessions = computed(() => {
   if (!exercise.value) return 0
-  return workoutData.sessions.value
-    .filter(session => session.isCompleted)
-    .filter(session => session.exercises.some(e => e.exerciseId === exercise.value.id))
+  return (workoutData.sessions.value || [])
+    .filter((session: any) => (session.isCompleted ?? true))
+    .filter((session: any) => session.exercises?.some((e: any) => sameId(e.exerciseId, exercise.value.id)))
     .length
 })
 
 const totalSets = computed(() => {
   if (!exercise.value) return 0
   let total = 0
-  
-  workoutData.sessions.value
-    .filter(session => session.isCompleted)
-    .forEach(session => {
-      const exerciseData = session.exercises.find(e => e.exerciseId === exercise.value.id)
-      if (exerciseData) {
-        total += exerciseData.sets.filter(set => set.isCompleted).length
-      }
+  ;(workoutData.sessions.value || [])
+    .filter((session: any) => (session.isCompleted ?? true))
+    .forEach((session: any) => {
+      const exerciseData = session.exercises?.find((e: any) => sameId(e.exerciseId, exercise.value.id))
+      if (exerciseData) total += (exerciseData.sets || []).filter((set: any) => (set.isCompleted ?? true)).length
     })
-  
   return total
 })
 
 const totalReps = computed(() => {
   if (!exercise.value) return 0
   let total = 0
-  
-  workoutData.sessions.value
-    .filter(session => session.isCompleted)
-    .forEach(session => {
-      const exerciseData = session.exercises.find(e => e.exerciseId === exercise.value.id)
+  ;(workoutData.sessions.value || [])
+    .filter((session: any) => (session.isCompleted ?? true))
+    .forEach((session: any) => {
+      const exerciseData = session.exercises?.find((e: any) => sameId(e.exerciseId, exercise.value.id))
       if (exerciseData) {
-        exerciseData.sets.forEach(set => {
-          if (set.isCompleted && set.reps) {
-            total += set.reps
+        (exerciseData.sets || []).forEach((set: any) => {
+          if (set.isCompleted === false) return
+          if (set.reps) {
+            const r = parseNum(set.reps)
+            if (r) total += r
           }
         })
       }
     })
-  
   return total
 })
 
 const personalBest = computed(() => {
   if (!exercise.value) return { weight: 0, reps: 0 }
-  
-  // Find the highest weight lifted for 1 rep (one rep max)
   let oneRepMax = 0
-  
-  workoutData.sessions.value
-    .filter(session => session.isCompleted)
-    .forEach(session => {
-      const exerciseData = session.exercises.find(e => e.exerciseId === exercise.value.id)
+  ;(workoutData.sessions.value || [])
+    .filter((session: any) => (session.isCompleted ?? true))
+    .forEach((session: any) => {
+      const exerciseData = session.exercises?.find((e: any) => sameId(e.exerciseId, exercise.value.id))
       if (exerciseData) {
-        exerciseData.sets.forEach(set => {
-          if (set.isCompleted && set.weight && set.reps === 1) {
-            if (set.weight > oneRepMax) {
-              oneRepMax = set.weight
-            }
+        (exerciseData.sets || []).forEach((set: any) => {
+          if (set.isCompleted === false) return
+          if (set.weight && set.reps === 1) {
+            const w = parseNum(set.weight)
+            if (w && w > oneRepMax) oneRepMax = w
           }
         })
       }
     })
-  
   return { weight: oneRepMax, reps: 1 }
 })
 
 const oneRepMax = computed(() => {
   if (!exercise.value) return 0
-  
-  // Find the highest weight lifted for 1 rep (one rep max)
   let max = 0
-  
-  workoutData.sessions.value
-    .filter(session => session.isCompleted)
-    .forEach(session => {
-      const exerciseData = session.exercises.find(e => e.exerciseId === exercise.value.id)
+  ;(workoutData.sessions.value || [])
+    .filter((session: any) => (session.isCompleted ?? true))
+    .forEach((session: any) => {
+      const exerciseData = session.exercises?.find((e: any) => sameId(e.exerciseId, exercise.value.id))
       if (exerciseData) {
-        exerciseData.sets.forEach(set => {
-          if (set.isCompleted && set.weight && set.reps === 1) {
-            if (set.weight > max) {
-              max = set.weight
-            }
+        (exerciseData.sets || []).forEach((set: any) => {
+          if (set.isCompleted === false) return
+          if (set.weight && set.reps === 1) {
+            const w = parseNum(set.weight)
+            if (w && w > max) max = w
           }
         })
       }
     })
-  
   return max
 })
 
@@ -759,10 +719,9 @@ const averageWeight = computed(() => {
 
 const lastWorkout = computed(() => {
   if (performances.value.length === 0) return 'Aldri'
-  const lastDate = new Date(performances.value[0].date)
+  const lastDate = toDate(performances.value[0].date)
   const now = new Date()
   const diffDays = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
-  
   if (diffDays === 0) return 'I dag'
   if (diffDays === 1) return 'I går'
   if (diffDays < 7) return `${diffDays} dager siden`
@@ -770,7 +729,7 @@ const lastWorkout = computed(() => {
   return `${Math.floor(diffDays / 30)} måneder siden`
 })
 
-// Methods
+/** ========= Methods ========= */
 const openGoogleSearch = () => {
   if (exercise.value?.name) {
     const searchQuery = encodeURIComponent(`${exercise.value.name} strength training exercise`)
@@ -778,46 +737,25 @@ const openGoogleSearch = () => {
     window.open(googleSearchUrl, '_blank')
   }
 }
-
 const formatDate = (date: Date): string => {
-  return new Intl.DateTimeFormat('no-NO', {
-    day: 'numeric',
-    month: 'short'
-  }).format(date)
+  const d = toDate(date)
+  if (isNaN(d.getTime())) return ''
+  return new Intl.DateTimeFormat('no-NO', { day: 'numeric', month: 'short' }).format(d)
 }
-
-const formatNumber = (num: number): string => {
-  return new Intl.NumberFormat('no-NO').format(Math.round(num))
-}
-
+const formatNumber = (num: number): string => new Intl.NumberFormat('no-NO').format(Math.round(num))
 const getMuscleGroupColor = (muscleGroupName: string): string => {
-  // Find the muscle group by name and return its color
-  const muscleGroup = muscleGroups.muscleGroups.find(mg => 
-    mg.name.toLowerCase() === muscleGroupName.toLowerCase() ||
-    (mg.displayName ?? "").toLowerCase() === muscleGroupName.toLowerCase()
+  const mg = (muscleGroups as any).muscleGroups.find((x: any) => 
+    x.name.toLowerCase() === muscleGroupName.toLowerCase() ||
+    (x.displayName ?? '').toLowerCase() === muscleGroupName.toLowerCase()
   )
-  
-  return muscleGroup?.color || '#6b7280' // Default gray color if not found
+  return mg?.color || '#6b7280'
 }
 
-const getWeekNumber = (date: Date): number => {
-  const startOfYear = new Date(date.getFullYear(), 0, 1)
-  const days = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000))
-  return Math.ceil((days + startOfYear.getDay() + 1) / 7)
-}
-
-// Lifecycle
+/** ========= Lifecycle ========= */
 onMounted(() => {
   const exerciseId = route.params.id as string
-  
-  // Use getExerciseById which can handle both main exercises and variants
   const foundExercise = workoutData.getExerciseById(exerciseId)
-  
-  if (foundExercise) {
-    exercise.value = foundExercise
-  } else {
-    // If not found, redirect to exercises page
-    router.push('/exercises')
-  }
+  if (foundExercise) exercise.value = foundExercise
+  else router.push('/exercises')
 })
 </script>
