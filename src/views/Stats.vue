@@ -296,7 +296,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Muscle Group Distribution -->
         <div>
-          <h4 class="text-md font-medium text-white mb-4">Muskelgruppe Fordeling test</h4>
+          <h4 class="text-md font-medium text-white mb-4">Muskelgruppe Fordeling</h4>
           <div class="space-y-3">
             <div 
               v-for="group in muscleGroupDistribution" 
@@ -508,7 +508,7 @@ const muscleGroupStats = computed(() => {
   workoutData.completedSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
       // Get exercise data to find muscle groups
-      const exerciseData = workoutData.exercises.value.find(e => e.categoryId === exercise.exerciseId)
+      const exerciseData = workoutData.exercises.value.find(e => e.variants?.find(v => v.id === exercise.exerciseId))
       const muscleGroups = exerciseData?.muscleGroups || []
       exercise.sets.forEach(set => {
         if (set.isCompleted && typeof set.weight === 'number' && typeof set.reps === 'number') {
