@@ -496,28 +496,48 @@ const bestPerformances = computed(() => {
     .slice(0, 5)
 })
 
+/**
+ * FIX: Bruk variant→hovedøvelse fallback for muskelgrupper.
+ * - Prøver først getExerciseById(exerciseId) (variant)
+ * - Faller tilbake til getMainExerciseByVariantId(exerciseId)
+ * - Bruker variantens muscleGroups hvis den har, ellers hovedøvelsens
+ */
 const muscleGroupStats = computed(() => {
-  const groupVolumes: { [key: string]: number } = {}
-  
+  const groupVolumes: Record<string, number> = {}
+
   workoutData.completedSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
       // Get exercise data to find muscle groups
       const exerciseData = workoutData.exercises.value.find(e => e.categoryId === exercise.exerciseId)
       const muscleGroups = exerciseData?.muscleGroups || []
-      
       exercise.sets.forEach(set => {
-        if (set.isCompleted && set.weight && set.reps) {
+        if (set.isCompleted && typeof set.weight === 'number' && typeof set.reps === 'number') {
           const volume = set.weight * set.reps
-          muscleGroups.forEach((group: string) => {
-            groupVolumes[group] = (groupVolumes[group] || 0) + volume
+          muscleGroups.forEach(group => {
+            groupVolumes[group] = (groupVolumes[group] ?? 0) + volume
           })
         }
       })
     })
   })
-  
+
+  // Calculate total volume
+  const totalVolume = Object.values(groupVolumes).reduce((sum, volume) => sum + volume, 0)
+
+  // Ensure all muscle groups are included, even with zero volume
+  muscleGroupsData.muscleGroups.forEach(group => {
+    if (groupVolumes[group.name] == null) {
+      groupVolumes[group.name] = 0
+    }
+  })
+
+  // Calculate percentages
   return Object.entries(groupVolumes)
-    .map(([name, volume]) => ({ name, volume }))
+    .map(([name, volume]) => ({
+      name,
+      volume,
+      percentage: totalVolume > 0 ? Math.round((volume / totalVolume) * 100) : 0
+    }))
     .sort((a, b) => b.volume - a.volume)
 })
 
@@ -718,8 +738,6 @@ const getMuscleGroupPercentage = (volume: number): number => {
   if (maxVolume === 0) return 0
   return Math.round((volume / maxVolume) * 100)
 }
-
-
 
 const trainingCalendar = computed(() => {
   const calendar: { date: string; trained: boolean }[] = [];
@@ -962,7 +980,7 @@ const achievements = computed(() => {
     { id: 'streak-14-best', icon: '🏁', title: 'Lengste streak 14+', description: 'Sterk kontinuitet!', earned: longestStreak.value >= 14 },
     { id: 'volume-1m', icon: '🏆', title: '1 000 000 kg totalvolum', description: 'En million kilo løftet!', earned: Math.round(workoutData.totalVolume.value) >= 1000000 },
 
-    { id: '1rm-first', icon: '🧱', title: 'Første 1RM', description: 'Du har logget en 1RM‑økt (1 rep).', earned: oneRmExercises.size >= 1 },
+    { id: '1rm-first', icon: '🧱', title: 'Første 1RM', description: 'Du har logget en 1RM-økt (1 rep).', earned: oneRmExercises.size >= 1 },
     { id: '1rm-5-exercises', icon: '🏋️', title: '1RM på 5 øvelser', description: 'Bred styrketesting!', earned: oneRmExercises.size >= 5 },
 
     { id: 'variety-10', icon: '🧩', title: 'Variasjon 10+', description: 'Du har trent 10 forskjellige øvelser.', earned: uniqueExerciseIds.size >= 10 },
@@ -1052,4 +1070,4 @@ const getCurrentStreak = (): number => {
   
   return streak
 }
-</script> 
+</script>
