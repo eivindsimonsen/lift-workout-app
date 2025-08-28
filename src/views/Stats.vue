@@ -296,7 +296,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Muscle Group Distribution -->
         <div>
-          <h4 class="text-md font-medium text-white mb-4">Muskelgruppe Fordeling</h4>
+          <h4 class="text-md font-medium text-white mb-4">Muskelgruppe Fordeling test</h4>
           <div class="space-y-3">
             <div 
               v-for="group in muscleGroupDistribution" 
