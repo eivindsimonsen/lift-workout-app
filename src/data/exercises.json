@@ -362,6 +362,27 @@
       ]
     },
     {
+      "categoryId": "landmine-press",
+      "name": "Landmine Press",
+      "category": "Bryst",
+      "workoutTypes": ["push", "upper"],
+      "muscleGroups": ["Bryst", "Skuldre", "Triceps"],
+      "variants": [
+        {
+          "id": "landmine-press",
+          "name": "Landmine Press",
+          "equipment": "landmine",
+          "angle": "flat"
+        },
+        {
+          "id": "kneeling-landmine-press",
+          "name": "Kneeling Landmine Press",
+          "equipment": "landmine",
+          "angle": "flat"
+        }
+      ]
+    },
+    {
       "categoryId": "other-chest",
       "name": "Other Chest Exercises",
       "category": "Bryst",
