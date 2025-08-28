@@ -507,14 +507,9 @@ const muscleGroupStats = computed(() => {
 
   workoutData.completedSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
-      const variant = workoutData.getExerciseById(exercise.exerciseId)
-      const main = workoutData.getMainExerciseByVariantId(exercise.exerciseId) || variant
-
-      const muscleGroups: string[] =
-        (variant && Array.isArray(variant.muscleGroups) && variant.muscleGroups.length > 0)
-          ? variant.muscleGroups
-          : (main?.muscleGroups ?? [])
-
+      // Get exercise data to find muscle groups
+      const exerciseData = workoutData.exercises.value.find(e => e.categoryId === exercise.exerciseId)
+      const muscleGroups = exerciseData?.muscleGroups || []
       exercise.sets.forEach(set => {
         if (set.isCompleted && typeof set.weight === 'number' && typeof set.reps === 'number') {
           const volume = set.weight * set.reps

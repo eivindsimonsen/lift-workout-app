@@ -1,7 +1,7 @@
 {
   "exercises": [
     {
-      "id": "bench-press",
+      "categoryId": "bench-press",
       "name": "Bench Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -38,6 +38,12 @@
           "angle": "incline"
         },
         {
+          "id": "decline-dumbbell-press",
+          "name": "Decline Dumbbell Press",
+          "equipment": "dumbbell",
+          "angle": "decline"
+        },
+        {
           "id": "wide-grip-bench-press",
           "name": "Wide Grip Bench Press",
           "equipment": "barbell",
@@ -61,7 +67,7 @@
       ]
     },
     {
-      "id": "smith-machine-bench-press",
+      "categoryId": "smith-machine-bench-press",
       "name": "Smith Machine Bench Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -88,7 +94,7 @@
       ]
     },
     {
-      "id": "guillotine-press",
+      "categoryId": "guillotine-press",
       "name": "Guillotine Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -103,7 +109,7 @@
       ]
     },
     {
-      "id": "floor-press",
+      "categoryId": "floor-press",
       "name": "Floor Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -118,7 +124,7 @@
       ]
     },
     {
-      "id": "spoto-press",
+      "categoryId": "spoto-press",
       "name": "Spoto Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -133,28 +139,7 @@
       ]
     },
     {
-      "id": "landmine-press",
-      "name": "Landmine Press",
-      "category": "Bryst",
-      "workoutTypes": ["push", "upper"],
-      "muscleGroups": ["Bryst", "Skuldre", "Triceps"],
-      "variants": [
-        {
-          "id": "landmine-press",
-          "name": "Landmine Press",
-          "equipment": "landmine",
-          "angle": "flat"
-        },
-        {
-          "id": "kneeling-landmine-press",
-          "name": "Kneeling Landmine Press",
-          "equipment": "landmine",
-          "angle": "flat"
-        }
-      ]
-    },
-    {
-      "id": "banded-bench-press",
+      "categoryId": "banded-bench-press",
       "name": "Banded Bench Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -169,7 +154,7 @@
       ]
     },
     {
-      "id": "plate-press",
+      "categoryId": "plate-press",
       "name": "Plate Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -184,7 +169,7 @@
       ]
     },
     {
-      "id": "isometric-bench-hold",
+      "categoryId": "isometric-bench-hold",
       "name": "Isometric Bench Press Hold",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -199,7 +184,7 @@
       ]
     },
     {
-      "id": "dumbbell-flyes",
+      "categoryId": "dumbbell-flyes",
       "name": "Dumbbell Flyes",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -226,7 +211,7 @@
       ]
     },
     {
-      "id": "cable-flyes",
+      "categoryId": "cable-flyes",
       "name": "Cable Flyes",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -253,7 +238,7 @@
       ]
     },
     {
-      "id": "pec-deck",
+      "categoryId": "pec-deck",
       "name": "Pec Deck Machine",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -268,7 +253,7 @@
       ]
     },
     {
-      "id": "dumbbell-pullovers",
+      "categoryId": "dumbbell-pullovers",
       "name": "Dumbbell Pullovers",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -283,7 +268,7 @@
       ]
     },
     {
-      "id": "push-ups",
+      "categoryId": "push-ups",
       "name": "Push-ups",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -335,7 +320,7 @@
       ]
     },
     {
-      "id": "dips",
+      "categoryId": "dips",
       "name": "Dips",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -350,7 +335,7 @@
       ]
     },
     {
-      "id": "machine-press",
+      "categoryId": "machine-press",
       "name": "Machine Press",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -377,7 +362,7 @@
       ]
     },
     {
-      "id": "other-chest",
+      "categoryId": "other-chest",
       "name": "Other Chest Exercises",
       "category": "Bryst",
       "workoutTypes": ["push", "upper"],
@@ -405,7 +390,7 @@
     },
 
     {
-      "id": "shoulder-press",
+      "categoryId": "shoulder-press",
       "name": "Shoulder Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -438,7 +423,7 @@
       ]
     },
     {
-      "id": "arnold-press",
+      "categoryId": "arnold-press",
       "name": "Arnold Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -453,7 +438,7 @@
       ]
     },
     {
-      "id": "z-press",
+      "categoryId": "z-press",
       "name": "Z-Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -468,7 +453,7 @@
       ]
     },
     {
-      "id": "bradford-press",
+      "categoryId": "bradford-press",
       "name": "Bradford Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -483,7 +468,7 @@
       ]
     },
     {
-      "id": "push-press",
+      "categoryId": "push-press",
       "name": "Push Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -498,7 +483,7 @@
       ]
     },
     {
-      "id": "landmine-press-shoulders",
+      "categoryId": "landmine-press-shoulders",
       "name": "Landmine Press (Shoulders)",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -519,7 +504,7 @@
       ]
     },
     {
-      "id": "single-arm-dumbbell-press",
+      "categoryId": "single-arm-dumbbell-press",
       "name": "Single Arm Dumbbell Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -534,7 +519,7 @@
       ]
     },
     {
-      "id": "scaption",
+      "categoryId": "scaption",
       "name": "Scaption Raise",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -549,7 +534,7 @@
       ]
     },
     {
-      "id": "cuban-press",
+      "categoryId": "cuban-press",
       "name": "Cuban Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -564,7 +549,7 @@
       ]
     },
     {
-      "id": "overhead-cable-press",
+      "categoryId": "overhead-cable-press",
       "name": "Overhead Cable Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -579,7 +564,7 @@
       ]
     },
     {
-      "id": "machine-shoulder-press",
+      "categoryId": "machine-shoulder-press",
       "name": "Machine Shoulder Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -594,7 +579,7 @@
       ]
     },
     {
-      "id": "smith-machine-shoulder-press",
+      "categoryId": "smith-machine-shoulder-press",
       "name": "Smith Machine Shoulder Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -609,7 +594,7 @@
       ]
     },
     {
-      "id": "neutral-grip-dumbbell-press",
+      "categoryId": "neutral-grip-dumbbell-press",
       "name": "Neutral Grip Dumbbell Press",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -624,7 +609,7 @@
       ]
     },
     {
-      "id": "shoulder-raises",
+      "categoryId": "shoulder-raises",
       "name": "Shoulder Raises",
       "category": "Skuldre",
       "workoutTypes": ["push", "upper"],
@@ -681,7 +666,7 @@
       ]
     },
     {
-      "id": "rear-delt",
+      "categoryId": "rear-delt",
       "name": "Rear Deltoid",
       "category": "Skuldre",
       "workoutTypes": ["pull", "upper"],
@@ -726,7 +711,7 @@
       ]
     },
     {
-      "id": "other-shoulder",
+      "categoryId": "other-shoulder",
       "name": "Other Shoulder Exercises",
       "category": "Skuldre",
       "workoutTypes": ["push", "pull", "upper"],
@@ -802,7 +787,7 @@
     },
 
     {
-      "id": "pull-ups",
+      "categoryId": "pull-ups",
       "name": "Pull-ups",
       "category": "Rygg",
       "workoutTypes": ["pull", "upper"],
@@ -859,7 +844,7 @@
       ]
     },
     {
-      "id": "lat-pulldown",
+      "categoryId": "lat-pulldown",
       "name": "Lat Pulldown",
       "category": "Rygg",
       "workoutTypes": ["pull", "upper"],
@@ -898,7 +883,7 @@
       ]
     },
     {
-      "id": "rows",
+      "categoryId": "rows",
       "name": "Rows",
       "category": "Rygg",
       "workoutTypes": ["pull", "upper"],
@@ -997,7 +982,7 @@
       ]
     },
     {
-      "id": "deadlift",
+      "categoryId": "deadlift",
       "name": "Deadlift",
       "category": "Rygg",
       "workoutTypes": ["pull", "lower", "full-body"],
@@ -1024,7 +1009,7 @@
       ]
     },
     {
-      "id": "other-back",
+      "categoryId": "other-back",
       "name": "Other Back Exercises",
       "category": "Rygg",
       "workoutTypes": ["pull", "upper", "lower", "core"],
@@ -1268,7 +1253,7 @@
     },
 
     {
-      "id": "bicep-curls",
+      "categoryId": "bicep-curls",
       "name": "Bicep Curls",
       "category": "Biceps",
       "workoutTypes": ["pull", "upper"],
@@ -1397,7 +1382,7 @@
       ]
     },
     {
-      "id": "tricep-exercises",
+      "categoryId": "tricep-exercises",
       "name": "Tricep Exercises",
       "category": "Triceps",
       "workoutTypes": ["push", "upper"],
@@ -1496,7 +1481,7 @@
       ]
     },
     {
-      "id": "forearm-exercises",
+      "categoryId": "forearm-exercises",
       "name": "Forearm Exercises",
       "category": "Biceps",
       "workoutTypes": ["pull", "upper"],
@@ -1517,7 +1502,7 @@
       ]
     },
     {
-      "id": "other-arm",
+      "categoryId": "other-arm",
       "name": "Other Arm Exercises",
       "category": "Kjerne",
       "workoutTypes": ["full-body"],
@@ -1533,7 +1518,7 @@
     },
 
     {
-      "id": "squats",
+      "categoryId": "squats",
       "name": "Squats",
       "category": "Ben",
       "workoutTypes": ["legs", "lower"],
@@ -1602,7 +1587,7 @@
       ]
     },
     {
-      "id": "lunges",
+      "categoryId": "lunges",
       "name": "Lunges",
       "category": "Ben",
       "workoutTypes": ["legs", "lower"],
@@ -1653,7 +1638,7 @@
       ]
     },
     {
-      "id": "machine-exercises",
+      "categoryId": "machine-exercises",
       "name": "Machine Exercises",
       "category": "Ben",
       "workoutTypes": ["legs", "lower"],
@@ -1704,7 +1689,7 @@
       ]
     },
     {
-      "id": "glute-exercises",
+      "categoryId": "glute-exercises",
       "name": "Glute Exercises",
       "category": "Ben",
       "workoutTypes": ["legs", "lower"],
@@ -1737,7 +1722,7 @@
       ]
     },
     {
-      "id": "calf-exercises",
+      "categoryId": "calf-exercises",
       "name": "Calf Exercises",
       "category": "Legger",
       "workoutTypes": ["legs", "lower"],
@@ -1770,7 +1755,7 @@
       ]
     },
     {
-      "id": "plyometric",
+      "categoryId": "plyometric",
       "name": "Plyometric Exercises",
       "category": "Ben",
       "workoutTypes": ["legs", "lower", "plyometric"],
@@ -1803,7 +1788,7 @@
       ]
     },
     {
-      "id": "other-legs",
+      "categoryId": "other-legs",
       "name": "Other Leg Exercises",
       "category": "Ben",
       "workoutTypes": ["legs", "lower", "full-body"],
@@ -1879,7 +1864,7 @@
     },
 
     {
-      "id": "core-stability",
+      "categoryId": "core-stability",
       "name": "Core Stability",
       "category": "Kjerne",
       "workoutTypes": ["full-body", "lower"],
@@ -1918,7 +1903,7 @@
       ]
     },
     {
-      "id": "core-crunches",
+      "categoryId": "core-crunches",
       "name": "Core Crunches",
       "category": "Kjerne",
       "workoutTypes": ["full-body"],
@@ -1951,7 +1936,7 @@
       ]
     },
     {
-      "id": "core-legs",
+      "categoryId": "core-legs",
       "name": "Core Leg Exercises",
       "category": "Kjerne",
       "workoutTypes": ["full-body", "lower"],
@@ -1984,7 +1969,7 @@
       ]
     },
     {
-      "id": "core-dynamic",
+      "categoryId": "core-dynamic",
       "name": "Dynamic Core",
       "category": "Kjerne",
       "workoutTypes": ["full-body"],
@@ -2011,7 +1996,7 @@
       ]
     },
     {
-      "id": "olympic-lifts",
+      "categoryId": "olympic-lifts",
       "name": "Olympic Lifts",
       "category": "Kjerne",
       "workoutTypes": ["full-body"],
@@ -2044,7 +2029,7 @@
       ]
     },
     {
-      "id": "custom-exercise",
+      "categoryId": "custom-exercise",
       "name": "Annet øvelse",
       "category": "Annet",
       "workoutTypes": ["push", "pull", "legs", "upper", "lower", "full-body"],

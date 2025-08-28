@@ -108,18 +108,6 @@
             <div class="flex items-center justify-between">
               <div class="min-w-0 flex-1">
                 <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.displayName }}</h3>
-                <!-- Show variant tags if this is a variant -->
-                <div v-if="exercise.isVariant" class="flex gap-1 mt-1">
-                  <span v-if="exercise.equipment" class="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded">
-                    {{ exercise.equipment }}
-                  </span>
-                  <span v-if="exercise.angle" class="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">
-                    {{ exercise.angle }}
-                  </span>
-                  <span v-if="exercise.grip" class="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
-                    {{ exercise.grip }}
-                  </span>
-                </div>
               </div>
               <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -266,7 +254,6 @@ const searchResults = computed(() => {
         name: exercise.name,
         displayName: exercise.name,
         category: exercise.category || '',
-        isVariant: exercise.isVariant || false,
         // Include exercise details
         equipment: exercise.equipment,
         angle: exercise.angle,
@@ -318,7 +305,7 @@ const allExercises = computed(() => {
   workoutData.exercises.value?.forEach(exercise => {
     if (exercise.variants && exercise.variants.length > 0) {
       // Add main exercise with variants
-      const mainExerciseData = getExerciseData(exercise.id, exercise.name, exercise.muscleGroups || [])
+      const mainExerciseData = getExerciseData(exercise.categoryId, exercise.name, exercise.muscleGroups || [])
       exercises.push({
         ...mainExerciseData,
         isMainExercise: true,
@@ -327,7 +314,7 @@ const allExercises = computed(() => {
       // Don't add variants as separate entries - they're already shown under the main exercise
     } else {
       // Exercise without variants
-      const exerciseData = getExerciseData(exercise.id, exercise.name, exercise.muscleGroups || [])
+      const exerciseData = getExerciseData(exercise.categoryId, exercise.name, exercise.muscleGroups || [])
       exercises.push({
         ...exerciseData,
         isMainExercise: true
@@ -454,9 +441,9 @@ const activeExercises = computed(() => {
              })
            }
          })
-      } else if (popularExerciseVariants.includes(exercise.id)) {
+      } else if (popularExerciseVariants.includes(exercise.categoryId)) {
         // Add exercises without variants
-        const exerciseData = getExerciseData(exercise.id, exercise.name, exercise.muscleGroups || [])
+        const exerciseData = getExerciseData(exercise.categoryId, exercise.name, exercise.muscleGroups || [])
         exercises.push({
           ...exerciseData,
           isMainExercise: false
@@ -482,9 +469,9 @@ const activeExercises = computed(() => {
            })
          }
        })
-    } else if (activeExerciseIds.has(exercise.id)) {
+    } else if (activeExerciseIds.has(exercise.categoryId)) {
       // Exercise without variants
-      const exerciseData = getExerciseData(exercise.id, exercise.name, exercise.muscleGroups || [])
+      const exerciseData = getExerciseData(exercise.categoryId, exercise.name, exercise.muscleGroups || [])
       exercises.push({
         ...exerciseData,
         isMainExercise: false
@@ -508,8 +495,8 @@ const activeExercises = computed(() => {
              })
            }
          })
-      } else if (popularVariantIds.includes(exercise.id) && !activeExerciseIds.has(exercise.id)) {
-        const exerciseData = getExerciseData(exercise.id, exercise.name, exercise.muscleGroups || [])
+      } else if (popularVariantIds.includes(exercise.categoryId) && !activeExerciseIds.has(exercise.categoryId)) {
+        const exerciseData = getExerciseData(exercise.categoryId, exercise.name, exercise.muscleGroups || [])
         additionalExercises.push({
           ...exerciseData,
           isMainExercise: false

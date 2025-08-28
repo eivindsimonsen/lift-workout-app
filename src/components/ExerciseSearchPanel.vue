@@ -155,10 +155,10 @@ const allExercises = computed(() => {
       })
     } else {
       // Exercises without variants
-      if (!seenIds.has(exercise.id)) {
-        seenIds.add(exercise.id)
+      if (!seenIds.has(exercise.categoryId)) {
+        seenIds.add(exercise.categoryId)
         exercises.push({
-          id: exercise.id,
+          id: exercise.categoryId,
           name: exercise.name,
           category: exercise.category
         })

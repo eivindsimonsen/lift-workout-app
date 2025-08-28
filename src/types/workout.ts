@@ -44,7 +44,7 @@ export interface ExerciseVariant {
 }
 
 export interface ExerciseData {
-  id: string;
+  categoryId: string;
   name: string;
   category: string;
   workoutTypes: string[];
