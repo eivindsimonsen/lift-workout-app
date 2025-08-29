@@ -82,16 +82,16 @@
           </div>
         </header>
 
-                     <!-- Main content -->
-             <main 
-               v-if="isAuthenticated" 
-               :key="route.path"
-               class="container mx-auto px-4 py-8 pb-32 md:pb-8"
-               style="padding-top: calc(0.25rem + env(safe-area-inset-top));"
-               ref="mainContent"
-             >
-               <router-view />
-             </main>
+        <!-- Main content -->
+        <main 
+          v-if="isAuthenticated" 
+          :key="route.path"
+          class="container mx-auto px-4 py-8 pb-32 md:pb-8"
+          style="padding-top: calc(0.25rem + env(safe-area-inset-top));"
+          ref="mainContent"
+        >
+          <router-view />
+        </main>
         
         <!-- Non-authenticated content -->
         <main v-else>
@@ -100,10 +100,6 @@
 
         <!-- Offline Indicator -->
         <OfflineIndicator />
-        
-
-        
-
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
         <nav v-if="isAuthenticated" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
@@ -278,7 +274,6 @@ const userInitials = computed(() => {
 const isPWA = computed(() => window.matchMedia('(display-mode: standalone)').matches)
 const isDevelopment = computed(() => import.meta.env.DEV)
 
-// --- Methods ---
 
 // --- Lifecycle ---
 onMounted(async () => {
@@ -362,4 +357,5 @@ watch(
   },
   { immediate: true }
 )
+
 </script>

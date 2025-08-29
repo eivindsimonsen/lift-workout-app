@@ -47,7 +47,7 @@
       <div v-else-if="activeSessions.length > 0">
         <h2 class="text-xl font-semibold text-white mb-4">Aktiv Økt</h2>
 
-        <div class="space-y-4">
+        <div class="space-y-2">
           <SwipeableCard
             v-for="session in activeSessions" 
             :key="session.id"
@@ -55,7 +55,7 @@
           >
             <div 
               @click="continueWorkout(session.id)"
-              class="flex items-center justify-between p-4 bg-dark-700 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors border-l-4 border-primary-500"
+              class="flex items-center justify-between p-4 bg-dark-800 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors border-l-4 border-primary-500"
             >
               <div class="flex-1">
                 <h3 class="font-medium text-white">{{ session.templateName }}</h3>
@@ -78,8 +78,8 @@
                 </span>
               </div>
             </div>
-            <p class="text-xs text-dark-400 text-center mt-2 md:hidden">Swipe for å avbryte økt</p>
           </SwipeableCard>
+          <p class="text-xs text-dark-400 text-center md:hidden">Swipe for å avbryte økt</p>
         </div>
       </div>
     </div>
@@ -172,13 +172,12 @@
         <div 
           v-for="template in filteredTemplates" 
           :key="template.id"
-          class="bg-dark-700 rounded-lg p-6 border border-dark-600 hover:border-primary-500/50 transition-colors flex flex-col h-full"
-        >
+          :class="['bg-dark-800', 'rounded-lg', 'p-6', 'transition-colors', 'flex', 'flex-col', 'h-full']">
           <!-- Template Title and Workout Type -->
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-white">{{ template.name }}</h3>
             <span 
-              class="px-3 py-1 rounded-full text-sm font-medium"
+              class="px-3 py-1 rounded-full text-sm font-semibold tracking-wider"
               :style="{ 
                 backgroundColor: getWorkoutTypeColor(template.workoutType) + '20',
                 color: getWorkoutTypeColor(template.workoutType)
@@ -200,9 +199,9 @@
                 :key="groupName"
                 class="space-y-1"
               >
-                                 <h4 class="text-xs font-medium text-primary-400 uppercase tracking-wide">
+                <h4 class="text-xs font-medium text-primary-400 uppercase tracking-wide">
                    {{ groupName }}
-                 </h4>
+                </h4>
                 <div class="space-y-1">
                   <div 
                     v-for="(exercise, index) in group" 
@@ -227,7 +226,8 @@
             <button 
               @click.stop="startWorkout(template.id)"
               :disabled="activeSessions.length > 0"
-              class="flex-1 btn-primary text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="['flex-1', 'text-sm', 'py-2', 'disabled:opacity-50', 'disabled:cursor-not-allowed', 'rounded-lg']"
+              :style="{ backgroundColor: getWorkoutTypeColor(template.workoutType), color: '#fff' }"
               :title="activeSessions.length > 0 ? 'Du har allerede en aktiv økt. Fullfør den først.' : 'Start ny økt'"
             >
               Start Økt

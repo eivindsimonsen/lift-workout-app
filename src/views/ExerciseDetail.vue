@@ -20,23 +20,6 @@
           </svg>
         </router-link>
         <h1 class="text-2xl font-bold text-white">{{ exercise?.name }}</h1>
-
-        <!-- Muscle Groups -->
-        <div v-if="exercise?.muscleGroups && exercise.muscleGroups.length > 0" class="mt-2">
-          <div class="flex flex-wrap gap-2">
-            <span 
-              v-for="muscleGroup in exercise.muscleGroups" 
-              :key="muscleGroup"
-              class="inline-block px-3 py-1 text-sm font-medium rounded-full"
-              :style="{
-                backgroundColor: getMuscleGroupColor(muscleGroup) + '20',
-                color: getMuscleGroupColor(muscleGroup)
-              }"
-            >
-              {{ muscleGroup }}
-            </span>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -75,27 +58,22 @@
     <!-- Main -->
     <div v-else-if="exercise" class="space-y-6">
       <!-- Variant Details -->
-      <div v-if="exercise.equipment || exercise.angle || exercise.grip" class="card">
-        <h3 class="text-lg font-semibold text-white mb-4">Variant Detaljer</h3>
-        <div class="flex flex-wrap gap-3">
-          <span v-if="exercise.equipment" class="px-3 py-2 bg-primary-500/20 text-primary-400 rounded-lg text-sm">
-            {{ exercise.equipment }}
-          </span>
-          <span v-if="exercise.angle" class="px-3 py-2 bg-blue-500/20 text-blue-400 rounded-lg text-sm">
-            {{ exercise.angle }}
-          </span>
-          <span v-if="exercise.grip" class="px-3 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm">
-            {{ exercise.grip }}
-          </span>
-          <span v-if="exercise.position" class="px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-sm">
-            {{ exercise.position }}
-          </span>
-          <span v-if="exercise.direction" class="px-3 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg text-sm">
-            {{ exercise.direction }}
-          </span>
-          <span v-if="exercise.focus" class="px-3 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm">
-            {{ exercise.focus }}
-          </span>
+      <div>
+        <!-- Muscle Groups -->
+        <div v-if="exercise?.muscleGroups && exercise.muscleGroups.length > 0" class="mt-2 mb-4">
+          <div class="flex flex-wrap gap-2">
+            <span 
+              v-for="muscleGroup in exercise.muscleGroups" 
+              :key="muscleGroup"
+              class="inline-block px-3 py-1 text-sm font-medium rounded-full"
+              :style="{
+                backgroundColor: getMuscleGroupColor(muscleGroup) + '20',
+                color: getMuscleGroupColor(muscleGroup)
+              }"
+            >
+              {{ muscleGroup }}
+            </span>
+          </div>
         </div>
       </div>
 
