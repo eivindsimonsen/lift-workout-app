@@ -172,7 +172,8 @@
         <div 
           v-for="template in filteredTemplates" 
           :key="template.id"
-          class="bg-dark-700 rounded-lg p-6 border border-dark-600 hover:border-primary-500/50 transition-colors flex flex-col h-full"
+          :class="['bg-dark-700', 'rounded-lg', 'p-6', 'border', 'transition-colors', 'flex', 'flex-col', 'h-full']"
+          :style="{ borderColor: getWorkoutTypeColor(template.workoutType), backgroundColor: getWorkoutTypeColor(template.workoutType) + '20' }"
         >
           <!-- Template Title and Workout Type -->
           <div class="flex items-center justify-between mb-4">
@@ -227,7 +228,8 @@
             <button 
               @click.stop="startWorkout(template.id)"
               :disabled="activeSessions.length > 0"
-              class="flex-1 btn-primary text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="['flex-1', 'text-sm', 'py-2', 'disabled:opacity-50', 'disabled:cursor-not-allowed', 'rounded-lg']"
+              :style="{ backgroundColor: getWorkoutTypeColor(template.workoutType), color: '#fff' }"
               :title="activeSessions.length > 0 ? 'Du har allerede en aktiv økt. Fullfør den først.' : 'Start ny økt'"
             >
               Start Økt

@@ -92,16 +92,16 @@
           class="mb-10 last:mb-0"
         >
           <!-- Exercise Separator -->
-          <div v-if="exerciseIndex > 0" class="mb-8 flex items-center">
+          <div v-if="exerciseIndex >= 0" class="mb-4 flex items-center">
             <div class="flex-1 h-px bg-dark-600"></div>
-            <div class="mx-4 px-3 py-1 bg-dark-700 rounded-full border border-dark-600">
+            <div class="mx-4 px-3 py-1 bg-dark-700 rounded-full border border-dark-600 flex justify-center">
               <span class="text-xs font-medium text-dark-400">Øvelse {{ exerciseIndex + 1 }}</span>
             </div>
             <div class="flex-1 h-px bg-dark-600"></div>
           </div>
 
           <!-- Exercise Header -->
-          <div class="flex items-start justify-between mb-6">
+          <div class="flex items-start justify-between mb-6 cursor-pointer" @click="toggleExercise(exerciseIndex)">
             <!-- Left Column: Exercise Info -->
             <div class="flex-1 min-w-0">
               <!-- Muscle Groups -->
@@ -119,7 +119,18 @@
                 </span>
               </div>
               
-              <h3 class="text-xl font-bold text-white mb-2">{{ exercise.name }}</h3>
+              <h3 class="text-xl font-bold text-white mb-2 flex items-center">
+                {{ exercise.name }}
+                <svg 
+                  class="w-4 h-4 ml-2 transition-transform"
+                  :class="{ 'rotate-180': !collapsedExercises[exerciseIndex] }"
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </h3>
               
               <!-- Last Performance -->
               <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-2 text-sm text-dark-300">
@@ -135,7 +146,7 @@
             <!-- Right Column: Actions -->
             <div class="flex items-center gap-3 ml-4">
               <button 
-                @click="removeExercise(exerciseIndex)"
+                @click.stop="removeExercise(exerciseIndex)"
                 class="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
                 title="Slett øvelse"
               >
@@ -147,7 +158,7 @@
           </div>
 
           <!-- Sets -->
-          <div class="bg-dark-800/50 border border-dark-700 rounded-xl overflow-hidden">
+          <div v-show="!collapsedExercises[exerciseIndex]" class="bg-dark-800/50 border border-dark-700 rounded-xl overflow-hidden">
             <!-- Animate add/remove of sets -->
             <TransitionGroup
               name="set"
@@ -1079,6 +1090,14 @@ const syncLocalChangesToSupabase = async () => {
 
 const isDevelopment = computed(() => import.meta.env.DEV)
 
+// State for collapsible exercises
+const collapsedExercises = ref<boolean[]>([])
+
+// Methods
+const toggleExercise = (index: number) => {
+  collapsedExercises.value[index] = !collapsedExercises.value[index]
+}
+
 // Lifecycle
 onMounted(async () => {
   const sessionId = route.params.id as string
@@ -1130,6 +1149,9 @@ onMounted(async () => {
 
   // Restore local shape/values first (local wins for in-progress)
   await restoreLocalChanges()
+
+  // Initialize collapsed state for all exercises
+  collapsedExercises.value = session.value.exercises.map(() => false)
 
   // Keyboard/Save integrations
   const handleKeydown = (event: KeyboardEvent) => {
