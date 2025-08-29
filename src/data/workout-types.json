@@ -22,13 +22,13 @@
       "id": "upper",
       "name": "Upper",
       "description": "Øvre kropp",
-      "color": "#8b5cf6"
+      "color": "#ff69b4"
     },
     {
       "id": "lower",
       "name": "Lower",
       "description": "Nedre kropp",
-      "color": "#ff69b4"
+      "color": "#8b5cf6"
     },
     {
       "id": "full-body",
