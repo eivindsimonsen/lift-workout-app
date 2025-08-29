@@ -177,7 +177,7 @@
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-white">{{ template.name }}</h3>
             <span 
-              class="px-3 py-1 rounded-full text-sm font-medium"
+              class="px-3 py-1 rounded-full text-sm font-semibold tracking-wider"
               :style="{ 
                 backgroundColor: getWorkoutTypeColor(template.workoutType) + '20',
                 color: getWorkoutTypeColor(template.workoutType)
