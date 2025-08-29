@@ -78,6 +78,7 @@
                 </span>
               </div>
             </div>
+            <p class="text-xs text-dark-400 text-center mt-2">Swipe for å avbryte økt</p>
           </SwipeableCard>
         </div>
       </div>
