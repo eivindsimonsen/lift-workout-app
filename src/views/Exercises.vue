@@ -60,8 +60,7 @@
             >
               <div class="flex items-center h-10">
                 <div class="min-w-0 flex-1">
-                  <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.name }}</h3>
-                  <p class="text-xs text-primary-400 mt-1">{{ exercise.totalSessions }} økter</p>
+                  <h3 class="font-medium text-white text-sm max-w-full">{{ exercise.name }}</h3>
                 </div>
                 <svg class="w-4 h-4 text-primary-400 group-hover:text-primary-300 transition-colors pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -92,7 +91,7 @@
     </div>
 
     <!-- Exercises by Category OR Search Results -->
-    <div v-else class="space-y-12">
+    <div v-else class="grid grid-cols-1 gap-4">
       <!-- Search results -->
       <div v-if="hasSearch">
         <div v-if="searchResults.length === 0" class="text-center py-12">
@@ -103,13 +102,17 @@
             v-for="exercise in searchResults"
             :key="exercise.id"
             @click="viewExercise(exercise.id)"
-            class="group bg-dark-700 rounded-lg p-3 border border-dark-600 hover:border-primary-500/50 transition-colors cursor-pointer hover:bg-dark-600 overflow-hidden"
+            :class="{
+              'group bg-primary-500/10 border border-primary-500/20 hover:border-primary-500/40 hover:bg-primary-500/20': isExerciseInTemplate(exercise.id),
+              'group bg-dark-700 border border-dark-600 hover:border-primary-500/50 hover:bg-dark-600': !isExerciseInTemplate(exercise.id)
+            }"
+            class="rounded-lg p-3 transition-colors cursor-pointer overflow-hidden"
           >
-            <div class="flex items-center justify-between">
+            <div class="flex items-center h-10">
               <div class="min-w-0 flex-1">
-                <h3 class="font-medium text-white truncate text-sm max-w-full">{{ exercise.displayName }}</h3>
+                <h3 class="font-medium text-white text-sm max-w-full">{{ exercise.displayName }}</h3>
               </div>
-              <svg class="w-4 h-4 text-dark-300 group-hover:text-primary-400 transition-colors pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 text-primary-400 group-hover:text-primary-300 transition-colors pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
             </div>
@@ -546,5 +549,12 @@ const viewExercise = (exerciseId: string) => {
   // Navigate directly to the exercise ID (could be main exercise or variant)
   // ExerciseDetail.vue will handle both cases
   router.push(`/exercise/${exerciseId}`)
+}
+
+// Helper function to check if an exercise is in a template
+const isExerciseInTemplate = (exerciseId: string): boolean => {
+  return workoutData.templates.value?.some(template =>
+    template.exercises?.some(exercise => exercise.exerciseId === exerciseId)
+  ) || false
 }
 </script>
