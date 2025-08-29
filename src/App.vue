@@ -274,26 +274,6 @@ const userInitials = computed(() => {
 const isPWA = computed(() => window.matchMedia('(display-mode: standalone)').matches)
 const isDevelopment = computed(() => import.meta.env.DEV)
 
-// --- Methods ---
-
-// CSS class to hide navigation
-const HIDDEN_CLASS = 'hidden-nav';
-
-// Hide navigation by adding a CSS class
-const hideNavigation = () => {
-  const nav = document.querySelector('nav');
-  if (nav && !nav.classList.contains(HIDDEN_CLASS)) {
-    nav.classList.add(HIDDEN_CLASS);
-  }
-};
-
-// Show navigation by removing the CSS class
-const showNavigation = () => {
-  const nav = document.querySelector('nav');
-  if (nav && nav.classList.contains(HIDDEN_CLASS)) {
-    nav.classList.remove(HIDDEN_CLASS);
-  }
-};
 
 // --- Lifecycle ---
 onMounted(async () => {
@@ -377,32 +357,5 @@ watch(
   },
   { immediate: true }
 )
-
-// Store the initial viewport height
-const initialViewportHeight = window.innerHeight;
-
-// Function to check if the keyboard is active
-const isKeyboardActive = () => {
-  return window.innerHeight < initialViewportHeight * 0.7; // Adjust the threshold as needed
-};
-
-// Update handleResize to hide/show navigation
-const handleResize = () => {
-  if (isKeyboardActive()) {
-    console.log('Keyboard is active');
-    hideNavigation();
-  } else {
-    console.log('Keyboard is not active');
-    showNavigation();
-  }
-};
-
-// Add event listener for resize events
-window.addEventListener('resize', handleResize);
-
-// Remove event listener on unmount
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
-});
 
 </script>
