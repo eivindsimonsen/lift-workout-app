@@ -82,16 +82,16 @@
           </div>
         </header>
 
-                     <!-- Main content -->
-             <main 
-               v-if="isAuthenticated" 
-               :key="route.path"
-               class="container mx-auto px-4 py-8 pb-32 md:pb-8"
-               style="padding-top: calc(0.25rem + env(safe-area-inset-top));"
-               ref="mainContent"
-             >
-               <router-view />
-             </main>
+        <!-- Main content -->
+        <main 
+          v-if="isAuthenticated" 
+          :key="route.path"
+          class="container mx-auto px-4 py-8 pb-32 md:pb-8"
+          style="padding-top: calc(0.25rem + env(safe-area-inset-top));"
+          ref="mainContent"
+        >
+          <router-view />
+        </main>
         
         <!-- Non-authenticated content -->
         <main v-else>
@@ -100,10 +100,6 @@
 
         <!-- Offline Indicator -->
         <OfflineIndicator />
-        
-
-        
-
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
         <nav v-if="isAuthenticated" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
@@ -280,6 +276,22 @@ const isDevelopment = computed(() => import.meta.env.DEV)
 
 // --- Methods ---
 
+// Hide navigation when keyboard is active
+const hideNavigation = () => {
+  const nav = document.querySelector('nav');
+  if (nav) {
+    nav.style.display = 'none';
+  }
+};
+
+// Show navigation when keyboard is not active
+const showNavigation = () => {
+  const nav = document.querySelector('nav');
+  if (nav) {
+    nav.style.display = 'block';
+  }
+};
+
 // --- Lifecycle ---
 onMounted(async () => {
   // ✅ Restore last route on cold start if authenticated & currently at "/"
@@ -362,4 +374,32 @@ watch(
   },
   { immediate: true }
 )
+
+// Store the initial viewport height
+const initialViewportHeight = window.innerHeight;
+
+// Function to check if the keyboard is active
+const isKeyboardActive = () => {
+  return window.innerHeight < initialViewportHeight * 0.7; // Adjust the threshold as needed
+};
+
+// Update handleResize to hide/show navigation
+const handleResize = () => {
+  if (isKeyboardActive()) {
+    console.log('Keyboard is active');
+    hideNavigation();
+  } else {
+    console.log('Keyboard is not active');
+    showNavigation();
+  }
+};
+
+// Add event listener for resize events
+window.addEventListener('resize', handleResize);
+
+// Remove event listener on unmount
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+});
+
 </script>
