@@ -47,7 +47,7 @@
       <div v-else-if="activeSessions.length > 0">
         <h2 class="text-xl font-semibold text-white mb-4">Aktiv Økt</h2>
 
-        <div class="space-y-4">
+        <div class="space-y-2">
           <SwipeableCard
             v-for="session in activeSessions" 
             :key="session.id"
@@ -78,8 +78,8 @@
                 </span>
               </div>
             </div>
-            <p class="text-xs text-dark-400 text-center mt-2 md:hidden">Swipe for å avbryte økt</p>
           </SwipeableCard>
+          <p class="text-xs text-dark-400 text-center md:hidden">Swipe for å avbryte økt</p>
         </div>
       </div>
     </div>
