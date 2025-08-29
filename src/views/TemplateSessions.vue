@@ -172,9 +172,7 @@
         <div 
           v-for="template in filteredTemplates" 
           :key="template.id"
-          :class="['bg-dark-700', 'rounded-lg', 'p-6', 'border', 'transition-colors', 'flex', 'flex-col', 'h-full']"
-          :style="{ borderColor: getWorkoutTypeColor(template.workoutType), backgroundColor: getWorkoutTypeColor(template.workoutType) + '20' }"
-        >
+          :class="['bg-dark-800', 'rounded-lg', 'p-6', 'transition-colors', 'flex', 'flex-col', 'h-full']">
           <!-- Template Title and Workout Type -->
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-white">{{ template.name }}</h3>
@@ -201,9 +199,9 @@
                 :key="groupName"
                 class="space-y-1"
               >
-                                 <h4 class="text-xs font-medium text-primary-400 uppercase tracking-wide">
+                <h4 class="text-xs font-medium text-primary-400 uppercase tracking-wide">
                    {{ groupName }}
-                 </h4>
+                </h4>
                 <div class="space-y-1">
                   <div 
                     v-for="(exercise, index) in group" 
