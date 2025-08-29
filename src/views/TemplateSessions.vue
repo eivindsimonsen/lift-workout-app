@@ -55,7 +55,7 @@
           >
             <div 
               @click="continueWorkout(session.id)"
-              class="flex items-center justify-between p-4 bg-dark-700 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors border-l-4 border-primary-500"
+              class="flex items-center justify-between p-4 bg-dark-800 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors border-l-4 border-primary-500"
             >
               <div class="flex-1">
                 <h3 class="font-medium text-white">{{ session.templateName }}</h3>
