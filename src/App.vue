@@ -276,19 +276,22 @@ const isDevelopment = computed(() => import.meta.env.DEV)
 
 // --- Methods ---
 
-// Hide navigation when keyboard is active
+// CSS class to hide navigation
+const HIDDEN_CLASS = 'hidden-nav';
+
+// Hide navigation by adding a CSS class
 const hideNavigation = () => {
   const nav = document.querySelector('nav');
-  if (nav) {
-    nav.style.display = 'none';
+  if (nav && !nav.classList.contains(HIDDEN_CLASS)) {
+    nav.classList.add(HIDDEN_CLASS);
   }
 };
 
-// Show navigation when keyboard is not active
+// Show navigation by removing the CSS class
 const showNavigation = () => {
   const nav = document.querySelector('nav');
-  if (nav) {
-    nav.style.display = 'block';
+  if (nav && nav.classList.contains(HIDDEN_CLASS)) {
+    nav.classList.remove(HIDDEN_CLASS);
   }
 };
 
