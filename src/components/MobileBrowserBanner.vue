@@ -163,6 +163,7 @@ onMounted(() => {
   // TODO: Uncomment this when we have a production build
   if (isMobileBrowser() && !hasInstalledPWA() && !isDevelopment.value) {
       showBlocker.value = true
+      document.body.classList.add('overflow-hidden')
   }
   
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -172,5 +173,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.removeEventListener('appinstalled', handleAppInstalled)
+  document.body.classList.remove('overflow-hidden')
 })
 </script>
