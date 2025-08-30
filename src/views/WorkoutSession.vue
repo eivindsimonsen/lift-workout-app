@@ -124,7 +124,7 @@
                 <svg 
                   class="w-4 h-4 ml-2 transition-transform"
                   :class="{ 'rotate-180': !collapsedExercises[exerciseIndex] }"
-                  fill="none" 
+                  fill="none"
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
                 >
@@ -510,7 +510,23 @@ function registerInputRef(ex: number, set: number, field: Field, el?: HTMLInputE
 }
 
 let justFocusedAt = 0
-function markFocus() { justFocusedAt = Date.now() }
+
+function markFocus() {
+  justFocusedAt = Date.now()
+  window.dispatchEvent(new CustomEvent('toggleBottomNav', { detail: { hidden: true } }))
+}
+
+function unhideNavSoon() {
+  // Delay slightly: allows tapping toolbar “Done/Next” without flicker
+  setTimeout(() => {
+    // Only unhide if nothing focusable is active
+    const active = document.activeElement as HTMLElement | null
+    const stillFocused = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
+    if (!stillFocused) {
+      window.dispatchEvent(new CustomEvent('toggleBottomNav', { detail: { hidden: false } }))
+    }
+  }, 120)
+}
 
 // === Utilities for parsing numbers (locale friendly) ===
 const toNumber = (v: string) => parseFloat(v.replace(',', '.')) || 0
@@ -546,6 +562,7 @@ const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number)
   session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
   updateSetCompletion(exerciseIndex, setIndex)
   persistExercisesToLocal()
+  unhideNavSoon()
 }
 
 const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) => {
@@ -566,6 +583,7 @@ const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) =
   session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
   updateSetCompletion(exerciseIndex, setIndex)
   persistExercisesToLocal()
+  unhideNavSoon()
 }
 
 const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
