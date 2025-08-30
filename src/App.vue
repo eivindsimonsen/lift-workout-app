@@ -86,7 +86,8 @@
           <main 
             v-if="isAuthenticated" 
             :key="route.path"
-            class="container mx-auto px-4 py-8 pb-32 md:pb-8"
+            class="container mx-auto px-4 py-8 md:pb-8"
+            :style="!hideBottomNav ? 'padding-bottom: 8rem;' : 'padding-bottom: 0;'"
             style="padding-top: calc(0.25rem + env(safe-area-inset-top));"
             ref="mainContent"
           >
