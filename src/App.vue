@@ -102,7 +102,7 @@
         <OfflineIndicator />
 
         <!-- Mobile Bottom Navigation - only show if authenticated -->
-        <nav v-if="isAuthenticated" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
+        <nav v-if="isAuthenticated" class="md:hidden absolute bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
         <!-- <nav v-if="isAuthenticated" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation pb-6" :style="isPWA ? 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))' : ''"> -->
           <!-- Progress Bar as border-top - only show if in workout session -->
           <div v-if="isWorkoutSession" class="w-full h-1 bg-dark-600">
