@@ -20,158 +20,157 @@
         <!-- Mobile Browser Blocker - Wraps entire app content -->
         <MobileBrowserBanner>
           <!-- Desktop Top Header (hidden on mobile) -->
-        <header v-if="isAuthenticated" class="hidden md:block sticky top-0 z-40 bg-dark-900/80 backdrop-blur border-b border-dark-700">
-          <div class="container mx-auto px-4 h-14 flex items-center justify-between">
-            <router-link to="/" class="text-white font-semibold tracking-wide">
-              LIFT
-            </router-link>
+          <header v-if="isAuthenticated" class="hidden md:block sticky top-0 z-40 bg-dark-900/80 backdrop-blur border-b border-dark-700">
+            <div class="container mx-auto px-4 h-14 flex items-center justify-between">
+              <router-link to="/" class="text-white font-semibold tracking-wide">
+                LIFT
+              </router-link>
 
-            <nav class="flex items-center gap-6">
-               <router-link 
-                 to="/" 
-                 class="text-dark-300 hover:text-white transition-colors flex items-center gap-2"
-                 :class="{ 'nav-link-active': $route.path === '/' || $route.path.startsWith('/workout/') || $route.path.startsWith('/template/') }"
-               >
-                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
-                 </svg>
-                 Økter
-               </router-link>
- 
-               <router-link 
-                 to="/exercises" 
-                 class="text-dark-300 hover:text-white transition-colors flex items-center gap-2"
-                 :class="{ 'nav-link-active': $route.path === '/exercises' || $route.path.startsWith('/exercise/') }"
-               >
-                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                 </svg>
-                 Øvelser
-               </router-link>
- 
-               <router-link 
-                 to="/history" 
-                 class="text-dark-300 hover:text-white transition-colors flex items-center gap-2"
-                 :class="{ 'nav-link-active': $route.path === '/history' || $route.path.startsWith('/session/') }"
-               >
-                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                 </svg>
-                 Historikk
-               </router-link>
- 
-               <router-link 
-                 to="/stats" 
-                 class="text-dark-300 hover:text-white transition-colors flex items-center gap-2"
-                 :class="{ 'nav-link-active': $route.path === '/stats' }"
-               >
-                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                 </svg>
-                 Statistikk
-               </router-link>
-             </nav>
+              <nav class="flex items-center gap-6">
+                <router-link 
+                  to="/" 
+                  class="text-dark-300 hover:text-white transition-colors flex items-center gap-2"
+                  :class="{ 'nav-link-active': $route.path === '/' || $route.path.startsWith('/workout/') || $route.path.startsWith('/template/') }"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+                  </svg>
+                  Økter
+                </router-link>
 
-            <router-link to="/profile" class="flex items-center gap-3">
-              <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
-                <span class="text-white text-sm font-medium">{{ userInitials }}</span>
-              </div>
-              <span class="text-dark-200 hover:text-white transition-colors">Profil</span>
-            </router-link>
-          </div>
-        </header>
+                <router-link 
+                  to="/exercises" 
+                  class="text-dark-300 hover:text-white transition-colors flex items-center gap-2"
+                  :class="{ 'nav-link-active': $route.path === '/exercises' || $route.path.startsWith('/exercise/') }"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  Øvelser
+                </router-link>
 
-        <!-- Main content -->
-        <main 
-          v-if="isAuthenticated" 
-          :key="route.path"
-          class="container mx-auto px-4 py-8 pb-32 md:pb-8"
-          style="padding-top: calc(0.25rem + env(safe-area-inset-top));"
-          ref="mainContent"
-        >
-          <router-view />
-        </main>
-        
-        <!-- Non-authenticated content -->
-        <main v-else>
-          <router-view />
-        </main>
+                <router-link 
+                  to="/history" 
+                  class="text-dark-300 hover:text-white transition-colors flex items-center gap-2"
+                  :class="{ 'nav-link-active': $route.path === '/history' || $route.path.startsWith('/session/') }"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Historikk
+                </router-link>
 
-        <!-- Offline Indicator -->
-        <OfflineIndicator />
+                <router-link 
+                  to="/stats" 
+                  class="text-dark-300 hover:text-white transition-colors flex items-center gap-2"
+                  :class="{ 'nav-link-active': $route.path === '/stats' }"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  Statistikk
+                </router-link>
+              </nav>
 
-        <!-- Mobile Bottom Navigation - only show if authenticated -->
-        <nav v-if="isAuthenticated" class="md:hidden absolute bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50">
-        <!-- <nav v-if="isAuthenticated" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation pb-6" :style="isPWA ? 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))' : ''"> -->
-          <!-- Progress Bar as border-top - only show if in workout session -->
-          <div v-if="isWorkoutSession" class="w-full h-1 bg-dark-600">
-            <div 
-              class="bg-primary-500 h-1 transition-all duration-300"
-              :style="{ width: workoutProgress.percentage + '%' }"
-            ></div>
-          </div>
+              <router-link to="/profile" class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+                  <span class="text-white text-sm font-medium">{{ userInitials }}</span>
+                </div>
+                <span class="text-dark-200 hover:text-white transition-colors">Profil</span>
+              </router-link>
+            </div>
+          </header>
+
+          <!-- Main content -->
+          <main 
+            v-if="isAuthenticated" 
+            :key="route.path"
+            class="container mx-auto px-4 py-8 pb-32 md:pb-8"
+            style="padding-top: calc(0.25rem + env(safe-area-inset-top));"
+            ref="mainContent"
+          >
+            <router-view />
+          </main>
           
-          <div class="flex justify-around">
-            <router-link 
-              to="/" 
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-              :class="{ 'nav-link-active': $route.path === '/' || $route.path.startsWith('/workout/') || $route.path.startsWith('/template/') }"
-            >
-              <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
-              </svg>
-              <span class="text-xs">Økter</span>
-            </router-link>
-            
-            <router-link 
-              to="/exercises" 
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-              :class="{ 'nav-link-active': $route.path === '/exercises' || $route.path.startsWith('/exercise/') }"
-            >
-              <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <span class="text-xs">Øvelser</span>
-            </router-link>
-            
-            <router-link 
-              to="/history" 
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-              :class="{ 'nav-link-active': $route.path === '/history' || $route.path.startsWith('/session/') }"
-            >
-              <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span class="text-xs">Historikk</span>
-            </router-link>
-            
-            <router-link 
-              to="/stats" 
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-              :class="{ 'nav-link-active': $route.path === '/stats' }"
-            >
-              <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span class="text-xs">Statistikk</span>
-            </router-link>
-            
-            <router-link 
-              to="/profile"
-              class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-            >
-              <div class="w-6 h-6 mb-1 bg-primary-500 rounded-full flex items-center justify-center">
-                <span class="text-white text-xs font-medium">{{ userInitials }}</span>
-              </div>
-              <span class="text-xs">Profil</span>
-            </router-link>
-          </div>
-        </nav>
+          <!-- Non-authenticated content -->
+          <main v-else>
+            <router-view />
+          </main>
 
-        <!-- Workout Session Navigation - only show if in workout session -->
-        <!-- Removed: Complete button is now integrated into WorkoutSession.vue content -->
+          <!-- Offline Indicator -->
+          <OfflineIndicator />
+
+          <!-- Mobile Bottom Navigation - only show if authenticated AND not hidden -->
+          <nav v-if="isAuthenticated && !hideBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation">
+            <!-- Progress Bar as border-top - only show if in workout session -->
+            <div v-if="isWorkoutSession" class="w-full h-1 bg-dark-600">
+              <div 
+                class="bg-primary-500 h-1 transition-all duration-300"
+                :style="{ width: workoutProgress.percentage + '%' }"
+              ></div>
+            </div>
+            
+            <div class="flex justify-around">
+              <router-link 
+                to="/" 
+                class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+                :class="{ 'nav-link-active': $route.path === '/' || $route.path.startsWith('/workout/') || $route.path.startsWith('/template/') }"
+              >
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+                </svg>
+                <span class="text-xs">Økter</span>
+              </router-link>
+              
+              <router-link 
+                to="/exercises" 
+                class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+                :class="{ 'nav-link-active': $route.path === '/exercises' || $route.path.startsWith('/exercise/') }"
+              >
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span class="text-xs">Øvelser</span>
+              </router-link>
+              
+              <router-link 
+                to="/history" 
+                class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+                :class="{ 'nav-link-active': $route.path === '/history' || $route.path.startsWith('/session/') }"
+              >
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-xs">Historikk</span>
+              </router-link>
+              
+              <router-link 
+                to="/stats" 
+                class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+                :class="{ 'nav-link-active': $route.path === '/stats' }"
+              >
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span class="text-xs">Statistikk</span>
+              </router-link>
+              
+              <router-link 
+                to="/profile"
+                class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
+              >
+                <div class="w-6 h-6 mb-1 bg-primary-500 rounded-full flex items-center justify-center">
+                  <span class="text-white text-xs font-medium">{{ userInitials }}</span>
+                </div>
+                <span class="text-xs">Profil</span>
+              </router-link>
+            </div>
+          </nav>
+
+          <!-- Workout Session Navigation - only show if in workout session -->
+          <!-- Removed: Complete button is now integrated into WorkoutSession.vue content -->
         </MobileBrowserBanner>
       </div>
     </div>
@@ -212,6 +211,9 @@ const hasInitialized = ref(false)
 const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
 const networkStatus = ref<'online' | 'offline'>('online')
+
+// NEW: toggleable bottom nav (hidden when iOS keyboard shows / inputs focused)
+const hideBottomNav = ref(false)
 
 // --- Network status monitoring ---
 const updateNetworkStatus = () => {
@@ -274,6 +276,21 @@ const userInitials = computed(() => {
 const isPWA = computed(() => window.matchMedia('(display-mode: standalone)').matches)
 const isDevelopment = computed(() => import.meta.env.DEV)
 
+// --- iOS keyboard helpers ---
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+         (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1)
+}
+function isTextInput(el: EventTarget | null) {
+  const node = el as HTMLElement | null
+  if (!node) return false
+  const tag = node.tagName?.toLowerCase()
+  if (tag === 'textarea') return true
+  if (tag === 'input') return true
+  if (node.isContentEditable) return true
+  return false
+}
+let vvResizeHandler: ((this: VisualViewport, ev: Event) => any) | null = null
 
 // --- Lifecycle ---
 onMounted(async () => {
@@ -312,11 +329,49 @@ onMounted(async () => {
     }
   }
 
+  // NEW: external toggle for bottom nav (used by views/components)
+  const toggleBottomNav = (e: Event) => {
+    const ce = e as CustomEvent
+    hideBottomNav.value = !!ce.detail?.hidden
+  }
+
+  // NEW: hide/show based on focus (iOS)
+  const focusIn = (e: FocusEvent) => {
+    if (!isIOS()) return
+    if (isTextInput(e.target)) hideBottomNav.value = true
+  }
+  const focusOut = (e: FocusEvent) => {
+    if (!isIOS()) return
+    setTimeout(() => {
+      hideBottomNav.value = isTextInput(document.activeElement) ? true : false
+    }, 80)
+  }
+
+  // NEW: visualViewport signals for keyboard presence (iOS 15+)
+  if ('visualViewport' in window && (window as any).visualViewport) {
+    const vv = (window as any).visualViewport as VisualViewport
+    vvResizeHandler = () => {
+      const kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      document.documentElement.style.setProperty('--kb', `${Math.round(kbHeight)}px`)
+      if (kbHeight === 0 && !isTextInput(document.activeElement)) hideBottomNav.value = false
+    }
+    vv.addEventListener('resize', vvResizeHandler)
+    vv.addEventListener('scroll', vvResizeHandler)
+  }
+
+  // Reset on route changes
+  const stopRouteWatch = watch(() => route.fullPath, () => { hideBottomNav.value = false })
+
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('updateAppSaveState', handleSaveStateUpdate as EventListener)
   window.addEventListener('beforeunload', handleBeforeUnload)
   window.addEventListener('online', updateNetworkStatus)
   window.addEventListener('offline', updateNetworkStatus)
+
+  // NEW: listeners for nav/keyboard
+  window.addEventListener('toggleBottomNav', toggleBottomNav as EventListener)
+  document.addEventListener('focusin', focusIn)
+  document.addEventListener('focusout', focusOut)
 
   onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
@@ -324,6 +379,17 @@ onMounted(async () => {
     window.removeEventListener('beforeunload', handleBeforeUnload)
     window.removeEventListener('online', updateNetworkStatus)
     window.removeEventListener('offline', updateNetworkStatus)
+
+    // NEW: cleanup
+    window.removeEventListener('toggleBottomNav', toggleBottomNav as EventListener)
+    document.removeEventListener('focusin', focusIn)
+    document.removeEventListener('focusout', focusOut)
+    if (vvResizeHandler && (window as any).visualViewport) {
+      const vv = (window as any).visualViewport as VisualViewport
+      vv.removeEventListener('resize', vvResizeHandler)
+      vv.removeEventListener('scroll', vvResizeHandler)
+    }
+    stopRouteWatch()
   })
 })
 
@@ -357,5 +423,4 @@ watch(
   },
   { immediate: true }
 )
-
 </script>
