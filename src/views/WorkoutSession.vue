@@ -193,7 +193,7 @@
                     <label class="block text-sm font-medium text-dark-300 mb-3">Reps</label>
                     <input
                       :value="set.reps === 0 ? '' : set.reps"
-                      type="number"
+                      type="text"
                       inputmode="numeric"
                       pattern="[0-9]*"
                       min="0"
