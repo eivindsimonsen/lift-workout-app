@@ -94,8 +94,16 @@
           <!-- Exercise Separator -->
           <div v-if="exerciseIndex >= 0" class="mb-4 flex items-center">
             <div class="flex-1 h-px bg-dark-600"></div>
-            <div class="mx-4 px-3 py-1 bg-dark-700 rounded-full border border-dark-600 flex justify-center">
-              <span class="text-xs font-medium text-dark-400">Øvelse {{ exerciseIndex + 1 }}</span>
+            <div 
+              class="mx-4 px-3 py-1 rounded-full border flex justify-center"
+              :class="isExerciseCompleted(exercise) ? 'bg-green-500/10 border-green-500/30' : 'bg-dark-700 border-dark-600'"
+            >
+              <span 
+                class="text-xs font-medium"
+                :class="isExerciseCompleted(exercise) ? 'text-green-400' : 'text-dark-400'"
+              >
+                {{ isExerciseCompleted(exercise) ? `Øvelse ${exerciseIndex + 1} fullført` : `Øvelse ${exerciseIndex + 1}` }}
+              </span>
             </div>
             <div class="flex-1 h-px bg-dark-600"></div>
           </div>
@@ -119,17 +127,8 @@
                 </span>
               </div>
               
-              <h3 class="text-xl font-bold text-white mb-2 flex items-center">
+              <h3 class="text-xl font-bold text-white mb-2 truncate">
                 {{ exercise.name }}
-                <svg 
-                  class="w-4 h-4 ml-2 transition-transform"
-                  :class="{ 'rotate-180': !collapsedExercises[exerciseIndex] }"
-                  fill="none"
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
               </h3>
               
               <!-- Last Performance -->
@@ -142,9 +141,23 @@
                 </span>
               </div>
             </div>
+
+            <!-- Right Column: Status Indicator -->
+            <div class="ml-4 flex items-center gap-2">
+              <svg 
+                class="w-4 h-4 text-dark-300 transition-transform"
+                :class="{ 'rotate-180': !collapsedExercises[exerciseIndex] }"
+                fill="none"
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
 
           <!-- Sets -->
+          <Transition @enter="expand" @after-enter="afterExpand" @leave="collapse" @after-leave="afterCollapse">
           <div v-show="!collapsedExercises[exerciseIndex]" class="bg-dark-800/50 border border-dark-700 rounded-xl overflow-hidden">
             <!-- Animate add/remove of sets -->
             <TransitionGroup
@@ -247,6 +260,7 @@
               </button>
             </div>
           </div>
+          </Transition>
         </div>
       </div>
 
@@ -1107,6 +1121,54 @@ const collapsedExercises = ref<boolean[]>([])
 // Methods
 const toggleExercise = (index: number) => {
   collapsedExercises.value[index] = !collapsedExercises.value[index]
+}
+
+// Smooth expand/collapse animations for exercise content
+function expand(el: Element) {
+  const element = el as HTMLElement
+  element.style.overflow = 'hidden'
+  element.style.height = '0px'
+  element.style.opacity = '0'
+  // Force reflow to ensure the initial styles are applied
+  void element.offsetHeight
+  const targetHeight = `${element.scrollHeight}px`
+  element.style.transition = 'height 200ms ease, opacity 200ms ease'
+  element.style.height = targetHeight
+  element.style.opacity = '1'
+}
+
+function afterExpand(el: Element) {
+  const element = el as HTMLElement
+  element.style.transition = ''
+  element.style.height = ''
+  element.style.overflow = ''
+  element.style.opacity = ''
+}
+
+function collapse(el: Element) {
+  const element = el as HTMLElement
+  element.style.overflow = 'hidden'
+  element.style.height = `${element.scrollHeight}px`
+  element.style.opacity = '1'
+  // Force reflow
+  void element.offsetHeight
+  element.style.transition = 'height 200ms ease, opacity 200ms ease'
+  element.style.height = '0px'
+  element.style.opacity = '0'
+}
+
+function afterCollapse(el: Element) {
+  const element = el as HTMLElement
+  element.style.transition = ''
+  element.style.height = ''
+  element.style.overflow = ''
+  element.style.opacity = ''
+}
+
+// Determine when an exercise is fully completed (all sets complete)
+const isExerciseCompleted = (exercise: any): boolean => {
+  if (!exercise || !Array.isArray(exercise.sets) || exercise.sets.length === 0) return false
+  return exercise.sets.every((set: any) => set.isCompleted && set.weight > 0 && set.reps > 0)
 }
 
 // Lifecycle
