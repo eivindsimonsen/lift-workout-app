@@ -91,10 +91,10 @@
       </router-link>
     </div>
 
-    <!-- Workout Sessions -->
+    <!-- Workout Sessions (paginated) -->
     <div v-else class="mt-8 space-y-4 px-1">
       <router-link 
-        v-for="session in filteredSessions" 
+        v-for="session in pagedSessions" 
         :key="session.id"
         :to="`/session/${session.id}`"
         class="card hover:bg-dark-700 transition-colors cursor-pointer block no-underline"
@@ -133,6 +133,10 @@
           </div>
         </div>
       </router-link>
+      <!-- Load more -->
+      <div v-if="filteredSessions.length > visibleCount" class="flex justify-center pt-2">
+        <button @click="loadMore" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded text-sm text-white">Last inn flere</button>
+      </div>
     </div>
 
     <!-- Filter Modal -->
@@ -278,6 +282,11 @@ const filteredSessions = computed(() => {
 
   return sessions
 })
+
+// Pagination
+const visibleCount = ref(30)
+const pagedSessions = computed(() => filteredSessions.value.slice(0, visibleCount.value))
+const loadMore = () => { visibleCount.value += 30 }
 
 const hasActiveFilters = computed(() => {
   return searchQuery.value || selectedWorkoutTypes.value.data.size > 0

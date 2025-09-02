@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS workout_sessions (
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_workout_sessions_user_id ON workout_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_workout_sessions_date ON workout_sessions(date);
+-- Composite index to accelerate common filter/sort: WHERE user_id = ? ORDER BY date DESC
+CREATE INDEX IF NOT EXISTS idx_workout_sessions_user_id_date ON workout_sessions(user_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_workout_sessions_template_id ON workout_sessions(template_id);
 
 -- RLS
