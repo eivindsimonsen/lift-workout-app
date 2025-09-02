@@ -332,6 +332,21 @@
         @select="handleAddExerciseFromPanel"
       />
 
+      <!-- Exercise Separator -->
+      <div class="mb-4 flex items-center mt-8">
+        <div class="flex-1 h-px bg-dark-600"></div>
+        <div 
+          class="mx-4 px-3 py-1 rounded-full border flex justify-center bg-dark-700 border-dark-600"
+        >
+          <span 
+            class="text-xs font-medium text-dark-400"
+          >
+            Åpen øvelse
+          </span>
+        </div>
+        <div class="flex-1 h-px bg-dark-600"></div>
+      </div>
+
       <!-- Add Exercise Section -->
       <div class="mt-8">
         <div class="card">
@@ -349,6 +364,7 @@
               </span>
             </button>
           </div>
+          
           <div class="md:hidden">
             <button 
               @click="openMobileAddExercise()"
@@ -364,6 +380,20 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <div class="mb-4 flex items-center mt-8">
+        <div class="flex-1 h-px bg-dark-600"></div>
+        <div 
+          class="mx-4 px-3 py-1 rounded-full border flex justify-center bg-dark-700 border-dark-600"
+        >
+          <span 
+            class="text-xs font-medium text-dark-400"
+          >
+            Summering
+          </span>
+        </div>
+        <div class="flex-1 h-px bg-dark-600"></div>
       </div>
 
       <!-- Summary -->
