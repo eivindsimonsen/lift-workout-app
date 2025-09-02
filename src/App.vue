@@ -183,7 +183,7 @@
   <UpdateNotification />
   
   <!-- Test component for development -->
-  <UpdateTest v-if="isDevelopment" />
+  
 </template>
 
 <script setup lang="ts">
@@ -193,7 +193,7 @@ import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
 import UpdateNotification from '@/components/UpdateNotification.vue'
-import UpdateTest from '@/components/UpdateTest.vue'
+ 
 import OfflineIndicator from '@/components/OfflineIndicator.vue'
 import MobileBrowserBanner from '@/components/MobileBrowserBanner.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
@@ -218,7 +218,7 @@ const hideBottomNav = ref(false)
 // --- Network status monitoring ---
 const updateNetworkStatus = () => {
   networkStatus.value = navigator.onLine ? 'online' : 'offline'
-  console.log(`🌐 App: Network status changed to ${networkStatus.value}`)
+  
 
   // If we're back online, sync pending changes
   if (networkStatus.value === 'online') {
@@ -240,7 +240,7 @@ const formatLastSyncTime = (timestamp: number) => {
 // Keep network status in sync with store
 watch(() => workoutData.isOnline.value, (isOnline) => {
   networkStatus.value = isOnline ? 'online' : 'offline'
-  console.log(`🌐 App: Network status updated to ${networkStatus.value}`)
+  
   if (isOnline) {
     workoutData.syncPendingChanges()
   }
@@ -302,7 +302,7 @@ onMounted(async () => {
     lastRoute &&
     lastRoute !== '/'
   ) {
-    console.log('🔄 Restoring last route:', lastRoute)
+    
     router.replace(lastRoute)
   }
 
@@ -310,7 +310,7 @@ onMounted(async () => {
   const handleKeydown = (event: KeyboardEvent) => {
     if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault()
-      console.log('📱 Auto-save is active - no manual save needed')
+      
     }
   }
 

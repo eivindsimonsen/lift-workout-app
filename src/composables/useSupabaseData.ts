@@ -10,7 +10,7 @@ const logSupabaseAccess = (operation: string, details?: any) => {
   void details; // keep signature, silence unused
 };
 let __syncSeq = 0;
-const tick = (seq: number, msg: string) => console.log(`[sync ${seq}] ${msg} @ ${new Date().toISOString()}`);
+const tick = (seq: number, msg: string) => {};
 
 // ------- serializable helpers ----------
 const createSerializableUser = (user: any) => {
@@ -146,7 +146,7 @@ const createSupabaseData = () => {
   const updateNetworkStatus = () => {
     const wasOffline = !isOnline.value;
     isOnline.value = navigator.onLine;
-    console.log(`🌐 Network status: ${isOnline.value ? "Online" : "Offline"}`);
+
     if (wasOffline && isOnline.value && currentUser.value && indexedDB.isSupported.value) {
       // only push local pending changes; don't pull fresh data here
       setTimeout(async () => {
@@ -161,9 +161,7 @@ const createSupabaseData = () => {
   // init cache
   const initIndexedDB = async () => {
     try {
-      console.log("📱 Initializing IndexedDB for offline caching...");
       await indexedDB.initDB();
-      console.log("✅ IndexedDB initialized for offline caching");
     } catch (e) {
       console.error("❌ Failed to initialize IndexedDB:", e);
       // app still works, but treat as no offline
@@ -234,20 +232,17 @@ const createSupabaseData = () => {
       const shouldSync = isOnline.value && !hasPendingChanges && (forceRefresh || allowed);
 
       if (!shouldSync) {
-        if (!forceRefresh) console.log("🛑 Skipping network sync (throttled or pending changes).");
         return;
       }
 
       // perform sync (serialized)
       try {
-        console.log("🌐 Syncing with Supabase...");
         await runSyncOnce(() => syncWithSupabase());
-        console.log("✅ Supabase synced successfully");
+
         nextAllowedSync.value = Date.now() + MIN_SYNC_INTERVAL_MS;
       } catch (err) {
         console.error("❌ Supabase sync failed:", err);
         if (cachedData) {
-          console.log("📱 Using cached data due to sync failure");
           templates.value = cachedData.templates || [];
           sessions.value = (cachedData.sessions || []).map((s: any) => ({ ...s, date: new Date(s.date) }));
         }
@@ -265,8 +260,6 @@ const createSupabaseData = () => {
     const seq = ++__syncSeq;
     tick(seq, "begin syncWithSupabase");
     try {
-      console.log("🌐 Syncing with Supabase...");
-
       // helper: format server rows → client shape
       const formatSessions = (rows: any[]): WorkoutSession[] =>
         (rows || []).map((s: any) => {
@@ -654,8 +647,6 @@ const createSupabaseData = () => {
         return;
       }
 
-      console.log(`🔄 Syncing ${pendingChanges.length} pending changes...`);
-
       for (const change of pendingChanges) {
         // Narrow the ID (it should exist for rows read from IDB, but TS needs proof)
         const hasId = typeof (change as any).id === "number";
@@ -664,7 +655,6 @@ const createSupabaseData = () => {
 
           if (hasId) {
             await indexedDB.removePendingChange((change as any).id as number);
-            console.log(`✅ Synced pending change: ${change.type}`);
           } else {
             console.warn("⚠️ Pending change had no ID; cannot remove. Skipping cleanup.", change);
           }
@@ -677,7 +667,6 @@ const createSupabaseData = () => {
             if (hasId) {
               try {
                 await indexedDB.removePendingChange((change as any).id as number);
-                console.log(`🗑️ Removed failed pending change after 3 attempts: ${change.type}`);
               } catch (removeError) {
                 console.warn("⚠️ Failed to remove failed pending change:", removeError);
               }
@@ -810,8 +799,22 @@ const createSupabaseData = () => {
         workoutType: data.workout_type,
         exercises: data.exercises,
       });
-
-      // No full reload; keep local state and rely on incremental sync
+      // Update cache immediately so subsequent screens read fresh data
+      if (indexedDB.isSupported.value && currentUser.value) {
+        try {
+          const serializableUser = createSerializableUser(currentUser.value);
+          if (serializableUser) {
+            await indexedDB.storeUserData(currentUser.value.id, {
+              templates: ensureSerializable([...templates.value]),
+              sessions: ensureSerializable([...sessions.value]),
+              lastSync: Date.now(),
+              user: serializableUser,
+            });
+          }
+        } catch (e) {
+          console.warn("⚠️ Failed to update cache after adding template:", e);
+        }
+      }
     } catch (e) {
       console.error("Error in addTemplate:", e);
       showError("Kunne ikke opprette økt. Prøv igjen.");
@@ -840,7 +843,22 @@ const createSupabaseData = () => {
     const idx = templates.value.findIndex((t) => t.id === id);
     if (idx !== -1) templates.value[idx] = { ...templates.value[idx], ...updates };
 
-    // No full reload; keep local state and rely on incremental sync
+    // Update cache immediately so subsequent screens read fresh data
+    if (indexedDB.isSupported.value && currentUser.value) {
+      try {
+        const serializableUser = createSerializableUser(currentUser.value);
+        if (serializableUser) {
+          await indexedDB.storeUserData(currentUser.value.id, {
+            templates: ensureSerializable([...templates.value]),
+            sessions: ensureSerializable([...sessions.value]),
+            lastSync: Date.now(),
+            user: serializableUser,
+          });
+        }
+      } catch (e) {
+        console.warn("⚠️ Failed to update cache after updating template:", e);
+      }
+    }
 
     await refreshPendingChangesCount();
   };
@@ -853,7 +871,22 @@ const createSupabaseData = () => {
       return;
     }
     templates.value = templates.value.filter((t) => t.id !== id);
-    // No full reload; keep local state and rely on incremental sync
+    // Update cache immediately so subsequent screens read fresh data
+    if (indexedDB.isSupported.value && currentUser.value) {
+      try {
+        const serializableUser = createSerializableUser(currentUser.value);
+        if (serializableUser) {
+          await indexedDB.storeUserData(currentUser.value.id, {
+            templates: ensureSerializable([...templates.value]),
+            sessions: ensureSerializable([...sessions.value]),
+            lastSync: Date.now(),
+            user: serializableUser,
+          });
+        }
+      } catch (e) {
+        console.warn("⚠️ Failed to update cache after deleting template:", e);
+      }
+    }
     await refreshPendingChangesCount();
   };
 
@@ -1038,7 +1071,6 @@ const createSupabaseData = () => {
           console.warn("⚠️ Failed to update cache after completion:", e);
         }
       }
-      console.log("✅ Session completed and cache updated successfully");
     } catch (e) {
       console.error("❌ Error in completeWorkoutSession:", e);
       throw e;
@@ -1097,7 +1129,6 @@ const createSupabaseData = () => {
           console.warn("⚠️ Failed to update cache after deletion:", e);
         }
       }
-      console.log("✅ Session deleted successfully");
     } catch (e) {
       console.error("❌ Error deleting session:", e);
       throw e;
@@ -1131,7 +1162,6 @@ const createSupabaseData = () => {
           console.warn("⚠️ Failed to update cache after abandonment:", e);
         }
       }
-      console.log("✅ Session abandoned and deleted successfully");
     } catch (e) {
       console.error("❌ Error abandoning session:", e);
       throw e;
@@ -1143,13 +1173,10 @@ const createSupabaseData = () => {
   // ---- manual syncs ----
   const forceSyncPendingChanges = async () => {
     if (!isOnline.value || !currentUser.value || !indexedDB.isSupported.value) {
-      console.log("📱 Cannot force sync pending changes - no user or offline");
       return;
     }
     try {
-      console.log("📱 Force syncing pending changes...");
       await syncPendingChanges();
-      console.log("✅ Force sync of pending changes completed");
     } catch (e) {
       console.error("❌ Force sync of pending changes failed:", e);
       throw e;
@@ -1160,14 +1187,11 @@ const createSupabaseData = () => {
 
   const forceSyncData = async () => {
     if (!currentUser.value || !isOnline.value) {
-      console.log("📱 Cannot force sync - no user or offline");
       return;
     }
     try {
-      console.log("📱 Force syncing data with Supabase...");
       await runSyncOnce(() => syncWithSupabase()); // <<< serialize
       nextAllowedSync.value = Date.now() + MIN_SYNC_INTERVAL_MS; // respect throttle post-force
-      console.log("✅ Force sync completed successfully");
     } catch (e) {
       console.error("❌ Force sync failed:", e);
       throw e;

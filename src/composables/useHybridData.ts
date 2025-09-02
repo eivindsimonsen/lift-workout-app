@@ -4,11 +4,8 @@ import * as exercisesData from "@/data/exercises.json";
 import * as workoutTypesData from "@/data/workout-types.json";
 import type { WorkoutType, ExerciseData } from "@/types/workout";
 
-// Console logging utility
-const logHybridAccess = (operation: string, details?: unknown) => {
-  const timestamp = new Date().toLocaleTimeString("no-NO");
-  console.log(`[HybridData][${timestamp}] ${operation}`, details ?? "");
-};
+// Console logging utility (removed logs in production)
+const logHybridAccess = (_operation: string, _details?: unknown) => {};
 
 export const useHybridData = () => {
   const userData = useSupabaseData(); // Supabase for user data

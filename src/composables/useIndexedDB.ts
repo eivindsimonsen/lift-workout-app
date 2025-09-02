@@ -1,12 +1,5 @@
 import { ref } from "vue";
 
-interface CacheItem<T> {
-  key: string;
-  data: T;
-  timestamp: number;
-  expiresAt?: number;
-}
-
 interface UserData {
   templates: any[];
   sessions: any[];
@@ -27,7 +20,7 @@ export const useIndexedDB = () => {
 
   // Keep version at 1 unless you change the schema (then bump).
   const DB_NAME = "LIFTDB";
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
 
   let db: IDBDatabase | null = null;
 
@@ -70,10 +63,9 @@ export const useIndexedDB = () => {
           userDataStore.createIndex("lastSync", "lastSync", { unique: false });
         }
 
-        // cache: { key (keyPath), data, timestamp, expiresAt }
-        if (!upgradedDB.objectStoreNames.contains("cache")) {
-          const cacheStore = upgradedDB.createObjectStore("cache", { keyPath: "key" });
-          cacheStore.createIndex("expiresAt", "expiresAt", { unique: false });
+        // Drop legacy generic cache store if it exists (not used anymore)
+        if (upgradedDB.objectStoreNames.contains("cache")) {
+          upgradedDB.deleteObjectStore("cache");
         }
 
         // pendingChanges: autoIncrement id + { type, data, timestamp, retryCount }
@@ -82,8 +74,6 @@ export const useIndexedDB = () => {
           pendingStore.createIndex("type", "type", { unique: false });
           pendingStore.createIndex("timestamp", "timestamp", { unique: false });
         }
-
-        console.log("✅ IndexedDB schema prepared/updated");
       };
 
       request.onsuccess = () => {
@@ -96,7 +86,6 @@ export const useIndexedDB = () => {
           db = null;
         };
 
-        console.log("✅ IndexedDB initialized successfully");
         resolve();
       };
     });
@@ -138,15 +127,6 @@ export const useIndexedDB = () => {
       };
 
       // Simple telemetry (safe)
-      try {
-        console.log("🧹 Final sanitized data:", {
-          templatesCount: Array.isArray(userData.templates) ? userData.templates.length : 0,
-          sessionsCount: Array.isArray(userData.sessions) ? userData.sessions.length : 0,
-          userKeys: userData.user ? Object.keys(userData.user) : [],
-        });
-      } catch {
-        // ignore console failures
-      }
 
       const req = store.put({ userId, ...userData });
 
@@ -167,64 +147,7 @@ export const useIndexedDB = () => {
     });
   };
 
-  // ----- generic cache -----
-  const storeCache = async <T>(key: string, data: T, ttlMinutes = 60): Promise<void> => {
-    ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db!.transaction(["cache"], "readwrite");
-      const store = tx.objectStore("cache");
-
-      const cacheItem: CacheItem<T> = {
-        key,
-        data,
-        timestamp: Date.now(),
-        expiresAt: Date.now() + ttlMinutes * 60 * 1000,
-      };
-
-      const req = store.put(cacheItem);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  };
-
-  const getCache = async <T>(key: string): Promise<T | null> => {
-    ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db!.transaction(["cache"], "readonly");
-      const store = tx.objectStore("cache");
-      const req = store.get(key);
-
-      req.onsuccess = () => {
-        const item = req.result as CacheItem<T> | undefined;
-        if (!item) {
-          resolve(null);
-          return;
-        }
-
-        if (item.expiresAt && Date.now() > item.expiresAt) {
-          // clean up expired entry (best-effort, separate tx)
-          deleteCache(key).catch(() => {});
-          resolve(null);
-          return;
-        }
-
-        resolve(item.data);
-      };
-      req.onerror = () => reject(req.error);
-    });
-  };
-
-  const deleteCache = async (key: string): Promise<void> => {
-    ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db!.transaction(["cache"], "readwrite");
-      const store = tx.objectStore("cache");
-      const req = store.delete(key);
-
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  };
+  // ----- generic cache (removed) -----
 
   // ----- pending changes -----
   const storePendingChange = async (type: string, data: any): Promise<number | void> => {
@@ -275,34 +198,15 @@ export const useIndexedDB = () => {
 
   // ----- maintenance -----
   const cleanupExpiredCache = async (): Promise<void> => {
-    if (!db) return; // no-op if not initialized
-    try {
-      const tx = db.transaction(["cache"], "readwrite");
-      const store = tx.objectStore("cache");
-      const index = store.index("expiresAt");
-      const now = Date.now();
-
-      const req = index.openCursor(IDBKeyRange.upperBound(now));
-      req.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-        if (cursor) {
-          store.delete(cursor.primaryKey);
-          cursor.continue();
-        }
-      };
-      // errors are purposely swallowed (background maintenance)
-    } catch (err) {
-      console.error("Error cleaning up expired cache:", err);
-    }
+    return;
   };
 
   const clearUserData = async (userId: string): Promise<void> => {
     ensureDB();
     return new Promise((resolve, reject) => {
-      const tx = db!.transaction(["userData", "cache", "pendingChanges"], "readwrite");
+      const tx = db!.transaction(["userData", "pendingChanges"], "readwrite");
 
       tx.objectStore("userData").delete(userId);
-      tx.objectStore("cache").clear();
       tx.objectStore("pendingChanges").clear();
 
       tx.oncomplete = () => resolve();
@@ -319,10 +223,7 @@ export const useIndexedDB = () => {
     getUserData,
     clearUserData,
 
-    // cache
-    storeCache,
-    getCache,
-    deleteCache,
+    // cache (removed; keep maintenance no-op for compatibility)
     cleanupExpiredCache,
 
     // pending changes

@@ -388,8 +388,7 @@ const deleteTemplate = async () => {
     try {
       await workoutData.deleteTemplate(template.value.id)
       
-      // Force refresh the UI data to ensure changes are visible immediately
-      await workoutData.refreshUIData()
+      // Cache is already updated by data layer; no repaint from stale cache
       
       router.push('/')
     } catch (error) {
@@ -431,8 +430,7 @@ const saveTemplate = async () => {
       await workoutData.addTemplate(templateData)
     }
 
-    // Force refresh the UI data to ensure changes are visible immediately
-    await workoutData.refreshUIData()
+    // Cache is already updated by data layer; no repaint from stale cache
     
     // Navigate back to templates list
     router.push('/')

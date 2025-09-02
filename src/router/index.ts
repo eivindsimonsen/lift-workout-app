@@ -130,7 +130,6 @@ const router = createRouter({
 router.beforeEach(async (to: any, from: any, next: any) => {
   if (to.path !== from.path) {
     document.body.classList.add("route-transitioning");
-    console.log("🔒 Scroll lock applied before navigation");
   }
 
   const { supabase } = useSupabase();
@@ -177,8 +176,6 @@ router.beforeEach(async (to: any, from: any, next: any) => {
 // After-each: handle workout resume/new & scroll containers explicitly
 router.afterEach((to: any, from: any) => {
   if (to.path !== from.path) {
-    console.log("🔄 Router navigation detected:", { from: from.path, to: to.path });
-
     if (to.name === "WorkoutSession") {
       const coldStart = !from || !from.name || (Array.isArray(from.matched) && from.matched.length === 0);
       const fromIsWorkout = from && from.name === "WorkoutSession";
@@ -233,7 +230,6 @@ router.afterEach((to: any, from: any) => {
 
     setTimeout(() => {
       document.body.classList.remove("route-transitioning");
-      console.log("🔓 Router scroll lock released");
     }, 150);
   }
 });
