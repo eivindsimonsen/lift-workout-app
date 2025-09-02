@@ -142,19 +142,6 @@
                 </span>
               </div>
             </div>
-            
-            <!-- Right Column: Actions -->
-            <div class="flex items-center gap-3 ml-4">
-              <button 
-                @click.stop="removeExercise(exerciseIndex)"
-                class="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
-                title="Slett øvelse"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
           </div>
 
           <!-- Sets -->
@@ -243,10 +230,16 @@
             </TransitionGroup>
 
             <!-- Add Set Button -->
-            <div class="p-5 border-t border-dark-600">
+            <div class="p-5 border-t border-dark-600 flex gap-2">
+              <button @click="removeExercise(exerciseIndex)" class="w-3/10 btn-secondary text-sm py-4 border-2 border-dark-600 bg-red-500 text-white">
+                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Fjern øvelse
+              </button>
               <button
                 @click="addSet(exerciseIndex)"
-                class="w-full btn-secondary text-sm py-4 border-2 border-dark-600">
+                class="flex-1 btn-secondary text-sm py-4 border-2 border-dark-600">
                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
