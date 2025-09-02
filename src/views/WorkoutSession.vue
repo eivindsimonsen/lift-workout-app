@@ -1155,7 +1155,7 @@ function expand(el: Element) {
   // Force reflow to ensure the initial styles are applied
   void element.offsetHeight
   const targetHeight = `${element.scrollHeight}px`
-  element.style.transition = 'height 200ms ease, opacity 200ms ease'
+  element.style.transition = 'height 180ms linear, opacity 180ms linear'
   element.style.height = targetHeight
   element.style.opacity = '1'
 }
@@ -1175,7 +1175,7 @@ function collapse(el: Element) {
   element.style.opacity = '1'
   // Force reflow
   void element.offsetHeight
-  element.style.transition = 'height 200ms ease, opacity 200ms ease'
+  element.style.transition = 'height 180ms linear, opacity 180ms linear'
   element.style.height = '0px'
   element.style.opacity = '0'
 }
