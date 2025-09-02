@@ -94,8 +94,16 @@
           <!-- Exercise Separator -->
           <div v-if="exerciseIndex >= 0" class="mb-4 flex items-center">
             <div class="flex-1 h-px bg-dark-600"></div>
-            <div class="mx-4 px-3 py-1 bg-dark-700 rounded-full border border-dark-600 flex justify-center">
-              <span class="text-xs font-medium text-dark-400">Øvelse {{ exerciseIndex + 1 }}</span>
+            <div 
+              class="mx-4 px-3 py-1 rounded-full border flex justify-center"
+              :class="isExerciseCompleted(exercise) ? 'bg-green-500/10 border-green-500/30' : 'bg-dark-700 border-dark-600'"
+            >
+              <span 
+                class="text-xs font-medium"
+                :class="isExerciseCompleted(exercise) ? 'text-green-400' : 'text-dark-400'"
+              >
+                {{ isExerciseCompleted(exercise) ? `Øvelse ${exerciseIndex + 1} fullført` : `Øvelse ${exerciseIndex + 1}` }}
+              </span>
             </div>
             <div class="flex-1 h-px bg-dark-600"></div>
           </div>
@@ -119,17 +127,8 @@
                 </span>
               </div>
               
-              <h3 class="text-xl font-bold text-white mb-2 flex items-center">
+              <h3 class="text-xl font-bold text-white mb-2 truncate">
                 {{ exercise.name }}
-                <svg 
-                  class="w-4 h-4 ml-2 transition-transform"
-                  :class="{ 'rotate-180': !collapsedExercises[exerciseIndex] }"
-                  fill="none"
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
               </h3>
               
               <!-- Last Performance -->
@@ -142,22 +141,23 @@
                 </span>
               </div>
             </div>
-            
-            <!-- Right Column: Actions -->
-            <div class="flex items-center gap-3 ml-4">
-              <button 
-                @click.stop="removeExercise(exerciseIndex)"
-                class="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-500/10 rounded-lg flex items-center justify-center w-8 h-8"
-                title="Slett øvelse"
+
+            <!-- Right Column: Status Indicator -->
+            <div class="ml-4 flex items-center gap-2">
+              <svg 
+                class="w-4 h-4 text-dark-300 transition-transform"
+                :class="{ 'rotate-180': !collapsedExercises[exerciseIndex] }"
+                fill="none"
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
           </div>
 
           <!-- Sets -->
+          <Transition @enter="expand" @after-enter="afterExpand" @leave="collapse" @after-leave="afterCollapse">
           <div v-show="!collapsedExercises[exerciseIndex]" class="bg-dark-800/50 border border-dark-700 rounded-xl overflow-hidden">
             <!-- Animate add/remove of sets -->
             <TransitionGroup
@@ -243,10 +243,16 @@
             </TransitionGroup>
 
             <!-- Add Set Button -->
-            <div class="p-5 border-t border-dark-600">
+            <div class="p-5 border-t border-dark-600 flex gap-2">
+              <button @click="removeExercise(exerciseIndex)" class="w-3/10 btn-secondary text-sm py-4 border-2 border-dark-600 bg-red-500 text-white">
+                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Fjern øvelse
+              </button>
               <button
                 @click="addSet(exerciseIndex)"
-                class="w-full btn-secondary text-sm py-4 border-2 border-dark-600">
+                class="flex-1 btn-secondary text-sm py-4 border-2 border-dark-600">
                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
@@ -254,6 +260,7 @@
               </button>
             </div>
           </div>
+          </Transition>
         </div>
       </div>
 
@@ -325,6 +332,21 @@
         @select="handleAddExerciseFromPanel"
       />
 
+      <!-- Exercise Separator -->
+      <div class="mb-4 flex items-center mt-8">
+        <div class="flex-1 h-px bg-dark-600"></div>
+        <div 
+          class="mx-4 px-3 py-1 rounded-full border flex justify-center bg-dark-700 border-dark-600"
+        >
+          <span 
+            class="text-xs font-medium text-dark-400"
+          >
+            Åpen øvelse
+          </span>
+        </div>
+        <div class="flex-1 h-px bg-dark-600"></div>
+      </div>
+
       <!-- Add Exercise Section -->
       <div class="mt-8">
         <div class="card">
@@ -342,6 +364,7 @@
               </span>
             </button>
           </div>
+          
           <div class="md:hidden">
             <button 
               @click="openMobileAddExercise()"
@@ -357,6 +380,20 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <div class="mb-4 flex items-center mt-8">
+        <div class="flex-1 h-px bg-dark-600"></div>
+        <div 
+          class="mx-4 px-3 py-1 rounded-full border flex justify-center bg-dark-700 border-dark-600"
+        >
+          <span 
+            class="text-xs font-medium text-dark-400"
+          >
+            Summering
+          </span>
+        </div>
+        <div class="flex-1 h-px bg-dark-600"></div>
       </div>
 
       <!-- Summary -->
@@ -842,31 +879,24 @@ const formatDate = (date: Date): string => {
 }
 
 const getLastPerformance = (exerciseId: string) => {
-  const completedSessions = workoutData.sessions.value.filter(session => session.isCompleted)
+  // We want the most recent completed session containing this exercise,
+  // then the last completed set within that session (not the best by volume).
+  const completedSessions = workoutData.sessions.value
+    .filter(session => session.isCompleted)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   for (const session of completedSessions) {
     const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
-    if (exercise) {
-      let bestSet: any = null
-      let bestVolume = 0
+    if (!exercise) continue
 
-      exercise.sets.forEach(set => {
-        if (set.isCompleted && set.weight && set.reps) {
-          const volume = set.weight * set.reps
-          if (volume > bestVolume) {
-            bestVolume = volume
-            bestSet = set
-          }
-        }
-      })
+    const completedSets = exercise.sets.filter(set => set.isCompleted && set.weight && set.reps)
+    if (completedSets.length === 0) continue
 
-      if (bestSet) {
-        return {
-          weight: bestSet.weight,
-          reps: bestSet.reps,
-          date: session.date
-        }
-      }
+    const lastSet = completedSets[completedSets.length - 1]
+    return {
+      weight: lastSet.weight,
+      reps: lastSet.reps,
+      date: session.date
     }
   }
 
@@ -1114,6 +1144,54 @@ const collapsedExercises = ref<boolean[]>([])
 // Methods
 const toggleExercise = (index: number) => {
   collapsedExercises.value[index] = !collapsedExercises.value[index]
+}
+
+// Smooth expand/collapse animations for exercise content
+function expand(el: Element) {
+  const element = el as HTMLElement
+  element.style.overflow = 'hidden'
+  element.style.height = '0px'
+  element.style.opacity = '0'
+  // Force reflow to ensure the initial styles are applied
+  void element.offsetHeight
+  const targetHeight = `${element.scrollHeight}px`
+  element.style.transition = 'height 200ms ease, opacity 200ms ease'
+  element.style.height = targetHeight
+  element.style.opacity = '1'
+}
+
+function afterExpand(el: Element) {
+  const element = el as HTMLElement
+  element.style.transition = ''
+  element.style.height = ''
+  element.style.overflow = ''
+  element.style.opacity = ''
+}
+
+function collapse(el: Element) {
+  const element = el as HTMLElement
+  element.style.overflow = 'hidden'
+  element.style.height = `${element.scrollHeight}px`
+  element.style.opacity = '1'
+  // Force reflow
+  void element.offsetHeight
+  element.style.transition = 'height 200ms ease, opacity 200ms ease'
+  element.style.height = '0px'
+  element.style.opacity = '0'
+}
+
+function afterCollapse(el: Element) {
+  const element = el as HTMLElement
+  element.style.transition = ''
+  element.style.height = ''
+  element.style.overflow = ''
+  element.style.opacity = ''
+}
+
+// Determine when an exercise is fully completed (all sets complete)
+const isExerciseCompleted = (exercise: any): boolean => {
+  if (!exercise || !Array.isArray(exercise.sets) || exercise.sets.length === 0) return false
+  return exercise.sets.every((set: any) => set.isCompleted && set.weight > 0 && set.reps > 0)
 }
 
 // Lifecycle

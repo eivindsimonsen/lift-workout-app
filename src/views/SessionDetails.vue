@@ -265,7 +265,7 @@
             <!-- Insights under all sets -->
             <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-dark-300">
               <span v-if="exerciseInsights[exercise.exerciseId]?.isPR" class="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 font-medium">PR</span>
-              <span class="tabular-nums text-white">Tungeste sett: {{ exerciseInsights[exercise.exerciseId]?.heaviest.weight }}×{{ exerciseInsights[exercise.exerciseId]?.heaviest.reps }}</span>
+              <span class="tabular-nums text-white">Tyngste sett: {{ exerciseInsights[exercise.exerciseId]?.heaviest.weight }}×{{ exerciseInsights[exercise.exerciseId]?.heaviest.reps }}</span>
               <span class="tabular-nums">Estimert 1RM: ~{{ exerciseInsights[exercise.exerciseId]?.estimated1RM }} kg</span>
               <span class="text-dark-400">Neste gang: {{ exerciseInsights[exercise.exerciseId]?.nextHint }}</span>
             </div>
@@ -454,17 +454,28 @@ const exerciseInsights = computed(() => {
   if (!session.value) return {} as Record<string, any>
   const insights: Record<string, any> = {}
   session.value.exercises.forEach(ex => {
+    // Determine heaviest by weight first; if equal weight, prefer higher reps.
     let heaviest = { weight: 0, reps: 0 }
     ex.sets.forEach(set => {
-      const vol = (set.weight || 0) * (set.reps || 0)
-      const bestVol = heaviest.weight * heaviest.reps
-      if (vol > bestVol) heaviest = { weight: set.weight || 0, reps: set.reps || 0 }
+      const setWeight = set.weight || 0
+      const setReps = set.reps || 0
+      if (setWeight > heaviest.weight || (setWeight === heaviest.weight && setReps > heaviest.reps)) {
+        heaviest = { weight: setWeight, reps: setReps }
+      }
     })
+
+    // Estimate 1RM using Epley formula
     const estimated1RM = Math.round((heaviest.weight || 0) * (1 + (heaviest.reps || 0) / 30))
-    // Simple PR check against this session only (highlight if highest volume set equals exercise volume)
-    const exerciseVolume = ex.sets.reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0)
-    const isPR = heaviest.weight * heaviest.reps >= exerciseVolume // placeholder until historical PRs are wired
-    const nextHint = heaviest.weight > 0 ? `${heaviest.weight + 2.5} kg eller +1 rep` : 'Start lett og bygg opp'
+
+    // Placeholder PR logic within this session only
+    const maxWeightInExercise = ex.sets.reduce((m, s) => Math.max(m, s.weight || 0), 0)
+    const isPR = heaviest.weight >= maxWeightInExercise && heaviest.weight > 0
+
+    // Next hint: suggest +2.5 kg if reps >= 5, else suggest +1 rep at same weight
+    const nextHint = heaviest.weight > 0
+      ? (heaviest.reps >= 5 ? `${heaviest.weight + 2.5} kg` : `${heaviest.weight} kg og +1 rep`)
+      : 'Start lett og bygg opp'
+
     insights[ex.exerciseId] = { heaviest, estimated1RM, isPR, nextHint }
   })
   return insights

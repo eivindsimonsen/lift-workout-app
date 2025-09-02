@@ -890,15 +890,21 @@
           "grip": "close"
         },
         {
-          "id": "cable-pulldowns",
-          "name": "Cable Pulldowns",
+          "id": "cable-lat-pulldowns",
+          "name": "Cable Lat Pulldowns",
           "equipment": "cable",
           "grip": "overhand"
         },
         {
-          "id": "machine-pulldowns",
-          "name": "Machine Pulldowns",
+          "id": "machine-lat-pulldowns",
+          "name": "Machine Lat Pulldowns",
           "equipment": "machine",
+          "grip": "overhand"
+        },
+        {
+          "id": "cable-side-lat-pulldowns",
+          "name": "Cable Side Lat Pulldowns",
+          "equipment": "cable",
           "grip": "overhand"
         }
       ]
