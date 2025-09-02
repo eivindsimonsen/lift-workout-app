@@ -879,31 +879,24 @@ const formatDate = (date: Date): string => {
 }
 
 const getLastPerformance = (exerciseId: string) => {
-  const completedSessions = workoutData.sessions.value.filter(session => session.isCompleted)
+  // We want the most recent completed session containing this exercise,
+  // then the last completed set within that session (not the best by volume).
+  const completedSessions = workoutData.sessions.value
+    .filter(session => session.isCompleted)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   for (const session of completedSessions) {
     const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
-    if (exercise) {
-      let bestSet: any = null
-      let bestVolume = 0
+    if (!exercise) continue
 
-      exercise.sets.forEach(set => {
-        if (set.isCompleted && set.weight && set.reps) {
-          const volume = set.weight * set.reps
-          if (volume > bestVolume) {
-            bestVolume = volume
-            bestSet = set
-          }
-        }
-      })
+    const completedSets = exercise.sets.filter(set => set.isCompleted && set.weight && set.reps)
+    if (completedSets.length === 0) continue
 
-      if (bestSet) {
-        return {
-          weight: bestSet.weight,
-          reps: bestSet.reps,
-          date: session.date
-        }
-      }
+    const lastSet = completedSets[completedSets.length - 1]
+    return {
+      weight: lastSet.weight,
+      reps: lastSet.reps,
+      date: session.date
     }
   }
 
