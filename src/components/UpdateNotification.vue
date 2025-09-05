@@ -1,7 +1,8 @@
 <template>
   <div 
     v-if="showUpdatePrompt && !isDevelopment"
-    class="fixed bottom-4 left-4 right-4 z-50 bg-dark-800 border border-primary-500/20 rounded-lg p-4 shadow-xl"
+    class="fixed z-50 bg-dark-800 border border-primary-500/20 rounded-lg p-4 shadow-xl left-1/2 -translate-x-1/2 w-[92%] sm:w-auto"
+    style="bottom: calc(env(safe-area-inset-bottom) + 20px)"
   >
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
