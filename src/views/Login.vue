@@ -184,13 +184,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useSupabase } from '@/composables/useSupabase'
 import { reinitSupabase } from '@/composables/useSupabase'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useSignupProtection } from '@/composables/useSignupProtection'
 
 const router = useRouter()
+const route = useRoute()
 const { supabase } = useSupabase()
 const { showError, showSuccess, handleAuthError } = useErrorHandler()
 const { isRecentlySignedUp, markSignupAttempt, clearSignupAttempt } = useSignupProtection()
@@ -213,7 +214,8 @@ const showConfirmPassword = ref(false)
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (session?.user) {
-    router.push('/')
+    const redirectTarget = (route.query?.redirect as string) || '/'
+    router.replace(redirectTarget)
   } else {
     const savedEmail = localStorage.getItem('rememberedEmail')
     const savedPref = localStorage.getItem('rememberMe')

@@ -1218,28 +1218,78 @@ onMounted(async () => {
     })
   }
 
-  const foundSession = workoutData.getSessionById(sessionId)
-
-  if (!foundSession) {
-    try {
-      await workoutData.loadData()
-      const retrySession = workoutData.getSessionById(sessionId)
-      if (retrySession) {
-        session.value = retrySession
-        startTime.value = new Date(retrySession.date)
-        return
-      }
-    } catch (error) {
-      console.error("Error retrying data load:", error)
-    }
-
-    handleAuthError({ message: 'Økt ikke funnet' })
-    router.push('/')
-    return
+  const setSessionFromStore = () => {
+    const s = workoutData.getSessionById(sessionId)
+    if (!s) return false
+    session.value = s
+    startTime.value = new Date(s.date)
+    return true
   }
 
-  session.value = foundSession
-  startTime.value = new Date(foundSession.date)
+  if (!setSessionFromStore()) {
+    // If user is not authenticated yet, wait for auth and stay on page
+    const stopAuthWait = watch(
+      () => workoutData.currentUser.value,
+      async (u) => {
+        if (!u) return
+        try {
+          await (workoutData as any).refreshUIData?.()
+          if (!setSessionFromStore()) await workoutData.loadData(0, true)
+          setSessionFromStore()
+        } finally {
+          stopAuthWait()
+        }
+      },
+      { immediate: false }
+    )
+    try {
+      // Paint from cache first if available
+      if ((workoutData as any).refreshUIData) {
+        await (workoutData as any).refreshUIData()
+        if (setSessionFromStore()) return
+      }
+
+      // Force a data load (will no-op if auth not ready yet)
+      await workoutData.loadData(0, true)
+      if (!setSessionFromStore()) {
+        // Defer: wait for auth/data to hydrate, then set session when available
+        const stopSessionsWatch = watch(
+          () => workoutData.sessions.value,
+          () => {
+            if (setSessionFromStore()) {
+              stopSessionsWatch()
+            }
+          }
+        )
+        const stopAuthWatch = watch(
+          () => workoutData.currentUser.value,
+          async (u) => {
+            if (u) {
+              try {
+                await (workoutData as any).refreshUIData?.()
+                if (setSessionFromStore()) {
+                  stopAuthWatch()
+                  return
+                }
+                await workoutData.loadData(0, true)
+                if (setSessionFromStore()) stopAuthWatch()
+              } catch {}
+            }
+          },
+          { immediate: false }
+        )
+        // Ensure we clean these up later
+        onUnmounted(() => {
+          try { stopSessionsWatch() } catch {}
+          try { stopAuthWatch() } catch {}
+        })
+      }
+    } catch (error) {
+      console.error('Error ensuring session after refresh:', error)
+      // Do not redirect; keep user on page while data hydrates
+      return
+    }
+  }
 
   updateAppSaveState()
 
@@ -1247,7 +1297,9 @@ onMounted(async () => {
   await restoreLocalChanges()
 
   // Initialize collapsed state for all exercises
-  collapsedExercises.value = session.value.exercises.map(() => false)
+  if (session.value) {
+    collapsedExercises.value = session.value.exercises.map(() => false)
+  }
 
   // Keyboard/Save integrations
   const handleKeydown = (event: KeyboardEvent) => {

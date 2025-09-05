@@ -407,7 +407,9 @@ watch(
     }
 
     if (!newValue && route.path !== '/login' && route.path !== '/reset-password') {
-      router.push({ path: '/login', query: { redirect: route.fullPath } })
+      // Do NOT redirect away if the user landed directly on a protected route; router guard will handle it.
+      // This prevents bouncing away during auth hydration when refreshing a protected page.
+      // router.push({ path: '/login', query: { redirect: route.fullPath } })
     }
   },
   { immediate: true }
