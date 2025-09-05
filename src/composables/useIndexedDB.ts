@@ -18,7 +18,7 @@ type PendingChange = {
 export const useIndexedDB = () => {
   const isSupported = ref(false);
 
-  // Keep version at 1 unless you change the schema (then bump).
+  // Keep this in sync across branches. Bump when schema changes.
   const DB_NAME = "LIFTDB";
   const DB_VERSION = 2;
 
