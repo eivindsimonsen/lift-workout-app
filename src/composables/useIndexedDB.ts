@@ -25,9 +25,9 @@ type PendingChange = {
 export const useIndexedDB = () => {
   const isSupported = ref(false);
 
-  // Keep version at 1 unless you change the schema (then bump).
+  // Keep this in sync across branches. Bump when schema changes.
   const DB_NAME = "LIFTDB";
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
 
   let db: IDBDatabase | null = null;
 
@@ -53,7 +53,29 @@ export const useIndexedDB = () => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        console.error("❌ IndexedDB error:", request.error);
+        const err = request.error as DOMException | null;
+        console.error("❌ IndexedDB error:", err);
+        // Fallback: if our requested version is lower than existing (VersionError),
+        // try opening without a version to attach to the current DB.
+        if (err && err.name === "VersionError") {
+          try {
+            const fallback = indexedDB.open(DB_NAME);
+            fallback.onsuccess = () => {
+              db = fallback.result;
+              db.onversionchange = () => {
+                console.warn("ℹ️ IndexedDB version change detected; closing old connection.");
+                db?.close();
+                db = null;
+              };
+              console.warn("✅ Opened existing IndexedDB with current version (fallback)");
+              resolve();
+            };
+            fallback.onerror = () => reject(fallback.error);
+            return;
+          } catch (e) {
+            // fall through to reject
+          }
+        }
         reject(request.error);
       };
 
