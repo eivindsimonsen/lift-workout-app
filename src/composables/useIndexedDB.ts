@@ -53,29 +53,7 @@ export const useIndexedDB = () => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        const err = request.error as DOMException | null;
-        console.error("❌ IndexedDB error:", err);
-        // Fallback: if our requested version is lower than existing (VersionError),
-        // try opening without a version to attach to the current DB.
-        if (err && err.name === "VersionError") {
-          try {
-            const fallback = indexedDB.open(DB_NAME);
-            fallback.onsuccess = () => {
-              db = fallback.result;
-              db.onversionchange = () => {
-                console.warn("ℹ️ IndexedDB version change detected; closing old connection.");
-                db?.close();
-                db = null;
-              };
-              console.warn("✅ Opened existing IndexedDB with current version (fallback)");
-              resolve();
-            };
-            fallback.onerror = () => reject(fallback.error);
-            return;
-          } catch (e) {
-            // fall through to reject
-          }
-        }
+        console.error("❌ IndexedDB error:", request.error);
         reject(request.error);
       };
 
