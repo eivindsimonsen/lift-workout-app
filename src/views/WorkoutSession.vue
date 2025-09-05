@@ -109,7 +109,7 @@
           </div>
 
           <!-- Exercise Header -->
-          <div class="flex items-start justify-between mb-6 cursor-pointer" @click="toggleExercise(exerciseIndex)">
+          <div class="flex justify-between mb-6 cursor-pointer" @click="toggleExercise(exerciseIndex)">
             <!-- Left Column: Exercise Info -->
             <div class="flex-1 min-w-0">
               <!-- Muscle Groups -->
@@ -145,7 +145,7 @@
             <!-- Right Column: Status Indicator -->
             <div class="ml-4 flex items-center gap-2">
               <svg 
-                class="w-4 h-4 text-dark-300 transition-transform"
+                class="w-6 h-6 text-dark-300 transition-transform"
                 :class="{ 'rotate-180': !collapsedExercises[exerciseIndex] }"
                 fill="none"
                 stroke="currentColor" 
@@ -243,16 +243,10 @@
             </TransitionGroup>
 
             <!-- Add Set Button -->
-            <div class="p-5 border-t border-dark-600 flex gap-2">
-              <button @click="removeExercise(exerciseIndex)" class="w-3/10 btn-secondary text-sm py-4 border-2 border-dark-600 bg-red-500 text-white">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Fjern øvelse
-              </button>
+            <div class="p-5 border-t border-dark-600">
               <button
                 @click="addSet(exerciseIndex)"
-                class="flex-1 btn-secondary text-sm py-4 border-2 border-dark-600">
+                class="w-full btn-secondary text-sm py-4 border-2 border-dark-600">
                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
@@ -856,9 +850,8 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   const exercise = session.value.exercises[exerciseIndex]
 
   if (exercise.sets.length <= 1) {
-    // Removing the only set removes the whole exercise; no focus restore
-    session.value.exercises.splice(exerciseIndex, 1)
-    persistExercisesToLocal()
+    // If this is the last set, trigger full exercise removal (with confirmation)
+    removeExercise(exerciseIndex)
     return
   }
 
@@ -1149,15 +1142,17 @@ const toggleExercise = (index: number) => {
 // Smooth expand/collapse animations for exercise content
 function expand(el: Element) {
   const element = el as HTMLElement
+  const targetHeight = `${element.scrollHeight}px`
+
   element.style.overflow = 'hidden'
   element.style.height = '0px'
-  element.style.opacity = '0'
-  // Force reflow to ensure the initial styles are applied
-  void element.offsetHeight
-  const targetHeight = `${element.scrollHeight}px`
-  element.style.transition = 'height 200ms ease, opacity 200ms ease'
-  element.style.height = targetHeight
-  element.style.opacity = '1'
+  element.style.willChange = 'height'
+  element.style.contain = 'layout paint'
+
+  requestAnimationFrame(() => {
+    element.style.transition = 'height 160ms ease-out'
+    element.style.height = targetHeight
+  })
 }
 
 function afterExpand(el: Element) {
@@ -1165,19 +1160,23 @@ function afterExpand(el: Element) {
   element.style.transition = ''
   element.style.height = ''
   element.style.overflow = ''
-  element.style.opacity = ''
+  element.style.willChange = ''
+  element.style.contain = ''
 }
 
 function collapse(el: Element) {
   const element = el as HTMLElement
+  const startHeight = `${element.scrollHeight}px`
+
   element.style.overflow = 'hidden'
-  element.style.height = `${element.scrollHeight}px`
-  element.style.opacity = '1'
-  // Force reflow
-  void element.offsetHeight
-  element.style.transition = 'height 200ms ease, opacity 200ms ease'
-  element.style.height = '0px'
-  element.style.opacity = '0'
+  element.style.height = startHeight
+  element.style.willChange = 'height'
+  element.style.contain = 'layout paint'
+
+  requestAnimationFrame(() => {
+    element.style.transition = 'height 130ms ease-in'
+    element.style.height = '0px'
+  })
 }
 
 function afterCollapse(el: Element) {
@@ -1185,7 +1184,8 @@ function afterCollapse(el: Element) {
   element.style.transition = ''
   element.style.height = ''
   element.style.overflow = ''
-  element.style.opacity = ''
+  element.style.willChange = ''
+  element.style.contain = ''
 }
 
 // Determine when an exercise is fully completed (all sets complete)
@@ -1218,28 +1218,78 @@ onMounted(async () => {
     })
   }
 
-  const foundSession = workoutData.getSessionById(sessionId)
-
-  if (!foundSession) {
-    try {
-      await workoutData.loadData()
-      const retrySession = workoutData.getSessionById(sessionId)
-      if (retrySession) {
-        session.value = retrySession
-        startTime.value = new Date(retrySession.date)
-        return
-      }
-    } catch (error) {
-      console.error("Error retrying data load:", error)
-    }
-
-    handleAuthError({ message: 'Økt ikke funnet' })
-    router.push('/')
-    return
+  const setSessionFromStore = () => {
+    const s = workoutData.getSessionById(sessionId)
+    if (!s) return false
+    session.value = s
+    startTime.value = new Date(s.date)
+    return true
   }
 
-  session.value = foundSession
-  startTime.value = new Date(foundSession.date)
+  if (!setSessionFromStore()) {
+    // If user is not authenticated yet, wait for auth and stay on page
+    const stopAuthWait = watch(
+      () => workoutData.currentUser.value,
+      async (u) => {
+        if (!u) return
+        try {
+          await (workoutData as any).refreshUIData?.()
+          if (!setSessionFromStore()) await workoutData.loadData(0, true)
+          setSessionFromStore()
+        } finally {
+          stopAuthWait()
+        }
+      },
+      { immediate: false }
+    )
+    try {
+      // Paint from cache first if available
+      if ((workoutData as any).refreshUIData) {
+        await (workoutData as any).refreshUIData()
+        if (setSessionFromStore()) return
+      }
+
+      // Force a data load (will no-op if auth not ready yet)
+      await workoutData.loadData(0, true)
+      if (!setSessionFromStore()) {
+        // Defer: wait for auth/data to hydrate, then set session when available
+        const stopSessionsWatch = watch(
+          () => workoutData.sessions.value,
+          () => {
+            if (setSessionFromStore()) {
+              stopSessionsWatch()
+            }
+          }
+        )
+        const stopAuthWatch = watch(
+          () => workoutData.currentUser.value,
+          async (u) => {
+            if (u) {
+              try {
+                await (workoutData as any).refreshUIData?.()
+                if (setSessionFromStore()) {
+                  stopAuthWatch()
+                  return
+                }
+                await workoutData.loadData(0, true)
+                if (setSessionFromStore()) stopAuthWatch()
+              } catch {}
+            }
+          },
+          { immediate: false }
+        )
+        // Ensure we clean these up later
+        onUnmounted(() => {
+          try { stopSessionsWatch() } catch {}
+          try { stopAuthWatch() } catch {}
+        })
+      }
+    } catch (error) {
+      console.error('Error ensuring session after refresh:', error)
+      // Do not redirect; keep user on page while data hydrates
+      return
+    }
+  }
 
   updateAppSaveState()
 
@@ -1247,7 +1297,9 @@ onMounted(async () => {
   await restoreLocalChanges()
 
   // Initialize collapsed state for all exercises
-  collapsedExercises.value = session.value.exercises.map(() => false)
+  if (session.value) {
+    collapsedExercises.value = session.value.exercises.map(() => false)
+  }
 
   // Keyboard/Save integrations
   const handleKeydown = (event: KeyboardEvent) => {

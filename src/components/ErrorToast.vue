@@ -9,8 +9,9 @@
   >
     <div
       v-if="error"
-      class="fixed z-50 max-w-sm w-full mx-4 sm:mx-0"
+      class="fixed z-50 max-w-sm w-[92%] sm:w-full left-1/2 -translate-x-1/2"
       :class="toastPosition"
+      style="padding-top: env(safe-area-inset-top)"
     >
       <div
         class="rounded-lg p-4 shadow-lg border"
@@ -152,8 +153,9 @@ watch(error, (newError) => {
 
 // Computed classes
 const toastPosition = computed(() => {
-  // On mobile, position at top center. On desktop, position at top right
-  return 'top-4 left-1/2 transform -translate-x-1/2 sm:left-auto sm:right-4 sm:transform-none'
+  // Center on all screens, and push it slightly below the safe area/notch
+  // top uses calc to add 8px offset to safe-area-inset-top
+  return 'top-[calc(env(safe-area-inset-top)+12px)]'
 })
 
 const toastClasses = computed(() => {

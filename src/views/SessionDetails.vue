@@ -23,13 +23,13 @@
       </div>
     </div>
 
-    <div v-if="!session" class="text-center py-12">
+    <div v-if="!session && !isHydrating" class="text-center py-12">
       <p class="text-dark-300">Økt ikke funnet</p>
       <router-link to="/history" class="btn-primary mt-4">Tilbake til Historikk</router-link>
     </div>
 
     <!-- Loading State for Session Details -->
-    <div v-if="isLoading" class="space-y-6 animate-pulse">
+    <div v-if="isHydrating" class="space-y-6 animate-pulse">
       <!-- Session Header Skeleton -->
       <div class="card">
         <div class="flex items-start justify-between">
@@ -330,7 +330,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutSession } from '@/types/workout'
@@ -341,6 +341,7 @@ const route = useRoute()
 const workoutData = useHybridData()
 
 const session = ref<WorkoutSession | null>(null)
+const isHydrating = ref(true)
 const activeSessions = computed(() => workoutData.sessions.value.filter(s => !s.isCompleted))
 const isLoading = computed(() => workoutData.isLoading.value)
 
@@ -502,13 +503,78 @@ const viewExercise = (exerciseId: string) => {
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   const sessionId = route.params.id as string
-  const foundSession = workoutData.getSessionById(sessionId)
-  
-  if (foundSession) {
-    session.value = foundSession
+
+  const setFromStore = () => {
+    const s = workoutData.getSessionById(sessionId)
+    if (!s) return false
+    session.value = s
+    return true
   }
+
+  // Try immediate
+  if (setFromStore()) {
+    isHydrating.value = false
+    return
+  }
+
+  try {
+    // Repaint from cache if available
+    if ((workoutData as any).refreshUIData) {
+      await (workoutData as any).refreshUIData()
+      if (setFromStore()) {
+        isHydrating.value = false
+        return
+      }
+    }
+
+    // Try a data load (no redirect here)
+    await workoutData.loadData(0, true)
+    if (setFromStore()) {
+      isHydrating.value = false
+      return
+    }
+  } catch {}
+
+  // Still not present: wait for sessions/auth to hydrate
+  const stopSessionsWatch = watch(
+    () => workoutData.sessions.value,
+    () => {
+      if (setFromStore()) {
+        isHydrating.value = false
+        stopSessionsWatch()
+      }
+    }
+  )
+
+  const stopAuthWatch = watch(
+    () => workoutData.currentUser.value,
+    async (u) => {
+      if (!u) return
+      try {
+        await (workoutData as any).refreshUIData?.()
+        if (setFromStore()) {
+          isHydrating.value = false
+          stopAuthWatch()
+          return
+        }
+        await workoutData.loadData(0, true)
+        if (setFromStore()) {
+          isHydrating.value = false
+          stopAuthWatch()
+        }
+      } catch {
+        isHydrating.value = false
+      }
+    },
+    { immediate: false }
+  )
+
+  onUnmounted(() => {
+    try { stopSessionsWatch() } catch {}
+    try { stopAuthWatch() } catch {}
+  })
 })
 
 // Actions

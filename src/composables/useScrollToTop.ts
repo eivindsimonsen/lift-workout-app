@@ -12,25 +12,19 @@ const isPWA = () => {
 
 // Global scroll utility that can be called from anywhere
 export const scrollToTopGlobal = (behavior: ScrollBehavior = "smooth") => {
-  console.log("🔄 Attempting to scroll to top with behavior:", behavior);
-  console.log("📱 Device info:", { isMobile: isMobile(), isPWA: isPWA() });
-
   // Try multiple methods to ensure scrolling works
   try {
     // Method 1: window.scrollTo
     window.scrollTo({ top: 0, behavior });
-    console.log("✅ Method 1 (window.scrollTo) executed");
 
     // Method 2: document.documentElement.scrollTop (fallback)
     if (document.documentElement) {
       document.documentElement.scrollTop = 0;
-      console.log("✅ Method 2 (documentElement.scrollTop) executed");
     }
 
     // Method 3: document.body.scrollTop (fallback)
     if (document.body) {
       document.body.scrollTop = 0;
-      console.log("✅ Method 3 (body.scrollTop) executed");
     }
 
     // Method 4: Mobile-specific scrolling
@@ -39,7 +33,6 @@ export const scrollToTopGlobal = (behavior: ScrollBehavior = "smooth") => {
       const mainContent = document.querySelector("main");
       if (mainContent) {
         mainContent.scrollTop = 0;
-        console.log("✅ Method 4 (main content scrollTop) executed");
       }
 
       // Try scrolling any scrollable containers
@@ -47,25 +40,18 @@ export const scrollToTopGlobal = (behavior: ScrollBehavior = "smooth") => {
       scrollableElements.forEach((element: any) => {
         if (element.scrollTop !== undefined) {
           element.scrollTop = 0;
-          console.log("✅ Method 4.1 (scrollable element) executed:", element.tagName);
         }
       });
     }
-
-    console.log("🎯 Scroll to top completed successfully");
   } catch (error) {
     console.warn("⚠️ Scroll to top failed:", error);
     // Fallback to immediate scroll
     window.scrollTo(0, 0);
-    console.log("🔄 Fallback scroll executed");
   }
 };
 
 // Immediate scroll to top without animation - prevents flicker
 export const scrollToTopImmediate = () => {
-  console.log("⚡ Immediate scroll to top (no animation)");
-  console.log("📱 Device info:", { isMobile: isMobile(), isPWA: isPWA() });
-
   try {
     // Use immediate scroll methods
     window.scrollTo(0, 0);
@@ -107,12 +93,9 @@ export const scrollToTopImmediate = () => {
         const firstElement = document.querySelector("main, .container, h1, h2") || document.body;
         if (firstElement) {
           firstElement.scrollIntoView({ behavior: "auto", block: "start" });
-          console.log("✅ iOS-specific scrollIntoView executed");
         }
       }
     }
-
-    console.log("✅ Immediate scroll completed");
   } catch (error) {
     console.warn("⚠️ Immediate scroll failed:", error);
   }
@@ -120,8 +103,6 @@ export const scrollToTopImmediate = () => {
 
 // Mobile-specific scroll reset for PWA and mobile devices
 export const scrollToTopMobile = () => {
-  console.log("📱 Mobile-specific scroll to top");
-
   try {
     // Force scroll reset on all possible scrollable elements
     const elements = [document.documentElement, document.body, document.querySelector("main"), document.querySelector("#app"), ...Array.from(document.querySelectorAll("[data-scrollable], .overflow-auto, .overflow-scroll"))].filter(Boolean);
@@ -165,8 +146,6 @@ export const scrollToTopMobile = () => {
         }
       });
     }
-
-    console.log("✅ Mobile scroll reset completed");
   } catch (error) {
     console.warn("⚠️ Mobile scroll reset failed:", error);
     // Fallback to basic scroll

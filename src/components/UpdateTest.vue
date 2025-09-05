@@ -18,7 +18,7 @@ const isDevelopment = computed(() => {
 })
 
 const triggerUpdate = () => {
-  console.log('🧪 Triggering test update...')
+  
   
   // Simulate a real update by dispatching events
   window.dispatchEvent(new CustomEvent('sw-update-available'))
@@ -29,7 +29,7 @@ const triggerUpdate = () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistration().then((reg) => {
       if (reg) {
-        console.log('🧪 Force checking service worker for updates...')
+        
         reg.update()
       }
     })

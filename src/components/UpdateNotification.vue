@@ -1,7 +1,8 @@
 <template>
   <div 
     v-if="showUpdatePrompt && !isDevelopment"
-    class="fixed bottom-4 left-4 right-4 z-50 bg-dark-800 border border-primary-500/20 rounded-lg p-4 shadow-xl"
+    class="fixed z-50 bg-dark-800 border border-primary-500/20 rounded-lg p-4 shadow-xl left-1/2 -translate-x-1/2 w-[92%] sm:w-auto"
+    style="bottom: calc(env(safe-area-inset-bottom) + 20px)"
   >
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -38,34 +39,32 @@ const isDevelopment = computed(() => {
 const checkForUpdates = () => {
   // Don't check for updates in development mode
   if (isDevelopment.value) {
-    console.log('🔍 UpdateNotification: Skipping update check in development mode')
     return
   }
   
-  console.log('🔍 UpdateNotification: Checking for updates...')
+  
   
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistration().then((reg) => {
       if (reg) {
-        console.log('🔍 UpdateNotification: Service worker registration found:', reg)
+        
         registration.value = reg
         
         // Check if there's a waiting service worker (update available)
         if (reg.waiting) {
-          console.log('🔍 UpdateNotification: Update available - waiting service worker found')
+          
           showUpdatePrompt.value = true
         }
         
         // Listen for new service worker installation
         reg.addEventListener('updatefound', () => {
-          console.log('🔍 UpdateNotification: Update found - new service worker installing')
           const newWorker = reg.installing
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
-              console.log('🔍 UpdateNotification: Service worker state changed:', newWorker.state)
+              
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 // New service worker is installed and waiting
-                console.log('🔍 UpdateNotification: New service worker installed, waiting to activate')
+                
                 showUpdatePrompt.value = true
               }
             })
@@ -78,20 +77,19 @@ const checkForUpdates = () => {
         // Also check manifest version
         checkManifestVersion()
       } else {
-        console.log('🔍 UpdateNotification: No service worker registration found')
+        
       }
     }).catch((error) => {
       console.error('🔍 UpdateNotification: Error getting service worker registration:', error)
     })
   } else {
-    console.log('🔍 UpdateNotification: Service workers not supported')
+    
   }
 }
 
 const checkManifestVersion = async () => {
   // Don't check manifest in development mode
   if (isDevelopment.value) {
-    console.log('🔍 UpdateNotification: Skipping manifest check in development mode')
     return
   }
   
@@ -102,11 +100,10 @@ const checkManifestVersion = async () => {
       const currentVersion = manifest.version || '1.0.0'
       const storedVersion = localStorage.getItem('app-version')
       
-      console.log('🔍 UpdateNotification: Current manifest version:', currentVersion)
-      console.log('🔍 UpdateNotification: Stored version:', storedVersion)
+      
       
       if (storedVersion && storedVersion !== currentVersion) {
-        console.log('🔍 UpdateNotification: New version detected!')
+        
         showUpdatePrompt.value = true
       }
       
@@ -119,12 +116,12 @@ const checkManifestVersion = async () => {
 }
 
 const testUpdate = () => {
-  console.log('🧪 UpdateNotification: Testing update notification...')
+  
   showUpdatePrompt.value = true
 }
 
 const refreshApp = () => {
-  console.log('🔄 UpdateNotification: Refreshing app...')
+  
   if (registration.value && registration.value.waiting) {
     // Send message to waiting service worker to activate
     registration.value.waiting.postMessage({ type: 'SKIP_WAITING' })
@@ -141,14 +138,14 @@ const refreshApp = () => {
 
 // Force check for updates (for testing)
 const forceCheckForUpdates = () => {
-  console.log('🔍 UpdateNotification: Force checking for updates...')
+  
   if (registration.value) {
     registration.value.update()
   }
 }
 
 const dismissPrompt = () => {
-  console.log('❌ UpdateNotification: Dismissing update prompt')
+  
   showUpdatePrompt.value = false
   // Don't dismiss permanently - allow it to show again on next update
 }
@@ -165,28 +162,27 @@ const handleSkipWaiting = () => {
 }
 
 onMounted(() => {
-  console.log('🚀 UpdateNotification: Component mounted')
+  
   
   // Don't run update logic in development mode
   if (isDevelopment.value) {
-    console.log('🔍 UpdateNotification: Running in development mode, skipping update logic')
     return
   }
   
   // Listen for custom event from service worker registration
   const handleSwUpdateAvailable = () => {
-    console.log('🔍 UpdateNotification: SW update available event received')
+    
     showUpdatePrompt.value = true
   }
   
   // Listen for Vite PWA plugin events
   const handleVitePwaUpdateFound = () => {
-    console.log('🔍 UpdateNotification: Vite PWA update found event received')
+    
     showUpdatePrompt.value = true
   }
   
   const handleVitePwaUpdateReady = () => {
-    console.log('🔍 UpdateNotification: Vite PWA update ready event received')
+    
     showUpdatePrompt.value = true
   }
   
@@ -204,11 +200,10 @@ onMounted(() => {
   
   // Also check periodically for updates
   const updateCheckInterval = setInterval(() => {
-    console.log('🔍 UpdateNotification: Periodic update check...')
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then((reg) => {
         if (reg && reg.waiting) {
-          console.log('🔍 UpdateNotification: Periodic check found waiting service worker')
+          
           showUpdatePrompt.value = true
         }
         
@@ -233,7 +228,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  console.log('🔌 UpdateNotification: Component unmounted')
+  
 })
 </script>
 

@@ -159,10 +159,8 @@ const wireAutoRefreshVisibilityGuards = (supabase: any) => {
 
   const onVisibleChange = () => {
     if (document.visibilityState === "visible") {
-      console.log("🔐 startAutoRefresh (visible)");
       start();
     } else {
-      console.log("🔐 stopAutoRefresh (hidden)");
       stop();
     }
   };
@@ -204,7 +202,7 @@ export const initSupabase = (persist?: AuthPersistence) => {
 
   supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, createOptions(pref));
   wireAutoRefreshVisibilityGuards(supabaseInstance);
-  console.log(`✅ Supabase initialized (persistence=${pref})`);
+
   return supabaseInstance;
 };
 
@@ -248,7 +246,6 @@ export const useSupabase = () => {
       error.value = "Supabase ikke konfigurert";
       console.error("❌ Supabase not configured - using mock client");
     } else {
-      console.log("✅ Supabase client initialized successfully (global timeout enabled)");
     }
   }
 

@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS workout_templates (
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_workout_templates_user_id ON workout_templates(user_id);
+CREATE INDEX IF NOT EXISTS idx_workout_templates_user_id_created_at ON workout_templates(user_id, created_at);
 
 -- RLS
 ALTER TABLE workout_templates ENABLE ROW LEVEL SECURITY;

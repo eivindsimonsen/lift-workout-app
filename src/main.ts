@@ -15,9 +15,11 @@ async function bootstrap() {
   const app = createApp(App);
   app.use(router);
 
+  // Mount first so the in-app loader is visible during initialization
+  const workoutData = useHybridData();
   try {
-    const workoutData = useHybridData();
-    await workoutData.initializeAuth();
+    // Fire-and-forget auth init; App.vue shows loader until store signals ready
+    void workoutData.initializeAuth();
   } catch (err) {
     console.error("[bootstrap] initializeAuth failed:", err);
   }

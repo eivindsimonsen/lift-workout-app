@@ -10,7 +10,7 @@ const logSupabaseAccess = (operation: string, details?: any) => {
   void details; // keep signature, silence unused
 };
 let __syncSeq = 0;
-const tick = (seq: number, msg: string) => console.log(`[sync ${seq}] ${msg} @ ${new Date().toISOString()}`);
+const tick = (seq: number, msg: string) => {};
 
 // ------- serializable helpers ----------
 const createSerializableUser = (user: any) => {
@@ -110,6 +110,8 @@ let isInitializing = false;
 let authSub: any = null;
 
 const MIN_SYNC_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes (no more frequent background sync)
+const SESSIONS_PAGE_SIZE = 300; // initial page size for sessions
+const BACKFILL_BATCH_DELAY_MS = 250; // small delay between background pages
 const createSupabaseData = () => {
   const { supabase } = useSupabase();
   const indexedDB = useIndexedDB();
@@ -144,7 +146,7 @@ const createSupabaseData = () => {
   const updateNetworkStatus = () => {
     const wasOffline = !isOnline.value;
     isOnline.value = navigator.onLine;
-    console.log(`🌐 Network status: ${isOnline.value ? "Online" : "Offline"}`);
+
     if (wasOffline && isOnline.value && currentUser.value && indexedDB.isSupported.value) {
       // only push local pending changes; don't pull fresh data here
       setTimeout(async () => {
@@ -159,9 +161,7 @@ const createSupabaseData = () => {
   // init cache
   const initIndexedDB = async () => {
     try {
-      console.log("📱 Initializing IndexedDB for offline caching...");
       await indexedDB.initDB();
-      console.log("✅ IndexedDB initialized for offline caching");
     } catch (e) {
       console.error("❌ Failed to initialize IndexedDB:", e);
       // app still works, but treat as no offline
@@ -232,20 +232,17 @@ const createSupabaseData = () => {
       const shouldSync = isOnline.value && !hasPendingChanges && (forceRefresh || allowed);
 
       if (!shouldSync) {
-        if (!forceRefresh) console.log("🛑 Skipping network sync (throttled or pending changes).");
         return;
       }
 
       // perform sync (serialized)
       try {
-        console.log("🌐 Syncing with Supabase...");
         await runSyncOnce(() => syncWithSupabase());
-        console.log("✅ Supabase synced successfully");
+
         nextAllowedSync.value = Date.now() + MIN_SYNC_INTERVAL_MS;
       } catch (err) {
         console.error("❌ Supabase sync failed:", err);
         if (cachedData) {
-          console.log("📱 Using cached data due to sync failure");
           templates.value = cachedData.templates || [];
           sessions.value = (cachedData.sessions || []).map((s: any) => ({ ...s, date: new Date(s.date) }));
         }
@@ -263,71 +260,99 @@ const createSupabaseData = () => {
     const seq = ++__syncSeq;
     tick(seq, "begin syncWithSupabase");
     try {
-      console.log("🌐 Syncing with Supabase...");
-      tick(seq, "templates:query:start");
+      // helper: format server rows → client shape
+      const formatSessions = (rows: any[]): WorkoutSession[] =>
+        (rows || []).map((s: any) => {
+          const exercises =
+            s.exercises?.map((ex: any) => ({
+              ...ex,
+              sets:
+                ex.sets?.map((set: any) => ({
+                  ...set,
+                  weight: typeof set.weight === "string" ? parseFloat(set.weight) || 0 : set.weight || 0,
+                  reps: typeof set.reps === "string" ? parseInt(set.reps) || 0 : set.reps || 0,
+                })) || [],
+            })) || [];
 
-      const { data: templatesData, error: templatesError } = await withHardTimeout(async () => await supabase.from("workout_templates").select("*").eq("user_id", currentUser.value.id).order("created_at", { ascending: true }), 8000, "load templates");
+          const total = exercises.reduce((acc: number, ex: any) => {
+            const vol = ex.sets.reduce((sum: number, set: any) => (set.isCompleted && set.weight && set.reps ? sum + set.weight * set.reps : sum), 0);
+            return acc + vol;
+          }, 0);
 
-      tick(seq, "templates:query:end");
+          return {
+            id: s.id,
+            templateId: s.template_id,
+            templateName: s.template_name,
+            workoutType: s.workout_type,
+            date: new Date(s.date),
+            duration: s.duration || 0,
+            exercises,
+            totalVolume: Math.round(total),
+            isCompleted: s.is_completed || false,
+          };
+        });
+
+      // helper: merge sessions by id and keep newest first by date
+      const mergeSessions = (existing: WorkoutSession[], incoming: WorkoutSession[]): WorkoutSession[] => {
+        const byId = new Map<string, WorkoutSession>();
+        for (const s of existing) byId.set(s.id, s);
+        for (const s of incoming) byId.set(s.id, s);
+        const merged = Array.from(byId.values());
+        merged.sort((a, b) => +new Date(b.date) - +new Date(a.date));
+        return merged;
+      };
+
+      tick(seq, "queries:start");
+
+      // Parallelize templates and sessions requests
+      const isFirstSync = !lastSyncTime.value;
+
+      const templatesPromise = withHardTimeout(async () => await supabase.from("workout_templates").select("*").eq("user_id", currentUser.value.id).order("created_at", { ascending: true }), 8000, "load templates");
+
+      // If first sync: fetch first page and total count head request
+      const sessionsFirstPagePromise = withHardTimeout(
+        async () => {
+          if (isFirstSync) {
+            const firstPage = await supabase
+              .from("workout_sessions")
+              .select("*", { count: "exact" })
+              .eq("user_id", currentUser.value.id)
+              .order("date", { ascending: false })
+              .range(0, Math.max(0, SESSIONS_PAGE_SIZE - 1));
+            return firstPage;
+          } else {
+            const deltas = await supabase.from("workout_sessions").select("*").eq("user_id", currentUser.value.id).gt("updated_at", new Date(lastSyncTime.value!).toISOString()).order("updated_at", { ascending: true }).limit(SESSIONS_PAGE_SIZE);
+            return deltas;
+          }
+        },
+        8000,
+        isFirstSync ? "load sessions (first page)" : "load sessions (delta)"
+      );
+
+      const [{ data: templatesData, error: templatesError }, { data: sessionsData, error: sessionsError, count }] = await Promise.all([templatesPromise, sessionsFirstPagePromise] as const);
+
+      tick(seq, "queries:end");
+
       if (templatesError) throw templatesError;
-
-      const formattedTemplates: WorkoutTemplate[] = (templatesData || []).map((t: any) => ({
-        id: t.id,
-        name: t.name,
-        workoutType: t.workout_type,
-        exercises: t.exercises,
-      }));
-
-      tick(seq, "sessions:query:start");
-
-      const { data: sessionsData, error: sessionsError } = await withHardTimeout(async () => await supabase.from("workout_sessions").select("*").eq("user_id", currentUser.value.id).order("date", { ascending: false }), 8000, "load sessions");
-
-      tick(seq, "sessions:query:end");
       if (sessionsError) throw sessionsError;
 
-      const formattedSessions: WorkoutSession[] = (sessionsData || []).map((s: any) => {
-        const exercises =
-          s.exercises?.map((ex: any) => ({
-            ...ex,
-            sets:
-              ex.sets?.map((set: any) => ({
-                ...set,
-                weight: typeof set.weight === "string" ? parseFloat(set.weight) || 0 : set.weight || 0,
-                reps: typeof set.reps === "string" ? parseInt(set.reps) || 0 : set.reps || 0,
-              })) || [],
-          })) || [];
+      const formattedTemplates: WorkoutTemplate[] = (templatesData || []).map((t: any) => ({ id: t.id, name: t.name, workoutType: t.workout_type, exercises: t.exercises }));
+      const firstBatchSessions: WorkoutSession[] = formatSessions(sessionsData || []);
 
-        const total = exercises.reduce((acc: number, ex: any) => {
-          const vol = ex.sets.reduce((sum: number, set: any) => (set.isCompleted && set.weight && set.reps ? sum + set.weight * set.reps : sum), 0);
-          return acc + vol;
-        }, 0);
-
-        return {
-          id: s.id,
-          templateId: s.template_id,
-          templateName: s.template_name,
-          workoutType: s.workout_type,
-          date: new Date(s.date),
-          duration: s.duration || 0,
-          exercises,
-          totalVolume: Math.round(total),
-          isCompleted: s.is_completed || false,
-        };
-      });
-
-      // state + cache
+      // state update
       tick(seq, "state:update");
       templates.value = formattedTemplates;
-      sessions.value = formattedSessions;
+      sessions.value = isFirstSync ? firstBatchSessions : mergeSessions(sessions.value, firstBatchSessions);
       lastSyncTime.value = Date.now();
 
+      // cache write (throttled single write here)
       if (indexedDB.isSupported.value) {
         tick(seq, "cache:store:start");
         await withHardTimeout(
           () =>
             indexedDB.storeUserData(currentUser.value.id, {
-              templates: ensureSerializable([...formattedTemplates]),
-              sessions: ensureSerializable([...formattedSessions]),
+              templates: ensureSerializable([...templates.value]),
+              sessions: ensureSerializable([...sessions.value]),
               lastSync: Date.now(),
               user: createSerializableUser(currentUser.value),
             }),
@@ -335,6 +360,40 @@ const createSupabaseData = () => {
           "cache storeUserData"
         );
         tick(seq, "cache:store:end");
+      }
+
+      // Background backfill for older sessions (first sync only)
+      if (isFirstSync && typeof count === "number" && count > sessions.value.length) {
+        void (async () => {
+          try {
+            let from = sessions.value.length;
+            const total = count;
+            while (from < total) {
+              const to = Math.min(from + SESSIONS_PAGE_SIZE - 1, total - 1);
+              const { data: moreData, error: moreError } = await withHardTimeout(async () => await supabase.from("workout_sessions").select("*").eq("user_id", currentUser.value.id).order("date", { ascending: false }).range(from, to), 8000, `load sessions page ${from}-${to}`);
+              if (moreError) break;
+              const formattedMore = formatSessions(moreData || []);
+              sessions.value = mergeSessions(sessions.value, formattedMore);
+
+              // occasional cache write to persist progress
+              if (indexedDB.isSupported.value) {
+                try {
+                  await indexedDB.storeUserData(currentUser.value.id, {
+                    templates: ensureSerializable([...templates.value]),
+                    sessions: ensureSerializable([...sessions.value]),
+                    lastSync: Date.now(),
+                    user: createSerializableUser(currentUser.value),
+                  });
+                } catch {}
+              }
+
+              from = to + 1;
+              await new Promise((r) => setTimeout(r, BACKFILL_BATCH_DELAY_MS));
+            }
+          } catch (e) {
+            console.warn("⚠️ Background backfill failed:", e);
+          }
+        })();
       }
 
       tick(seq, "done ok");
@@ -588,8 +647,6 @@ const createSupabaseData = () => {
         return;
       }
 
-      console.log(`🔄 Syncing ${pendingChanges.length} pending changes...`);
-
       for (const change of pendingChanges) {
         // Narrow the ID (it should exist for rows read from IDB, but TS needs proof)
         const hasId = typeof (change as any).id === "number";
@@ -598,7 +655,6 @@ const createSupabaseData = () => {
 
           if (hasId) {
             await indexedDB.removePendingChange((change as any).id as number);
-            console.log(`✅ Synced pending change: ${change.type}`);
           } else {
             console.warn("⚠️ Pending change had no ID; cannot remove. Skipping cleanup.", change);
           }
@@ -611,7 +667,6 @@ const createSupabaseData = () => {
             if (hasId) {
               try {
                 await indexedDB.removePendingChange((change as any).id as number);
-                console.log(`🗑️ Removed failed pending change after 3 attempts: ${change.type}`);
               } catch (removeError) {
                 console.warn("⚠️ Failed to remove failed pending change:", removeError);
               }
@@ -744,9 +799,22 @@ const createSupabaseData = () => {
         workoutType: data.workout_type,
         exercises: data.exercises,
       });
-
-      // Refresh UI data immediately after adding a template
-      await loadData(0, true, false);
+      // Update cache immediately so subsequent screens read fresh data
+      if (indexedDB.isSupported.value && currentUser.value) {
+        try {
+          const serializableUser = createSerializableUser(currentUser.value);
+          if (serializableUser) {
+            await indexedDB.storeUserData(currentUser.value.id, {
+              templates: ensureSerializable([...templates.value]),
+              sessions: ensureSerializable([...sessions.value]),
+              lastSync: Date.now(),
+              user: serializableUser,
+            });
+          }
+        } catch (e) {
+          console.warn("⚠️ Failed to update cache after adding template:", e);
+        }
+      }
     } catch (e) {
       console.error("Error in addTemplate:", e);
       showError("Kunne ikke opprette økt. Prøv igjen.");
@@ -775,8 +843,22 @@ const createSupabaseData = () => {
     const idx = templates.value.findIndex((t) => t.id === id);
     if (idx !== -1) templates.value[idx] = { ...templates.value[idx], ...updates };
 
-    // Refresh UI data immediately after updating a template
-    await loadData(0, true, false);
+    // Update cache immediately so subsequent screens read fresh data
+    if (indexedDB.isSupported.value && currentUser.value) {
+      try {
+        const serializableUser = createSerializableUser(currentUser.value);
+        if (serializableUser) {
+          await indexedDB.storeUserData(currentUser.value.id, {
+            templates: ensureSerializable([...templates.value]),
+            sessions: ensureSerializable([...sessions.value]),
+            lastSync: Date.now(),
+            user: serializableUser,
+          });
+        }
+      } catch (e) {
+        console.warn("⚠️ Failed to update cache after updating template:", e);
+      }
+    }
 
     await refreshPendingChangesCount();
   };
@@ -789,7 +871,22 @@ const createSupabaseData = () => {
       return;
     }
     templates.value = templates.value.filter((t) => t.id !== id);
-    await loadData(0, true, false);
+    // Update cache immediately so subsequent screens read fresh data
+    if (indexedDB.isSupported.value && currentUser.value) {
+      try {
+        const serializableUser = createSerializableUser(currentUser.value);
+        if (serializableUser) {
+          await indexedDB.storeUserData(currentUser.value.id, {
+            templates: ensureSerializable([...templates.value]),
+            sessions: ensureSerializable([...sessions.value]),
+            lastSync: Date.now(),
+            user: serializableUser,
+          });
+        }
+      } catch (e) {
+        console.warn("⚠️ Failed to update cache after deleting template:", e);
+      }
+    }
     await refreshPendingChangesCount();
   };
 
@@ -807,7 +904,7 @@ const createSupabaseData = () => {
     }
 
     try {
-      const { error: updateError } = await supabase.from("workout_sessions").update({ is_completed: true }).eq("user_id", currentUser.value.id).eq("is_completed", false);
+      const { error: updateError } = await supabase.from("workout_sessions").update({ is_completed: true, updated_at: new Date().toISOString() }).eq("user_id", currentUser.value.id).eq("is_completed", false);
 
       if (updateError) {
         console.error("Error marking sessions as completed:", updateError);
@@ -974,7 +1071,6 @@ const createSupabaseData = () => {
           console.warn("⚠️ Failed to update cache after completion:", e);
         }
       }
-      console.log("✅ Session completed and cache updated successfully");
     } catch (e) {
       console.error("❌ Error in completeWorkoutSession:", e);
       throw e;
@@ -990,7 +1086,7 @@ const createSupabaseData = () => {
     }
     logSupabaseAccess("Mark session active", sessionId);
     try {
-      const { error: updateError } = await supabase.from("workout_sessions").update({ is_completed: true }).eq("user_id", currentUser.value.id).neq("id", sessionId).eq("is_completed", false);
+      const { error: updateError } = await supabase.from("workout_sessions").update({ is_completed: true, updated_at: new Date().toISOString() }).eq("user_id", currentUser.value.id).neq("id", sessionId).eq("is_completed", false);
       if (updateError) {
         console.error("Error marking other sessions as completed:", updateError);
         return;
@@ -1033,7 +1129,6 @@ const createSupabaseData = () => {
           console.warn("⚠️ Failed to update cache after deletion:", e);
         }
       }
-      console.log("✅ Session deleted successfully");
     } catch (e) {
       console.error("❌ Error deleting session:", e);
       throw e;
@@ -1067,7 +1162,6 @@ const createSupabaseData = () => {
           console.warn("⚠️ Failed to update cache after abandonment:", e);
         }
       }
-      console.log("✅ Session abandoned and deleted successfully");
     } catch (e) {
       console.error("❌ Error abandoning session:", e);
       throw e;
@@ -1079,13 +1173,10 @@ const createSupabaseData = () => {
   // ---- manual syncs ----
   const forceSyncPendingChanges = async () => {
     if (!isOnline.value || !currentUser.value || !indexedDB.isSupported.value) {
-      console.log("📱 Cannot force sync pending changes - no user or offline");
       return;
     }
     try {
-      console.log("📱 Force syncing pending changes...");
       await syncPendingChanges();
-      console.log("✅ Force sync of pending changes completed");
     } catch (e) {
       console.error("❌ Force sync of pending changes failed:", e);
       throw e;
@@ -1096,14 +1187,11 @@ const createSupabaseData = () => {
 
   const forceSyncData = async () => {
     if (!currentUser.value || !isOnline.value) {
-      console.log("📱 Cannot force sync - no user or offline");
       return;
     }
     try {
-      console.log("📱 Force syncing data with Supabase...");
       await runSyncOnce(() => syncWithSupabase()); // <<< serialize
       nextAllowedSync.value = Date.now() + MIN_SYNC_INTERVAL_MS; // respect throttle post-force
-      console.log("✅ Force sync completed successfully");
     } catch (e) {
       console.error("❌ Force sync failed:", e);
       throw e;
