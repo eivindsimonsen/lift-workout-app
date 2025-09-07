@@ -108,7 +108,7 @@
       <!-- Fremgang over tid (ApexCharts) -->
       <div class="card">
         <h3 class="text-lg font-semibold text-white mb-4">Fremgang (beste sett per uke)</h3>
-        <div v-if="progressCategories.length > 0" class="h-72">
+        <div v-if="progressCategories.length > 0" class="h-72 chart-container">
           <VueApexCharts
             :options="progressOptions"
             :series="progressSeries"
@@ -124,7 +124,7 @@
       <!-- Estimert 1RM (Epley) (ApexCharts) -->
       <div class="card">
         <h3 class="text-lg font-semibold text-white mb-4">Estimert 1RM (Epley) per uke</h3>
-        <div v-if="epleyCategories.length > 0" class="h-72">
+        <div v-if="epleyCategories.length > 0" class="h-72 chart-container">
           <VueApexCharts
             :options="epleyOptions"
             :series="epleySeries"
@@ -426,46 +426,59 @@ const progressOptions = computed<ApexOptions>(() => ({
   chart: { 
     id: 'progress-weight', 
     toolbar: { show: false }, 
-    foreColor: '#CBD5E1' // Update this to your app's text color
+    foreColor: '#CBD5E1',
+    zoom: { enabled: false },
+    pan: { enabled: false },
+    animations: { enabled: false },
+    selection: { enabled: false }
   },
   stroke: { 
     curve: 'smooth', 
     width: 3, 
-    colors: ['#FF5733'] // Update this to your app's primary color
+    colors: ['#FF5733']
   },
   markers: { 
     size: 4, 
-    colors: ['#FF5733'] // Update this to your app's primary color
+    colors: ['#FF5733']
   },
   grid: { 
-    borderColor: '#CBD5E1' // Update this to your app's grid color
+    borderColor: '#CBD5E1',
+    show: true,
+    position: 'back'
   },
   xaxis: { 
     categories: progressCategories.value, 
     labels: { 
       rotate: 0, 
       style: { 
-        colors: '#CBD5E1', // Update this to your app's text color
+        colors: '#CBD5E1',
         fontSize: '12px', 
-        fontFamily: 'Inter, system-ui, sans-serif' // Update this to your app's font
+        fontFamily: 'Inter, system-ui, sans-serif'
       }
-    }
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false }
   },
   yaxis: { 
     labels: { 
       formatter: (v) => `${Math.round(v)} kg`,
       style: { 
-        colors: '#CBD5E1', // Update this to your app's text color
+        colors: '#CBD5E1',
         fontSize: '12px', 
-        fontFamily: 'Inter, system-ui, sans-serif' // Update this to your app's font
+        fontFamily: 'Inter, system-ui, sans-serif'
       }
-    }
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false }
   },
   tooltip: { 
     y: { 
       formatter: (v) => `${Math.round(v)} kg` 
-    }
-  }
+    },
+    fixed: { enabled: true, position: 'topRight' }
+  },
+  dataLabels: { enabled: false },
+  legend: { show: false }
 }))
 
 /** ========= Charts: Epley 1RM ========= */
@@ -479,46 +492,59 @@ const epleyOptions = computed<ApexOptions>(() => ({
   chart: { 
     id: 'epley-1rm', 
     toolbar: { show: false }, 
-    foreColor: '#CBD5E1' // Update this to your app's text color
+    foreColor: '#CBD5E1',
+    zoom: { enabled: false },
+    pan: { enabled: false },
+    animations: { enabled: false },
+    selection: { enabled: false }
   },
   stroke: { 
     curve: 'smooth', 
     width: 3, 
-    colors: ['#FF5733'] // Update this to your app's primary color
+    colors: ['#FF5733']
   },
   markers: { 
     size: 4, 
-    colors: ['#FF5733'] // Update this to your app's primary color
+    colors: ['#FF5733']
   },
   grid: { 
-    borderColor: '#CBD5E1' // Update this to your app's grid color
+    borderColor: '#CBD5E1',
+    show: true,
+    position: 'back'
   },
   xaxis: { 
     categories: epleyCategories.value, 
     labels: { 
       rotate: 0, 
       style: { 
-        colors: '#CBD5E1', // Update this to your app's text color
+        colors: '#CBD5E1',
         fontSize: '12px', 
-        fontFamily: 'Inter, system-ui, sans-serif' // Update this to your app's font
+        fontFamily: 'Inter, system-ui, sans-serif'
       }
-    }
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false }
   },
   yaxis: { 
     labels: { 
       formatter: (v) => `${Math.round(v)} kg`,
       style: { 
-        colors: '#CBD5E1', // Update this to your app's text color
+        colors: '#CBD5E1',
         fontSize: '12px', 
-        fontFamily: 'Inter, system-ui, sans-serif' // Update this to your app's font
+        fontFamily: 'Inter, system-ui, sans-serif'
       }
-    }
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false }
   },
   tooltip: { 
     y: { 
       formatter: (v) => `${Math.round(v)} kg` 
-    }
-  }
+    },
+    fixed: { enabled: true, position: 'topRight' }
+  },
+  dataLabels: { enabled: false },
+  legend: { show: false }
 }))
 
 /** ========= Other stats ========= */
@@ -724,3 +750,24 @@ onMounted(() => {
   else router.push('/exercises')
 })
 </script>
+
+<style scoped>
+.chart-container {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.chart-container :deep(.apexcharts-canvas) {
+  touch-action: none !important;
+}
+
+.chart-container :deep(.apexcharts-svg) {
+  touch-action: none !important;
+}
+</style>
