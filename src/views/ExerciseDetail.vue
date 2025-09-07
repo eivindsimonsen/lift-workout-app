@@ -475,7 +475,16 @@ const progressOptions = computed<ApexOptions>(() => ({
     y: { 
       formatter: (v) => `${Math.round(v)} kg` 
     },
-    fixed: { enabled: true, position: 'topRight' }
+    fixed: { enabled: true, position: 'topRight' },
+    theme: 'dark',
+    style: {
+      fontSize: '12px',
+      fontFamily: 'Inter, system-ui, sans-serif'
+    },
+    fillSeriesColor: false,
+    marker: {
+      show: true
+    }
   },
   dataLabels: { enabled: false },
   legend: { show: false }
@@ -541,7 +550,16 @@ const epleyOptions = computed<ApexOptions>(() => ({
     y: { 
       formatter: (v) => `${Math.round(v)} kg` 
     },
-    fixed: { enabled: true, position: 'topRight' }
+    fixed: { enabled: true, position: 'topRight' },
+    theme: 'dark',
+    style: {
+      fontSize: '12px',
+      fontFamily: 'Inter, system-ui, sans-serif'
+    },
+    fillSeriesColor: false,
+    marker: {
+      show: true
+    }
   },
   dataLabels: { enabled: false },
   legend: { show: false }
