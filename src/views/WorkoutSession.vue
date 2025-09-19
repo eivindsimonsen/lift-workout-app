@@ -11,7 +11,7 @@
     <!-- Session content -->
     <div v-else>
       <!-- Sticky compact header -->
-      <div class="sticky top-0 z-30 -mx-4 px-4 pt-3 pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
+      <div class="sticky top-0 z-30 -mx-4 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
         <Breadcrumbs 
           :breadcrumbs="[
             { name: 'Økter', path: '/' },
@@ -143,7 +143,7 @@
                 </div>
                 <div v-if="getHeaviestLift(exercise.exerciseId)" class="mt-0.5 flex items-center gap-1">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 1.343-3 3v6m6-9c1.657 0 3 1.343 3 3v6M6 20h12" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10v4 M5 9v6 M7 10v4 M9 12h6 M17 10v4 M19 9v6 M21 10v4" />
                   </svg>
                   <span class="truncate">Tyngste: {{ getHeaviestLift(exercise.exerciseId)?.weight }}kg<span v-if="getHeaviestLift(exercise.exerciseId)?.reps"> × {{ getHeaviestLift(exercise.exerciseId)?.reps }}</span></span>
                 </div>
@@ -172,9 +172,19 @@
                 <div 
                   v-for="(set, setIndex) in exercise.sets" 
                   :key="set.id"
-                  class="px-4 py-2.5 grid grid-cols-[1fr,1fr,auto] items-start gap-3 md:gap-4 border-b border-dark-700 last:border-b-0 hover:bg-dark-800/70"
-                  :class="{ 'bg-primary-500/5': set.isCompleted }"
+                  class="px-4 py-2.5 grid grid-cols-[auto,1fr,1fr] items-start gap-3 md:gap-4 border-b border-dark-700 hover:bg-dark-800/70"
+                  :class="{ 'border-l-4 [border-left-color:#f97316]': set.isCompleted }"
                 >
+                  <button 
+                    @click="removeSet(exerciseIndex, setIndex)"
+                    class="self-center text-dark-400 hover:text-white transition-colors p-2 rounded-lg flex items-center justify-center"
+                    title="Slett sett"
+                    aria-label="Slett sett"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
 
                   <div>
                     <label :for="`reps-${exerciseIndex}-${setIndex}`" class="block text-[11px] text-dark-300 mb-1">Reps</label>
@@ -217,21 +227,12 @@
                       @input="(event) => handleWeightInput(event, exerciseIndex, setIndex)"
                       @blur="(event) => handleWeightBlur(event, exerciseIndex, setIndex)"
                     />
-                    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-dark-300">kg</span>
                   </div>
 
                   <!-- <div class="text-right text-[12px] text-primary-400 font-semibold whitespace-nowrap">
                     <span v-if="set.weight && set.reps">{{ set.weight * set.reps }} kg</span>
                   </div> -->
-                  <button 
-                    @click="removeSet(exerciseIndex, setIndex)"
-                    class="self-center text-dark-400 hover:text-white transition-colors p-2 rounded-lg flex items-center justify-center"
-                    title="Slett sett"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+                  
                 </div>
               </TransitionGroup>
 
@@ -239,10 +240,7 @@
               <div class="px-4 py-3 flex items-center justify-between bg-dark-900/40">
                 <div class="flex items-center gap-3">
                   <div class="text-[12px] text-dark-300">
-                    Volum (øvelse): <span class="text-primary-400 font-semibold">{{ formatNumber(calculateExerciseVolume(exercise)) }}</span> kg
-                  </div>
-                  <div class="text-[12px] text-dark-300">
-                    {{ exercise.sets.filter(s => s.isCompleted).length }} / {{ exercise.sets.length }}
+                    Total volum: <span class="text-primary-400 font-semibold">{{ formatNumber(calculateExerciseVolume(exercise)) }}</span> kg  • Sett {{ exercise.sets.filter(s => s.isCompleted).length }} / {{ exercise.sets.length }}
                   </div>
                 </div>
                 <button
@@ -264,16 +262,6 @@
       <!-- Quick actions -->
       <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <button 
-          @click="showAddExerciseModal = true"
-          :disabled="availableExercises.length === 0"
-          class="btn-secondary py-2.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          <span>Legg til øvelse</span>
-        </button>
-        <button 
           class="md:hidden btn-secondary py-2.5 flex items-center justify-center gap-2"
           :disabled="availableExercises.length === 0"
           @click="openMobileAddExercise()"
@@ -281,7 +269,7 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
-          <span>Velg fra liste</span>
+          <span>Legg til ekstra øvelse</span>
         </button>
       </div>
 
