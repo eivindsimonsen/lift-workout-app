@@ -140,6 +140,14 @@
                   Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}
                 </span>
               </div>
+              <div v-if="getHeaviestPerformance(exercise.exerciseId)" class="flex items-center gap-2 text-sm text-dark-300">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span class="whitespace-nowrap overflow-hidden text-ellipsis">
+                  Tyngst: {{ getHeaviestPerformance(exercise.exerciseId)!.reps }} reps × {{ getHeaviestPerformance(exercise.exerciseId)!.weight }}kg • {{ getHeaviestPerformance(exercise.exerciseId)!.date ? formatDate(getHeaviestPerformance(exercise.exerciseId)!.date) : '' }}
+                </span>
+              </div>
             </div>
 
             <!-- Right Column: Status Indicator -->
@@ -894,6 +902,34 @@ const getLastPerformance = (exerciseId: string) => {
   }
 
   return null
+}
+
+const getHeaviestPerformance = (exerciseId: string) => {
+  // Find the heaviest completed set for this exercise across all completed sessions
+  const completedSessions = workoutData.sessions.value
+    .filter(session => session.isCompleted)
+
+  let best: { weight: number; reps: number; date: any } | null = null
+
+  for (const s of completedSessions) {
+    const exercise = s.exercises.find(e => e.exerciseId === exerciseId)
+    if (!exercise) continue
+
+    for (const set of exercise.sets) {
+      if (!(set.isCompleted && set.weight && set.reps)) continue
+
+      const isBetter = !best ||
+        set.weight > best.weight ||
+        (set.weight === best.weight && set.reps > best.reps) ||
+        (set.weight === best.weight && set.reps === best.reps && new Date(s.date).getTime() > new Date(best.date).getTime())
+
+      if (isBetter) {
+        best = { weight: set.weight, reps: set.reps, date: s.date }
+      }
+    }
+  }
+
+  return best
 }
 
 const getExerciseMuscleGroups = (exerciseId: string): string[] => {

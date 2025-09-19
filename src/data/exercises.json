@@ -234,6 +234,12 @@
           "name": "Cable Crossover",
           "equipment": "cable",
           "angle": "flat"
+        },
+        {
+          "id": "Decline-cable-flyes",
+          "name": "Decline Cable Flyes",
+          "equipment": "cable",
+          "angle": "decline"
         }
       ]
     },
@@ -1042,12 +1048,6 @@
       "workoutTypes": ["pull", "upper", "lower", "core"],
       "muscleGroups": ["Rygg"],
       "variants": [
-        {
-          "id": "face-pulls-back",
-          "name": "Face Pulls Back",
-          "equipment": "cable",
-          "position": "standing"
-        },
         {
           "id": "cable-pullovers",
           "name": "Cable Pullovers",
