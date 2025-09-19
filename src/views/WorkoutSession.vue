@@ -120,13 +120,13 @@
                 </span>
               </div>
               <div class="flex items-center gap-2">
-                <router-link 
-                  :to="{ name: 'ExerciseDetail', params: { id: exercise.exerciseId } }"
-                  @click.stop
-                  class="text-base md:text-lg font-semibold text-white truncate hover:text-primary-400 transition-colors"
+                <button 
+                  type="button"
+                  @click.stop="openExerciseQuickView(exercise.exerciseId, exercise.name)"
+                  class="text-base md:text-lg font-semibold text-white truncate hover:text-primary-400 transition-colors text-left"
                 >
                   {{ exercise.name }}
-                </router-link>
+                </button>
                 <span v-if="isExerciseCompleted(exercise)" class="inline-flex items-center gap-1 text-[11px] text-green-400 bg-green-500/10 border border-green-500/30 px-1.5 py-0.5 rounded-full">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -283,6 +283,43 @@
         @select="handleAddExerciseFromPanel"
       />
 
+      <!-- Exercise Quick View -->
+      <SlideOver
+        :is-open="isExerciseQuickViewOpen"
+        :title="exerciseQuickViewTitle"
+        @close="closeExerciseQuickView"
+      >
+        <div v-if="exerciseQuickViewData" class="space-y-4">
+          <div class="text-sm text-dark-300">Siste økter (maks 6):</div>
+          <div class="space-y-2">
+            <div 
+              v-for="item in exerciseQuickViewData.recent"
+              :key="item.id"
+              class="flex items-center justify-between bg-dark-700 rounded-lg px-3 py-2"
+            >
+              <div class="text-[12px] text-dark-300">{{ formatDate(item.date) }}</div>
+              <div class="text-white text-sm font-medium">{{ item.weight }}kg<span v-if="item.reps"> × {{ item.reps }}</span></div>
+            </div>
+            <div v-if="exerciseQuickViewData.recent.length === 0" class="text-dark-300 text-sm">Ingen data ennå</div>
+          </div>
+
+          <div v-if="exerciseQuickViewData.best" class="mt-2">
+            <div class="text-sm text-dark-300 mb-1">Beste løft</div>
+            <div class="bg-dark-700 rounded-lg px-3 py-2 flex items-center justify-between">
+              <div class="text-white font-semibold">{{ exerciseQuickViewData.best.weight }}kg<span v-if="exerciseQuickViewData.best.reps"> × {{ exerciseQuickViewData.best.reps }}</span></div>
+              <div class="text-[12px] text-dark-300">{{ formatDate(exerciseQuickViewData.best.date) }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-sm text-dark-300">Laster…</div>
+
+        <template #footer>
+          <button type="button" class="btn-primary w-full" @click="openQuickViewGoogleSearch">
+            Åpne i Google
+          </button>
+        </template>
+      </SlideOver>
+
       <!-- Summary -->
       <div class="mt-4">
         <div class="rounded-xl border border-dark-700 bg-dark-800/60 p-4">
@@ -390,6 +427,7 @@ import type { WorkoutSession } from '@/types/workout'
 import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
+import SlideOver from '@/components/SlideOver.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -405,6 +443,52 @@ const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
 const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
 const isSyncingPendingChanges = ref(false)
+
+// Quick View state
+const isExerciseQuickViewOpen = ref(false)
+const exerciseQuickViewTitle = ref('Øvelsesdetaljer')
+const exerciseQuickViewData = ref<{ recent: { id: string; weight: number; reps: number; date: Date }[]; best: { weight: number; reps: number; date: Date } | null } | null>(null)
+let exerciseQuickViewId: string | null = null
+
+function openExerciseQuickView(exerciseId: string, exerciseName: string) {
+  exerciseQuickViewTitle.value = exerciseName
+  exerciseQuickViewId = exerciseId
+  isExerciseQuickViewOpen.value = true
+  // Build recent 4-6 performances for this exercise from completed sessions
+  const completedSessions = workoutData.sessions.value
+    .filter(s => s.isCompleted)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  const recent: { id: string; weight: number; reps: number; date: Date }[] = []
+  let best: { weight: number; reps: number; date: Date } | null = null
+
+  for (const s of completedSessions) {
+    const ex = s.exercises.find((e: any) => e.exerciseId === exerciseId)
+    if (!ex) continue
+    for (const set of ex.sets) {
+      if (!set.isCompleted || !set.weight || !set.reps) continue
+      const entry = { id: `${s.id}-${set.id}`, weight: Number(set.weight), reps: Number(set.reps), date: new Date(s.date) }
+      recent.push(entry)
+      if (!best || entry.weight > best.weight || (entry.weight === best.weight && entry.date.getTime() > best.date.getTime())) {
+        best = { weight: entry.weight, reps: entry.reps, date: entry.date }
+      }
+    }
+    if (recent.length >= 6) break
+  }
+  exerciseQuickViewData.value = { recent: recent.slice(0, 6), best }
+}
+
+function closeExerciseQuickView() {
+  isExerciseQuickViewOpen.value = false
+}
+
+function openQuickViewGoogleSearch() {
+  const name = exerciseQuickViewTitle.value || ''
+  if (!name) return
+  const searchQuery = encodeURIComponent(`${name} strength training exercise`)
+  const url = `https://www.google.com/search?q=${searchQuery}&tbm=isch`
+  window.open(url, '_blank')
+}
 
 // Computed
 const completedSets = computed(() => {
