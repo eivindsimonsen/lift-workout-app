@@ -541,41 +541,6 @@ const muscleGroupStats = computed(() => {
     .sort((a, b) => b.volume - a.volume)
 })
 
-const currentStreak = computed(() => {
-  return getCurrentStreak()
-})
-
-const longestStreak = computed(() => {
-  if (workoutData.completedSessions.value.length === 0) return 0
-  
-  const sortedSessions = [...workoutData.completedSessions.value]
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  
-  let maxStreak = 0
-  let currentStreak = 0
-  let lastDate: Date | null = null
-  
-  for (const session of sortedSessions) {
-    const sessionDate = new Date(session.date)
-    sessionDate.setHours(0, 0, 0, 0)
-    
-    if (lastDate) {
-      const daysDiff = Math.floor((sessionDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
-      if (daysDiff === 1) {
-        currentStreak++
-      } else {
-        maxStreak = Math.max(maxStreak, currentStreak)
-        currentStreak = 1
-      }
-    } else {
-      currentStreak = 1
-    }
-    
-    lastDate = sessionDate
-  }
-  
-  return Math.max(maxStreak, currentStreak)
-})
 
 const averageWorkoutsPerWeek = computed(() => {
   if (workoutData.completedSessions.value.length === 0) return 0
@@ -947,18 +912,6 @@ const achievements = computed(() => {
     trainedMonths.add(`${d.getFullYear()}-${d.getMonth()}`)
   })
 
-  const now = new Date()
-  const mondayOfThisWeek = new Date(now)
-  const dayIdx = (now.getDay() + 6) % 7
-  mondayOfThisWeek.setDate(now.getDate() - dayIdx)
-  mondayOfThisWeek.setHours(0, 0, 0, 0)
-  const sundayOfThisWeek = new Date(mondayOfThisWeek)
-  sundayOfThisWeek.setDate(mondayOfThisWeek.getDate() + 6)
-  sundayOfThisWeek.setHours(23, 59, 59, 999)
-  const workoutsThisWeek = sessions.filter(s => {
-    const d = new Date(s.date)
-    return d >= mondayOfThisWeek && d <= sundayOfThisWeek
-  })
 
   const distribution = muscleGroupDistribution.value
   const topShare = distribution.reduce((m, g) => Math.max(m, g.percentage), 0)
@@ -975,9 +928,6 @@ const achievements = computed(() => {
     { id: 'reps-1000', icon: '💪', title: '1000 reps', description: 'Fire siffer med reps!', earned: totalReps.value >= 1000 },
     { id: 'reps-5000', icon: '💪', title: '5000 reps', description: 'Fem siffer med reps!', earned: totalReps.value >= 5000 },
 
-    { id: 'streak-7', icon: '🔥', title: '7 dagers streak', description: 'En uke på rad!', earned: currentStreak.value >= 7 },
-    { id: 'streak-30', icon: '⚡️', title: '30 dagers streak', description: 'Du har holdt 30 dager på rad!', earned: currentStreak.value >= 30 },
-    { id: 'streak-14-best', icon: '🏁', title: 'Lengste streak 14+', description: 'Sterk kontinuitet!', earned: longestStreak.value >= 14 },
     { id: 'volume-1m', icon: '🏆', title: '1 000 000 kg totalvolum', description: 'En million kilo løftet!', earned: Math.round(workoutData.totalVolume.value) >= 1000000 },
 
     { id: '1rm-first', icon: '🧱', title: 'Første 1RM', description: 'Du har logget en 1RM-økt (1 rep).', earned: oneRmExercises.size >= 1 },
@@ -988,7 +938,14 @@ const achievements = computed(() => {
 
     { id: 'balanced-training', icon: '⚖️', title: 'Balansert trening', description: 'God fordeling mellom muskelgrupper.', earned: (distribution.length >= 3 && topShare <= 40 && groupsAbove15 >= 3) },
 
-    { id: 'week-3plus', icon: '📅', title: '3+ økter denne uken', description: 'Stødig rytme!', earned: workoutsThisWeek.length >= 3 },
+    { id: 'power-lifter', icon: '💥', title: 'Powerlifter', description: 'Logget 1RM på alle 4 hovedøvelser.', earned: oneRmExercises.size >= 4 },
+    { id: 'volume-king', icon: '👑', title: 'Volumkonge', description: 'Løftet over 500 000 kg totalt!', earned: Math.round(workoutData.totalVolume.value) >= 500000 },
+    { id: 'endurance-master', icon: '🏃', title: 'Utholdenhetsmester', description: 'Over 50% av reps i utholdenhetsområdet.', earned: totalRepRanges.value.endurance >= 50 },
+    { id: 'strength-focused', icon: '💪', title: 'Styrke-fokusert', description: 'Over 50% av reps i styrkeområdet.', earned: totalRepRanges.value.strength >= 50 },
+    { id: 'hypertrophy-expert', icon: '🎯', title: 'Hypertrofi-ekspert', description: 'Over 50% av reps i hypertrofiområdet.', earned: totalRepRanges.value.hypertrophy >= 50 },
+    { id: 'marathon-session', icon: '⏰', title: 'Maratonøkt', description: 'En økt som varte over 2 timer.', earned: workoutData.completedSessions.value.some(s => s.duration >= 120) },
+    { id: 'quick-session', icon: '⚡', title: 'Hurtigøkt', description: 'En økt under 30 minutter.', earned: workoutData.completedSessions.value.some(s => s.duration <= 30) },
+    { id: 'consistency-champion', icon: '🎖️', title: 'Konsistensmester', description: 'Trent i 3 forskjellige måneder.', earned: trainedMonths.size >= 3 },
 
     { id: 'morning-trainer', icon: '🌅', title: 'Morgenhelt', description: '5 økter før kl 09.', earned: morningCount >= 5 },
     { id: 'night-owl', icon: '🌙', title: 'Nattugle', description: '5 økter etter kl 20.', earned: nightCount >= 5 },
@@ -1045,29 +1002,4 @@ const restDaysCount = computed(() => {
   return Math.max(0, totalDays - workoutDays.size)
 })
 
-const getCurrentStreak = (): number => {
-  if (workoutData.completedSessions.value.length === 0) return 0
-  
-  const sortedSessions = [...workoutData.completedSessions.value]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  
-  let streak = 0
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
-  for (let i = 0; i < sortedSessions.length; i++) {
-    const sessionDate = new Date(sortedSessions[i].date)
-    sessionDate.setHours(0, 0, 0, 0)
-    
-    const daysDiff = Math.floor((today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24))
-    
-    if (daysDiff === streak) {
-      streak++
-    } else {
-      break
-    }
-  }
-  
-  return streak
-}
 </script>
