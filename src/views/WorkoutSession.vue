@@ -1,123 +1,116 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-5">
     <!-- Loading state -->
     <div v-if="workoutData.isLoading.value || !session" class="flex items-center justify-center py-12">
       <div class="text-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-4"></div>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-3"></div>
         <p class="text-dark-300">Laster økt...</p>
       </div>
     </div>
-    
+
     <!-- Session content -->
     <div v-else>
-      <!-- Breadcrumbs - moved above header -->
-      <Breadcrumbs 
-        :breadcrumbs="[
-          { name: 'Økter', path: '/' },
-          { name: 'Aktiv økt' }
-        ]"
-      />
-
-      <!-- Header -->
-      <div class="flex items-center justify-between mt-4">
-        <div class="flex items-center gap-3">
-          <router-link 
-            to="/" 
-            class="inline-flex items-center justify-center w-10 h-10 bg-[#3F302A] hover:bg-[#4A3A32] rounded-lg transition-colors"
-          >
-            <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </router-link>
-          <h1 class="text-2xl font-bold text-white">{{ session?.templateName }}</h1>
+      <!-- Sticky compact header -->
+      <div class="sticky top-0 z-30 -mx-4 px-4 pt-[calc(env(safe-area-inset-top)+0.0rem)] pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
+        <Breadcrumbs 
+          :breadcrumbs="[
+            { name: 'Økter', path: '/' },
+            { name: 'Aktiv økt' }
+          ]"
+        />
+        <div class="mt-2 flex items-center justify-between">
+          <div class="flex items-center gap-3 min-w-0">
+            <router-link 
+              to="/" 
+              class="inline-flex items-center justify-center w-9 h-9 bg-[#3F302A] hover:bg-[#4A3A32] rounded-lg transition-colors flex-shrink-0"
+            >
+              <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </router-link>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <h1 class="text-lg md:text-xl font-semibold text-white truncate">{{ session?.templateName }}</h1>
+                <span 
+                  class="inline-block px-2.5 py-0.5 text-xs font-medium rounded-full hidden sm:inline"
+                  :style="{ 
+                    backgroundColor: getWorkoutTypeColor(session?.workoutType || '') + '20',
+                    color: getWorkoutTypeColor(session?.workoutType || '')
+                  }"
+                >
+                  {{ getWorkoutTypeName(session?.workoutType || '') }}
+                </span>
+              </div>
+              <div class="mt-1 flex items-center gap-3 text-xs text-dark-300">
+                <span>{{ completedSets }} / {{ totalSets }} sett</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="hidden sm:inline">{{ formatNumber(estimatedVolume) }} kg</span>
+                <span class="hidden sm:inline">•</span>
+                <span>{{ sessionDuration }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span 
+              class="inline-block px-2.5 py-0.5 text-xs font-medium rounded-full sm:hidden"
+              :style="{ 
+                backgroundColor: getWorkoutTypeColor(session?.workoutType || '') + '20',
+                color: getWorkoutTypeColor(session?.workoutType || '')
+              }"
+            >
+              {{ getWorkoutTypeName(session?.workoutType || '') }}
+            </span>
+            <button 
+              @click="handleAbandonWorkout"
+              class="hidden md:inline-flex px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs font-medium"
+              title="Avbryt økt"
+            >
+              Avbryt
+            </button>
+          </div>
         </div>
-        <div class="flex items-center gap-3">
-
-          <span 
-            class="inline-block px-3 py-1 text-sm font-medium rounded-full"
-            :style="{ 
-              backgroundColor: getWorkoutTypeColor(session?.workoutType || '') + '20',
-              color: getWorkoutTypeColor(session?.workoutType || '')
-            }"
-          >
-            {{ getWorkoutTypeName(session?.workoutType || '') }}
-          </span>
-
-          <!-- Abandon workout button (desktop only) -->
-          <button 
-            @click="handleAbandonWorkout"
-            class="hidden md:block px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-sm font-medium"
-            title="Avbryt økt"
-          >
-            Avbryt økt
-          </button>
+        <!-- Progress bar -->
+        <div class="mt-2 h-1 w-full bg-dark-800 rounded">
+          <div class="h-1 rounded bg-primary-500 transition-all" :style="{ width: progressPercentage + '%' }"></div>
         </div>
       </div>
 
-      <!-- Network status indicator -->
-      <div v-if="!workoutData.isOnline.value" class="mt-4 p-3 bg-yellow-600 bg-opacity-20 border border-yellow-500 rounded-lg">
-        <div class="flex items-center gap-2 text-yellow-400 text-sm">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <!-- Status row -->
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <div v-if="!workoutData.isOnline.value" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-600/20 border border-yellow-500/40 text-yellow-300 text-xs">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
           </svg>
-          <span>Offline modus - endringer lagres lokalt og synkroniseres når du er tilkoblet</span>
+          <span>Offline: lagrer lokalt</span>
         </div>
-      </div>
-
-      <!-- Pending changes indicator -->
-      <div v-if="workoutData.isOnline.value && pendingChangesCount > 0" class="mt-4 p-3 bg-blue-600 bg-opacity-20 border border-blue-500 rounded-lg">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2 text-blue-400 text-sm">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>{{ pendingChangesCount }} endring(er) venter på synkronisering</span>
-          </div>
+        <div v-if="workoutData.isOnline.value && pendingChangesCount > 0" class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-300 text-xs">
+          <span>{{ pendingChangesCount }} endring(er)</span>
           <button 
             @click="syncPendingChanges"
-            class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors"
+            class="px-2 py-0.5 rounded bg-blue-500 hover:bg-blue-600 text-white text-[11px]"
             :disabled="isSyncingPendingChanges"
           >
-            <span v-if="isSyncingPendingChanges">Synkroniserer...</span>
-            <span v-else>Synkroniser nå</span>
+            <span v-if="isSyncingPendingChanges">Synker…</span>
+            <span v-else>Synk nå</span>
           </button>
         </div>
       </div>
 
       <!-- Exercises -->
-      <div v-if="session" class="mt-8">
+      <div v-if="session" class="mt-4 space-y-4">
         <div 
           v-for="(exercise, exerciseIndex) in session.exercises" 
           :key="exercise.exerciseId"
-          class="mb-10 last:mb-0"
+          class="rounded-xl border border-dark-700 bg-dark-800/60"
         >
-          <!-- Exercise Separator -->
-          <div v-if="exerciseIndex >= 0" class="mb-4 flex items-center">
-            <div class="flex-1 h-px bg-dark-600"></div>
-            <div 
-              class="mx-4 px-3 py-1 rounded-full border flex justify-center"
-              :class="isExerciseCompleted(exercise) ? 'bg-green-500/10 border-green-500/30' : 'bg-dark-700 border-dark-600'"
-            >
-              <span 
-                class="text-xs font-medium"
-                :class="isExerciseCompleted(exercise) ? 'text-green-400' : 'text-dark-400'"
-              >
-                {{ isExerciseCompleted(exercise) ? `Øvelse ${exerciseIndex + 1} fullført` : `Øvelse ${exerciseIndex + 1}` }}
-              </span>
-            </div>
-            <div class="flex-1 h-px bg-dark-600"></div>
-          </div>
-
-          <!-- Exercise Header -->
-          <div class="flex justify-between mb-6 cursor-pointer" @click="toggleExercise(exerciseIndex)">
-            <!-- Left Column: Exercise Info -->
-            <div class="flex-1 min-w-0">
-              <!-- Muscle Groups -->
-              <div v-if="getExerciseMuscleGroups(exercise.exerciseId)" class="flex flex-wrap gap-1 mb-2">
+          <!-- Header -->
+          <div class="flex items-start justify-between gap-3 p-4 cursor-pointer" @click="toggleExercise(exerciseIndex)">
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
                 <span 
                   v-for="muscleGroup in getExerciseMuscleGroups(exercise.exerciseId)" 
                   :key="muscleGroup"
-                  class="inline-block px-2 py-1 text-xs font-medium rounded-full"
+                  class="inline-block px-2 py-0.5 text-[11px] font-medium rounded-full"
                   :style="{
                     backgroundColor: getMuscleGroupColor(muscleGroup) + '20',
                     color: getMuscleGroupColor(muscleGroup)
@@ -126,79 +119,75 @@
                   {{ muscleGroup }}
                 </span>
               </div>
-              
-              <h3 class="text-xl font-bold text-white mb-2 truncate">
-                {{ exercise.name }}
-              </h3>
-              
-              <!-- Last Performance -->
-              <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-2 text-sm text-dark-300">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span class="whitespace-nowrap overflow-hidden text-ellipsis">
-                  Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} reps × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button"
+                  @click.stop="openExerciseQuickView(exercise.exerciseId, exercise.name)"
+                  class="text-base md:text-lg font-semibold text-white truncate hover:text-primary-400 transition-colors text-left"
+                >
+                  {{ exercise.name }}
+                </button>
+                <span v-if="isExerciseCompleted(exercise)" class="inline-flex items-center gap-1 text-[11px] text-green-400 bg-green-500/10 border border-green-500/30 px-1.5 py-0.5 rounded-full">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Fullført
                 </span>
               </div>
-              <div v-if="getHeaviestPerformance(exercise.exerciseId)" class="flex items-center gap-2 text-sm text-dark-300">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span class="whitespace-nowrap overflow-hidden text-ellipsis">
-                  Tyngst: {{ getHeaviestPerformance(exercise.exerciseId)!.reps }} reps × {{ getHeaviestPerformance(exercise.exerciseId)!.weight }}kg • {{ getHeaviestPerformance(exercise.exerciseId)!.date ? formatDate(getHeaviestPerformance(exercise.exerciseId)!.date) : '' }}
-                </span>
+              <div v-if="getLastPerformance(exercise.exerciseId) || getHeaviestLift(exercise.exerciseId)" class="mt-1 text-[12px] text-dark-300">
+                <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span class="truncate">Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
+                </div>
+                <div v-if="getHeaviestLift(exercise.exerciseId)" class="mt-0.5 flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10v4 M5 9v6 M7 10v4 M9 12h6 M17 10v4 M19 9v6 M21 10v4" />
+                  </svg>
+                  <span class="truncate">Tyngste: {{ getHeaviestLift(exercise.exerciseId)?.weight }}kg<span v-if="getHeaviestLift(exercise.exerciseId)?.reps"> × {{ getHeaviestLift(exercise.exerciseId)?.reps }}</span></span>
+                </div>
               </div>
             </div>
-
-            <!-- Right Column: Status Indicator -->
-            <div class="ml-4 flex items-center gap-2">
-              <svg 
-                class="w-6 h-6 text-dark-300 transition-transform"
-                :class="{ 'rotate-180': !collapsedExercises[exerciseIndex] }"
-                fill="none"
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+            <svg 
+              class="w-5 h-5 text-dark-300 mt-1 transition-transform flex-shrink-0"
+              :class="{ 'rotate-180': !collapsedExercises[exerciseIndex] }"
+              fill="none"
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
           </div>
 
           <!-- Sets -->
           <Transition @enter="expand" @after-enter="afterExpand" @leave="collapse" @after-leave="afterCollapse">
-          <div v-show="!collapsedExercises[exerciseIndex]" class="bg-dark-800/50 border border-dark-700 rounded-xl overflow-hidden">
-            <!-- Animate add/remove of sets -->
-            <TransitionGroup
-              name="set"
-              tag="div"
-              enter-active-class="transition duration-200 ease-out"
-              leave-active-class="transition duration-200 ease-in"
-            >
-              <div 
-                v-for="(set, setIndex) in exercise.sets" 
-                :key="set.id"
-                class="py-5 px-6 transition-all duration-200"
-                :class="{ 
-                  'bg-primary-500/5 border-l-4 border-l-primary-500': set.isCompleted,
-                  'border-b border-dark-600': setIndex < exercise.sets.length - 1
-                }"
+            <div v-show="!collapsedExercises[exerciseIndex]" class="border-t border-dark-700">
+              <TransitionGroup
+                name="set"
+                tag="div"
+                enter-active-class="transition duration-200 ease-out"
+                leave-active-class="transition duration-200 ease-in"
               >
-                <div class="flex items-center justify-between">
+                <div 
+                  v-for="(set, setIndex) in exercise.sets" 
+                  :key="set.id"
+                  class="px-4 py-2.5 grid grid-cols-[auto,1fr,1fr] items-start gap-3 md:gap-4 border-b border-dark-700 hover:bg-dark-800/70"
+                  :class="{ 'border-l-4 [border-left-color:#f97316]': set.isCompleted }"
+                >
                   <button 
                     @click="removeSet(exerciseIndex, setIndex)"
-                    class="text-dark-400 transition-colors p-2 rounded-lg flex items-center justify-center w-8 h-8"
+                    class="self-center text-dark-400 hover:text-white transition-colors p-2 rounded-lg flex items-center justify-center"
                     title="Slett sett"
+                    aria-label="Slett sett"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
-                  <span class="text-sm font-semibold text-white bg-dark-700 px-3 py-1.5 rounded-full">Sett {{ setIndex + 1 }}</span>
-                </div>
 
-                <div class="grid grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-3">Reps</label>
+                    <label :for="`reps-${exerciseIndex}-${setIndex}`" class="block text-[11px] text-dark-300 mb-1">Reps</label>
                     <input
                       :value="set.reps === 0 ? '' : set.reps"
                       type="text"
@@ -206,8 +195,9 @@
                       pattern="[0-9]*"
                       min="0"
                       required
-                      class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
+                      class="input-field w-full text-sm h-7 py-0.5 bg-dark-700 border-dark-600 focus:border-primary-500"
                       :placeholder="getLastPerformance(exercise.exerciseId)?.reps?.toString() || '0'"
+                      :id="`reps-${exerciseIndex}-${setIndex}`"
                       :data-exercise-index="exerciseIndex"
                       :data-set-index="setIndex"
                       :ref="el => registerInputRef(exerciseIndex, setIndex, 'reps', el as HTMLInputElement)"
@@ -216,8 +206,9 @@
                       @blur="(event) => handleRepsBlur(event, exerciseIndex, setIndex)"
                     />
                   </div>
-                  <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-3">Vekt (kg)</label>
+
+                  <div class="relative">
+                    <label :for="`weight-${exerciseIndex}-${setIndex}`" class="block text-[11px] text-dark-300 mb-1">Vekt (kg)</label>
                     <input
                       :value="set.weight === 0 ? '' : set.weight"
                       type="text"
@@ -226,8 +217,9 @@
                       min="0"
                       step="0.5"
                       required
-                      class="input-field w-full text-sm py-3 bg-dark-700 border-dark-600 focus:border-primary-500"
+                      class="input-field w-full text-sm h-7 py-0.5 pr-8 bg-dark-700 border-dark-600 focus:border-primary-500"
                       :placeholder="getLastPerformance(exercise.exerciseId)?.weight?.toString() || '0'"
+                      :id="`weight-${exerciseIndex}-${setIndex}`"
                       :data-exercise-index="exerciseIndex"
                       :data-set-index="setIndex"
                       :ref="el => registerInputRef(exerciseIndex, setIndex, 'weight', el as HTMLInputElement)"
@@ -236,41 +228,140 @@
                       @blur="(event) => handleWeightBlur(event, exerciseIndex, setIndex)"
                     />
                   </div>
-                </div>
 
-                <!-- Volume Display -->
-                <div v-if="set.weight && set.reps" class="mt-4 pt-4 border-t border-dark-600">
-                  <div class="flex items-center justify-between">
-                    <span class="text-dark-300 font-medium text-sm">Volum:</span>
-                    <span class="text-primary-400 font-bold text-base">
-                      {{ set.weight * set.reps }} kg
-                    </span>
+                  <!-- <div class="text-right text-[12px] text-primary-400 font-semibold whitespace-nowrap">
+                    <span v-if="set.weight && set.reps">{{ set.weight * set.reps }} kg</span>
+                  </div> -->
+                  
+                </div>
+              </TransitionGroup>
+
+              <!-- Footer: exercise volume + add set -->
+              <div class="px-4 py-3 flex items-center justify-between bg-dark-900/40">
+                <div class="flex items-center gap-3">
+                  <div class="text-[12px] text-dark-300">
+                    Total volum: <span class="text-primary-400 font-semibold">{{ formatNumber(calculateExerciseVolume(exercise)) }}</span> kg  • Sett {{ exercise.sets.filter(s => s.isCompleted).length }} / {{ exercise.sets.length }}
                   </div>
                 </div>
+                <button
+                  @click="addSet(exerciseIndex)"
+                  class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-dark-700 hover:bg-dark-600 border border-dark-600 text-white transition-colors"
+                  aria-label="Legg til sett"
+                  title="Legg til sett"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </button>
               </div>
-            </TransitionGroup>
-
-            <!-- Add Set Button -->
-            <div class="p-5 border-t border-dark-600">
-              <button
-                @click="addSet(exerciseIndex)"
-                class="w-full btn-secondary text-sm py-4 border-2 border-dark-600">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Legg til sett
-              </button>
             </div>
-          </div>
           </Transition>
         </div>
       </div>
 
+      <!-- Quick actions -->
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button 
+          class="md:hidden btn-secondary py-2.5 flex items-center justify-center gap-2"
+          :disabled="availableExercises.length === 0"
+          @click="openMobileAddExercise()"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          <span>Legg til ekstra øvelse</span>
+        </button>
+      </div>
+
+      <!-- Mobile Exercise Picker -->
+      <ExerciseSearchPanel
+        :is-open="isMobileExercisePanelOpen"
+        :exercises="availableExercises"
+        :workout-type="session?.workoutType"
+        title="Velg øvelse"
+        @close="closeMobileAddExercise"
+        @select="handleAddExerciseFromPanel"
+      />
+
+      <!-- Exercise Quick View -->
+      <SlideOver
+        :is-open="isExerciseQuickViewOpen"
+        :title="exerciseQuickViewTitle"
+        @close="closeExerciseQuickView"
+      >
+        <div v-if="exerciseQuickViewData" class="space-y-4">
+          <div class="text-sm text-dark-300">Siste økter (maks 6):</div>
+          <div class="space-y-2">
+            <div 
+              v-for="item in exerciseQuickViewData.recent"
+              :key="item.id"
+              class="flex items-center justify-between bg-dark-700 rounded-lg px-3 py-2"
+            >
+              <div class="text-[12px] text-dark-300">{{ formatDate(item.date) }}</div>
+              <div class="text-white text-sm font-medium">{{ item.weight }}kg<span v-if="item.reps"> × {{ item.reps }}</span></div>
+            </div>
+            <div v-if="exerciseQuickViewData.recent.length === 0" class="text-dark-300 text-sm">Ingen data ennå</div>
+          </div>
+
+          <div v-if="exerciseQuickViewData.best" class="mt-2">
+            <div class="text-sm text-dark-300 mb-1">Beste løft</div>
+            <div class="bg-dark-700 rounded-lg px-3 py-2 flex items-center justify-between">
+              <div class="text-white font-semibold">{{ exerciseQuickViewData.best.weight }}kg<span v-if="exerciseQuickViewData.best.reps"> × {{ exerciseQuickViewData.best.reps }}</span></div>
+              <div class="text-[12px] text-dark-300">{{ formatDate(exerciseQuickViewData.best.date) }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-sm text-dark-300">Laster…</div>
+
+        <template #footer>
+          <button type="button" class="btn-primary w-full" @click="openQuickViewGoogleSearch">
+            Åpne i Google
+          </button>
+        </template>
+      </SlideOver>
+
+      <!-- Summary -->
+      <div class="mt-4">
+        <div class="rounded-xl border border-dark-700 bg-dark-800/60 p-4">
+          <div class="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p class="text-lg font-bold text-primary-500">{{ completedSets }} / {{ totalSets }}</p>
+              <p class="text-[12px] text-dark-300">Sett</p>
+            </div>
+            <div>
+              <p class="text-lg font-bold text-primary-500">{{ formatNumber(estimatedVolume) }}</p>
+              <p class="text-[12px] text-dark-300">Volum (kg)</p>
+            </div>
+            <div>
+              <p class="text-lg font-bold text-primary-500">{{ sessionDuration }}</p>
+              <p class="text-[12px] text-dark-300">Varighet</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Complete Button -->
+      <div class="mt-5">
+        <button 
+          @click="handleCompleteWorkout"
+          class="w-full btn-primary py-3 flex items-center justify-center gap-2"
+          :disabled="completedSets === 0"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Fullfør Økt
+        </button>
+        <p v-if="completedSets === 0" class="text-xs text-dark-400 text-center mt-2">
+          Du må fullføre minst ett sett for å kunne fullføre økten
+        </p>
+      </div>
+
       <!-- Add Exercise Modal (desktop) -->
-      <div v-if="showAddExerciseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-dark-800 rounded-lg p-6 w-full max-w-md mx-4">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-semibold text-white">Legg til Øvelse</h3>
+      <div v-if="showAddExerciseModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-dark-800 rounded-lg p-6 w-full max-w-md mx-4 border border-dark-700">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold text-white">Legg til Øvelse</h3>
             <button 
               @click="showAddExerciseModal = false"
               class="text-dark-400 hover:text-white"
@@ -280,7 +371,6 @@
               </svg>
             </button>
           </div>
-          
           <form @submit.prevent="addExerciseToSession" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-white mb-2">Øvelse</label>
@@ -303,7 +393,6 @@
                 </option>
               </select>
             </div>
-            
             <div class="flex gap-3 justify-end">
               <button 
                 type="button"
@@ -323,117 +412,6 @@
           </form>
         </div>
       </div>
-
-      <!-- Mobile Exercise Picker -->
-      <ExerciseSearchPanel
-        :is-open="isMobileExercisePanelOpen"
-        :exercises="availableExercises"
-        :workout-type="session?.workoutType"
-        title="Velg øvelse"
-        @close="closeMobileAddExercise"
-        @select="handleAddExerciseFromPanel"
-      />
-
-      <!-- Exercise Separator -->
-      <div class="mb-4 flex items-center mt-8">
-        <div class="flex-1 h-px bg-dark-600"></div>
-        <div 
-          class="mx-4 px-3 py-1 rounded-full border flex justify-center bg-dark-700 border-dark-600"
-        >
-          <span 
-            class="text-xs font-medium text-dark-400"
-          >
-            Åpen øvelse
-          </span>
-        </div>
-        <div class="flex-1 h-px bg-dark-600"></div>
-      </div>
-
-      <!-- Add Exercise Section -->
-      <div class="mt-8">
-        <div class="card">
-          <div class="hidden md:block">
-            <button 
-              @click="showAddExerciseModal = true"
-              :disabled="availableExercises.length === 0"
-              class="w-full btn-secondary py-3 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span v-if="availableExercises.length === 0">
-                Alle øvelser lagt til
-              </span>
-              <span v-else>
-                + Legg til øvelse
-              </span>
-            </button>
-          </div>
-          
-          <div class="md:hidden">
-            <button 
-              @click="openMobileAddExercise()"
-              :disabled="availableExercises.length === 0"
-              class="w-full btn-secondary py-3 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span v-if="availableExercises.length === 0">
-                Alle øvelser lagt til
-              </span>
-              <span v-else>
-                + Legg til øvelse
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="mb-4 flex items-center mt-8">
-        <div class="flex-1 h-px bg-dark-600"></div>
-        <div 
-          class="mx-4 px-3 py-1 rounded-full border flex justify-center bg-dark-700 border-dark-600"
-        >
-          <span 
-            class="text-xs font-medium text-dark-400"
-          >
-            Summering
-          </span>
-        </div>
-        <div class="flex-1 h-px bg-dark-600"></div>
-      </div>
-
-      <!-- Summary -->
-      <div class="mt-8">
-        <div class="card">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="text-center">
-              <p class="text-2xl font-bold text-primary-500">{{ completedSets }} av {{ totalSets }}</p>
-              <p class="text-sm text-dark-300">Sett gjennomført</p>
-            </div>
-            <div class="text-center">
-              <p class="text-2xl font-bold text-primary-500">{{ formatNumber(estimatedVolume) }}</p>
-              <p class="text-sm text-dark-300">Estimert volum (kg)</p>
-            </div>
-            <div class="text-center">
-              <p class="text-2xl font-bold text-primary-500">{{ sessionDuration }}</p>
-              <p class="text-sm text-dark-300">Varighet</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Save and Complete Buttons -->
-      <div class="mt-6 space-y-3">
-        <button 
-          @click="handleCompleteWorkout"
-          class="w-full btn-primary py-3 flex items-center justify-center gap-2"
-          :disabled="completedSets === 0"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          Fullfør Økt
-        </button>
-        <p v-if="completedSets === 0" class="text-xs text-dark-400 text-center mt-2">
-          Du må fullføre minst ett sett for å kunne fullføre økten
-        </p>
-      </div>
     </div>
   </div>
 </template>
@@ -449,6 +427,7 @@ import type { WorkoutSession } from '@/types/workout'
 import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
+import SlideOver from '@/components/SlideOver.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -464,6 +443,52 @@ const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
 const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
 const isSyncingPendingChanges = ref(false)
+
+// Quick View state
+const isExerciseQuickViewOpen = ref(false)
+const exerciseQuickViewTitle = ref('Øvelsesdetaljer')
+const exerciseQuickViewData = ref<{ recent: { id: string; weight: number; reps: number; date: Date }[]; best: { weight: number; reps: number; date: Date } | null } | null>(null)
+let exerciseQuickViewId: string | null = null
+
+function openExerciseQuickView(exerciseId: string, exerciseName: string) {
+  exerciseQuickViewTitle.value = exerciseName
+  exerciseQuickViewId = exerciseId
+  isExerciseQuickViewOpen.value = true
+  // Build recent 4-6 performances for this exercise from completed sessions
+  const completedSessions = workoutData.sessions.value
+    .filter(s => s.isCompleted)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  const recent: { id: string; weight: number; reps: number; date: Date }[] = []
+  let best: { weight: number; reps: number; date: Date } | null = null
+
+  for (const s of completedSessions) {
+    const ex = s.exercises.find((e: any) => e.exerciseId === exerciseId)
+    if (!ex) continue
+    for (const set of ex.sets) {
+      if (!set.isCompleted || !set.weight || !set.reps) continue
+      const entry = { id: `${s.id}-${set.id}`, weight: Number(set.weight), reps: Number(set.reps), date: new Date(s.date) }
+      recent.push(entry)
+      if (!best || entry.weight > best.weight || (entry.weight === best.weight && entry.date.getTime() > best.date.getTime())) {
+        best = { weight: entry.weight, reps: entry.reps, date: entry.date }
+      }
+    }
+    if (recent.length >= 6) break
+  }
+  exerciseQuickViewData.value = { recent: recent.slice(0, 6), best }
+}
+
+function closeExerciseQuickView() {
+  isExerciseQuickViewOpen.value = false
+}
+
+function openQuickViewGoogleSearch() {
+  const name = exerciseQuickViewTitle.value || ''
+  if (!name) return
+  const searchQuery = encodeURIComponent(`${name} strength training exercise`)
+  const url = `https://www.google.com/search?q=${searchQuery}&tbm=isch`
+  window.open(url, '_blank')
+}
 
 // Computed
 const completedSets = computed(() => {
@@ -904,32 +929,38 @@ const getLastPerformance = (exerciseId: string) => {
   return null
 }
 
-const getHeaviestPerformance = (exerciseId: string) => {
-  // Find the heaviest completed set for this exercise across all completed sessions
+// Heaviest lift across completed sessions for the exercise
+const getHeaviestLift = (exerciseId: string) => {
   const completedSessions = workoutData.sessions.value
     .filter(session => session.isCompleted)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   let best: { weight: number; reps: number; date: any } | null = null
 
-  for (const s of completedSessions) {
-    const exercise = s.exercises.find(e => e.exerciseId === exerciseId)
+  for (const session of completedSessions) {
+    const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
     if (!exercise) continue
 
     for (const set of exercise.sets) {
-      if (!(set.isCompleted && set.weight && set.reps)) continue
-
-      const isBetter = !best ||
-        set.weight > best.weight ||
-        (set.weight === best.weight && set.reps > best.reps) ||
-        (set.weight === best.weight && set.reps === best.reps && new Date(s.date).getTime() > new Date(best.date).getTime())
-
-      if (isBetter) {
-        best = { weight: set.weight, reps: set.reps, date: s.date }
+      if (!set.isCompleted || !set.weight || !set.reps) continue
+      if (!best || set.weight > best.weight || (set.weight === best.weight && new Date(session.date).getTime() > new Date(best.date).getTime())) {
+        best = { weight: set.weight, reps: set.reps, date: session.date }
       }
     }
   }
 
   return best
+}
+
+// Calculate total volume for a single exercise (completed sets only)
+const calculateExerciseVolume = (exercise: any): number => {
+  if (!exercise || !Array.isArray(exercise.sets)) return 0
+  return exercise.sets.reduce((sum: number, set: any) => {
+    if (set.isCompleted && set.weight && set.reps) {
+      return sum + set.weight * set.reps
+    }
+    return sum
+  }, 0)
 }
 
 const getExerciseMuscleGroups = (exerciseId: string): string[] => {

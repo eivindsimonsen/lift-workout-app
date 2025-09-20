@@ -86,7 +86,7 @@
             </p>
             <p class="text-[10px] text-dark-300 leading-tight">Total volum</p>
           </div>
-          <div class="text-right">
+          <div class="text-right whitespace-nowrap">
             <span 
               class="px-3 py-1 rounded-full text-sm font-medium"
               :style="{ 
