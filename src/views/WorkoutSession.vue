@@ -11,7 +11,7 @@
     <!-- Session content -->
     <div v-else>
       <!-- Sticky compact header -->
-      <div class="sticky top-0 z-30 -mx-4 px-4 pt-[calc(env(safe-area-inset-top)+0.15rem)] pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
+      <div class="sticky top-0 z-30 -mx-4 px-4 pt-[calc(env(safe-area-inset-top)+0.0rem)] pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
         <Breadcrumbs 
           :breadcrumbs="[
             { name: 'Økter', path: '/' },
