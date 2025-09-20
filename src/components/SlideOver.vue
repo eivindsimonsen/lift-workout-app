@@ -13,7 +13,7 @@
           aria-modal="true"
         >
           <!-- Header -->
-          <div class="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 border-b border-dark-700 sticky top-0 z-40 bg-dark-800">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-dark-700 sticky top-0 z-40 bg-dark-800">
             <h3 class="text-white font-semibold text-base">{{ title }}</h3>
             <button type="button" class="text-dark-400 hover:text-white" @click="onClose" aria-label="Lukk">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
