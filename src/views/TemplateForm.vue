@@ -439,22 +439,22 @@ onMounted(() => {
             class="exercise-item bg-dark-700/70 rounded-lg p-4 relative border border-dark-600/60 hover:border-primary-500/30 transition-colors"
             :style="{ '--accent': getExerciseAccentColor(exercise.exerciseId) }"
           >
-            <div class="flex items-center mb-3 pr-8 gap-2">
+            <div class="flex items-center mb-3 gap-2">
               <div class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-dark-600/60 ring-1 ring-dark-500/40">
                 <span class="text-xs text-dark-200">{{ index + 1 }}</span>
               </div>
               <h4 class="font-medium text-white leading-none">Øvelse {{ index + 1 }}</h4>
+              <button 
+                @click="removeExercise(index)"
+                type="button"
+                class="ml-auto text-dark-400 hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-500/10 flex items-center justify-end"
+                title="Slett øvelse"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <button 
-              @click="removeExercise(index)"
-              type="button"
-              class="absolute top-4 right-4 text-dark-400 hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-500/10"
-              title="Slett øvelse"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
             
             <div>
               <label class="block text-xs text-dark-300 mb-2">Øvelse</label>
