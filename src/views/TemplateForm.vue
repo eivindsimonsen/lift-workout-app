@@ -376,8 +376,9 @@ onMounted(() => {
       <div class="card fancy-card">
         <div class="flex items-center gap-2 mb-4">
           <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary-500/15 ring-1 ring-primary-500/30">
-            <svg class="w-3.5 h-3.5 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
+            <svg class="w-4 h-4 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v8" />
+              <circle cx="12" cy="18" r="1.25" fill="currentColor" stroke="none" />
             </svg>
           </span>
           <h2 class="text-xl font-semibold text-white">Grunnleggende Informasjon</h2>
@@ -420,7 +421,7 @@ onMounted(() => {
         <div class="mb-4 flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary-500/15 ring-1 ring-primary-500/30">
-              <svg class="w-3.5 h-3.5 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18" />
               </svg>
             </span>
@@ -479,12 +480,6 @@ onMounted(() => {
               </div>
 
               <div v-if="exercise.exerciseId" class="mt-3 flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-dark-600/60 ring-1 ring-dark-500/50 text-dark-100">
-                  <svg class="w-3.5 h-3.5 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-2-2h-4" />
-                  </svg>
-                  {{ getExerciseCategory(exercise.exerciseId) }}
-                </span>
                 <span 
                   v-for="mg in getExerciseMuscleGroups(exercise.exerciseId)" 
                   :key="mg"
@@ -502,7 +497,7 @@ onMounted(() => {
             type="button"
             class="w-full btn-secondary py-3 flex items-center justify-center hover:opacity-95 group"
           >
-            <svg class="w-4 h-4 mr-2 text-primary-300 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
             Legg til øvelse
