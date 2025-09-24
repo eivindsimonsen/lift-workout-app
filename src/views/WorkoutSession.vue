@@ -135,18 +135,21 @@
                 </span>
               </div>
               <div v-if="getLastPerformance(exercise.exerciseId) || getHeaviestLift(exercise.exerciseId)" class="mt-1 text-[12px] text-dark-300">
+
                 <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-1">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                   <span class="truncate">Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
                 </div>
+
                 <div v-if="getHeaviestLift(exercise.exerciseId)" class="mt-0.5 flex items-center gap-1">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10v4 M5 9v6 M7 10v4 M9 12h6 M17 10v4 M19 9v6 M21 10v4" />
                   </svg>
-                  <span class="truncate">Tyngste: {{ getHeaviestLift(exercise.exerciseId)?.weight }}kg<span v-if="getHeaviestLift(exercise.exerciseId)?.reps"> × {{ getHeaviestLift(exercise.exerciseId)?.reps }}</span></span>
+                  <span class="truncate">Beste: {{ getHeaviestLift(exercise.exerciseId)?.reps }} x {{ getHeaviestLift(exercise.exerciseId)?.weight }}kg<span v-if="getHeaviestLift(exercise.exerciseId)?.reps"></span> • {{ getHeaviestLift(exercise.exerciseId)?.date ? formatDate(getHeaviestLift(exercise.exerciseId)!.date) : '' }}</span>
                 </div>
+                
               </div>
             </div>
             <svg 
