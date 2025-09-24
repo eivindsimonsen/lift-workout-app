@@ -908,8 +908,8 @@
           "grip": "overhand"
         },
         {
-          "id": "cable-side-lat-pulldowns",
-          "name": "Cable Side Lat Pulldowns",
+          "id": "cable-crossbody-lat-pulldowns",
+          "name": "Cable Crossbody Lat Pulldowns",
           "equipment": "cable",
           "grip": "overhand"
         }
@@ -1403,6 +1403,12 @@
         {
           "id": "reverse-curls",
           "name": "Reverse Curls",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "bayesian-curls",
+          "name": "Bayesian Curls",
           "equipment": "barbell",
           "position": "standing"
         }
