@@ -167,71 +167,89 @@
         </router-link>
       </div>
 
-      <!-- Templates Grid -->
-      <div v-else class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div 
-          v-for="template in filteredTemplates" 
-          :key="template.id"
-          :class="['bg-dark-800', 'rounded-lg', 'p-6', 'transition-colors', 'flex', 'flex-col', 'h-full']">
-          <!-- Template Title and Workout Type -->
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-white">{{ template.name }}</h3>
-            <span 
-              class="px-3 py-1 rounded-full text-sm font-semibold tracking-wider"
-              :style="{ 
-                backgroundColor: getWorkoutTypeColor(template.workoutType) + '20',
-                color: getWorkoutTypeColor(template.workoutType)
-              }"
+      <!-- Templates grouped by Workout Type -->
+      <div v-else class="mt-4 space-y-8">
+        <div v-for="group in templatesByType" :key="group.id" class="rounded-xl border border-dark-600/60 bg-dark-800/40 overflow-hidden">
+          <div class="px-4 py-3 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white">{{ group.name }}</h3>
+            <span
+              class="min-w-[1.75rem] h-6 px-2 inline-flex items-center justify-center rounded-full text-xs font-semibold tracking-wider bg-dark-700 text-white/90 ring-1 ring-dark-500"
+              :style="{ boxShadow: `0 0 0 2px ${group.color}20 inset`, color: group.color }"
             >
-              {{ getWorkoutTypeName(template.workoutType) }}
+              {{ group.templates.length }}
             </span>
           </div>
 
-          <p class="text-sm text-dark-300 mb-4">
-            {{ template.exercises.length }} øvelser
-          </p>
-
-          <!-- Exercise Preview -->
-          <div class="mb-6 flex-grow">
-            <div class="space-y-3">
+          <div class="px-4 pb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div 
-                v-for="(group, groupName) in (getExerciseGroups && getExerciseGroups(template.exercises)) || {}" 
-                :key="groupName"
-                class="space-y-1"
+                v-for="template in group.templates" 
+                :key="template.id"
+                :class="['bg-dark-800', 'rounded-lg', 'p-6', 'transition-all', 'flex', 'flex-col', 'h-full', 'border', 'border-dark-700/60', 'hover:border-dark-500/60', 'hover:-translate-y-0.5']"
+                :style="{ borderLeftWidth: '4px', borderLeftColor: group.color }"
               >
-                <h4 class="text-xs font-medium text-primary-400 uppercase tracking-wide">
-                   {{ groupName }}
-                </h4>
-                <div class="space-y-1">
-                  <div 
-                    v-for="(exercise, index) in group" 
-                    :key="exercise.exerciseId"
-                    class="text-sm text-dark-200"
+                <!-- Template Title and Workout Type -->
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-lg font-semibold text-white">{{ template.name }}</h3>
+                  <span 
+                    class="px-3 py-1 rounded-full text-sm font-semibold tracking-wider"
+                    :style="{ 
+                      backgroundColor: getWorkoutTypeColor(template.workoutType) + '20',
+                      color: getWorkoutTypeColor(template.workoutType)
+                    }"
                   >
-                    <span class="truncate">{{ exercise.name }}</span>
+                    {{ getWorkoutTypeName(template.workoutType) }}
+                  </span>
+                </div>
+
+                <p class="text-sm text-dark-300 mb-4">
+                  {{ template.exercises.length }} øvelser
+                </p>
+
+                <!-- Exercise Preview -->
+                <div class="mb-6 flex-grow">
+                  <div class="space-y-3">
+                    <div 
+                      v-for="(exGroup, exGroupName) in (getExerciseGroups && getExerciseGroups(template.exercises)) || {}" 
+                      :key="exGroupName"
+                      class="space-y-1"
+                    >
+                      <h4 class="text-xs font-medium text-primary-400 uppercase tracking-wide">
+                         {{ exGroupName }}
+                      </h4>
+                      <div class="space-y-1">
+                        <div 
+                          v-for="(exercise, index) in exGroup" 
+                          :key="exercise.exerciseId"
+                          class="text-sm text-dark-200"
+                        >
+                          <span class="truncate">{{ exercise.name }}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-2 mt-auto">
+                  <router-link 
+                    :to="`/template/edit/${template.id}`"
+                    class="flex-1 bg-dark-600 hover:bg-dark-500 text-white rounded-lg transition-colors text-sm py-2 flex items-center justify-center"
+                  >
+                    Rediger
+                  </router-link>
+                  <button 
+                    @click.stop="startWorkout(template.id)"
+                    :disabled="activeSessions.length > 0"
+                    :class="['flex-1', 'text-sm', 'py-2', 'disabled:opacity-50', 'disabled:cursor-not-allowed', 'rounded-lg']"
+                    :style="{ backgroundColor: getWorkoutTypeColor(template.workoutType), color: '#fff' }"
+                    :title="activeSessions.length > 0 ? 'Du har allerede en aktiv økt. Fullfør den først.' : 'Start ny økt'"
+                  >
+                    Start Økt
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex gap-2 mt-auto">
-            <router-link 
-              :to="`/template/edit/${template.id}`"
-              class="flex-1 bg-dark-600 hover:bg-dark-500 text-white rounded-lg transition-colors text-sm py-2 flex items-center justify-center"
-            >
-              Rediger
-            </router-link>
-            <button 
-              @click.stop="startWorkout(template.id)"
-              :disabled="activeSessions.length > 0"
-              :class="['flex-1', 'text-sm', 'py-2', 'disabled:opacity-50', 'disabled:cursor-not-allowed', 'rounded-lg']"
-              :style="{ backgroundColor: getWorkoutTypeColor(template.workoutType), color: '#fff' }"
-              :title="activeSessions.length > 0 ? 'Du har allerede en aktiv økt. Fullfør den først.' : 'Start ny økt'"
-            >
-              Start Økt
-            </button>
           </div>
         </div>
       </div>
@@ -306,6 +324,37 @@ const pendingSessionId = ref<string | null>(null)
 // Computed properties
 const filteredTemplates = computed(() => {
   return workoutData.templates.value
+})
+
+const templatesByType = computed(() => {
+  const groups: Array<{ id: string; name: string; color: string; templates: any[] }> = []
+  const seen = new Set<string>()
+
+  // Known workout types in configured order
+  workoutData.workoutTypes.value.forEach((wt: any) => {
+    const items = workoutData.templates.value.filter((t: any) => t.workoutType === wt.id)
+    if (items.length > 0) {
+      groups.push({ id: wt.id, name: wt.name, color: wt.color, templates: items })
+      seen.add(wt.id)
+    }
+  })
+
+  // Any templates with unknown/legacy types
+  workoutData.templates.value.forEach((tpl: any) => {
+    if (!seen.has(tpl.workoutType)) {
+      const items = workoutData.templates.value.filter((t: any) => t.workoutType === tpl.workoutType)
+      groups.push({
+        id: tpl.workoutType,
+        name: getWorkoutTypeName(tpl.workoutType),
+        color: getWorkoutTypeColor(tpl.workoutType),
+        templates: items,
+      })
+      items.forEach(() => {})
+      seen.add(tpl.workoutType)
+    }
+  })
+
+  return groups
 })
 
 const activeSessions = computed(() => {
