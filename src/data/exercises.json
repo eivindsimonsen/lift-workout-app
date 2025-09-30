@@ -695,9 +695,9 @@
     {
       "categoryId": "32",
       "name": "Rear Deltoid",
-      "category": "Skuldre",
+      "category": "Rygg",
       "workoutTypes": ["pull", "upper"],
-      "muscleGroups": ["Skuldre", "Rygg"],
+      "muscleGroups": ["Rygg", "Skuldre"],
       "variants": [
         {
           "id": "rear-delt-flyes",
