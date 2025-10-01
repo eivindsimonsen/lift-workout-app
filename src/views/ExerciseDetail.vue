@@ -20,6 +20,15 @@
           </svg>
         </router-link>
         <h1 class="text-2xl font-bold text-white" @click="openGoogleSearch">{{ exercise?.name }}</h1>
+        <svg 
+          class="w-5 h-5 text-dark-300 group-hover:text-primary-400 flex-shrink-0"
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24" 
+          aria-hidden="true"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+        </svg>
       </div>
     </div>
 

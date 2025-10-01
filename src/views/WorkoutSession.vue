@@ -11,7 +11,7 @@
     <!-- Session content -->
     <div v-else>
       <!-- Sticky compact header -->
-      <div class="sticky top-0 z-30 -mx-4 px-4 pt-[calc(env(safe-area-inset-top)+0.0rem)] pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
+      <div class="sticky top-0 z-30 -mx-4 px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
         <Breadcrumbs 
           :breadcrumbs="[
             { name: 'Økter', path: '/' },
@@ -101,7 +101,13 @@
         <div 
           v-for="(exercise, exerciseIndex) in session.exercises" 
           :key="exercise.exerciseId"
-          class="rounded-xl border border-dark-700 bg-dark-800/60"
+          :class="[
+            'rounded-xl',
+            'border',
+            'bg-dark-800/60',
+            'transition-colors',
+            isExerciseCompleted(exercise) ? 'border-green-500/40 bg-green-500/5' : 'border-dark-700'
+          ]"
         >
           <!-- Header -->
           <div class="flex items-start justify-between gap-3 p-4 cursor-pointer" @click="toggleExercise(exerciseIndex)">
@@ -123,16 +129,20 @@
                 <button 
                   type="button"
                   @click.stop="openExerciseQuickView(exercise.exerciseId, exercise.name)"
-                  class="text-base md:text-lg font-semibold text-white truncate hover:text-primary-400 transition-colors text-left"
+                  class="text-base md:text-lg font-semibold text-white hover:text-primary-400 transition-colors text-left flex items-center gap-1.5 max-w-full group"
                 >
-                  {{ exercise.name }}
-                </button>
-                <span v-if="isExerciseCompleted(exercise)" class="inline-flex items-center gap-1 text-[11px] text-green-400 bg-green-500/10 border border-green-500/30 px-1.5 py-0.5 rounded-full">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  <span class="truncate">{{ exercise.name }}</span>
+                  <svg 
+                    class="w-4 h-4 text-dark-300 group-hover:text-primary-400 flex-shrink-0"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24" 
+                    aria-hidden="true"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
                   </svg>
-                  Fullført
-                </span>
+                </button>
+                
               </div>
               <div v-if="getLastPerformance(exercise.exerciseId) || getHeaviestLift(exercise.exerciseId)" class="mt-1 text-[12px] text-dark-300">
 
@@ -154,7 +164,7 @@
             </div>
             <svg 
               class="w-5 h-5 text-dark-300 mt-1 transition-transform flex-shrink-0"
-              :class="{ 'rotate-180': !collapsedExercises[exerciseIndex] }"
+              :class="{ 'rotate-180': uiReady && !collapsedExercises[exerciseIndex] }"
               fill="none"
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -164,7 +174,7 @@
           </div>
 
           <!-- Sets -->
-          <Transition @enter="expand" @after-enter="afterExpand" @leave="collapse" @after-leave="afterCollapse">
+          <Transition v-if="uiReady" :appear="false" @enter="expand" @after-enter="afterExpand" @leave="collapse" @after-leave="afterCollapse">
             <div v-show="!collapsedExercises[exerciseIndex]" class="border-t border-dark-700">
               <TransitionGroup
                 name="set"
@@ -176,7 +186,6 @@
                   v-for="(set, setIndex) in exercise.sets" 
                   :key="set.id"
                   class="px-4 py-2.5 grid grid-cols-[auto,1fr,1fr] items-start gap-3 md:gap-4 border-b border-dark-700 hover:bg-dark-800/70"
-                  :class="{ 'border-l-4 [border-left-color:#f97316]': set.isCompleted }"
                 >
                   <button 
                     @click="removeSet(exerciseIndex, setIndex)"
@@ -293,7 +302,15 @@
         @close="closeExerciseQuickView"
       >
         <div v-if="exerciseQuickViewData" class="space-y-4">
-          <div class="text-sm text-dark-300">Siste økter (maks 6):</div>
+          <div v-if="exerciseQuickViewData.best" class="mt-2">
+            <div class="text-sm text-dark-300 mb-1">Beste løft</div>
+            <div class="bg-dark-700 rounded-lg px-3 py-2 flex items-center justify-between">
+              <div class="text-[12px] text-dark-300">{{ formatDate(exerciseQuickViewData.best.date) }}</div>
+              <div class="text-white text-sm font-medium"><span v-if="exerciseQuickViewData.best.reps">{{ exerciseQuickViewData.best.reps }} × </span>{{ exerciseQuickViewData.best.weight }}kg</div>
+            </div>
+          </div>
+
+          <div class="text-sm text-dark-300">Siste økter (maks 9):</div>
           <div class="space-y-2">
             <div 
               v-for="item in exerciseQuickViewData.recent"
@@ -301,18 +318,11 @@
               class="flex items-center justify-between bg-dark-700 rounded-lg px-3 py-2"
             >
               <div class="text-[12px] text-dark-300">{{ formatDate(item.date) }}</div>
-              <div class="text-white text-sm font-medium">{{ item.weight }}kg<span v-if="item.reps"> × {{ item.reps }}</span></div>
+              <div class="text-white text-sm font-medium"><span v-if="item.reps">{{ item.reps }} × </span>{{ item.weight }}kg</div>
             </div>
             <div v-if="exerciseQuickViewData.recent.length === 0" class="text-dark-300 text-sm">Ingen data ennå</div>
           </div>
 
-          <div v-if="exerciseQuickViewData.best" class="mt-2">
-            <div class="text-sm text-dark-300 mb-1">Beste løft</div>
-            <div class="bg-dark-700 rounded-lg px-3 py-2 flex items-center justify-between">
-              <div class="text-white font-semibold">{{ exerciseQuickViewData.best.weight }}kg<span v-if="exerciseQuickViewData.best.reps"> × {{ exerciseQuickViewData.best.reps }}</span></div>
-              <div class="text-[12px] text-dark-300">{{ formatDate(exerciseQuickViewData.best.date) }}</div>
-            </div>
-          </div>
         </div>
         <div v-else class="text-sm text-dark-300">Laster…</div>
 
@@ -476,9 +486,9 @@ function openExerciseQuickView(exerciseId: string, exerciseName: string) {
         best = { weight: entry.weight, reps: entry.reps, date: entry.date }
       }
     }
-    if (recent.length >= 6) break
+    if (recent.length >= 9) break
   }
-  exerciseQuickViewData.value = { recent: recent.slice(0, 6), best }
+  exerciseQuickViewData.value = { recent: recent.slice(0, 9), best }
 }
 
 function closeExerciseQuickView() {
@@ -1203,6 +1213,7 @@ const isDevelopment = computed(() => import.meta.env.DEV)
 
 // State for collapsible exercises
 const collapsedExercises = ref<boolean[]>([])
+const uiReady = ref(false)
 
 // Methods
 const toggleExercise = (index: number) => {
@@ -1366,10 +1377,14 @@ onMounted(async () => {
   // Restore local shape/values first (local wins for in-progress)
   await restoreLocalChanges()
 
-  // Initialize collapsed state for all exercises
+  // Initialize collapsed state: keep completed collapsed, expand only active/incomplete
   if (session.value) {
-    collapsedExercises.value = session.value.exercises.map(() => false)
+    collapsedExercises.value = session.value.exercises.map((ex: any) => isExerciseCompleted(ex))
   }
+  // Defer enabling transitions so initial state paints without animation
+  requestAnimationFrame(() => {
+    uiReady.value = true
+  })
 
   // Keyboard/Save integrations
   const handleKeydown = (event: KeyboardEvent) => {

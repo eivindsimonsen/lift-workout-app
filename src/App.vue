@@ -108,14 +108,6 @@
 
           <!-- Mobile Bottom Navigation - only show if authenticated AND not hidden -->
           <nav v-if="isAuthenticated && !hideBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800 border-t border-dark-700 z-50 pwa-navigation">
-            <!-- Progress Bar as border-top - only show if in workout session -->
-            <div v-if="isWorkoutSession" class="w-full h-1 bg-dark-600">
-              <div 
-                class="bg-primary-500 h-1 transition-all duration-300"
-                :style="{ width: workoutProgress.percentage + '%' }"
-              ></div>
-            </div>
-            
             <div class="flex justify-around">
               <router-link 
                 to="/" 
@@ -257,19 +249,6 @@ const currentUser = computed(() => workoutData.currentUser.value)
 const isLoading = computed(() => !hasInitialized.value) // initial app loading only
 
 const isWorkoutSession = computed(() => route.path.startsWith('/workout/'))
-
-const workoutProgress = computed(() => {
-  if (!isWorkoutSession.value) return { percentage: 0 }
-
-  const sessionId = route.params.id as string
-  const s = workoutData.getSessionById(sessionId)
-  if (!s) return { percentage: 0 }
-
-  const totalSets = s.exercises.reduce((t, e) => t + e.sets.length, 0)
-  const completedSets = s.exercises.reduce((t, e) => t + e.sets.filter(set => set.isCompleted).length, 0)
-  const percentage = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0
-  return { percentage }
-})
 
 const userInitials = computed(() => {
   if (!currentUser.value?.email) return ''

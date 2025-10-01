@@ -169,15 +169,21 @@
 
       <!-- Templates grouped by Workout Type -->
       <div v-else class="mt-4 space-y-8">
-        <div v-for="group in templatesByType" :key="group.id" class="rounded-xl border border-dark-600/60 bg-dark-800/40 overflow-hidden">
-          <div class="px-4 py-3 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-white">{{ group.name }}</h3>
-            <span
-              class="min-w-[1.75rem] h-6 px-2 inline-flex items-center justify-center rounded-full text-xs font-semibold tracking-wider bg-dark-700 text-white/90 ring-1 ring-dark-500"
-              :style="{ boxShadow: `0 0 0 2px ${group.color}20 inset`, color: group.color }"
-            >
-              {{ group.templates.length }}
-            </span>
+        <div v-for="group in templatesByType" :key="group.id" class="rounded-xl overflow-hidden">
+          <div class="px-4 pt-4 pb-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: group.color }"></span>
+                <h3 class="text-lg md:text-xl font-bold tracking-wide" :style="{ color: group.color }">{{ group.name }}</h3>
+              </div>
+              <span
+                class="min-w-[1.75rem] h-6 px-2 inline-flex items-center justify-center rounded-full text-xs font-semibold tracking-wider bg-dark-700 text-white/90 ring-1 ring-dark-500"
+                :style="{ boxShadow: `0 0 0 2px ${group.color}20 inset`, color: group.color }"
+              >
+                {{ group.templates.length }}
+              </span>
+            </div>
+            <div class="h-px w-full mt-2 rounded" :style="{ background: `linear-gradient(90deg, transparent, ${group.color}33, transparent)` }"></div>
           </div>
 
           <div class="px-4 pb-4">
@@ -185,12 +191,14 @@
               <div 
                 v-for="template in group.templates" 
                 :key="template.id"
-                :class="['bg-dark-800', 'rounded-lg', 'p-6', 'transition-all', 'flex', 'flex-col', 'h-full', 'border', 'border-dark-700/60', 'hover:border-dark-500/60', 'hover:-translate-y-0.5']"
-                :style="{ borderLeftWidth: '4px', borderLeftColor: group.color }"
+                :class="['relative', 'overflow-hidden', 'bg-dark-800', 'rounded-lg', 'p-6', 'transition-all', 'flex', 'flex-col', 'h-full', 'ring-1', 'ring-dark-700/40', 'hover:ring-dark-500/50', 'hover:-translate-y-0.5']"
+                :style="{ boxShadow: `0 10px 24px -18px ${getWorkoutTypeColor(template.workoutType)}55` }"
               >
                 <!-- Template Title and Workout Type -->
                 <div class="flex items-center justify-between mb-4">
-                  <h3 class="text-lg font-semibold text-white">{{ template.name }}</h3>
+                  <div class="flex items-center gap-2 min-w-0">
+                    <h3 class="text-lg font-semibold text-white truncate">{{ template.name }}</h3>
+                  </div>
                   <span 
                     class="px-3 py-1 rounded-full text-sm font-semibold tracking-wider"
                     :style="{ 
@@ -201,6 +209,7 @@
                     {{ getWorkoutTypeName(template.workoutType) }}
                   </span>
                 </div>
+                <div class="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full blur-2xl opacity-10" :style="{ background: getWorkoutTypeColor(template.workoutType) }"></div>
 
                 <p class="text-sm text-dark-300 mb-4">
                   {{ template.exercises.length }} øvelser
