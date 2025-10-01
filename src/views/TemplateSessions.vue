@@ -186,7 +186,7 @@
             <div class="h-px w-full mt-2 rounded" :style="{ background: `linear-gradient(90deg, transparent, ${group.color}33, transparent)` }"></div>
           </div>
 
-          <div class="px-4 pb-4">
+          <div class="pb-4">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div 
                 v-for="template in group.templates" 
