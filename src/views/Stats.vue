@@ -755,58 +755,62 @@ const oneRepMaxProgression = computed(() => {
 })
 
 const powerExerciseRecords = computed(() => {
-  // Define power exercises (major compound movements) - now using specific variant IDs
+  // Define power exercises (major compound movements) - specific variant IDs
   const powerExerciseIds = [
     'barbell-bench-press',           // Barbell Bench Press variant
     'deadlift',                      // Deadlift (no variants)
     'squat',                         // Squat (no variants)
     'barbell-shoulder-press'         // Barbell Shoulder Press variant
   ]
-  
+
   const records: { exercise: string; weight: number; reps: number; date: string }[] = []
-  
-  // Get all completed sessions
+
+  // Only consider fully completed sessions
   const completedSessions = workoutData.completedSessions.value.filter(session => session.isCompleted)
-  
-  // Find the best performance for each power exercise
+
+  // Find the heaviest set for each power exercise
   powerExerciseIds.forEach(exerciseId => {
     let bestSet: { weight: number; reps: number; date: Date } | null = null
-    let bestVolume = 0
-    
+
     completedSessions.forEach(session => {
-      const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
-      if (exercise) {
-        exercise.sets.forEach(set => {
-          if (set.isCompleted && set.weight && set.reps) {
-            const volume = set.weight * set.reps
-            if (volume > bestVolume) {
-              bestVolume = volume
-              bestSet = {
-                weight: set.weight,
-                reps: set.reps,
-                date: session.date
+      // Consider all occurrences of the exercise within a session
+      session.exercises
+        .filter(e => e.exerciseId === exerciseId)
+        .forEach(exercise => {
+          exercise.sets.forEach(set => {
+            if (set.isCompleted && set.weight && set.reps) {
+              if (!bestSet) {
+                bestSet = { weight: set.weight, reps: set.reps, date: session.date }
+                return
+              }
+
+              const isHeavier = set.weight > bestSet.weight
+              const sameWeightMoreReps = set.weight === bestSet.weight && set.reps > bestSet.reps
+              const sameWeightSameRepsNewer = set.weight === bestSet.weight && set.reps === bestSet.reps && new Date(session.date).getTime() > new Date(bestSet.date).getTime()
+
+              if (isHeavier || sameWeightMoreReps || sameWeightSameRepsNewer) {
+                bestSet = { weight: set.weight, reps: set.reps, date: session.date }
               }
             }
-          }
+          })
         })
-      }
     })
-    
+
     if (bestSet) {
-      // Get exercise name from exercises data using the new helper function
       const exerciseData = workoutData.getExerciseById(exerciseId)
       if (exerciseData) {
+        const s = bestSet as { weight: number; reps: number; date: Date }
         records.push({
           exercise: exerciseData.name,
-          weight: (bestSet as { weight: number; reps: number; date: Date }).weight,
-          reps: (bestSet as { weight: number; reps: number; date: Date }).reps,
-          date: formatDate((bestSet as { weight: number; reps: number; date: Date }).date)
+          weight: s.weight,
+          reps: s.reps,
+          date: formatDate(s.date)
         })
       }
     }
   })
-  
-  // Sort by weight (highest first), then by reps, then by date
+
+  // Sort by heaviest weight, then reps, then most recent date
   return records.sort((a, b) => {
     if (a.weight !== b.weight) return b.weight - a.weight
     if (a.reps !== b.reps) return b.reps - a.reps
