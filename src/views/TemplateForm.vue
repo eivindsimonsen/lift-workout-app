@@ -278,7 +278,8 @@ const saveTemplate = async () => {
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
+  // Case 1: Edit existing template
   if (isEditing.value) {
     const templateId = route.params.id as string
     const foundTemplate = workoutData.templates.value.find(t => t.id === templateId)
@@ -296,6 +297,29 @@ onMounted(() => {
             exerciseId: exercise.exerciseId || matchingExercise?.categoryId || ''
           }
         })
+      }
+    }
+  } 
+  // Case 2: Create from Session (Copy)
+  else if (route.query.fromSession) {
+    const sessionId = route.query.fromSession as string
+    // Ensure sessions are loaded
+    if (workoutData.sessions.value.length === 0 && !workoutData.isLoading.value) {
+        await workoutData.loadData(0, true)
+    }
+    
+    const sourceSession = workoutData.getSessionById(sessionId)
+    
+    if (sourceSession) {
+      templateForm.value = {
+        name: sourceSession.templateName,
+        workoutType: sourceSession.workoutType,
+        exercises: sourceSession.exercises.map(ex => ({
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+          sets: 3, // Defaulting to 3 sets as a reasonable starting point for a template
+          reps: 10 // Defaulting to 10 reps
+        }))
       }
     }
   }

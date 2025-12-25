@@ -10,6 +10,17 @@
         </div>
         <h1 class="text-2xl font-bold text-white">Statistikk</h1>
       </div>
+
+      <!-- Year Selector -->
+      <select 
+        v-model="selectedYear"
+        class="bg-dark-700 text-white text-sm rounded-lg border-dark-600 focus:ring-primary-500 focus:border-primary-500 px-3 py-2"
+      >
+        <option value="all">Hele perioden</option>
+        <option v-for="year in availableYears" :key="year" :value="year">
+          {{ year }}
+        </option>
+      </select>
     </div>
 
     <!-- Loading State for Overview Stats -->
@@ -63,7 +74,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-dark-300 text-sm">Fullførte Økter</p>
-            <p class="text-2xl font-bold text-white">{{ workoutData.completedSessions.value.length }}</p>
+            <p class="text-2xl font-bold text-white">{{ filteredSessions.length }}</p>
           </div>
           <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,7 +88,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-dark-300 text-sm">Snitt Varighet</p>
-            <p class="text-2xl font-bold text-white">{{ workoutData.averageWorkoutDuration.value }} min</p>
+            <p class="text-2xl font-bold text-white">{{ averageDuration }} min</p>
           </div>
           <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,7 +116,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-dark-300 text-sm">Total Volum</p>
-            <p class="text-2xl font-bold text-white">{{ formatNumber(workoutData.totalVolume.value) }} kg</p>
+            <p class="text-2xl font-bold text-white">{{ formatNumber(totalVolumeFiltered) }} kg</p>
           </div>
           <div class="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
             <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,7 +233,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Completed Workouts -->
         <div class="text-center p-4 bg-dark-700 rounded-lg">
-          <div class="text-2xl font-bold text-primary-500 mb-1">{{ workoutData.completedSessions.value.length }}</div>
+          <div class="text-2xl font-bold text-primary-500 mb-1">{{ filteredSessions.length }}</div>
           <div class="text-xs text-dark-300">Antall økter fullført</div>
         </div>
         
@@ -416,23 +427,57 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useHybridData } from '@/composables/useHybridData'
 import muscleGroupsData from '@/data/muscle-groups.json';
 
 const workoutData = useHybridData()
 
+// Year Filtering
+const selectedYear = ref<string | number>(new Date().getFullYear())
+
+const availableYears = computed(() => {
+  const years = new Set<number>()
+  workoutData.completedSessions.value.forEach(session => {
+    years.add(new Date(session.date).getFullYear())
+  })
+  return Array.from(years).sort((a, b) => b - a) // Descending
+})
+
+const filteredSessions = computed(() => {
+  if (selectedYear.value === 'all') {
+    return workoutData.completedSessions.value
+  }
+  const targetYear = Number(selectedYear.value)
+  return workoutData.completedSessions.value.filter(session => {
+    return new Date(session.date).getFullYear() === targetYear
+  })
+})
+
 // Loading state
 const isLoading = computed(() => workoutData.isLoading.value)
 
 // Computed
+const totalVolumeFiltered = computed(() => {
+  if (filteredSessions.value.length === 0) return 0
+  return filteredSessions.value.reduce((total, session) => {
+    return total + (session.totalVolume || 0)
+  }, 0)
+})
+
+const averageDuration = computed(() => {
+  if (filteredSessions.value.length === 0) return 0
+  const total = filteredSessions.value.reduce((acc, s) => acc + s.duration, 0)
+  return Math.round(total / filteredSessions.value.length)
+})
+
 const averageVolumePerWorkout = computed(() => {
-  if (workoutData.completedSessions.value.length === 0) return 0
-  return workoutData.totalVolume.value / workoutData.completedSessions.value.length
+  if (filteredSessions.value.length === 0) return 0
+  return totalVolumeFiltered.value / filteredSessions.value.length
 })
 
 const totalSets = computed(() => {
-  return workoutData.completedSessions.value.reduce((total, session) => {
+  return filteredSessions.value.reduce((total, session) => {
     return total + session.exercises.reduce((exerciseTotal, exercise) => {
       return exerciseTotal + exercise.sets.filter(set => set.isCompleted).length
     }, 0)
@@ -440,7 +485,7 @@ const totalSets = computed(() => {
 })
 
 const totalReps = computed(() => {
-  return workoutData.completedSessions.value.reduce((total, session) => {
+  return filteredSessions.value.reduce((total, session) => {
     return total + session.exercises.reduce((exerciseTotal, exercise) => {
       return exerciseTotal + exercise.sets.reduce((setTotal, set) => {
         return setTotal + (set.isCompleted && set.reps ? set.reps : 0)
@@ -452,11 +497,11 @@ const totalReps = computed(() => {
 const workoutTypeStats = computed(() => {
   const typeCounts: { [key: string]: number } = {}
   
-  workoutData.completedSessions.value.forEach(session => {
+  filteredSessions.value.forEach(session => {
     typeCounts[session.workoutType] = (typeCounts[session.workoutType] || 0) + 1
   })
 
-  const totalSessions = workoutData.completedSessions.value.length
+  const totalSessions = filteredSessions.value.length
   
   return workoutData.workoutTypes.value.map(type => ({
     id: type.id,
@@ -470,7 +515,7 @@ const workoutTypeStats = computed(() => {
 const bestPerformances = computed(() => {
   const performances: { [key: string]: { name: string; weight: number; reps: number; date: string; volume: number } } = {}
   
-  workoutData.completedSessions.value.forEach(session => {
+  filteredSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
       exercise.sets.forEach(set => {
         if (set.isCompleted && set.weight && set.reps) {
@@ -505,7 +550,7 @@ const bestPerformances = computed(() => {
 const muscleGroupStats = computed(() => {
   const groupVolumes: Record<string, number> = {}
 
-  workoutData.completedSessions.value.forEach(session => {
+  filteredSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
       // Get exercise data to find muscle groups
       const exerciseData = workoutData.exercises.value.find(e => e.variants?.find(v => v.id === exercise.exerciseId))
@@ -543,9 +588,9 @@ const muscleGroupStats = computed(() => {
 
 
 const averageWorkoutsPerWeek = computed(() => {
-  if (workoutData.completedSessions.value.length === 0) return 0
+  if (filteredSessions.value.length === 0) return 0
   
-  const sortedSessions = [...workoutData.completedSessions.value]
+  const sortedSessions = [...filteredSessions.value]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   
   if (sortedSessions.length < 2) return 1
@@ -558,9 +603,9 @@ const averageWorkoutsPerWeek = computed(() => {
 })
 
 const consistencyPercentage = computed(() => {
-  if (workoutData.completedSessions.value.length === 0) return 0
+  if (filteredSessions.value.length === 0) return 0
   
-  const sortedSessions = [...workoutData.completedSessions.value]
+  const sortedSessions = [...filteredSessions.value]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   
   if (sortedSessions.length < 2) return 100
@@ -621,7 +666,16 @@ const monthLabel = computed(() => {
   return new Intl.DateTimeFormat('no-NO', { month: 'long', year: 'numeric' }).format(currentMonth.value)
 })
 
-const canGoNext = computed(() => monthOffset.value < 0)
+const canGoNext = computed(() => {
+  const next = new Date(currentMonth.value)
+  next.setMonth(currentMonth.value.getMonth() + 1)
+  
+  if (selectedYear.value !== 'all') {
+     return next.getFullYear() === Number(selectedYear.value)
+  }
+  
+  return next <= new Date()
+})
 
 const weekDayLabels = computed(() => {
   // Monday first
@@ -689,13 +743,44 @@ const getMonthlyDayClass = (day: MonthlyDay): string => {
   return `${base} ${fill}`
 }
 
+// Watcher to reset calendar month if needed when year changes
+watch(selectedYear, (newYear) => {
+  if (newYear === 'all') {
+    currentMonth.value = new Date()
+    monthOffset.value = 0
+  } else {
+    const year = Number(newYear)
+    const now = new Date()
+    // If selected year is current year, show current month
+    if (year === now.getFullYear()) {
+      currentMonth.value = now
+      monthOffset.value = 0
+    } else {
+      // If past year, show December of that year so user sees end-of-year activity first
+      currentMonth.value = new Date(year, 11, 1) // Dec 1st
+      monthOffset.value = 0
+    }
+  }
+})
+
 const changeMonth = (delta: number) => {
-  // Prevent navigating to future months beyond current month
-  if (delta > 0 && monthOffset.value >= 0) return
   const next = new Date(currentMonth.value)
   next.setMonth(currentMonth.value.getMonth() + delta)
+  
+  // If year filtering is active, restrict navigation to that year
+  if (selectedYear.value !== 'all') {
+    const year = Number(selectedYear.value)
+    if (next.getFullYear() !== year) return
+  } else {
+     // Prevent navigating to future months beyond current month (for 'all' view)
+     if (delta > 0 && next > new Date()) return
+  }
+
   currentMonth.value = next
-  monthOffset.value += delta
+  // Reset offset logic if strictly using currentMonth state
+  // (The original code used monthOffset to track from "now", but with year navigation we just track currentMonth)
+  // We can ignore monthOffset or update it relative to "now", but since we set currentMonth directly,
+  // we can just rely on currentMonth.
 }
 
 const getMuscleGroupPercentage = (volume: number): number => {
@@ -707,14 +792,23 @@ const getMuscleGroupPercentage = (volume: number): number => {
 const trainingCalendar = computed(() => {
   const calendar: { date: string; trained: boolean }[] = [];
   const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 30); // Show last 30 days
+  
+  // If showing a specific past year, show last 30 days of that year (or current date if current year)
+  if (selectedYear.value !== 'all') {
+    const year = Number(selectedYear.value)
+    if (year < new Date().getFullYear()) {
+      startDate.setFullYear(year, 11, 31) // Dec 31st of that year
+    }
+  }
+
+  startDate.setDate(startDate.getDate() - 30); // Show last 30 days from reference point
 
   for (let i = 0; i < 30; i++) {
     const date = new Date(startDate);
     date.setDate(startDate.getDate() + i);
     date.setHours(0, 0, 0, 0);
 
-    const sessionsOnDate = workoutData.completedSessions.value.filter(session => {
+    const sessionsOnDate = filteredSessions.value.filter(session => {
       const sessionDate = new Date(session.date);
       sessionDate.setHours(0, 0, 0, 0);
       return sessionDate.getTime() === date.getTime();
@@ -729,18 +823,19 @@ const trainingCalendar = computed(() => {
 const oneRepMaxProgression = computed(() => {
   const oneRepMaxes: { [key: string]: { exercise: string; weight: number; date: string } } = {}
   
-  workoutData.completedSessions.value.forEach(session => {
+  filteredSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
       exercise.sets.forEach(set => {
         // Look for sets with exactly 1 rep (one rep max attempts)
         if (set.isCompleted && set.weight && set.reps === 1) {
           const exerciseId = exercise.exerciseId
+          const weight = Number(set.weight) || 0
           
           // Keep the highest weight for each exercise
-          if (!oneRepMaxes[exerciseId] || set.weight > oneRepMaxes[exerciseId].weight) {
+          if (!oneRepMaxes[exerciseId] || weight > oneRepMaxes[exerciseId].weight) {
             oneRepMaxes[exerciseId] = {
               exercise: exercise.name,
-              weight: set.weight,
+              weight: weight,
               date: formatDate(session.date)
             }
           }
@@ -766,7 +861,7 @@ const powerExerciseRecords = computed(() => {
   const records: { exercise: string; weight: number; reps: number; date: string }[] = []
 
   // Only consider fully completed sessions
-  const completedSessions = workoutData.completedSessions.value.filter(session => session.isCompleted)
+  const completedSessions = filteredSessions.value.filter(session => session.isCompleted)
 
   // Find the heaviest set for each power exercise
   powerExerciseIds.forEach(exerciseId => {
@@ -779,17 +874,20 @@ const powerExerciseRecords = computed(() => {
         .forEach(exercise => {
           exercise.sets.forEach(set => {
             if (set.isCompleted && set.weight && set.reps) {
+              const weight = Number(set.weight) || 0
+              const reps = Number(set.reps) || 0
+              
               if (!bestSet) {
-                bestSet = { weight: set.weight, reps: set.reps, date: session.date }
+                bestSet = { weight, reps, date: session.date }
                 return
               }
 
-              const isHeavier = set.weight > bestSet.weight
-              const sameWeightMoreReps = set.weight === bestSet.weight && set.reps > bestSet.reps
-              const sameWeightSameRepsNewer = set.weight === bestSet.weight && set.reps === bestSet.reps && new Date(session.date).getTime() > new Date(bestSet.date).getTime()
+              const isHeavier = weight > bestSet.weight
+              const sameWeightMoreReps = weight === bestSet.weight && reps > bestSet.reps
+              const sameWeightSameRepsNewer = weight === bestSet.weight && reps === bestSet.reps && new Date(session.date).getTime() > new Date(bestSet.date).getTime()
 
               if (isHeavier || sameWeightMoreReps || sameWeightSameRepsNewer) {
-                bestSet = { weight: set.weight, reps: set.reps, date: session.date }
+                bestSet = { weight, reps, date: session.date }
               }
             }
           })
@@ -850,11 +948,11 @@ const muscleGroupDistribution = computed(() => {
 
 const trainingTypeBalance = computed(() => {
   const typeCounts: { [key: string]: number } = {}
-  workoutData.completedSessions.value.forEach(session => {
+  filteredSessions.value.forEach(session => {
     typeCounts[session.workoutType] = (typeCounts[session.workoutType] || 0) + 1
   })
 
-  const totalSessions = workoutData.completedSessions.value.length
+  const totalSessions = filteredSessions.value.length
   if (totalSessions === 0) return []
 
   return workoutData.workoutTypes.value.map(type => ({
@@ -866,7 +964,7 @@ const trainingTypeBalance = computed(() => {
 
 const totalRepRanges = computed(() => {
   const ranges = { strength: 0, hypertrophy: 0, endurance: 0 };
-  workoutData.completedSessions.value.forEach(session => {
+  filteredSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
       exercise.sets.forEach(set => {
         if (set.isCompleted && set.reps) {
@@ -888,7 +986,7 @@ const totalRepRanges = computed(() => {
 type Achievement = { id: string; icon: string; title: string; description: string; earned: boolean }
 
 const achievements = computed(() => {
-  const sessions = workoutData.completedSessions.value
+  const sessions = filteredSessions.value
   const totalSessions = sessions.length
 
   // Metrics
@@ -932,7 +1030,7 @@ const achievements = computed(() => {
     { id: 'reps-1000', icon: '💪', title: '1000 reps', description: 'Fire siffer med reps!', earned: totalReps.value >= 1000 },
     { id: 'reps-5000', icon: '💪', title: '5000 reps', description: 'Fem siffer med reps!', earned: totalReps.value >= 5000 },
 
-    { id: 'volume-1m', icon: '🏆', title: '1 000 000 kg totalvolum', description: 'En million kilo løftet!', earned: Math.round(workoutData.totalVolume.value) >= 1000000 },
+    { id: 'volume-1m', icon: '🏆', title: '1 000 000 kg totalvolum', description: 'En million kilo løftet!', earned: Math.round(totalVolumeFiltered.value) >= 1000000 },
 
     { id: '1rm-first', icon: '🧱', title: 'Første 1RM', description: 'Du har logget en 1RM-økt (1 rep).', earned: oneRmExercises.size >= 1 },
     { id: '1rm-5-exercises', icon: '🏋️', title: '1RM på 5 øvelser', description: 'Bred styrketesting!', earned: oneRmExercises.size >= 5 },
@@ -943,12 +1041,12 @@ const achievements = computed(() => {
     { id: 'balanced-training', icon: '⚖️', title: 'Balansert trening', description: 'God fordeling mellom muskelgrupper.', earned: (distribution.length >= 3 && topShare <= 40 && groupsAbove15 >= 3) },
 
     { id: 'power-lifter', icon: '💥', title: 'Powerlifter', description: 'Logget 1RM på alle 4 hovedøvelser.', earned: oneRmExercises.size >= 4 },
-    { id: 'volume-king', icon: '👑', title: 'Volumkonge', description: 'Løftet over 500 000 kg totalt!', earned: Math.round(workoutData.totalVolume.value) >= 500000 },
+    { id: 'volume-king', icon: '👑', title: 'Volumkonge', description: 'Løftet over 500 000 kg totalt!', earned: Math.round(totalVolumeFiltered.value) >= 500000 },
     { id: 'endurance-master', icon: '🏃', title: 'Utholdenhetsmester', description: 'Over 50% av reps i utholdenhetsområdet.', earned: totalRepRanges.value.endurance >= 50 },
     { id: 'strength-focused', icon: '💪', title: 'Styrke-fokusert', description: 'Over 50% av reps i styrkeområdet.', earned: totalRepRanges.value.strength >= 50 },
     { id: 'hypertrophy-expert', icon: '🎯', title: 'Hypertrofi-ekspert', description: 'Over 50% av reps i hypertrofiområdet.', earned: totalRepRanges.value.hypertrophy >= 50 },
-    { id: 'marathon-session', icon: '⏰', title: 'Maratonøkt', description: 'En økt som varte over 2 timer.', earned: workoutData.completedSessions.value.some(s => s.duration >= 120) },
-    { id: 'quick-session', icon: '⚡', title: 'Hurtigøkt', description: 'En økt under 30 minutter.', earned: workoutData.completedSessions.value.some(s => s.duration <= 30) },
+    { id: 'marathon-session', icon: '⏰', title: 'Maratonøkt', description: 'En økt som varte over 2 timer.', earned: sessions.some(s => s.duration >= 120) },
+    { id: 'quick-session', icon: '⚡', title: 'Hurtigøkt', description: 'En økt under 30 minutter.', earned: sessions.some(s => s.duration <= 30) },
     { id: 'consistency-champion', icon: '🎖️', title: 'Konsistensmester', description: 'Trent i 3 forskjellige måneder.', earned: trainedMonths.size >= 3 },
 
     { id: 'morning-trainer', icon: '🌅', title: 'Morgenhelt', description: '5 økter før kl 09.', earned: morningCount >= 5 },
@@ -964,7 +1062,7 @@ const achievements = computed(() => {
 type VolumeProgress = { current: number; nextTarget: number; percentage: number; isMax: boolean }
 
 const volumeProgress = computed<VolumeProgress>(() => {
-  const current = Math.max(0, Math.round(workoutData.totalVolume.value))
+  const current = Math.max(0, Math.round(totalVolumeFiltered.value))
   const targets = [5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000]
   const nextTarget = targets.find(t => current < t) ?? targets[targets.length - 1]
   const isMax = current >= targets[targets.length - 1]
@@ -974,16 +1072,16 @@ const volumeProgress = computed<VolumeProgress>(() => {
 })
 
 const totalDuration = computed(() => {
-  if (workoutData.completedSessions.value.length === 0) return 0
-  return workoutData.completedSessions.value.reduce((total, session) => {
+  if (filteredSessions.value.length === 0) return 0
+  return filteredSessions.value.reduce((total, session) => {
     return total + session.duration
   }, 0)
 })
 
 const restDaysCount = computed(() => {
-  if (workoutData.completedSessions.value.length === 0) return 0
+  if (filteredSessions.value.length === 0) return 0
   
-  const sortedSessions = [...workoutData.completedSessions.value]
+  const sortedSessions = [...filteredSessions.value]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   
   if (sortedSessions.length < 2) return 0

@@ -95,8 +95,8 @@
           
           <!-- Non-authenticated content (keep same container to avoid layout shift during hydration) -->
           <main 
-            v-else 
-            :key="route.path"
+            v-else
+            key="non-authenticated"
             class="container mx-auto px-4 py-8"
             style="padding-top: calc(0.25rem + env(safe-area-inset-top));"
           >

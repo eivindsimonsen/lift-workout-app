@@ -201,17 +201,29 @@ const createSupabaseData = () => {
         try {
           cachedData = await indexedDB.getUserData(currentUser.value.id);
           if (cachedData) {
-            const convertDates = (arr: any[]) =>
+            const sanitizeSessionData = (arr: any[]) =>
               arr.map((item) => {
                 if (item && typeof item === "object") {
                   if (item.date && typeof item.date === "string") item.date = new Date(item.date);
                   if (item.created_at && typeof item.created_at === "string") item.created_at = new Date(item.created_at);
                   if (item.updated_at && typeof item.updated_at === "string") item.updated_at = new Date(item.updated_at);
+                  
+                  // Ensure exercises/sets have numeric values
+                  if (Array.isArray(item.exercises)) {
+                    item.exercises.forEach((ex: any) => {
+                      if (Array.isArray(ex.sets)) {
+                        ex.sets.forEach((set: any) => {
+                          set.weight = Number(set.weight) || 0;
+                          set.reps = Number(set.reps) || 0;
+                        });
+                      }
+                    });
+                  }
                 }
                 return item;
               });
             templates.value = cachedData.templates || [];
-            sessions.value = convertDates(cachedData.sessions || []);
+            sessions.value = sanitizeSessionData(cachedData.sessions || []);
             lastSyncTime.value = cachedData.lastSync ?? null;
           }
         } catch (e) {

@@ -298,14 +298,13 @@
            >
              Start samme økt
            </button>
-           <button 
-             @click="saveAsTemplate"
-             class="flex-1 btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-             disabled
-             title="Kommer snart"
-           >
-             Bruk som mal
-           </button>
+            <button 
+              @click="handleUseAsTemplate"
+              class="flex-1 btn-secondary"
+              title="Bruk som mal"
+            >
+              Bruk som mal
+            </button>
            <button 
              @click="shareSummary"
              class="flex-1 btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
@@ -583,15 +582,12 @@ const restartWorkout = () => {
   router.push(`/workout/${session.value.id}`)
 }
 
-const saveAsTemplate = () => {
+const handleUseAsTemplate = () => {
   if (!session.value) return
-  const tpl = {
-    id: `template-${Date.now()}`,
-    name: session.value.templateName + ' (kopi)',
-    workoutType: session.value.workoutType,
-    exercises: session.value.exercises.map(ex => ({ exerciseId: ex.exerciseId, name: ex.name, sets: 0, reps: 0 }))
-  }
-  workoutData.addTemplate(tpl as any)
+  router.push({ 
+    name: 'CreateTemplate', 
+    query: { fromSession: session.value.id } 
+  })
 }
 
 const shareSummary = async () => {

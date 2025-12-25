@@ -98,6 +98,7 @@ export interface WorkoutSet {
   id: string;
   reps: number;
   weight?: number;
+  weightUnit?: 'kg' | 'lbs' | 'bodyweight'; // Default is 'kg'
   duration?: number;
   distance?: number;
   isCompleted: boolean;

@@ -302,25 +302,69 @@
         @close="closeExerciseQuickView"
       >
         <div v-if="exerciseQuickViewData" class="space-y-4">
-          <div v-if="exerciseQuickViewData.best" class="mt-2">
-            <div class="text-sm text-dark-300 mb-1">Beste løft</div>
-            <div class="bg-dark-700 rounded-lg px-3 py-2 flex items-center justify-between">
-              <div class="text-[12px] text-dark-300">{{ formatDate(exerciseQuickViewData.best.date) }}</div>
-              <div class="text-white text-sm font-medium"><span v-if="exerciseQuickViewData.best.reps">{{ exerciseQuickViewData.best.reps }} × </span>{{ exerciseQuickViewData.best.weight }}kg</div>
+          <!-- Best Lift Card -->
+          <div v-if="exerciseQuickViewData.best" class="mt-1 mb-6">
+            <div class="text-xs font-medium text-dark-400 mb-2 uppercase tracking-wide">Personlig Beste</div>
+            <div class="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border border-yellow-500/20 rounded-xl p-3 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="bg-yellow-500/10 p-2 rounded-lg text-yellow-500">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-white font-bold text-lg leading-none">
+                    {{ exerciseQuickViewData.best.weight }} <span class="text-sm font-normal text-yellow-500/80">kg</span>
+                  </div>
+                  <div class="text-xs text-yellow-500/60 mt-0.5">
+                    {{ exerciseQuickViewData.best.reps }} reps • {{ formatDate(exerciseQuickViewData.best.date) }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="text-sm text-dark-300">Siste økter (maks 9):</div>
-          <div class="space-y-2">
+          <div class="flex items-center justify-between mb-1">
+            <div class="text-xs font-medium text-dark-400 uppercase tracking-wide">Historikk</div>
+          </div>
+
+          <div class="space-y-3">
             <div 
-              v-for="item in exerciseQuickViewData.recent"
-              :key="item.id"
-              class="flex items-center justify-between bg-dark-700 rounded-lg px-3 py-2"
+              v-for="group in exerciseQuickViewData.history"
+              :key="group.date.getTime()"
+              class="bg-dark-800/40 rounded-xl overflow-hidden border border-dark-700/50"
             >
-              <div class="text-[12px] text-dark-300">{{ formatDate(item.date) }}</div>
-              <div class="text-white text-sm font-medium"><span v-if="item.reps">{{ item.reps }} × </span>{{ item.weight }}kg</div>
+              <!-- Session Header -->
+              <div class="bg-dark-800/60 px-3 py-2 flex items-center gap-2 border-b border-dark-700/50">
+                <svg class="w-3.5 h-3.5 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span class="text-xs font-bold text-dark-300 uppercase tracking-wider">
+                  {{ formatDate(group.date) }}
+                </span>
+              </div>
+              
+              <!-- Sets List -->
+              <div class="p-1">
+                <div 
+                  v-for="(set, idx) in group.sets"
+                  :key="set.id"
+                  class="flex items-center justify-between py-2 px-3 hover:bg-dark-700/30 rounded-lg transition-colors"
+                >
+                  <span class="text-[10px] text-dark-500 font-mono w-6">#{{ idx + 1 }}</span>
+                  <div class="flex items-baseline gap-1">
+                      <span class="text-white font-semibold">{{ set.reps }}</span>
+                      <span class="text-dark-400 text-xs px-0.5">×</span>
+                      <span class="text-white font-semibold">{{ set.weight }}</span>
+                      <span class="text-dark-400 text-xs ml-0.5">kg</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div v-if="exerciseQuickViewData.recent.length === 0" class="text-dark-300 text-sm">Ingen data ennå</div>
+            
+            <div v-if="exerciseQuickViewData.history.length === 0" class="text-center py-8">
+              <p class="text-dark-400 text-sm">Ingen historikk funnet</p>
+            </div>
           </div>
 
         </div>
@@ -460,35 +504,50 @@ const isSyncingPendingChanges = ref(false)
 // Quick View state
 const isExerciseQuickViewOpen = ref(false)
 const exerciseQuickViewTitle = ref('Øvelsesdetaljer')
-const exerciseQuickViewData = ref<{ recent: { id: string; weight: number; reps: number; date: Date }[]; best: { weight: number; reps: number; date: Date } | null } | null>(null)
+const exerciseQuickViewData = ref<{ history: { date: Date; sets: { id: string; weight: number; reps: number }[] }[]; best: { weight: number; reps: number; date: Date } | null } | null>(null)
 let exerciseQuickViewId: string | null = null
 
 function openExerciseQuickView(exerciseId: string, exerciseName: string) {
   exerciseQuickViewTitle.value = exerciseName
   exerciseQuickViewId = exerciseId
   isExerciseQuickViewOpen.value = true
-  // Build recent 4-6 performances for this exercise from completed sessions
+
+  // Get best lift (all-time)
+  const best = getHeaviestLift(exerciseId)
+
+  // Build recent history (last 12 sets, grouped by session)
   const completedSessions = workoutData.sessions.value
     .filter(s => s.isCompleted)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-  const recent: { id: string; weight: number; reps: number; date: Date }[] = []
-  let best: { weight: number; reps: number; date: Date } | null = null
+  const history: { date: Date; sets: { id: string; weight: number; reps: number }[] }[] = []
+  let sessionCounter = 0
+  const SESSION_LIMIT = 4
 
   for (const s of completedSessions) {
+    if (sessionCounter >= SESSION_LIMIT) break
+
     const ex = s.exercises.find((e: any) => e.exerciseId === exerciseId)
     if (!ex) continue
+
+    const sessionSets: { id: string; weight: number; reps: number }[] = []
+    
     for (const set of ex.sets) {
       if (!set.isCompleted || !set.weight || !set.reps) continue
-      const entry = { id: `${s.id}-${set.id}`, weight: Number(set.weight), reps: Number(set.reps), date: new Date(s.date) }
-      recent.push(entry)
-      if (!best || entry.weight > best.weight || (entry.weight === best.weight && entry.date.getTime() > best.date.getTime())) {
-        best = { weight: entry.weight, reps: entry.reps, date: entry.date }
-      }
+      sessionSets.push({ id: `${s.id}-${set.id}`, weight: Number(set.weight), reps: Number(set.reps) })
     }
-    if (recent.length >= 9) break
+
+    if (sessionSets.length > 0) {
+      history.push({
+        date: new Date(s.date),
+        sets: sessionSets // Standard order (1, 2, 3...)
+      })
+      
+      sessionCounter++
+    }
   }
-  exerciseQuickViewData.value = { recent: recent.slice(0, 9), best }
+
+  exerciseQuickViewData.value = { history, best }
 }
 
 function closeExerciseQuickView() {
@@ -538,8 +597,22 @@ const estimatedVolume = computed(() => {
 
 const sessionDuration = computed(() => {
   if (!startTime.value) return '0 min'
-  const duration = Math.round((Date.now() - startTime.value.getTime()) / 60000)
+  const duration = Math.round((now.value - startTime.value.getTime()) / 60000)
   return `${duration} min`
+})
+
+// Timer for dynamic duration updates
+const now = ref(Date.now())
+let durationTimer: ReturnType<typeof setInterval> | undefined
+
+onMounted(() => {
+  durationTimer = setInterval(() => {
+    now.value = Date.now()
+  }, 10000) // Update every 10 seconds
+})
+
+onUnmounted(() => {
+  clearInterval(durationTimer)
 })
 
 const availableExercises = computed(() => {
@@ -948,16 +1021,39 @@ const getHeaviestLift = (exerciseId: string) => {
     .filter(session => session.isCompleted)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-  let best: { weight: number; reps: number; date: any } | null = null
+  let best: { weight: number; reps: number; date: Date } | null = null
 
   for (const session of completedSessions) {
     const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
     if (!exercise) continue
 
     for (const set of exercise.sets) {
-      if (!set.isCompleted || !set.weight || !set.reps) continue
-      if (!best || set.weight > best.weight || (set.weight === best.weight && new Date(session.date).getTime() > new Date(best.date).getTime())) {
-        best = { weight: set.weight, reps: set.reps, date: session.date }
+      if (!set.isCompleted) continue
+      
+      const w = Number(set.weight) || 0
+      const r = Number(set.reps) || 0
+
+      if (w <= 0 || r <= 0) continue
+
+      if (!best) {
+        best = { weight: w, reps: r, date: new Date(session.date) }
+        continue
+      }
+
+      // Logic: Heaviest weight wins. Tie? More reps wins. Tie? Newer date wins.
+      if (w > best.weight) {
+        best = { weight: w, reps: r, date: new Date(session.date) }
+      } else if (w === best.weight) {
+        if (r > best.reps) {
+          best = { weight: w, reps: r, date: new Date(session.date) }
+        } else if (r === best.reps) {
+          // If weight and reps are equal, prefer the more recent date.
+          // Since we iterate from newest to oldest, the first one we found (current 'best') 
+          // is already the newest, so we don't update.
+          if (new Date(session.date).getTime() > new Date(best.date).getTime()) {
+             best = { weight: w, reps: r, date: new Date(session.date) }
+          }
+        }
       }
     }
   }
@@ -1515,4 +1611,5 @@ watch(() => route.params.id, async (newId, oldId) => {
 .set-enter-from, .set-leave-to { opacity: 0; }
 .set-leave-from, .set-enter-to { opacity: 1; }
 </style>
+
 
