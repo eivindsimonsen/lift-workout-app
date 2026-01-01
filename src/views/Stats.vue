@@ -438,6 +438,9 @@ const selectedYear = ref<string | number>(new Date().getFullYear())
 
 const availableYears = computed(() => {
   const years = new Set<number>()
+  // Always include current year so the dropdown isn't empty on load if no workouts exist yet
+  years.add(new Date().getFullYear())
+  
   workoutData.completedSessions.value.forEach(session => {
     years.add(new Date(session.date).getFullYear())
   })
@@ -658,7 +661,6 @@ const getCalendarDayClass = (trained: boolean): string => {
 }
 
 // Monthly calendar state
-import { ref } from 'vue'
 const currentMonth = ref(new Date())
 const monthOffset = ref(0)
 
