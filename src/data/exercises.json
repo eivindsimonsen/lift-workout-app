@@ -33,35 +33,48 @@
         },
         {
           "id": "incline-dumbbell-press",
-          "name": "Incline Dumbbell Press",
+          "name": "Incline Dumbbell Bench Press",
           "equipment": "dumbbell",
           "angle": "incline"
         },
         {
           "id": "decline-dumbbell-press",
-          "name": "Decline Dumbbell Press",
+          "name": "Decline Dumbbell Bench Press",
           "equipment": "dumbbell",
           "angle": "decline"
         },
         {
           "id": "wide-grip-bench-press",
-          "name": "Wide Grip Bench Press",
+          "name": "Wide Grip Barbell Bench Press",
           "equipment": "barbell",
           "grip": "wide",
           "angle": "flat"
         },
         {
           "id": "close-grip-bench-press",
-          "name": "Close Grip Bench Press",
+          "name": "Close Grip Barbell Bench Press",
           "equipment": "barbell",
           "grip": "close",
           "angle": "flat"
         },
         {
           "id": "reverse-grip-bench-press",
-          "name": "Reverse Grip Bench Press",
+          "name": "Reverse Grip Barbell Bench Press",
           "equipment": "barbell",
           "grip": "reverse",
+          "angle": "flat"
+        },
+        {
+          "id": "neutral-grip-dumbbell-bench-press",
+          "name": "Neutral Grip Dumbbell Bench Press",
+          "equipment": "dumbbell",
+          "grip": "neutral",
+          "angle": "flat"
+        },
+        {
+          "id": "single-arm-dumbbell-bench-press",
+          "name": "Single Arm Dumbbell Bench Press",
+          "equipment": "dumbbell",
           "angle": "flat"
         }
       ]
@@ -81,13 +94,13 @@
         },
         {
           "id": "smith-machine-incline-press",
-          "name": "Smith Machine Incline Press",
+          "name": "Smith Machine Incline Barbell Bench Press",
           "equipment": "smith-machine",
           "angle": "incline"
         },
         {
           "id": "smith-machine-decline-press",
-          "name": "Smith Machine Decline Press",
+          "name": "Smith Machine Decline Barbell Bench Press",
           "equipment": "smith-machine",
           "angle": "decline"
         }
@@ -240,6 +253,18 @@
           "name": "Decline Cable Flyes",
           "equipment": "cable",
           "angle": "decline"
+        },
+        {
+          "id": "low-to-high-cable-flyes",
+          "name": "Low-to-High Cable Flyes",
+          "equipment": "cable",
+          "angle": "incline"
+        },
+        {
+          "id": "high-to-low-cable-flyes",
+          "name": "High-to-Low Cable Flyes",
+          "equipment": "cable",
+          "angle": "decline"
         }
       ]
     },
@@ -322,6 +347,18 @@
           "name": "Resistance Band Push-ups",
           "equipment": "resistance-band",
           "angle": "flat"
+        },
+        {
+          "id": "weighted-push-ups",
+          "name": "Weighted Push-ups",
+          "equipment": "bodyweight",
+          "angle": "flat"
+        },
+        {
+          "id": "deficit-push-ups",
+          "name": "Deficit Push-ups",
+          "equipment": "bodyweight",
+          "angle": "flat"
         }
       ]
     },
@@ -337,6 +374,18 @@
           "name": "Dips (Chest)",
           "equipment": "parallel-bars",
           "focus": "chest"
+        },
+        {
+          "id": "weighted-dips",
+          "name": "Weighted Dips",
+          "equipment": "parallel-bars",
+          "focus": "chest"
+        },
+        {
+          "id": "assisted-dips",
+          "name": "Assisted Dips",
+          "equipment": "machine",
+          "focus": "chest"
         }
       ]
     },
@@ -348,12 +397,6 @@
       "muscleGroups": ["Bryst", "Skuldre", "Triceps"],
       "variants": [
         {
-          "id": "seated-chest-press",
-          "name": "Seated Chest Press Machine",
-          "equipment": "machine",
-          "angle": "flat"
-        },
-        {
           "id": "cable-chest-press",
           "name": "Cable Chest Press",
           "equipment": "cable",
@@ -364,6 +407,18 @@
           "name": "Machine Chest Press",
           "equipment": "machine",
           "angle": "flat"
+        },
+        {
+          "id": "incline-machine-chest-press",
+          "name": "Incline Machine Chest Press",
+          "equipment": "machine",
+          "angle": "incline"
+        },
+        {
+          "id": "decline-machine-chest-press",
+          "name": "Decline Machine Chest Press",
+          "equipment": "machine",
+          "angle": "decline"
         }
       ]
     },
@@ -412,6 +467,12 @@
           "name": "Dumbbell Squeeze Press",
           "equipment": "dumbbell",
           "angle": "flat"
+        },
+        {
+          "id": "svend-press",
+          "name": "Svend Press",
+          "equipment": "plate",
+          "angle": "flat"
         }
       ]
     },
@@ -444,6 +505,24 @@
         {
           "id": "seated-overhead-press",
           "name": "Seated Overhead Press",
+          "equipment": "barbell",
+          "position": "seated"
+        },
+        {
+          "id": "seated-dumbbell-shoulder-press",
+          "name": "Seated Dumbbell Shoulder Press",
+          "equipment": "dumbbell",
+          "position": "seated"
+        },
+        {
+          "id": "kettlebell-press",
+          "name": "Kettlebell Press",
+          "equipment": "kettlebell",
+          "position": "standing"
+        },
+        {
+          "id": "behind-the-neck-press",
+          "name": "Behind the Neck Press",
           "equipment": "barbell",
           "position": "seated"
         }
@@ -525,6 +604,12 @@
         {
           "id": "single-arm-landmine-press",
           "name": "Single Arm Landmine Press",
+          "equipment": "landmine",
+          "position": "standing"
+        },
+        {
+          "id": "viking-press",
+          "name": "Viking Press",
           "equipment": "landmine",
           "position": "standing"
         }
@@ -689,6 +774,42 @@
           "name": "Banded Front Raises",
           "equipment": "resistance-band",
           "direction": "front"
+        },
+        {
+          "id": "machine-lateral-raises",
+          "name": "Machine Lateral Raises",
+          "equipment": "machine",
+          "direction": "lateral"
+        },
+        {
+          "id": "lu-raises",
+          "name": "Lu Raises",
+          "equipment": "dumbbell",
+          "direction": "lateral"
+        },
+        {
+          "id": "egyptian-lateral-raises",
+          "name": "Egyptian Lateral Raises",
+          "equipment": "cable",
+          "direction": "lateral"
+        },
+        {
+          "id": "leaning-cable-lateral-raises",
+          "name": "Leaning Cable Lateral Raises",
+          "equipment": "cable",
+          "direction": "lateral"
+        },
+        {
+          "id": "cable-y-raises",
+          "name": "Cable Y-Raises",
+          "equipment": "cable",
+          "direction": "vertical"
+        },
+        {
+          "id": "dumbbell-around-the-world",
+          "name": "Dumbbell Around the World",
+          "equipment": "dumbbell",
+          "direction": "rotational"
         }
       ]
     },
@@ -733,6 +854,12 @@
           "id": "reverse-cable-crossover",
           "name": "Reverse Cable Crossover",
           "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "band-pull-aparts",
+          "name": "Band Pull-aparts",
+          "equipment": "resistance-band",
           "position": "standing"
         }
       ]
@@ -809,6 +936,30 @@
           "name": "Prone W-Raises",
           "equipment": "bodyweight",
           "position": "prone"
+        },
+        {
+          "id": "dumbbell-shrugs",
+          "name": "Dumbbell Shrugs",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "smith-machine-shrugs",
+          "name": "Smith Machine Shrugs",
+          "equipment": "smith-machine",
+          "position": "standing"
+        },
+        {
+          "id": "dumbbell-upright-rows",
+          "name": "Dumbbell Upright Rows",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "cable-upright-rows",
+          "name": "Cable Upright Rows",
+          "equipment": "cable",
+          "position": "standing"
         }
       ]
     },
@@ -867,6 +1018,24 @@
           "name": "Scapular Pull-ups",
           "equipment": "bodyweight",
           "grip": "overhand"
+        },
+        {
+          "id": "neutral-grip-pull-ups",
+          "name": "Neutral Grip Pull-ups",
+          "equipment": "bodyweight",
+          "grip": "neutral"
+        },
+        {
+          "id": "weighted-pull-ups",
+          "name": "Weighted Pull-ups",
+          "equipment": "bodyweight",
+          "grip": "overhand"
+        },
+        {
+          "id": "weighted-chin-ups",
+          "name": "Weighted Chin-ups",
+          "equipment": "bodyweight",
+          "grip": "underhand"
         }
       ]
     },
@@ -912,6 +1081,24 @@
           "name": "Cable Crossbody Lat Pulldowns",
           "equipment": "cable",
           "grip": "overhand"
+        },
+        {
+          "id": "single-arm-lat-pulldown",
+          "name": "Single Arm Lat Pulldown",
+          "equipment": "cable",
+          "grip": "neutral"
+        },
+        {
+          "id": "reverse-grip-lat-pulldown",
+          "name": "Reverse Grip Lat Pulldown",
+          "equipment": "cable",
+          "grip": "underhand"
+        },
+        {
+          "id": "neutral-grip-lat-pulldown",
+          "name": "Neutral Grip Lat Pulldown",
+          "equipment": "cable",
+          "grip": "neutral"
         }
       ]
     },
@@ -1011,6 +1198,12 @@
           "name": "Scapular Rows",
           "equipment": "barbell",
           "position": "standing"
+        },
+        {
+          "id": "seal-rows",
+          "name": "Seal Rows",
+          "equipment": "barbell",
+          "position": "prone"
         }
       ]
     },
@@ -1036,6 +1229,36 @@
         {
           "id": "stiff-legged-deadlift",
           "name": "Stiff-Legged Deadlift",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "sumo-deadlift",
+          "name": "Sumo Deadlift",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "trap-bar-deadlift",
+          "name": "Trap Bar Deadlift",
+          "equipment": "trap-bar",
+          "position": "standing"
+        },
+        {
+          "id": "rack-pulls",
+          "name": "Rack Pulls",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "deficit-deadlift",
+          "name": "Deficit Deadlift",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "snatch-grip-deadlift",
+          "name": "Snatch Grip Deadlift",
           "equipment": "barbell",
           "position": "standing"
         }
@@ -1616,6 +1839,54 @@
           "name": "Split Squats",
           "equipment": "barbell",
           "position": "standing"
+        },
+        {
+          "id": "sissy-squat",
+          "name": "Sissy Squat",
+          "equipment": "bodyweight",
+          "position": "standing"
+        },
+        {
+          "id": "pendulum-squat",
+          "name": "Pendulum Squat",
+          "equipment": "machine",
+          "position": "standing"
+        },
+        {
+          "id": "belt-squat",
+          "name": "Belt Squat",
+          "equipment": "machine",
+          "position": "standing"
+        },
+        {
+          "id": "box-squat",
+          "name": "Box Squat",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "safety-bar-squat",
+          "name": "Safety Bar Squat",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "pin-squat",
+          "name": "Pin Squat",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "pause-squat",
+          "name": "Pause Squat",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "kang-squat",
+          "name": "Kang Squat",
+          "equipment": "barbell",
+          "position": "standing"
         }
       ]
     },
@@ -1666,6 +1937,24 @@
           "id": "smith-machine-lunge",
           "name": "Smith Machine Lunge",
           "equipment": "smith-machine",
+          "position": "standing"
+        },
+        {
+          "id": "reverse-lunge-barbell",
+          "name": "Barbell Reverse Lunges",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "reverse-lunge-dumbbell",
+          "name": "Dumbbell Reverse Lunges",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "lateral-lunge",
+          "name": "Lateral Lunges",
+          "equipment": "bodyweight",
           "position": "standing"
         }
       ]
@@ -1718,6 +2007,24 @@
           "name": "Glute Kickback Machine",
           "equipment": "machine",
           "position": "standing"
+        },
+        {
+          "id": "lying-leg-curls",
+          "name": "Lying Leg Curls",
+          "equipment": "machine",
+          "position": "prone"
+        },
+        {
+          "id": "standing-leg-curls",
+          "name": "Standing Leg Curls",
+          "equipment": "machine",
+          "position": "standing"
+        },
+        {
+          "id": "tibialis-raises",
+          "name": "Tibialis Raises",
+          "equipment": "bodyweight",
+          "position": "standing"
         }
       ]
     },
@@ -1751,6 +2058,24 @@
           "name": "Frog Pumps",
           "equipment": "bodyweight",
           "position": "supine"
+        },
+        {
+          "id": "kas-glute-bridge",
+          "name": "Kas Glute Bridge",
+          "equipment": "barbell",
+          "position": "supine"
+        },
+        {
+          "id": "b-stance-hip-thrust",
+          "name": "B-Stance Hip Thrust",
+          "equipment": "dumbbell",
+          "position": "supine"
+        },
+        {
+          "id": "banded-hip-abduction",
+          "name": "Banded Hip Abduction",
+          "equipment": "resistance-band",
+          "position": "seated"
         }
       ]
     },
@@ -1784,6 +2109,24 @@
           "name": "Standing Single Leg Calf Raises",
           "equipment": "bodyweight",
           "position": "standing"
+        },
+        {
+          "id": "leg-press-calf-raises",
+          "name": "Leg Press Calf Raises",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "donkey-calf-raises",
+          "name": "Donkey Calf Raises",
+          "equipment": "machine",
+          "position": "bent-over"
+        },
+        {
+          "id": "tibialis-raises-weighted",
+          "name": "Weighted Tibialis Raises",
+          "equipment": "dumbbell",
+          "position": "seated"
         }
       ]
     },
@@ -1892,6 +2235,24 @@
           "name": "Farmer's Walk on Toes",
           "equipment": "dumbbell",
           "position": "standing"
+        },
+        {
+          "id": "single-leg-leg-press",
+          "name": "Single Leg Leg Press",
+          "equipment": "machine",
+          "position": "seated"
+        },
+        {
+          "id": "reverse-nordic-curl",
+          "name": "Reverse Nordic Curl",
+          "equipment": "bodyweight",
+          "position": "kneeling"
+        },
+        {
+          "id": "copenhagen-plank",
+          "name": "Copenhagen Plank",
+          "equipment": "bodyweight",
+          "position": "side-plank"
         }
       ]
     },
@@ -1932,6 +2293,12 @@
           "name": "Bird Dog",
           "equipment": "bodyweight",
           "position": "quadruped"
+        },
+        {
+          "id": "ab-wheel-rollout",
+          "name": "Ab Wheel Rollout",
+          "equipment": "bodyweight",
+          "position": "kneeling"
         }
       ]
     },
@@ -1965,6 +2332,30 @@
           "name": "Russian Twists",
           "equipment": "bodyweight",
           "position": "seated"
+        },
+        {
+          "id": "cable-crunches",
+          "name": "Kneeling Cable Crunches",
+          "equipment": "cable",
+          "position": "kneeling"
+        },
+        {
+          "id": "decline-sit-ups",
+          "name": "Decline Sit-ups",
+          "equipment": "bench",
+          "angle": "decline"
+        },
+        {
+          "id": "decline-crunches",
+          "name": "Decline Crunches",
+          "equipment": "bench",
+          "angle": "decline"
+        },
+        {
+          "id": "weighted-sit-ups",
+          "name": "Weighted Sit-ups",
+          "equipment": "plate",
+          "position": "supine"
         }
       ]
     },
@@ -1998,6 +2389,30 @@
           "name": "V-ups",
           "equipment": "bodyweight",
           "position": "supine"
+        },
+        {
+          "id": "hanging-leg-raises",
+          "name": "Hanging Leg Raises",
+          "equipment": "bodyweight",
+          "position": "hanging"
+        },
+        {
+          "id": "decline-leg-raises",
+          "name": "Decline Leg Raises",
+          "equipment": "bench",
+          "angle": "decline"
+        },
+        {
+          "id": "hanging-knee-raises",
+          "name": "Hanging Knee Raises",
+          "equipment": "bodyweight",
+          "position": "hanging"
+        },
+        {
+          "id": "captains-chair-leg-raises",
+          "name": "Captain's Chair Leg Raises",
+          "equipment": "machine",
+          "position": "vertical"
         }
       ]
     },
@@ -2024,6 +2439,18 @@
           "id": "man-makers",
           "name": "Man Makers",
           "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "kettlebell-swings",
+          "name": "Kettlebell Swings",
+          "equipment": "kettlebell",
+          "position": "standing"
+        },
+        {
+          "id": "battle-ropes",
+          "name": "Battle Ropes",
+          "equipment": "rope",
           "position": "standing"
         }
       ]
