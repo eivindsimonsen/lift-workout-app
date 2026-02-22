@@ -1176,9 +1176,15 @@
           "position": "seated"
         },
         {
-          "id": "cable-seated-rows",
-          "name": "Cable Seated Rows",
+          "id": "Single Arm Cable Rows",
+          "name": "Single Arm Cable Rows",
           "equipment": "cable",
+          "position": "seated"
+        },
+        {
+          "id": "Single Arm Machine Rows",
+          "name": "Single Arm Machine Rows",
+          "equipment": "machine",
           "position": "seated"
         },
         {
