@@ -1227,12 +1227,6 @@
           "position": "standing"
         },
         {
-          "id": "romanian-deadlift",
-          "name": "Romanian Deadlift",
-          "equipment": "barbell",
-          "position": "standing"
-        },
-        {
           "id": "stiff-legged-deadlift",
           "name": "Stiff-Legged Deadlift",
           "equipment": "barbell",
