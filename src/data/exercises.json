@@ -1630,16 +1630,16 @@
           "position": "standing"
         },
         {
-          "id": "reverse-curls",
-          "name": "Reverse Curls",
-          "equipment": "barbell",
-          "position": "standing"
-        },
-        {
           "id": "bayesian-curls",
           "name": "Bayesian Curls",
           "equipment": "barbell",
           "position": "standing"
+        },
+        {
+          "id": "seated-bicep-curls-machine",
+          "name": "Seated Bicep Curls Machine",
+          "equipment": "machine",
+          "position": "seated"
         }
       ]
     },
@@ -1739,6 +1739,12 @@
           "name": "Tricep Kickbacks",
           "equipment": "dumbbell",
           "position": "bent-over"
+        },
+        {
+          "id": "seated-tricep-extension-machine",
+          "name": "Seated Tricep Extension Machine",
+          "equipment": "machine",
+          "position": "seated"
         }
       ]
     },
@@ -1760,6 +1766,42 @@
           "name": "Reverse Wrist Curls",
           "equipment": "barbell",
           "position": "seated"
+        },
+        {
+          "id": "reverse-ez-bar-curls",
+          "name": "Reverse EZ Bar Curls",
+          "equipment": "ez-bar",
+          "position": "seated"
+        },
+        {
+          "id": "reverse-barbell-preacher-curls",
+          "name": "Reverse Barbell Preacher Curls",
+          "equipment": "e-z curl bar",
+          "position": "seated"
+        },
+        {
+          "id": "reverse-dumbbell-curls",
+          "name": "Reverse Dumbbell Curls",
+          "equipment": "dumbbell",
+          "position": "standing"
+        },
+        {
+          "id": "reverse-barbell-curl",
+          "name": "Reverse Barbell Curl",
+          "equipment": "barbell",
+          "position": "standing"
+        },
+        {
+          "id": "reverse-cable-curl",
+          "name": "Reverse Cable Curl",
+          "equipment": "cable",
+          "position": "standing"
+        },
+        {
+          "id": "reverse-curls",
+          "name": "Reverse Curls",
+          "equipment": "barbell",
+          "position": "standing"
         }
       ]
     },
