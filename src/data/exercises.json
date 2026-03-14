@@ -1210,6 +1210,12 @@
           "name": "Seal Rows",
           "equipment": "barbell",
           "position": "prone"
+        },
+        {
+          "id": "Upper rows",
+          "name": "Upper Rows",
+          "equipment": "machine",
+          "position": "seated"
         }
       ]
     },
@@ -1789,12 +1795,6 @@
           "id": "reverse-cable-curl",
           "name": "Reverse Cable Curl",
           "equipment": "cable",
-          "position": "standing"
-        },
-        {
-          "id": "reverse-curls",
-          "name": "Reverse Curls",
-          "equipment": "barbell",
           "position": "standing"
         }
       ]
