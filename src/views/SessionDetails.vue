@@ -420,7 +420,7 @@ const repRangePct = computed(() => {
 })
 
 const exerciseVolumes = computed(() => {
-  if (!session.value) return [] as Array<{ exerciseId: string; name: string; volume: number; percentage: number }>
+  if (!session.value) return [] as Array<{ exerciseId: number; name: string; volume: number; percentage: number }>
   const volumes = session.value.exercises.map(ex => {
     const vol = ex.sets.reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0)
     return { exerciseId: ex.exerciseId, name: ex.name, volume: vol }
@@ -497,7 +497,7 @@ const deleteSession = async () => {
   }
 }
 
-const viewExercise = (exerciseId: string) => {
+const viewExercise = (exerciseId: number) => {
   router.push(`/exercise/${exerciseId}`)
 }
 

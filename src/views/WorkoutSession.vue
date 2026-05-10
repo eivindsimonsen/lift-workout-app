@@ -495,7 +495,7 @@ const { handleAuthError } = useErrorHandler()
 const session = ref<WorkoutSession | null>(null)
 const startTime = ref<Date | null>(null)
 const showAddExerciseModal = ref(false)
-const newExerciseId = ref('')
+const newExerciseId = ref<number | null>(null)
 const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
 const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
@@ -505,9 +505,9 @@ const isSyncingPendingChanges = ref(false)
 const isExerciseQuickViewOpen = ref(false)
 const exerciseQuickViewTitle = ref('Øvelsesdetaljer')
 const exerciseQuickViewData = ref<{ history: { date: Date; sets: { id: string; weight: number; reps: number }[] }[]; best: { weight: number; reps: number; date: Date } | null } | null>(null)
-let exerciseQuickViewId: string | null = null
+let exerciseQuickViewId: number | null = null
 
-function openExerciseQuickView(exerciseId: string, exerciseName: string) {
+function openExerciseQuickView(exerciseId: number, exerciseName: string) {
   exerciseQuickViewTitle.value = exerciseName
   exerciseQuickViewId = exerciseId
   isExerciseQuickViewOpen.value = true
@@ -937,7 +937,7 @@ const addExerciseToSession = () => {
   session.value.exercises.push(newExercise)
   persistExercisesToLocal()
 
-  newExerciseId.value = ''
+  newExerciseId.value = null
   showAddExerciseModal.value = false
 }
 
@@ -949,7 +949,7 @@ const closeMobileAddExercise = () => {
   isMobileExercisePanelOpen.value = false
 }
 
-const handleAddExerciseFromPanel = (exerciseId: string) => {
+const handleAddExerciseFromPanel = (exerciseId: number) => {
   newExerciseId.value = exerciseId
   addExerciseToSession()
   isMobileExercisePanelOpen.value = false
@@ -990,7 +990,7 @@ const formatDate = (date: Date): string => {
   }).format(date)
 }
 
-const getLastPerformance = (exerciseId: string) => {
+const getLastPerformance = (exerciseId: number) => {
   // We want the most recent completed session containing this exercise,
   // then the last completed set within that session (not the best by volume).
   const completedSessions = workoutData.sessions.value
@@ -1016,7 +1016,7 @@ const getLastPerformance = (exerciseId: string) => {
 }
 
 // Heaviest lift across completed sessions for the exercise
-const getHeaviestLift = (exerciseId: string) => {
+const getHeaviestLift = (exerciseId: number) => {
   const completedSessions = workoutData.sessions.value
     .filter(session => session.isCompleted)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -1072,7 +1072,7 @@ const calculateExerciseVolume = (exercise: any): number => {
   }, 0)
 }
 
-const getExerciseMuscleGroups = (exerciseId: string): string[] => {
+const getExerciseMuscleGroups = (exerciseId: number): string[] => {
   const exerciseData = workoutData.getExerciseById(exerciseId)
   return exerciseData?.muscleGroups || []
 }

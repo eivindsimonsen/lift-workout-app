@@ -1,19 +1,16 @@
 import { computed, ref } from "vue";
-import { useSupabaseData } from "./useSupabaseData"; // For user data (Supabase)
-import * as exercisesData from "@/data/exercises.json";
+import { useSupabaseData } from "./useSupabaseData";
+import { useExercises } from "./useExercises";
 import * as workoutTypesData from "@/data/workout-types.json";
 import type { WorkoutType, ExerciseData } from "@/types/workout";
 
-// Console logging utility (removed logs in production)
 const logHybridAccess = (_operation: string, _details?: unknown) => {};
 
 export const useHybridData = () => {
-  const userData = useSupabaseData(); // Supabase for user data
+  const userData = useSupabaseData();
+  const exercisesStore = useExercises();
 
-  // Load exercises from JSON file
-  const exercises = ref<ExerciseData[]>(exercisesData.exercises);
-
-  // Load workout types from JSON file
+  // Load workout types from JSON (unchanged)
   const workoutTypes = ref<WorkoutType[]>(workoutTypesData.workoutTypes);
 
   // ---- Workout type helpers ----
@@ -27,65 +24,74 @@ export const useHybridData = () => {
     return workoutType?.name || id;
   };
 
-  // ---- Exercise helpers (variants supported) ----
-  const getExerciseById = (id: string) => {
-    for (const exercise of exercises.value) {
-      if (exercise.categoryId === id) return exercise;
+  // ---- Exercise helpers ----
+
+  /**
+   * Look up an exercise by variant ID or exercise ID.
+   * Accepts number or string (route params are strings).
+   * Returns the exercise merged with variant props, plus a compat `muscleGroups` array.
+   */
+  const getExerciseById = (id: number | string) => {
+    const numId = Number(id);
+    if (isNaN(numId)) return null;
+
+    for (const exercise of exercisesStore.exercises.value) {
+      // Match exercise-level id (exercises without variants)
+      if (exercise.id === numId) {
+        return {
+          ...exercise,
+          muscleGroups: [exercise.category], // backward-compat
+        };
+      }
+      // Match variant id
       if (exercise.variants) {
-        const variant = exercise.variants.find((v) => v.id === id);
+        const variant = exercise.variants.find((v) => v.id === numId);
         if (variant) {
-          // Merge variant over base (variant props win)
-          return { ...exercise, ...variant };
+          return {
+            ...exercise,
+            ...variant,
+            muscleGroups: [exercise.category], // backward-compat
+          };
         }
       }
     }
     return null;
   };
 
-  const getMainExerciseByVariantId = (variantId: string) => exercises.value.find((exercise) => exercise.variants?.some((v) => v.id === variantId));
+  const getMainExerciseByVariantId = (variantId: number) =>
+    exercisesStore.exercises.value.find((exercise) =>
+      exercise.variants?.some((v) => v.id === variantId)
+    ) ?? null;
 
   const getFlattenedExercises = computed(() => {
     const flattened: Array<{
-      id: string;
+      id: number;
       name: string;
       category?: string;
       workoutTypes?: string[];
       muscleGroups?: string[];
       equipment?: string;
-      angle?: string;
-      grip?: string;
-      position?: string;
-      direction?: string;
-      focus?: string;
     }> = [];
 
-    exercises.value.forEach((exercise) => {
+    exercisesStore.exercises.value.forEach((exercise) => {
       if (exercise.variants && exercise.variants.length > 0) {
         exercise.variants.forEach((variant) => {
-          // Skip variants that accidentally reuse the main id
-          if (variant.id === exercise.categoryId) return;
-
           flattened.push({
             id: variant.id,
             name: variant.name,
             category: exercise.category,
             workoutTypes: exercise.workoutTypes,
-            muscleGroups: exercise.muscleGroups,
+            muscleGroups: [exercise.category],
             equipment: variant.equipment,
-            angle: variant.angle,
-            grip: variant.grip,
-            position: variant.position,
-            direction: variant.direction,
-            focus: variant.focus,
           });
         });
       } else {
         flattened.push({
-          id: exercise.categoryId,
+          id: exercise.id,
           name: exercise.name,
           category: exercise.category,
           workoutTypes: exercise.workoutTypes,
-          muscleGroups: exercise.muscleGroups,
+          muscleGroups: [exercise.category],
         });
       }
     });
@@ -105,32 +111,23 @@ export const useHybridData = () => {
   };
 
   // ---- API compatibility shims ----
-  // Old name used in components → map to the new cache repaint helper
   const refreshUIData = async () => {
-    // Prefer new name if available
     const fn = (userData as any).refreshOnResume || (userData as any).refreshUIData;
-    if (typeof fn === "function") {
-      return await fn();
-    }
-    // Nothing to do; keep app stable
-    return;
+    if (typeof fn === "function") return await fn();
   };
 
-  // Old exported helper; network watching is internal now, so this is a safe no-op
   const watchNetworkStatus = async () => {
     const maybeFn = (userData as any).watchNetworkStatus;
-    if (typeof maybeFn === "function") {
-      return await maybeFn();
-    }
-    // No-op
-    return;
+    if (typeof maybeFn === "function") return await maybeFn();
   };
 
   return {
-    // User data from Supabase
+    // Workout types
     workoutTypes,
     getWorkoutType,
     getWorkoutTypeColor,
+
+    // User data from Supabase
     templates: userData.templates,
     sessions: userData.sessions,
     isLoading: userData.isLoading,
@@ -139,8 +136,10 @@ export const useHybridData = () => {
     isOnline: userData.isOnline,
     lastSyncTime: userData.lastSyncTime,
 
-    // Exercise data from JSON file
-    exercises,
+    // Exercise data from Supabase (via useExercises)
+    exercises: exercisesStore.exercises,
+    isLoadingExercises: exercisesStore.isLoadingExercises,
+    loadExercises: exercisesStore.loadExercises,
 
     // Combined computed properties
     completedSessions: userData.completedSessions,
@@ -156,7 +155,11 @@ export const useHybridData = () => {
 
     // Actions (all from Supabase)
     loadData: userData.loadData,
-    initializeAuth: userData.initializeAuth,
+    /** Initialises auth then loads exercises so both are ready together. */
+    initializeAuth: async () => {
+      await userData.initializeAuth();
+      await exercisesStore.loadExercises(true);
+    },
     addTemplate: userData.addTemplate,
     updateTemplate: userData.updateTemplate,
     deleteTemplate: userData.deleteTemplate,
@@ -169,18 +172,12 @@ export const useHybridData = () => {
     signOut: userData.signOut,
     cleanup: userData.cleanup,
 
-    // Compatibility shim (old name → new behavior)
+    // Compatibility shims
     refreshUIData,
-
-    // Offline-first functions
+    watchNetworkStatus,
     updateTemplateOffline: userData.updateTemplateOffline,
     updateWorkoutSessionOffline: userData.updateWorkoutSessionOffline,
     syncPendingChanges: userData.syncPendingChanges,
-
-    // Compatibility shim for older code paths (safe no-op if not present)
-    watchNetworkStatus,
-
-    // If you still want a manual network sync:
     forceSyncData: userData.forceSyncData,
   };
 };
