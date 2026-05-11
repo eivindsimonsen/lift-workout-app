@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-5">
+  <div class="space-y-3">
     <!-- Loading state -->
     <div v-if="workoutData.isLoading.value || !session" class="flex items-center justify-center py-12">
       <div class="text-center">
@@ -96,179 +96,44 @@
         </div>
       </div>
 
-      <!-- Exercises -->
-      <div v-if="session" class="mt-4 space-y-4">
-        <div 
-          v-for="(exercise, exerciseIndex) in session.exercises" 
+      <!-- Exercise list — compact rows, tap to open bottom sheet, swipe to delete -->
+      <div v-if="session" class="ex-list">
+        <SwipeableCard
+          v-for="(exercise, exerciseIndex) in session.exercises"
           :key="exercise.exerciseId"
-          :class="[
-            'rounded-xl',
-            'border',
-            'bg-dark-800/60',
-            'transition-colors',
-            isExerciseCompleted(exercise) ? 'border-green-500/40 bg-green-500/5' : 'border-dark-700'
-          ]"
+          :show-swipe-hint="false"
+          @delete="removeExercise(exerciseIndex)"
         >
-          <!-- Header -->
-          <div class="flex items-start justify-between gap-3 p-4 cursor-pointer" @click="toggleExercise(exerciseIndex)">
-            <div class="min-w-0 flex-1">
-              <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
-                <span 
-                  v-for="muscleGroup in getExerciseMuscleGroups(exercise.exerciseId)" 
-                  :key="muscleGroup"
-                  class="inline-block px-2 py-0.5 text-[11px] font-medium rounded-full"
-                  :style="{
-                    backgroundColor: getMuscleGroupColor(muscleGroup) + '20',
-                    color: getMuscleGroupColor(muscleGroup)
-                  }"
-                >
-                  {{ muscleGroup }}
-                </span>
-              </div>
-              <div class="flex items-center gap-2">
-                <button 
-                  type="button"
-                  @click.stop="openExerciseQuickView(exercise.exerciseId, exercise.name)"
-                  class="text-base md:text-lg font-semibold text-white hover:text-primary-400 transition-colors text-left flex items-center gap-1.5 max-w-full group"
-                >
-                  <span class="truncate">{{ exercise.name }}</span>
-                  <svg 
-                    class="w-4 h-4 text-dark-300 group-hover:text-primary-400 flex-shrink-0"
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24" 
-                    aria-hidden="true"
-                  >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
-                  </svg>
-                </button>
-                
-              </div>
-              <div v-if="getLastPerformance(exercise.exerciseId) || getHeaviestLift(exercise.exerciseId)" class="mt-1 text-[12px] text-dark-300">
-
-                <div v-if="getLastPerformance(exercise.exerciseId)" class="flex items-center gap-1">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <span class="truncate">Sist: {{ getLastPerformance(exercise.exerciseId)?.reps }} × {{ getLastPerformance(exercise.exerciseId)?.weight }}kg • {{ getLastPerformance(exercise.exerciseId)?.date ? formatDate(getLastPerformance(exercise.exerciseId)!.date) : '' }}</span>
-                </div>
-
-                <div v-if="getHeaviestLift(exercise.exerciseId)" class="mt-0.5 flex items-center gap-1">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10v4 M5 9v6 M7 10v4 M9 12h6 M17 10v4 M19 9v6 M21 10v4" />
-                  </svg>
-                  <span class="truncate">Beste: {{ getHeaviestLift(exercise.exerciseId)?.reps }} x {{ getHeaviestLift(exercise.exerciseId)?.weight }}kg<span v-if="getHeaviestLift(exercise.exerciseId)?.reps"></span> • {{ getHeaviestLift(exercise.exerciseId)?.date ? formatDate(getHeaviestLift(exercise.exerciseId)!.date) : '' }}</span>
-                </div>
-                
-              </div>
-            </div>
-            <svg 
-              class="w-5 h-5 text-dark-300 mt-1 transition-transform flex-shrink-0"
-              :class="{ 'rotate-180': uiReady && !collapsedExercises[exerciseIndex] }"
-              fill="none"
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-
-          <!-- Sets -->
-          <Transition v-if="uiReady" :appear="false" @enter="expand" @after-enter="afterExpand" @leave="collapse" @after-leave="afterCollapse">
-            <div v-show="!collapsedExercises[exerciseIndex]" class="border-t border-dark-700">
-              <TransitionGroup
-                name="set"
-                tag="div"
-                enter-active-class="transition duration-200 ease-out"
-                leave-active-class="transition duration-200 ease-in"
-              >
-                <div 
-                  v-for="(set, setIndex) in exercise.sets" 
-                  :key="set.id"
-                  class="px-4 py-2.5 grid grid-cols-[auto,1fr,1fr] items-start gap-3 md:gap-4 border-b border-dark-700 hover:bg-dark-800/70"
-                >
-                  <button 
-                    @click="removeSet(exerciseIndex, setIndex)"
-                    class="self-center text-dark-400 hover:text-white transition-colors p-2 rounded-lg flex items-center justify-center"
-                    title="Slett sett"
-                    aria-label="Slett sett"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-
-                  <div>
-                    <label :for="`reps-${exerciseIndex}-${setIndex}`" class="block text-[11px] text-dark-300 mb-1">Reps</label>
-                    <input
-                      :value="set.reps === 0 ? '' : set.reps"
-                      type="text"
-                      inputmode="numeric"
-                      pattern="[0-9]*"
-                      min="0"
-                      required
-                      class="input-field w-full text-sm h-7 py-0.5 bg-dark-700 border-dark-600 focus:border-primary-500"
-                      :placeholder="getLastPerformance(exercise.exerciseId)?.reps?.toString() || '0'"
-                      :id="`reps-${exerciseIndex}-${setIndex}`"
-                      :data-exercise-index="exerciseIndex"
-                      :data-set-index="setIndex"
-                      :ref="el => registerInputRef(exerciseIndex, setIndex, 'reps', el as HTMLInputElement)"
-                      @focus="markFocus"
-                      @input="(event) => handleRepsInput(event, exerciseIndex, setIndex)"
-                      @blur="(event) => handleRepsBlur(event, exerciseIndex, setIndex)"
-                    />
-                  </div>
-
-                  <div class="relative">
-                    <label :for="`weight-${exerciseIndex}-${setIndex}`" class="block text-[11px] text-dark-300 mb-1">Vekt (kg)</label>
-                    <input
-                      :value="set.weight === 0 ? '' : set.weight"
-                      type="text"
-                      inputmode="decimal"
-                      pattern="^[0-9]+([\\.,][0-9]{1,2})?$"
-                      min="0"
-                      step="0.5"
-                      required
-                      class="input-field w-full text-sm h-7 py-0.5 pr-8 bg-dark-700 border-dark-600 focus:border-primary-500"
-                      :placeholder="getLastPerformance(exercise.exerciseId)?.weight?.toString() || '0'"
-                      :id="`weight-${exerciseIndex}-${setIndex}`"
-                      :data-exercise-index="exerciseIndex"
-                      :data-set-index="setIndex"
-                      :ref="el => registerInputRef(exerciseIndex, setIndex, 'weight', el as HTMLInputElement)"
-                      @focus="markFocus"
-                      @input="(event) => handleWeightInput(event, exerciseIndex, setIndex)"
-                      @blur="(event) => handleWeightBlur(event, exerciseIndex, setIndex)"
-                    />
-                  </div>
-
-                  <!-- <div class="text-right text-[12px] text-primary-400 font-semibold whitespace-nowrap">
-                    <span v-if="set.weight && set.reps">{{ set.weight * set.reps }} kg</span>
-                  </div> -->
-                  
-                </div>
-              </TransitionGroup>
-
-              <!-- Footer: exercise volume + add set -->
-              <div class="px-4 py-3 flex items-center justify-between bg-dark-900/40">
-                <div class="flex items-center gap-3">
-                  <div class="text-[12px] text-dark-300">
-                    Total volum: <span class="text-primary-400 font-semibold">{{ formatNumber(calculateExerciseVolume(exercise)) }}</span> kg  • Sett {{ exercise.sets.filter(s => s.isCompleted).length }} / {{ exercise.sets.length }}
-                  </div>
-                </div>
-                <button
-                  @click="addSet(exerciseIndex)"
-                  class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-dark-700 hover:bg-dark-600 border border-dark-600 text-white transition-colors"
-                  aria-label="Legg til sett"
-                  title="Legg til sett"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </Transition>
-        </div>
+          <button
+            type="button"
+            class="ex-row"
+            :class="{ 'ex-row--done': isExerciseCompleted(exercise) }"
+            :style="{ '--ex-color': getMuscleGroupColor(getExerciseMuscleGroups(exercise.exerciseId)[0] || '') }"
+            @click="openExerciseSheet(exerciseIndex)"
+          >
+            <span class="ex-row__dot"></span>
+            <span class="ex-row__body">
+              <span class="ex-row__name">{{ exercise.name }}</span>
+              <span v-if="getLastPerformance(exercise.exerciseId)" class="ex-row__ref">
+                Sist {{ getLastPerformance(exercise.exerciseId)?.reps }}×{{ getLastPerformance(exercise.exerciseId)?.weight }}kg
+              </span>
+            </span>
+            <span class="ex-row__right">
+              <span v-if="isExerciseCompleted(exercise)" class="ex-row__badge ex-row__badge--done">
+                <svg class="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                </svg>
+                {{ exercise.sets.length }} sett
+              </span>
+              <span v-else class="ex-row__badge">
+                {{ exercise.sets.filter(s => s.isCompleted).length }}/{{ exercise.sets.length }}
+              </span>
+              <svg class="ex-row__chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </button>
+        </SwipeableCard>
       </div>
 
       <!-- Quick actions -->
@@ -494,17 +359,204 @@
       </div>
     </div>
   </div>
+
+  <!-- ── Exercise bottom sheet ─────────────────────────────────────────── -->
+  <Teleport to="body">
+    <Transition name="ex-sheet">
+      <div
+        v-if="activeExerciseIndex !== null && session"
+        class="ex-sheet"
+        @click.self="closeExerciseSheet"
+      >
+        <!-- Backdrop -->
+        <div class="ex-sheet__backdrop" @click="closeExerciseSheet"></div>
+
+        <!-- Panel -->
+        <div class="ex-sheet__panel">
+
+          <!-- Drag handle -->
+          <div class="ex-sheet__handle" @click="closeExerciseSheet"></div>
+
+          <!-- Header: prev / name+ref / next -->
+          <div class="ex-sheet__header">
+            <button
+              class="ex-sheet__nav-btn"
+              :disabled="activeExerciseIndex === 0"
+              aria-label="Forrige øvelse"
+              @click="prevExercise"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </button>
+
+            <div class="ex-sheet__header-info">
+              <button
+                class="ex-sheet__title-btn"
+                @click="openExerciseQuickView(session.exercises[activeExerciseIndex].exerciseId, session.exercises[activeExerciseIndex].name)"
+              >
+                {{ session.exercises[activeExerciseIndex].name }}
+                <svg class="w-3.5 h-3.5 text-dark-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                </svg>
+              </button>
+              <p
+                v-if="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId) || getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)"
+                class="ex-sheet__ref"
+              >
+                <span v-if="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)">
+                  Sist {{ getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)?.reps }}×{{ getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)?.weight }}kg
+                </span>
+                <span v-if="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId) && getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-sep"> · </span>
+                <span v-if="getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-pb">
+                  PB {{ getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)?.weight }}kg
+                </span>
+              </p>
+            </div>
+
+            <button
+              class="ex-sheet__nav-btn"
+              :disabled="activeExerciseIndex === session.exercises.length - 1"
+              aria-label="Neste øvelse"
+              @click="nextExercise"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Position dots (only when multiple exercises) -->
+          <div v-if="session.exercises.length > 1" class="ex-sheet__dots">
+            <span
+              v-for="(_, i) in session.exercises"
+              :key="i"
+              class="ex-sheet__dot"
+              :class="{ 'ex-sheet__dot--active': i === activeExerciseIndex }"
+            ></span>
+          </div>
+
+          <!-- Set table -->
+          <div class="ex-sheet__body">
+
+            <!-- Column headers -->
+            <div class="ex-set__headers">
+              <span>#</span>
+              <span>Reps</span>
+              <span>Vekt (kg)</span>
+              <span class="ex-set__col-right">Volum</span>
+            </div>
+
+            <!-- Set rows — swipe left to delete -->
+            <TransitionGroup
+              name="set"
+              tag="div"
+              enter-active-class="transition duration-200 ease-out"
+              leave-active-class="transition duration-200 ease-in"
+            >
+              <div
+                v-for="(set, setIndex) in session.exercises[activeExerciseIndex].sets"
+                :key="set.id"
+                class="ex-set__swipe-wrapper"
+                @touchstart="onSetTouchStart($event, set.id)"
+                @touchmove="onSetTouchMove($event, set.id)"
+                @touchend="onSetTouchEnd(activeExerciseIndex!, setIndex, set.id)"
+              >
+                <!-- Swipe delete background -->
+                <div
+                  class="ex-set__swipe-bg"
+                  :class="{ 'ex-set__swipe-bg--visible': setSwipeActive[set.id] }"
+                >
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </div>
+
+                <!-- Actual row content, slides on swipe -->
+                <div
+                  class="ex-set__row"
+                  :class="{ 'ex-set__row--done': set.isCompleted }"
+                  :style="{ transform: `translateX(${setSwipeX[set.id] ?? 0}px)`, transition: setSwipeX[set.id] ? 'none' : 'transform 0.2s ease-out' }"
+                >
+                <span
+                  class="ex-set__num"
+                  :class="{ 'ex-set__num--done': set.isCompleted }"
+                >{{ setIndex + 1 }}</span>
+
+                <input
+                  :value="set.reps === 0 ? '' : set.reps"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  min="0"
+                  class="ex-set__input"
+                  :class="{ 'ex-set__input--done': set.isCompleted }"
+                  :placeholder="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)?.reps?.toString() || '–'"
+                  :id="`sreps-${activeExerciseIndex}-${setIndex}`"
+                  :data-exercise-index="activeExerciseIndex"
+                  :data-set-index="setIndex"
+                  :ref="el => registerInputRef(activeExerciseIndex!, setIndex, 'reps', el as HTMLInputElement)"
+                  @focus="markFocus"
+                  @input="(event) => handleRepsInput(event, activeExerciseIndex!, setIndex)"
+                  @blur="(event) => handleRepsBlur(event, activeExerciseIndex!, setIndex)"
+                />
+
+                <input
+                  :value="set.weight === 0 ? '' : set.weight"
+                  type="text"
+                  inputmode="decimal"
+                  pattern="^[0-9]+([\\.,][0-9]{1,2})?$"
+                  min="0"
+                  step="0.5"
+                  class="ex-set__input"
+                  :class="{ 'ex-set__input--done': set.isCompleted }"
+                  :placeholder="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)?.weight?.toString() || '–'"
+                  :id="`sweight-${activeExerciseIndex}-${setIndex}`"
+                  :data-exercise-index="activeExerciseIndex"
+                  :data-set-index="setIndex"
+                  :ref="el => registerInputRef(activeExerciseIndex!, setIndex, 'weight', el as HTMLInputElement)"
+                  @focus="markFocus"
+                  @input="(event) => handleWeightInput(event, activeExerciseIndex!, setIndex)"
+                  @blur="(event) => handleWeightBlur(event, activeExerciseIndex!, setIndex)"
+                />
+
+                <span class="ex-set__vol" :class="{ 'ex-set__vol--done': set.isCompleted }">
+                  {{ set.weight && set.reps ? formatNumber(set.weight * set.reps) : '–' }}
+                </span>
+                </div><!-- /.ex-set__row -->
+              </div><!-- /.ex-set__swipe-wrapper -->
+            </TransitionGroup>
+
+            <!-- Sheet footer: volume + add set -->
+            <div class="ex-card__footer">
+              <span class="ex-card__footer-vol">
+                {{ formatNumber(calculateExerciseVolume(session.exercises[activeExerciseIndex])) }} kg totalt
+              </span>
+              <button class="ex-card__add-set" @click="addSet(activeExerciseIndex)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                </svg>
+                Sett
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 
 
 <script setup lang="ts">
-import { ref, computed, onMounted, type Ref, onUnmounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, type Ref, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { WorkoutSession } from '@/types/workout'
 import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
+import SwipeableCard from '@/components/SwipeableCard.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
 import SlideOver from '@/components/SlideOver.vue'
@@ -524,6 +576,42 @@ const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
 const isSyncingPendingChanges = ref(false)
 const showResetConfirm = ref(false)
+const activeExerciseIndex = ref<number | null>(null)
+
+// Inline swipe-to-delete state for set rows inside the sheet
+const setSwipeX = reactive<Record<string, number>>({})
+const setSwipeActive = reactive<Record<string, boolean>>({})
+const SET_SWIPE_THRESHOLD = 60
+let _setTouchStartX = 0
+let _setTouchId = ''
+
+/** Begin tracking a set row swipe. */
+function onSetTouchStart(event: TouchEvent, setId: string) {
+  if (event.touches.length !== 1) return
+  _setTouchStartX = event.touches[0].clientX
+  _setTouchId = setId
+}
+
+/** Track horizontal drag for set row. */
+function onSetTouchMove(event: TouchEvent, setId: string) {
+  if (_setTouchId !== setId) return
+  const delta = event.touches[0].clientX - _setTouchStartX
+  if (delta < 0) {
+    setSwipeX[setId] = Math.max(delta, -SET_SWIPE_THRESHOLD * 1.5)
+    setSwipeActive[setId] = Math.abs(delta) > SET_SWIPE_THRESHOLD / 3
+  }
+}
+
+/** Commit or cancel the set row swipe. */
+function onSetTouchEnd(exerciseIndex: number, setIndex: number, setId: string) {
+  if (Math.abs(setSwipeX[setId] ?? 0) >= SET_SWIPE_THRESHOLD) {
+    if ('vibrate' in navigator) navigator.vibrate(50)
+    removeSet(exerciseIndex, setIndex)
+  }
+  setSwipeX[setId] = 0
+  setSwipeActive[setId] = false
+  _setTouchId = ''
+}
 
 // Quick View state
 const isExerciseQuickViewOpen = ref(false)
@@ -984,6 +1072,7 @@ const removeExercise = (exerciseIndex: number) => {
   if (!confirmDeletion) return;
   if (!session.value) return
   session.value.exercises.splice(exerciseIndex, 1)
+  closeExerciseSheet()
   persistExercisesToLocal()
 }
 
@@ -1001,6 +1090,31 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   // Remove the set
   exercise.sets.splice(setIndex, 1)
   persistExercisesToLocal()
+}
+
+/** Opens the bottom sheet for a specific exercise index. */
+const openExerciseSheet = (idx: number) => {
+  activeExerciseIndex.value = idx
+}
+
+const closeExerciseSheet = () => {
+  activeExerciseIndex.value = null
+}
+
+const prevExercise = () => {
+  if (activeExerciseIndex.value !== null && activeExerciseIndex.value > 0) {
+    activeExerciseIndex.value--
+  }
+}
+
+const nextExercise = () => {
+  if (
+    activeExerciseIndex.value !== null &&
+    session.value &&
+    activeExerciseIndex.value < session.value.exercises.length - 1
+  ) {
+    activeExerciseIndex.value++
+  }
 }
 
 /** Removes all exercises from the current session run so the user can add their own. */
@@ -1641,8 +1755,397 @@ watch(() => route.params.id, async (newId, oldId) => {
 
 
 <style scoped>
+/* TransitionGroup fade for set rows */
 .set-enter-from, .set-leave-to { opacity: 0; }
 .set-leave-from, .set-enter-to { opacity: 1; }
+
+/* ── Compact exercise row list ───────────────────────────────────────────── */
+
+.ex-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+}
+
+/* SwipeableCard wrapper inside ex-list needs overflow hidden for the swipe animation */
+.ex-list > * {
+  border-radius: 0.875rem;
+  overflow: hidden;
+}
+
+.ex-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8125rem 1rem;
+  background: #0d1117;
+  border: none;
+  border-bottom: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 0.875rem;
+}
+
+.ex-row:hover, .ex-row:active { background: #131c2b; }
+.ex-row--done { background: #052e160a; }
+.ex-row--done:hover { background: #052e1612; }
+
+.ex-row__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ex-color, #374151);
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.ex-row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.ex-row__name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #f3f4f6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ex-row--done .ex-row__name { color: #86efac; }
+
+.ex-row__ref {
+  font-size: 0.6875rem;
+  color: #4b5563;
+}
+
+.ex-row__right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.ex-row__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 999px;
+  background: #1f2937;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.ex-row__badge--done {
+  background: #16a34a1a;
+  color: #4ade80;
+}
+
+.ex-row__chevron {
+  width: 1rem;
+  height: 1rem;
+  color: #374151;
+  flex-shrink: 0;
+}
+
+/* ── Bottom sheet ────────────────────────────────────────────────────────── */
+
+.ex-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.ex-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+}
+
+.ex-sheet__panel {
+  position: relative;
+  z-index: 1;
+  background: #0d1117;
+  border-top: 1px solid #1f2937;
+  border-radius: 1.25rem 1.25rem 0 0;
+  max-height: 88dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Drag handle */
+.ex-sheet__handle {
+  width: 2.5rem;
+  height: 0.25rem;
+  background: #374151;
+  border-radius: 999px;
+  margin: 0.75rem auto 0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ex-sheet__handle:hover { background: #6b7280; }
+
+/* Sheet header */
+.ex-sheet__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 0.5rem;
+}
+
+.ex-sheet__header-info {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.ex-sheet__title-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f9fafb;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+
+.ex-sheet__title-btn:hover { color: #f97316; }
+
+.ex-sheet__ref {
+  font-size: 0.6875rem;
+  color: #4b5563;
+  margin-top: 0.25rem;
+}
+
+.ex-sheet__ref-sep { color: #1f2937; }
+
+.ex-sheet__ref-pb { color: #f59e0b80; }
+
+.ex-sheet__nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  background: #1f2937;
+  border: 1px solid #374151;
+  color: #9ca3af;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ex-sheet__nav-btn:hover:not(:disabled) {
+  background: #374151;
+  color: #f3f4f6;
+}
+
+.ex-sheet__nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Position dots */
+.ex-sheet__dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.375rem;
+  padding-bottom: 0.5rem;
+}
+
+.ex-sheet__dot {
+  width: 0.3125rem;
+  height: 0.3125rem;
+  border-radius: 50%;
+  background: #374151;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.ex-sheet__dot--active {
+  background: #f97316;
+  transform: scale(1.4);
+}
+
+/* Sheet body scrollable area */
+.ex-sheet__body {
+  border-top: 1px solid #1f2937;
+}
+
+/* ── Set table (shared between sheet and any future use) ─────────────────── */
+
+.ex-set__headers {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr 1fr 3.75rem;
+  gap: 0.5rem;
+  padding: 0.375rem 1rem;
+  background: #080d13;
+  border-bottom: 1px solid #1f2937;
+}
+
+.ex-set__headers span {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #374151;
+}
+
+.ex-set__col-right { text-align: right; }
+
+.ex-set__row {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr 1fr 3.75rem;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: #0d1117;
+  transition: background 0.15s;
+}
+
+.ex-set__row--done { background: #16a34a06; }
+
+/* ── Set row swipe-to-delete ─────────────────────────────────────────────── */
+
+.ex-set__swipe-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid #1f293740;
+}
+
+.ex-set__swipe-wrapper:last-child { border-bottom: none; }
+
+.ex-set__swipe-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 1.25rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ex-set__swipe-bg--visible { opacity: 1; }
+
+.ex-set__num {
+  width: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.ex-set__num--done { color: #4ade8050; }
+
+.ex-set__input {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 0.625rem;
+  text-align: center;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ex-set__input::placeholder { color: #374151; font-weight: 400; font-size: 0.875rem; }
+.ex-set__input:focus { outline: none; border-color: #f97316; background: #1f2937; box-shadow: 0 0 0 3px #f9731615; }
+.ex-set__input--done { color: #86efac; border-color: #16a34a30; background: #16a34a0a; }
+
+.ex-set__vol {
+  text-align: right;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.ex-set__vol--done { color: #4ade8060; }
+
+/* Sheet footer */
+.ex-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1rem;
+  background: #080d13;
+  border-top: 1px solid #1f2937;
+}
+
+.ex-card__footer-vol { font-size: 0.6875rem; color: #4b5563; }
+
+.ex-card__add-set {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f97316;
+  background: #f9731612;
+  border: 1px solid #f9731630;
+  border-radius: 0.5rem;
+  padding: 0.4375rem 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ex-card__add-set:hover { background: #f9731622; }
+
+/* ── Sheet slide-up transition ───────────────────────────────────────────── */
+
+.ex-sheet-enter-active { transition: opacity 0.25s ease; }
+.ex-sheet-leave-active { transition: opacity 0.2s ease; }
+.ex-sheet-enter-from, .ex-sheet-leave-to { opacity: 0; }
+
+.ex-sheet-enter-active .ex-sheet__panel {
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.ex-sheet-leave-active .ex-sheet__panel {
+  transition: transform 0.22s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.ex-sheet-enter-from .ex-sheet__panel,
+.ex-sheet-leave-to .ex-sheet__panel {
+  transform: translateY(100%);
+}
 
 .session-reset-btn {
   display: inline-flex;
