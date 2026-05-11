@@ -506,7 +506,7 @@
     @apply bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
     -webkit-appearance: none;
     appearance: none;
-    border: none;
+    border: 1px solid transparent;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -517,6 +517,36 @@
 
   .btn-danger:disabled {
     @apply bg-dark-600 text-dark-400 cursor-not-allowed opacity-50;
+  }
+
+  /* Small button variant — opts out of the mobile 48px min-height enlargement */
+  .btn-sm {
+    padding: 0.375rem 0.875rem !important;
+    font-size: 0.8125rem !important;
+    min-height: unset !important;
+  }
+
+  .btn-danger-outline {
+    @apply text-red-500 font-medium py-3 px-6 rounded-lg transition-colors duration-200;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    border: 1px solid #ef444466;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .btn-danger-outline:hover {
+    @apply bg-red-950 border-red-500;
+  }
+
+  .btn-danger-outline:disabled {
+    @apply text-dark-400 cursor-not-allowed opacity-50;
+    border-color: transparent;
   }
 
   .card {
@@ -551,8 +581,9 @@
 
   /* Mobile-specific button styles */
   @media (max-width: 768px) {
-    .btn-primary,
-    .btn-secondary {
+    .btn-primary:not(.btn-sm),
+    .btn-secondary:not(.btn-sm),
+    .btn-danger:not(.btn-sm) {
       min-height: 48px;
       padding: 12px 16px;
       font-size: 16px;
@@ -575,8 +606,9 @@
     }
 
     /* Fix for iOS Safari button press states */
-    .btn-primary:active,
-    .btn-secondary:active {
+    .btn-primary:not(.btn-sm):active,
+    .btn-secondary:not(.btn-sm):active,
+    .btn-danger:not(.btn-sm):active {
       transform: scale(0.98);
       transition: transform 0.1s ease;
     }

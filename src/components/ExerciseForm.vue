@@ -435,50 +435,56 @@ const deleteVariant = async (variant: ExerciseVariant) => {
     <!-- Footer -->
     <template #footer>
       <div class="exercise-form__footer">
-        <!-- Delete group (edit mode only, two-step confirm) -->
-        <template v-if="isEditMode">
-          <button
-            v-if="confirmDeleteId !== 'exercise'"
-            class="btn-danger text-sm"
-            :disabled="isDeletingExercise"
-            type="button"
-            @click="confirmDeleteId = 'exercise'"
-          >
-            Slett gruppe
-          </button>
-          <template v-else>
+
+        <!-- Confirm delete state: replaces everything -->
+        <template v-if="isEditMode && confirmDeleteId === 'exercise'">
+          <span class="exercise-form__footer-confirm-label">Sikker på at du vil slette gruppen?</span>
+          <div class="exercise-form__footer-actions">
+            <button class="btn-secondary btn-sm" type="button" @click="confirmDeleteId = null">
+              Avbryt
+            </button>
             <button
-              class="btn-danger text-sm"
+              class="btn-danger btn-sm"
               :disabled="isDeletingExercise"
               type="button"
               @click="deleteExercise"
             >
-              {{ isDeletingExercise ? 'Sletter...' : 'Ja, slett gruppe' }}
+              {{ isDeletingExercise ? 'Sletter...' : 'Ja, slett' }}
             </button>
-            <button class="btn-secondary text-sm" type="button" @click="confirmDeleteId = null">
-              Avbryt
-            </button>
-          </template>
+          </div>
         </template>
 
-        <div class="exercise-form__footer-right">
-          <button class="btn-secondary text-sm" type="button" @click="close">Avbryt</button>
-          <button
-            class="btn-primary text-sm"
-            :disabled="!canSave || isSaving"
-            type="button"
-            @click="saveExercise"
-          >
-            {{ isSaving
-              ? (isEditMode ? 'Lagrer...' : 'Oppretter...')
-              : isEditMode
-                ? 'Lagre endringer'
-                : pendingVariants.length > 0
-                  ? `Opprett gruppe + ${pendingVariants.length} variant${pendingVariants.length !== 1 ? 'er' : ''}`
-                  : 'Opprett gruppe'
-            }}
-          </button>
-        </div>
+        <!-- Normal footer -->
+        <template v-else>
+          <button class="btn-secondary btn-sm" type="button" @click="close">Avbryt</button>
+          <div class="exercise-form__footer-actions">
+            <button
+              v-if="isEditMode"
+              class="btn-danger-outline btn-sm"
+              :disabled="isDeletingExercise"
+              type="button"
+              @click="confirmDeleteId = 'exercise'"
+            >
+              Slett gruppe
+            </button>
+            <button
+              class="btn-primary btn-sm"
+              :disabled="!canSave || isSaving"
+              type="button"
+              @click="saveExercise"
+            >
+              {{ isSaving
+                ? (isEditMode ? 'Lagrer...' : 'Oppretter...')
+                : isEditMode
+                  ? 'Lagre endringer'
+                  : pendingVariants.length > 0
+                    ? `Opprett gruppe + ${pendingVariants.length} variant${pendingVariants.length !== 1 ? 'er' : ''}`
+                    : 'Opprett gruppe'
+              }}
+            </button>
+          </div>
+        </template>
+
       </div>
     </template>
 
@@ -664,13 +670,19 @@ const deleteVariant = async (variant: ExerciseVariant) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.exercise-form__footer-right {
+
+.exercise-form__footer-confirm-label {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  flex: 1;
+}
+
+.exercise-form__footer-actions {
   display: flex;
   gap: 0.5rem;
-  margin-left: auto;
+  align-items: center;
 }
 </style>

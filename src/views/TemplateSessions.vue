@@ -3,8 +3,7 @@
     <div>
       <!-- Header -->
       <div class="mb-8">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
@@ -13,16 +12,74 @@
             </div>
             <h1 class="text-2xl font-bold text-white">Økter</h1>
           </div>
-          <router-link 
-            to="/template/create"
-            class="btn-primary inline-flex items-center gap-2"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </div>
+
+    <!-- ── Weekly summary ──────────────────────────────────────────────── -->
+    <div v-if="!isLoading" class="week-card">
+
+      <!-- Header row -->
+      <div class="week-card__header">
+        <span class="week-card__title">Denne uken</span>
+        <span class="week-card__badge">Uke {{ currentWeekNumber }}</span>
+      </div>
+
+      <!-- Day track -->
+      <div class="week-card__days">
+        <div v-for="(label, i) in WEEK_DAYS" :key="i" class="week-card__day">
+          <div :class="['week-card__dot', `week-card__dot--${getDayState(i)}`]">
+            <svg v-if="getDayState(i) === 'done'" class="week-card__dot-check" viewBox="0 0 10 10" fill="none">
+              <path d="M2 5.5l2.2 2.2 3.8-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-          </router-link>
+          </div>
+          <span :class="['week-card__day-label', { 'week-card__day-label--today': i === todayIdx }]">
+            {{ label }}
+          </span>
         </div>
       </div>
+
+      <!-- Stats row -->
+      <div class="week-card__stats">
+        <div class="week-card__stat">
+          <span class="week-card__stat-value">{{ weekStats.workouts }}</span>
+          <span class="week-card__stat-label">Økter</span>
+        </div>
+        <div class="week-card__stat-divider"></div>
+        <div class="week-card__stat">
+          <span class="week-card__stat-value">{{ formatNumber(weekStats.volume) }}</span>
+          <span class="week-card__stat-label">Volum (kg)</span>
+        </div>
+        <div class="week-card__stat-divider"></div>
+        <div class="week-card__stat">
+          <span class="week-card__stat-value">{{ weekStats.sets }}</span>
+          <span class="week-card__stat-label">Sett</span>
+        </div>
+        <div class="week-card__stat-divider"></div>
+        <div class="week-card__stat">
+          <span class="week-card__stat-value week-card__stat-value--streak">
+            {{ currentStreak }}
+            <svg v-if="currentStreak >= 3" class="week-card__streak-flame" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-1.03z"/>
+            </svg>
+          </span>
+          <span class="week-card__stat-label">Dagers streak</span>
+        </div>
+      </div>
+
+      <!-- Footer: motivation + used templates -->
+      <div class="week-card__footer">
+        <p class="week-card__motivation">{{ weekMotivation }}</p>
+        <div v-if="weekTemplateUsage.length > 0" class="week-card__chips">
+          <span
+            v-for="t in weekTemplateUsage"
+            :key="t.name"
+            class="week-card__chip"
+            :style="{ backgroundColor: getWorkoutTypeColor(t.workoutType) + '18', color: getWorkoutTypeColor(t.workoutType), borderColor: getWorkoutTypeColor(t.workoutType) + '40' }"
+          >
+            {{ t.name }}<span v-if="t.count > 1" class="week-card__chip-count"> ×{{ t.count }}</span>
+          </span>
+        </div>
+      </div>
+    </div>
 
     <!-- Active Workout Sessions -->
     <div class="mt-8">
@@ -86,8 +143,18 @@
 
     <!-- Workout Templates Section -->
     <div class="mt-8 pb-24 md:pb-0">
-      <div class="mb-4">
+      <div class="mb-4 flex items-center justify-between">
         <h2 class="text-xl font-semibold text-white">Treningsøkter</h2>
+        <router-link
+          to="/template/create"
+          class="btn-primary btn-sm inline-flex items-center gap-1.5"
+          title="Opprett ny treningsøkt"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Ny økt</span>
+        </router-link>
       </div>
 
       <!-- Info message when there's an active session -->
@@ -573,6 +640,141 @@ const getExerciseGroups = (exercises: any[]) => {
   return groups
 }
 
+// ---------------------------------------------------------------------------
+// Weekly stats
+// ---------------------------------------------------------------------------
+
+const WEEK_DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn']
+
+/** ISO week number for a given date */
+const getWeekNumber = (date: Date): number => {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7))
+  const yearStart = new Date(d.getFullYear(), 0, 1)
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+}
+
+const currentWeekNumber = computed(() => getWeekNumber(new Date()))
+
+/** Monday 00:00 of the current week */
+const weekStart = computed(() => {
+  const now = new Date()
+  const day = now.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + diff)
+  monday.setHours(0, 0, 0, 0)
+  return monday
+})
+
+/** Today's index within the week: Mon=0 … Sun=6 */
+const todayIdx = computed(() => {
+  const day = new Date().getDay()
+  return day === 0 ? 6 : day - 1
+})
+
+const thisWeekSessions = computed(() =>
+  workoutData.sessions.value.filter(s => {
+    if (!s.isCompleted) return false
+    const d = new Date(s.date)
+    const end = new Date(weekStart.value)
+    end.setDate(end.getDate() + 7)
+    return d >= weekStart.value && d < end
+  })
+)
+
+/** Set of day indices (Mon=0) that had at least one completed session this week */
+const workedOutDays = computed(() => {
+  const days = new Set<number>()
+  thisWeekSessions.value.forEach(s => {
+    const d = new Date(s.date)
+    const idx = Math.floor((d.getTime() - weekStart.value.getTime()) / 86400000)
+    if (idx >= 0 && idx < 7) days.add(idx)
+  })
+  return days
+})
+
+const weekStats = computed(() => {
+  let sets = 0
+  let volume = 0
+  thisWeekSessions.value.forEach(s => {
+    s.exercises?.forEach((ex: any) => {
+      ex.sets?.forEach((set: any) => {
+        if (set.isCompleted && set.weight > 0 && set.reps > 0) {
+          sets++
+          volume += set.weight * set.reps
+        }
+      })
+    })
+  })
+  return { workouts: thisWeekSessions.value.length, sets, volume }
+})
+
+/** Consecutive days with a completed workout, going back from today */
+const currentStreak = computed(() => {
+  const sessionDates = new Set(
+    workoutData.sessions.value
+      .filter(s => s.isCompleted)
+      .map(s => {
+        const d = new Date(s.date)
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+      })
+  )
+  let streak = 0
+  const today = new Date()
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+    if (sessionDates.has(key)) {
+      streak++
+    } else {
+      // If i===0 (today) has no workout yet, don't break the streak
+      if (i !== 0) break
+    }
+  }
+  return streak
+})
+
+/** Unique templates used this week with usage count */
+const weekTemplateUsage = computed(() => {
+  const usage = new Map<string, { name: string; workoutType: string; count: number }>()
+  thisWeekSessions.value.forEach(s => {
+    if (!s.templateName) return
+    const existing = usage.get(s.templateName)
+    if (existing) {
+      existing.count++
+    } else {
+      usage.set(s.templateName, { name: s.templateName, workoutType: s.workoutType, count: 1 })
+    }
+  })
+  return [...usage.values()]
+})
+
+/** Motivational label based on how active this week has been */
+const weekMotivation = computed(() => {
+  const n = weekStats.value.workouts
+  const today = todayIdx.value
+  if (n === 0 && today <= 1) return 'Ny uke, nye muligheter!'
+  if (n === 0) return 'Kroppen venter – gi den litt kjærlighet!'
+  if (n === 1) return 'Bra startet – hold momentum!'
+  if (n === 2) return 'Du er i rute!'
+  if (n === 3) return 'Halvveis og kjempesterkt!'
+  if (n === 4) return 'Solid uke – press på!'
+  if (n >= 5) return 'Beist-modus aktivert 🔥'
+  return ''
+})
+
+/** Visual state for each day dot */
+const getDayState = (idx: number): 'done' | 'today' | 'past' | 'future' => {
+  if (workedOutDays.value.has(idx)) return 'done'
+  if (idx === todayIdx.value) return 'today'
+  if (idx < todayIdx.value) return 'past'
+  return 'future'
+}
+
+// ---------------------------------------------------------------------------
 // Cleanup on component unmount
 import { onUnmounted } from 'vue'
 
@@ -582,4 +784,202 @@ onUnmounted(() => {
   }
 })
 
-</script> 
+</script>
+
+<style scoped>
+/* ── Week summary card ───────────────────────────────────────────────────── */
+
+.week-card {
+  margin-bottom: 2rem;
+  padding: 1.125rem 1.25rem 1rem;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.week-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.week-card__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.week-card__badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #f97316;
+  background: #f9731612;
+  border: 1px solid #f9731630;
+  border-radius: 999px;
+  padding: 0.125rem 0.625rem;
+}
+
+/* ── Day track ───────────────────────────────────────────────────────────── */
+
+.week-card__days {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.week-card__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3125rem;
+  flex: 1;
+}
+
+.week-card__dot {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.week-card__dot--done {
+  background: #f97316;
+  color: #fff;
+}
+
+.week-card__dot--today {
+  background: transparent;
+  border: 2px solid #f97316;
+  box-shadow: 0 0 0 3px #f9731618;
+}
+
+.week-card__dot--past {
+  background: #1f2937;
+}
+
+.week-card__dot--future {
+  background: #111827;
+  border: 1px solid #1f2937;
+}
+
+.week-card__dot-check {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.week-card__day-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.week-card__day-label--today {
+  color: #f97316;
+  font-weight: 700;
+}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+
+.week-card__stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #0d1117;
+  border: 1px solid #1f2937;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.week-card__stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  gap: 0.125rem;
+}
+
+.week-card__stat-divider {
+  width: 1px;
+  height: 2.5rem;
+  background: #1f2937;
+  flex-shrink: 0;
+}
+
+.week-card__stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.week-card__stat-value--streak {
+  color: #f97316;
+}
+
+.week-card__streak-flame {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #f97316;
+  opacity: 0.85;
+}
+
+.week-card__stat-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+.week-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.week-card__motivation {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.week-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.week-card__chip {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 999px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.week-card__chip-count {
+  opacity: 0.7;
+}
+</style>

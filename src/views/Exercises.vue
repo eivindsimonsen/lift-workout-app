@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useExercises } from '@/composables/useExercises'
 import ExerciseForm from '@/components/ExerciseForm.vue'
+import muscleGroupsData from '@/data/muscle-groups.json'
 import type { ExerciseData } from '@/types/workout'
 
 // ---------------------------------------------------------------------------
@@ -37,6 +38,15 @@ const isLoading = computed(() => workoutData.isLoading.value || workoutData.isLo
 const hasSearch = computed(() => searchQuery.value.trim().length > 0)
 
 const CATEGORY_ORDER = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Legger', 'Annet']
+
+const CATEGORY_COLORS: Record<string, string> = {
+  ...Object.fromEntries(muscleGroupsData.muscleGroups.map((g) => [g.name, g.color])),
+  Annet: '#6b7280',
+}
+
+/** Returns the accent color for a given category name. */
+const getCategoryColor = (category: string): string =>
+  CATEGORY_COLORS[category] ?? '#6b7280'
 
 /** All exercises enriched with session stats (totalSessions, oneRepMax). */
 const enrichedExercises = computed(() => {
@@ -104,11 +114,7 @@ const activeExercises = computed(() => {
   )
 
   if (activeVariantIds.size === 0) {
-    return enrichedExercises.value.slice(0, 6).map((e) => ({
-      id: e.id,
-      name: e.name,
-      totalSessions: 0,
-    }))
+    return []
   }
 
   const results: Array<{ id: number; name: string; totalSessions: number }> = []
@@ -270,6 +276,7 @@ const saveNewVariant = async (exercise: ExerciseData) => {
           v-for="category in categories"
           :key="category"
           class="ex-cat"
+          :style="{ '--cat-color': getCategoryColor(category) }"
         >
           <!-- Category heading -->
           <div class="ex-cat__header">
@@ -599,14 +606,14 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #6b7280;
+  color: var(--cat-color, #6b7280);
   white-space: nowrap;
 }
 
 .ex-cat__divider {
   flex: 1;
   height: 1px;
-  background: #1f2937;
+  background: linear-gradient(to right, color-mix(in srgb, var(--cat-color, #6b7280) 35%, transparent), transparent);
 }
 
 .ex-cat__groups {
@@ -618,7 +625,7 @@ const saveNewVariant = async (exercise: ExerciseData) => {
 /* ── Exercise group ──────────────────────────────────────────────────────── */
 
 .ex-group {
-  border-left: 2px solid #1f2937;
+  border-left: 2px solid color-mix(in srgb, var(--cat-color, #1f2937) 20%, #1f2937);
   margin-left: 0.25rem;
   padding-left: 0;
   transition: border-color 0.15s;
@@ -752,9 +759,9 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   width: 0.375rem;
   height: 0.375rem;
   border-radius: 50%;
-  background: #f97316;
+  background: var(--cat-color, #f97316);
   flex-shrink: 0;
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 /* Shared small action button (used by inline add row) */

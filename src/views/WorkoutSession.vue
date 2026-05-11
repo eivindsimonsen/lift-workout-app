@@ -272,17 +272,40 @@
       </div>
 
       <!-- Quick actions -->
-      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="mt-4 flex flex-wrap items-center gap-3">
         <button 
-          class="md:hidden btn-secondary py-2.5 flex items-center justify-center gap-2"
+          v-if="!showResetConfirm"
+          class="md:hidden btn-secondary py-2.5 flex items-center justify-center gap-2 flex-1"
           :disabled="availableExercises.length === 0"
           @click="openMobileAddExercise()"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
-          <span>Legg til ekstra øvelse</span>
+          <span>Legg til øvelse</span>
         </button>
+
+        <!-- Reset exercises: two-step inline confirm -->
+        <template v-if="!showResetConfirm">
+          <button
+            v-if="session && session.exercises.length > 0"
+            class="session-reset-btn"
+            title="Fjern alle øvelser for denne økten"
+            @click="showResetConfirm = true"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Nullstill øvelser</span>
+          </button>
+        </template>
+        <template v-else>
+          <div class="session-reset-confirm">
+            <span class="session-reset-confirm__label">Fjerne alle øvelser?</span>
+            <button class="btn-secondary btn-sm" @click="showResetConfirm = false">Avbryt</button>
+            <button class="btn-danger btn-sm" @click="resetExercises">Ja, nullstill</button>
+          </div>
+        </template>
       </div>
 
       <!-- Mobile Exercise Picker -->
@@ -500,6 +523,7 @@ const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
 const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
 const isSyncingPendingChanges = ref(false)
+const showResetConfirm = ref(false)
 
 // Quick View state
 const isExerciseQuickViewOpen = ref(false)
@@ -976,6 +1000,15 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
 
   // Remove the set
   exercise.sets.splice(setIndex, 1)
+  persistExercisesToLocal()
+}
+
+/** Removes all exercises from the current session run so the user can add their own. */
+const resetExercises = () => {
+  if (!session.value) return
+  session.value.exercises = []
+  collapsedExercises.value = []
+  showResetConfirm.value = false
   persistExercisesToLocal()
 }
 
@@ -1610,6 +1643,42 @@ watch(() => route.params.id, async (newId, oldId) => {
 <style scoped>
 .set-enter-from, .set-leave-to { opacity: 0; }
 .set-leave-from, .set-enter-to { opacity: 1; }
+
+.session-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #9ca3af;
+  background: transparent;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.session-reset-btn:hover {
+  color: #f87171;
+  border-color: #f8717140;
+}
+
+.session-reset-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.session-reset-confirm__label {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  white-space: nowrap;
+}
 </style>
 
 

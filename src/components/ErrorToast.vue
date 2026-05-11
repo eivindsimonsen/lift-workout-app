@@ -115,7 +115,7 @@ onUnmounted(() => {
 <style scoped>
 .toast {
   position: fixed;
-  top: 0.75rem;
+  top: calc(env(safe-area-inset-top) + 0.5rem);
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
