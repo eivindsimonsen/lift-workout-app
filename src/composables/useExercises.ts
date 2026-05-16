@@ -43,7 +43,7 @@ let _loaded = false;
 
 export const useExercises = () => {
   const { supabase } = useSupabase();
-  const { showError, showSuccess } = useErrorHandler();
+  const { showError } = useErrorHandler();
 
   // --------------------------------------------------------------------------
   // Load
@@ -136,7 +136,6 @@ export const useExercises = () => {
         a.name.localeCompare(b.name, "no")
       );
 
-      showSuccess("Øvelse opprettet.");
       return newExercise;
     } catch (err: any) {
       showError("Kunne ikke opprette øvelse.");
@@ -172,7 +171,6 @@ export const useExercises = () => {
         _exercises.value = [..._exercises.value];
       }
 
-      showSuccess("Øvelse oppdatert.");
       return true;
     } catch (err: any) {
       showError("Kunne ikke oppdatere øvelse.");
@@ -199,7 +197,6 @@ export const useExercises = () => {
       }
 
       _exercises.value = _exercises.value.filter((e) => e.id !== id);
-      showSuccess("Øvelse slettet.");
       return true;
     } catch (err: any) {
       showError("Kunne ikke slette øvelse. Sjekk rettighetene i Supabase.");
@@ -250,7 +247,6 @@ export const useExercises = () => {
         _exercises.value = [..._exercises.value];
       }
 
-      showSuccess("Variant lagt til.");
       return newVariant;
     } catch (err: any) {
       showError("Kunne ikke legge til variant.");
@@ -289,7 +285,6 @@ export const useExercises = () => {
         _exercises.value = [..._exercises.value];
       }
 
-      showSuccess("Variant oppdatert.");
       return true;
     } catch (err: any) {
       showError("Kunne ikke oppdatere variant.");
@@ -327,7 +322,6 @@ export const useExercises = () => {
         _exercises.value = [..._exercises.value];
       }
 
-      showSuccess("Variant slettet.");
       return true;
     } catch (err: any) {
       showError("Kunne ikke slette variant. Sjekk rettighetene i Supabase.");

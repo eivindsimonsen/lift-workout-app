@@ -415,7 +415,7 @@ const deleteVariant = async (variant: ExerciseVariant) => {
               v-model="newVariantName"
               type="text"
               class="input-field flex-1"
-              placeholder="Variantnavn, f.eks. Stang"
+              placeholder="F.eks. Barbell squat"
               @keydown.enter="addVariant"
             />
             <button

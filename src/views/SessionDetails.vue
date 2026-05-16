@@ -275,43 +275,13 @@
 
        <!-- Actions -->
        <div class="space-y-3">
-         <!-- Active session info (same message style as Økter) -->
-         <div v-if="activeSessions.length > 0" class="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-           <div class="flex items-center gap-3">
-             <svg class="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-             </svg>
-             <div>
-               <p class="text-blue-300 text-sm font-medium">Du har en aktiv økt</p>
-               <p class="text-blue-400/80 text-xs">Fullfør den aktive økten først for å starte en ny økt.</p>
-             </div>
-           </div>
-         </div>
-
          <div class="flex flex-col md:flex-row gap-3">
            <button 
-             v-if="session.templateId"
-             @click="restartWorkout"
-             class="flex-1 btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-             :disabled="activeSessions.length > 0"
-             :title="activeSessions.length > 0 ? 'Du har allerede en aktiv økt. Fullfør den først.' : 'Start ny økt'"
+             @click="handleUseAsTemplate"
+             class="flex-1 btn-secondary"
+             title="Bruk som mal"
            >
-             Start samme økt
-           </button>
-            <button 
-              @click="handleUseAsTemplate"
-              class="flex-1 btn-secondary"
-              title="Bruk som mal"
-            >
-              Bruk som mal
-            </button>
-           <button 
-             @click="shareSummary"
-             class="flex-1 btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-             disabled
-             title="Kommer snart"
-           >
-             Del økt
+             Bruk som mal
            </button>
          </div>
 
@@ -341,7 +311,6 @@ const workoutData = useHybridData()
 
 const session = ref<WorkoutSession | null>(null)
 const isHydrating = ref(true)
-const activeSessions = computed(() => workoutData.sessions.value.filter(s => !s.isCompleted))
 const isLoading = computed(() => workoutData.isLoading.value)
 
 // Methods
@@ -577,11 +546,6 @@ onMounted(async () => {
 })
 
 // Actions
-const restartWorkout = () => {
-  if (!session.value?.templateId) return
-  router.push(`/workout/${session.value.id}`)
-}
-
 const handleUseAsTemplate = () => {
   if (!session.value) return
   router.push({ 
@@ -590,12 +554,4 @@ const handleUseAsTemplate = () => {
   })
 }
 
-const shareSummary = async () => {
-  if (!session.value) return
-  const text = `Økt: ${session.value.templateName}\nDato: ${formatDate(session.value.date)}\nVarighet: ${session.value.duration} min\nVolum: ${formatNumber(session.value.totalVolume || 0)} kg`
-  try {
-    await navigator.clipboard.writeText(text)
-    // Optional toast via existing system
-  } catch {}
-}
 </script> 

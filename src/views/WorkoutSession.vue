@@ -391,6 +391,12 @@
             </button>
 
             <div class="ex-sheet__header-info">
+              <p
+                v-if="getParentGroupName(session.exercises[activeExerciseIndex].exerciseId)"
+                class="ex-sheet__group"
+              >
+                {{ getParentGroupName(session.exercises[activeExerciseIndex].exerciseId) }}
+              </p>
               <button
                 class="ex-sheet__title-btn"
                 @click="openExerciseQuickView(session.exercises[activeExerciseIndex].exerciseId, session.exercises[activeExerciseIndex].name)"
@@ -1036,14 +1042,14 @@ const addExerciseToSession = () => {
   const newExercise = {
     exerciseId,
     name: exerciseName,
-    sets: [{
-      id: `set-${Date.now()}`,
+    sets: [1, 2, 3].map((_, i) => ({
+      id: `set-${Date.now()}-${i}`,
       reps: 0,
       weight: 0,
       duration: undefined as number | undefined,
       distance: undefined as number | undefined,
       isCompleted: false
-    }]
+    }))
   }
 
   session.value.exercises.push(newExercise)
@@ -1135,6 +1141,16 @@ const formatDate = (date: Date): string => {
     day: 'numeric',
     month: 'short'
   }).format(date)
+}
+
+/** Returns the parent exercise group name for a variant ID, or null if it's a standalone exercise. */
+const getParentGroupName = (exerciseId: number): string | null => {
+  for (const exercise of workoutData.exercises.value) {
+    if (exercise.variants?.some(v => v.id === exerciseId)) {
+      return exercise.name
+    }
+  }
+  return null
 }
 
 const getLastPerformance = (exerciseId: number) => {
@@ -1880,8 +1896,8 @@ watch(() => route.params.id, async (newId, oldId) => {
 .ex-sheet__panel {
   position: relative;
   z-index: 1;
-  background: #0d1117;
-  border-top: 1px solid #1f2937;
+  background: #1a2233;
+  border-top: 1px solid #2d3a4f;
   border-radius: 1.25rem 1.25rem 0 0;
   max-height: 88dvh;
   overflow-y: auto;
@@ -1893,14 +1909,14 @@ watch(() => route.params.id, async (newId, oldId) => {
 .ex-sheet__handle {
   width: 2.5rem;
   height: 0.25rem;
-  background: #374151;
+  background: #4b5563;
   border-radius: 999px;
   margin: 0.75rem auto 0;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.ex-sheet__handle:hover { background: #6b7280; }
+.ex-sheet__handle:hover { background: #9ca3af; }
 
 /* Sheet header */
 .ex-sheet__header {
@@ -1914,6 +1930,15 @@ watch(() => route.params.id, async (newId, oldId) => {
   flex: 1;
   min-width: 0;
   text-align: center;
+}
+
+.ex-sheet__group {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #5a6e85;
+  margin-bottom: 0.125rem;
 }
 
 .ex-sheet__title-btn {
@@ -1939,13 +1964,13 @@ watch(() => route.params.id, async (newId, oldId) => {
 
 .ex-sheet__ref {
   font-size: 0.6875rem;
-  color: #4b5563;
+  color: #7b8fa8;
   margin-top: 0.25rem;
 }
 
-.ex-sheet__ref-sep { color: #1f2937; }
+.ex-sheet__ref-sep { color: #374151; }
 
-.ex-sheet__ref-pb { color: #f59e0b80; }
+.ex-sheet__ref-pb { color: #f59e0baa; }
 
 .ex-sheet__nav-btn {
   display: flex;
@@ -1954,8 +1979,8 @@ watch(() => route.params.id, async (newId, oldId) => {
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 0.625rem;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: #243044;
+  border: 1px solid #3d5068;
   color: #9ca3af;
   cursor: pointer;
   flex-shrink: 0;
@@ -1963,7 +1988,7 @@ watch(() => route.params.id, async (newId, oldId) => {
 }
 
 .ex-sheet__nav-btn:hover:not(:disabled) {
-  background: #374151;
+  background: #2d3a4f;
   color: #f3f4f6;
 }
 
@@ -1984,7 +2009,7 @@ watch(() => route.params.id, async (newId, oldId) => {
   width: 0.3125rem;
   height: 0.3125rem;
   border-radius: 50%;
-  background: #374151;
+  background: #4b5a6e;
   transition: background 0.2s, transform 0.2s;
 }
 
@@ -1995,7 +2020,7 @@ watch(() => route.params.id, async (newId, oldId) => {
 
 /* Sheet body scrollable area */
 .ex-sheet__body {
-  border-top: 1px solid #1f2937;
+  border-top: 1px solid #2d3a4f;
 }
 
 /* ── Set table (shared between sheet and any future use) ─────────────────── */
@@ -2005,8 +2030,8 @@ watch(() => route.params.id, async (newId, oldId) => {
   grid-template-columns: 2.25rem 1fr 1fr 3.75rem;
   gap: 0.5rem;
   padding: 0.375rem 1rem;
-  background: #080d13;
-  border-bottom: 1px solid #1f2937;
+  background: #131e2e;
+  border-bottom: 1px solid #2d3a4f;
 }
 
 .ex-set__headers span {
@@ -2014,7 +2039,7 @@ watch(() => route.params.id, async (newId, oldId) => {
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: #374151;
+  color: #6b7a8d;
 }
 
 .ex-set__col-right { text-align: right; }
@@ -2025,18 +2050,18 @@ watch(() => route.params.id, async (newId, oldId) => {
   gap: 0.5rem;
   align-items: center;
   padding: 0.5rem 1rem;
-  background: #0d1117;
+  background: #1a2233;
   transition: background 0.15s;
 }
 
-.ex-set__row--done { background: #16a34a06; }
+.ex-set__row--done { background: #16a34a12; }
 
 /* ── Set row swipe-to-delete ─────────────────────────────────────────────── */
 
 .ex-set__swipe-wrapper {
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid #1f293740;
+  border-bottom: 1px solid #2d3a4f80;
 }
 
 .ex-set__swipe-wrapper:last-child { border-bottom: none; }
@@ -2062,12 +2087,12 @@ watch(() => route.params.id, async (newId, oldId) => {
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: #6b7a8d;
   flex-shrink: 0;
   user-select: none;
 }
 
-.ex-set__num--done { color: #4ade8050; }
+.ex-set__num--done { color: #4ade8070; }
 
 .ex-set__input {
   width: 100%;
@@ -2076,8 +2101,8 @@ watch(() => route.params.id, async (newId, oldId) => {
   font-size: 1.0625rem;
   font-weight: 700;
   color: #f3f4f6;
-  background: #111827;
-  border: 1px solid #1f2937;
+  background: #243044;
+  border: 1px solid #3d5068;
   border-radius: 0.625rem;
   text-align: center;
   -webkit-appearance: none;
@@ -2085,19 +2110,19 @@ watch(() => route.params.id, async (newId, oldId) => {
   transition: border-color 0.15s, background 0.15s;
 }
 
-.ex-set__input::placeholder { color: #374151; font-weight: 400; font-size: 0.875rem; }
-.ex-set__input:focus { outline: none; border-color: #f97316; background: #1f2937; box-shadow: 0 0 0 3px #f9731615; }
-.ex-set__input--done { color: #86efac; border-color: #16a34a30; background: #16a34a0a; }
+.ex-set__input::placeholder { color: #5a6e85; font-weight: 400; font-size: 0.875rem; }
+.ex-set__input:focus { outline: none; border-color: #f97316; background: #2d3a4f; box-shadow: 0 0 0 3px #f9731620; }
+.ex-set__input--done { color: #86efac; border-color: #16a34a50; background: #16a34a15; }
 
 .ex-set__vol {
   text-align: right;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #374151;
+  color: #6b7a8d;
   white-space: nowrap;
 }
 
-.ex-set__vol--done { color: #4ade8060; }
+.ex-set__vol--done { color: #4ade8080; }
 
 /* Sheet footer */
 .ex-card__footer {
@@ -2105,11 +2130,11 @@ watch(() => route.params.id, async (newId, oldId) => {
   align-items: center;
   justify-content: space-between;
   padding: 0.625rem 1rem;
-  background: #080d13;
-  border-top: 1px solid #1f2937;
+  background: #131e2e;
+  border-top: 1px solid #2d3a4f;
 }
 
-.ex-card__footer-vol { font-size: 0.6875rem; color: #4b5563; }
+.ex-card__footer-vol { font-size: 0.6875rem; color: #7b8fa8; }
 
 .ex-card__add-set {
   display: inline-flex;
