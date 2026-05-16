@@ -1902,7 +1902,6 @@ watch(() => route.params.id, async (newId, oldId) => {
   max-height: 88dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Drag handle */
@@ -2130,6 +2129,7 @@ watch(() => route.params.id, async (newId, oldId) => {
   align-items: center;
   justify-content: space-between;
   padding: 0.625rem 1rem;
+  padding-bottom: calc(0.625rem + env(safe-area-inset-bottom));
   background: #131e2e;
   border-top: 1px solid #2d3a4f;
 }
