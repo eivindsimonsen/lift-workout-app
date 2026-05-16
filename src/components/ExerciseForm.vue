@@ -236,7 +236,7 @@ const deleteVariant = async (variant: ExerciseVariant) => {
     <div class="exercise-form">
 
       <!-- Create-mode explainer -->
-      <div v-if="!isEditMode" class="exercise-form__create-hint">
+      <!-- <div v-if="!isEditMode" class="exercise-form__create-hint">
         <svg class="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -247,13 +247,13 @@ const deleteVariant = async (variant: ExerciseVariant) => {
           Det er variantene som velges i treningsprogrammer.
           Du kan legge til varianter allerede nå.
         </p>
-      </div>
+      </div> -->
 
       <!-- ------------------------------------------------------------------ -->
       <!-- Group info                                                           -->
       <!-- ------------------------------------------------------------------ -->
       <section class="exercise-form__section">
-        <h3 class="exercise-form__section-title">Gruppe</h3>
+        <h3 class="exercise-form__section-title">Øvelsegruppe</h3>
 
         <div class="exercise-form__field">
           <label class="exercise-form__label" for="ex-name">Navn *</label>
