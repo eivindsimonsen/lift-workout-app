@@ -20,74 +20,27 @@
           </svg>
         </router-link>
 
-        <!-- Variant: inline editable title -->
-        <template v-if="isVariant">
-          <template v-if="isEditingVariantName">
-            <input
-              v-model="editVariantNameValue"
-              class="input-field flex-1 text-xl font-bold"
-              placeholder="Variantnavn"
-              @keydown.enter="saveVariantName"
-              @keydown.escape="cancelVariantNameEdit"
-              autofocus
-            />
-            <button
-              class="inline-flex items-center justify-center w-10 h-10 bg-green-700/30 hover:bg-green-700/50 border border-green-700/50 rounded-lg transition-colors"
-              title="Lagre"
-              :disabled="isSavingVariantName"
-              @click="saveVariantName"
-            >
-              <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-              </svg>
-            </button>
-            <button
-              class="inline-flex items-center justify-center w-10 h-10 bg-dark-700 hover:bg-dark-600 border border-dark-600 rounded-lg transition-colors"
-              title="Avbryt"
-              @click="cancelVariantNameEdit"
-            >
-              <svg class="w-4 h-4 text-dark-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </template>
-          <template v-else>
-            <h1 class="text-2xl font-bold text-white flex-1" @click="openGoogleSearch">{{ exercise?.name }}</h1>
-            <button
-              class="inline-flex items-center justify-center w-10 h-10 bg-dark-700 hover:bg-dark-600 border border-dark-600 hover:border-primary-500/50 rounded-lg transition-colors"
-              title="Rediger variantnavn"
-              @click="startVariantNameEdit"
-            >
-              <svg class="w-4 h-4 text-dark-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-          </template>
-        </template>
-
-        <!-- Main exercise group: title + open group-edit drawer -->
-        <template v-else>
-          <h1 class="text-2xl font-bold text-white flex-1" @click="openGoogleSearch">{{ exercise?.name }}</h1>
-          <button
-            class="inline-flex items-center justify-center w-10 h-10 bg-dark-700 hover:bg-dark-600 border border-dark-600 hover:border-primary-500/50 rounded-lg transition-colors"
-            title="Rediger gruppe"
-            @click="openGroupEdit"
-          >
-            <svg class="w-4 h-4 text-dark-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </button>
-        </template>
+        <h1 class="text-2xl font-bold text-white flex-1" @click="openGoogleSearch">{{ exercise?.name }}</h1>
+        <button
+          class="inline-flex items-center justify-center w-10 h-10 bg-dark-700 hover:bg-dark-600 border border-dark-600 hover:border-primary-500/50 rounded-lg transition-colors"
+          title="Rediger"
+          @click="showEditForm = true"
+        >
+          <svg class="w-4 h-4 text-dark-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
       </div>
     </div>
 
-    <!-- Group edit drawer (main exercise pages only) -->
-    <ExerciseForm
+    <!-- Unified edit drawer for both variants and groups -->
+    <ExerciseEditForm
       v-model:visible="showEditForm"
-      :exercise="mainExerciseForEdit"
-      @saved="showEditForm = false"
+      :variant="isVariant ? currentVariant : null"
+      :parent-exercise-id="isVariant ? mainExerciseForEdit?.id ?? null : null"
+      :exercise="!isVariant ? mainExerciseForEdit : null"
+      @saved="onEditSaved"
       @deleted="router.push('/exercises')"
     />
 
@@ -289,39 +242,6 @@
         </div>
       </div>
 
-      <!-- Delete -->
-      <div class="exercise-detail__danger-zone">
-        <p class="exercise-detail__danger-label">Faresone</p>
-        <template v-if="!confirmDelete">
-          <button
-            class="btn-danger"
-            :disabled="isDeletingExercise"
-            @click="confirmDelete = true"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            {{ isVariant ? 'Slett variant' : 'Slett øvelsegruppe' }}
-          </button>
-        </template>
-        <template v-else>
-          <p class="text-sm text-red-400 mb-3">
-            <template v-if="isVariant">
-              Er du sikker? Varianten og all historikk for denne varianten vil forsvinne.
-            </template>
-            <template v-else>
-              Er du sikker? Alle varianter og historikken for denne gruppen vil forsvinne permanent.
-            </template>
-          </p>
-          <div class="flex gap-3">
-            <button class="btn-danger" :disabled="isDeletingExercise" @click="deleteItem">
-              {{ isDeletingExercise ? 'Sletter...' : 'Ja, slett permanent' }}
-            </button>
-            <button class="btn-secondary" @click="confirmDelete = false">Avbryt</button>
-          </div>
-        </template>
-      </div>
     </div>
 
     <div v-else class="text-center py-12">
@@ -336,7 +256,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useExercises } from '@/composables/useExercises'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
-import ExerciseForm from '@/components/ExerciseForm.vue'
+import ExerciseEditForm from '@/components/ExerciseEditForm.vue'
 import muscleGroups from '@/data/muscle-groups.json'
 import type { ExerciseData } from '@/types/workout'
 
@@ -451,14 +371,6 @@ const isLoading = computed(() => workoutData.isLoading.value)
 const exercise = ref<any>(null)
 const showEditForm = ref(false)
 
-// Variant inline name edit
-const isEditingVariantName = ref(false)
-const editVariantNameValue = ref('')
-const isSavingVariantName = ref(false)
-
-const isDeletingExercise = ref(false)
-const confirmDelete = ref(false)
-
 /** The main (parent) exercise group. */
 const mainExerciseForEdit = computed<ExerciseData | null>(() => {
   if (!exercise.value) return null
@@ -483,66 +395,17 @@ const currentVariant = computed(() => {
 })
 
 // ---------------------------------------------------------------------------
-// Edit handlers
+// Edit handler
 // ---------------------------------------------------------------------------
 
-/** Opens the group-metadata drawer (for main exercise pages). */
-const openGroupEdit = () => {
-  showEditForm.value = true
-}
-
-/** Starts inline editing of the variant name. */
-const startVariantNameEdit = () => {
-  editVariantNameValue.value = exercise.value?.name ?? ''
-  isEditingVariantName.value = true
-}
-
-const cancelVariantNameEdit = () => {
-  isEditingVariantName.value = false
-  editVariantNameValue.value = ''
-}
-
-const saveVariantName = async () => {
-  const name = editVariantNameValue.value.trim()
-  if (!name || !currentVariant.value || !mainExerciseForEdit.value) return
-  isSavingVariantName.value = true
-  const ok = await exercisesStore.updateVariant(
-    currentVariant.value.id,
-    mainExerciseForEdit.value.id,
-    { name }
-  )
-  isSavingVariantName.value = false
-  if (ok) {
-    // Update local exercise ref so the title reflects the change
-    exercise.value = { ...exercise.value, name }
-    isEditingVariantName.value = false
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Delete handlers
-// ---------------------------------------------------------------------------
-
-const deleteItem = async () => {
-  if (!confirmDelete.value) return
-  isDeletingExercise.value = true
-  try {
-    if (isVariant.value && currentVariant.value && mainExerciseForEdit.value) {
-      // Delete just the variant
-      const ok = await exercisesStore.deleteVariant(
-        currentVariant.value.id,
-        mainExerciseForEdit.value.id
-      )
-      if (ok) router.push('/exercises')
-    } else if (mainExerciseForEdit.value) {
-      // Delete the whole group
-      const ok = await exercisesStore.deleteExercise(mainExerciseForEdit.value.id)
-      if (ok) router.push('/exercises')
-    }
-  } finally {
-    isDeletingExercise.value = false
-    confirmDelete.value = false
-  }
+/** Refreshes local exercise name/title after a successful save in the slide-over. */
+const onEditSaved = () => {
+  showEditForm.value = false
+  // Re-read from store so name/category changes are reflected immediately
+  const id = exercise.value?.id as number | undefined
+  if (!id) return
+  const updated = workoutData.getExerciseById(id)
+  if (updated) exercise.value = updated
 }
 
 /** ========= Core computed data ========= */

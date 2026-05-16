@@ -27,6 +27,8 @@ export interface CreateVariantPayload {
 export interface UpdateVariantPayload {
   name?: string;
   equipment?: string;
+  /** Move variant to a different parent exercise group. */
+  exerciseId?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -255,7 +257,7 @@ export const useExercises = () => {
     }
   };
 
-  /** Update an existing variant. */
+  /** Update an existing variant. Supports moving to a different parent group via payload.exerciseId. */
   const updateVariant = async (
     id: number,
     exerciseId: number,
@@ -268,6 +270,8 @@ export const useExercises = () => {
       if (payload.name !== undefined) updates.name = payload.name.trim();
       if (payload.equipment !== undefined)
         updates.equipment = payload.equipment?.trim() || null;
+      if (payload.exerciseId !== undefined && payload.exerciseId !== exerciseId)
+        updates.exercise_id = payload.exerciseId;
 
       const { error } = await supabase
         .from("exercise_variants")
@@ -276,15 +280,37 @@ export const useExercises = () => {
 
       if (error) throw error;
 
-      const exIdx = _exercises.value.findIndex((e) => e.id === exerciseId);
-      if (exIdx !== -1) {
-        const variants = (_exercises.value[exIdx].variants ?? []).map((v) =>
-          v.id === id ? { ...v, ...payload } : v
-        );
-        _exercises.value[exIdx] = { ..._exercises.value[exIdx], variants };
-        _exercises.value = [..._exercises.value];
+      // Update local state — handle parent group change if needed
+      const newParentId = payload.exerciseId ?? exerciseId;
+      const oldIdx = _exercises.value.findIndex((e) => e.id === exerciseId);
+      const newIdx = _exercises.value.findIndex((e) => e.id === newParentId);
+
+      if (oldIdx !== -1 && newIdx !== -1 && oldIdx !== newIdx) {
+        // Moving to a different group: remove from old, append to new
+        const variant = (_exercises.value[oldIdx].variants ?? []).find((v) => v.id === id);
+        const updatedVariant = variant ? { ...variant, ...payload } : null;
+
+        _exercises.value[oldIdx] = {
+          ..._exercises.value[oldIdx],
+          variants: (_exercises.value[oldIdx].variants ?? []).filter((v) => v.id !== id),
+        };
+        if (updatedVariant && newIdx !== -1) {
+          _exercises.value[newIdx] = {
+            ..._exercises.value[newIdx],
+            variants: [...(_exercises.value[newIdx].variants ?? []), updatedVariant],
+          };
+        }
+      } else if (oldIdx !== -1) {
+        // Same group — just update in place
+        _exercises.value[oldIdx] = {
+          ..._exercises.value[oldIdx],
+          variants: (_exercises.value[oldIdx].variants ?? []).map((v) =>
+            v.id === id ? { ...v, ...payload } : v
+          ),
+        };
       }
 
+      _exercises.value = [..._exercises.value];
       return true;
     } catch (err: any) {
       showError("Kunne ikke oppdatere variant.");
