@@ -136,6 +136,10 @@
               </button>
             </div>
 
+            <div v-if="successMessage" class="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+              <p class="text-green-400 text-sm">{{ successMessage }}</p>
+            </div>
+
             <div v-if="errorMessage" class="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
               <p class="text-red-400 text-sm">{{ errorMessage }}</p>
             </div>
@@ -193,7 +197,7 @@ import { useSignupProtection } from '@/composables/useSignupProtection'
 const router = useRouter()
 const route = useRoute()
 const { supabase } = useSupabase()
-const { showError, showSuccess, handleAuthError } = useErrorHandler()
+const { showError, handleAuthError } = useErrorHandler()
 const { isRecentlySignedUp, markSignupAttempt, clearSignupAttempt } = useSignupProtection()
 
 // Form data
@@ -204,6 +208,7 @@ const confirmPassword = ref('')
 const rememberMe = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
+const successMessage = ref('')
 const isRegistering = ref(false)
 
 // Password visibility
@@ -304,7 +309,7 @@ const handleRegister = async () => {
   }
 
   if (data.user) {
-    showSuccess('Registrering vellykket! Sjekk din e-post for bekreftelse.')
+    successMessage.value = 'Registrering vellykket! Sjekk din e-post for bekreftelse.'
     clearForm()
     isRegistering.value = false
   } else {
@@ -359,7 +364,7 @@ const forgotPassword = async () => {
       errorMessage.value = error.message
     } else {
       errorMessage.value = ''
-      showSuccess('Tilbakestillingslenke sendt til din e-post! Sjekk innboksen din og følg lenken for å tilbakestille passordet.')
+      successMessage.value = 'Tilbakestillingslenke sendt til din e-post! Sjekk innboksen din og følg lenken for å tilbakestille passordet.'
     }
   } catch (error: any) {
     console.error('Password reset error:', error)

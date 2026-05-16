@@ -29,15 +29,10 @@
         left: '0'
       }"
     >
-      <!-- Delete Icon with better styling -->
-      <div class="flex flex-col items-center gap-2 transform transition-transform duration-200 delete-icon" :class="{ 'scale-110': showDeleteAction }">
-        <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-lg">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </div>
-        <span class="text-xs font-semibold text-white tracking-wide">SLETT</span>
-      </div>
+      <!-- Delete Icon -->
+      <svg class="w-6 h-6 text-white delete-icon" :class="{ 'scale-110': showDeleteAction }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      </svg>
     </div>
     
     <!-- Swipe Hint (shown on first visit) -->

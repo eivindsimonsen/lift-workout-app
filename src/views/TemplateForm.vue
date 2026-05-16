@@ -3,7 +3,6 @@ import { ref, computed, onMounted, type Ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutTemplate, ExerciseTemplate } from '@/types/workout'
-import ExerciseSelector from '@/components/ExerciseSelector.vue'
 import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
@@ -53,89 +52,27 @@ const getDefaultMuscleGroups = (workoutType: string): string[] => {
   return muscleGroupMap[workoutType.toLowerCase()] || []
 }
 
-const availableExercises = computed(() => {
-  const exercises: Array<{id: string, name: string, category: string, muscleGroups?: string[]}> = []
-  
-  // If workout type is selected, only include exercises that match
-  if (templateForm.value.workoutType) {
-    const relevantMuscleGroups = getDefaultMuscleGroups(templateForm.value.workoutType)
-    
-    workoutData.exercises.value.forEach(exercise => {
-      // Check if this exercise matches the workout type
-      const hasMatchingMuscleGroup = exercise.muscleGroups && 
-        exercise.muscleGroups.some(group => relevantMuscleGroups.includes(group))
-      
-      if (hasMatchingMuscleGroup) {
-        if (exercise.variants && exercise.variants.length > 0) {
-          // Add each variant as a separate exercise
-          exercise.variants.forEach(variant => {
-            exercises.push({
-              id: variant.id,
-              name: `${exercise.name} - ${variant.name}`,
-              category: exercise.category,
-              muscleGroups: exercise.muscleGroups
-            })
-          })
-        } else {
-          // Exercises without variants
-          exercises.push({
-            id: exercise.categoryId,
-            name: exercise.name,
-            category: exercise.category,
-            muscleGroups: exercise.muscleGroups
-          })
-        }
-      }
-    })
-  } else {
-    // If no workout type selected, include all exercises
-    workoutData.exercises.value.forEach(exercise => {
-      if (exercise.variants && exercise.variants.length > 0) {
-        // Add each variant as a separate exercise
-        exercise.variants.forEach(variant => {
-          exercises.push({
-            id: variant.id,
-            name: `${exercise.name} - ${variant.name}`,
-            category: exercise.category,
-            muscleGroups: exercise.muscleGroups
-          })
-        })
-      } else {
-        // Exercises without variants
-        exercises.push({
-          id: exercise.categoryId,
-          name: exercise.name,
-          category: exercise.category,
-          muscleGroups: exercise.muscleGroups
-        })
-      }
-    })
-  }
-  
-  return exercises
-})
-
-const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
+const isExercisePanelOpen: Ref<boolean> = ref(false)
 const activeExerciseIndex: Ref<number | null> = ref(null)
 
-const openMobilePicker = (index: number) => {
+const openExercisePicker = (index: number) => {
   if (index === templateForm.value.exercises.length) {
     templateForm.value.exercises.push({
-      exerciseId: '',
+      exerciseId: 0,
       name: '',
-      sets: 0, // Will be configured during workout session
-      reps: 0 // Will be configured during workout session
+      sets: 0,
+      reps: 0
     })
   }
   activeExerciseIndex.value = index
-  isMobileExercisePanelOpen.value = true
+  isExercisePanelOpen.value = true
 }
 
-const closeMobilePicker = () => {
-  isMobileExercisePanelOpen.value = false
+const closeExercisePicker = () => {
+  isExercisePanelOpen.value = false
 }
 
-const handleSelectExercise = (exerciseId: string) => {
+const handleSelectExercise = (exerciseId: number) => {
   const exerciseData = workoutData.getExerciseById(exerciseId)
   if (!exerciseData) {
     console.error('Invalid exercise data for id:', exerciseId)
@@ -143,12 +80,11 @@ const handleSelectExercise = (exerciseId: string) => {
   }
 
   if (activeExerciseIndex.value === null) {
-    // Add a new exercise if none is active
     templateForm.value.exercises.push({
       exerciseId,
       name: exerciseData.name,
-      sets: 0, // Will be configured during workout session
-      reps: 0 // Will be configured during workout session
+      sets: 0,
+      reps: 0,
     })
   } else {
     const idx = activeExerciseIndex.value
@@ -156,29 +92,27 @@ const handleSelectExercise = (exerciseId: string) => {
     templateForm.value.exercises[idx].exerciseId = exerciseId
     templateForm.value.exercises[idx].name = exerciseData.name
   }
-  isMobileExercisePanelOpen.value = false
+  isExercisePanelOpen.value = false
 }
 
-const getExerciseName = (id: string): string => {
+/**
+ * Returns a human-readable label: "ParentGroup — Variant" for variants,
+ * or just the exercise name for standalone exercises.
+ */
+const getExerciseName = (id: number): string => {
   if (!id) return ''
-  const exercise = workoutData.getExerciseById(id)
-  if (!exercise?.name) return ''
-  
-  // Extract variant name from "Main Exercise - Variant" format
-  // For example: "Squats - Front Squats" -> "Front Squats"
-  const parts = exercise.name.split(' - ')
-  if (parts.length > 1) {
-    return parts[1] // Return the variant part
-  }
-  return exercise.name // Return original if no dash found
+  const found = workoutData.getExerciseById(id)
+  if (!found) return ''
+  const parent = workoutData.getMainExerciseByVariantId(id)
+  return parent ? `${parent.name} — ${found.name}` : found.name
 }
 
 // Display helpers (UI only)
-const getExerciseCategory = (id: string): string => {
+const getExerciseCategory = (id: number): string => {
   if (!id) return ''
   return workoutData.getExerciseById(id)?.category || ''
 }
-const getExerciseMuscleGroups = (id: string): string[] => {
+const getExerciseMuscleGroups = (id: number): string[] => {
   if (!id) return []
   return workoutData.getExerciseById(id)?.muscleGroups || []
 }
@@ -190,7 +124,7 @@ const getWorkoutTypeColor = (workoutTypeId: string): string => {
   const wt = (workoutTypeData as any).workoutTypes.find((w: any) => w.id === workoutTypeId)
   return wt?.color || '#6b7280'
 }
-const getExerciseAccentColor = (exerciseId: string): string => {
+const getExerciseAccentColor = (exerciseId: number): string => {
   const exercise = workoutData.getExerciseById(exerciseId)
   if (exercise?.muscleGroups && exercise.muscleGroups.length > 0) {
     return getMuscleGroupColor(exercise.muscleGroups[0])
@@ -207,10 +141,10 @@ const getExerciseAccentColor = (exerciseId: string): string => {
 // Methods
 const addExercise = () => {
   templateForm.value.exercises.push({
-    exerciseId: '',
+    exerciseId: 0,
     name: '',
-    sets: 0, // Will be configured during workout session
-    reps: 0 // Will be configured during workout session
+    sets: 0,
+    reps: 0,
   })
 }
 
@@ -294,7 +228,7 @@ onMounted(async () => {
           const matchingExercise = workoutData.exercises.value.find(e => e.name === exercise.name)
           return {
             ...exercise,
-            exerciseId: exercise.exerciseId || matchingExercise?.categoryId || ''
+            exerciseId: exercise.exerciseId || matchingExercise?.id || 0
           }
         })
       }
@@ -481,27 +415,19 @@ onMounted(async () => {
             </div>
             
             <div>
-              <label class="block text-xs text-dark-300 mb-2">Øvelse</label>
-              <!-- Desktop selector -->
-              <div class="hidden md:block">
-                <ExerciseSelector 
-                  :exercises="availableExercises"
-                  v-model="exercise.exerciseId"
-                />
-              </div>
-              <!-- Mobile slide-over trigger -->
-              <div class="md:hidden">
-                <button
-                  type="button"
-                  class="input-field w-full flex items-center justify-between focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500/50 transition-shadow"
-                  @click="openMobilePicker(index)"
-                >
-                  <span>{{ getExerciseName(exercise.exerciseId) || 'Velg øvelse' }}</span>
-                  <svg class="w-4 h-4 text-dark-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              </div>
+              <label class="block text-xs text-dark-300 mb-2">Variant</label>
+              <button
+                type="button"
+                class="input-field w-full flex items-center justify-between gap-2 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500/50 transition-shadow text-left"
+                @click="openExercisePicker(index)"
+              >
+                <span :class="exercise.exerciseId ? 'text-white' : 'text-dark-400'" class="text-sm truncate">
+                  {{ getExerciseName(exercise.exerciseId) || 'Velg variant…' }}
+                </span>
+                <svg class="w-4 h-4 text-dark-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
 
               <div v-if="exercise.exerciseId" class="mt-3 flex flex-wrap items-center gap-2">
                 <span 
@@ -517,7 +443,7 @@ onMounted(async () => {
           
           <!-- Add Exercise Button at bottom -->
           <button 
-            @click="openMobilePicker(templateForm.exercises.length)"
+            @click="openExercisePicker(templateForm.exercises.length)"
             type="button"
             class="w-full btn-secondary py-3 flex items-center justify-center hover:opacity-95 group"
           >
@@ -559,12 +485,12 @@ onMounted(async () => {
       </div>
     </form>
     
-    <!-- Mobile Exercise Picker -->
+    <!-- Exercise variant picker (all devices) -->
     <ExerciseSearchPanel
-      :is-open="isMobileExercisePanelOpen"
+      :is-open="isExercisePanelOpen"
       :workout-type="templateForm.workoutType"
-      title="Velg øvelse"
-      @close="closeMobilePicker"
+      title="Velg variant"
+      @close="closeExercisePicker"
       @select="handleSelectExercise"
     />
   </div>

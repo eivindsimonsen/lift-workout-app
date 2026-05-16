@@ -33,22 +33,20 @@ export interface WorkoutStats {
 
 // Exercise database and categorization
 export interface ExerciseVariant {
-  id: string;
+  id: number;
+  exerciseId: number;
+  userId: string | null;
   name: string;
   equipment?: string;
-  angle?: string;
-  grip?: string;
-  position?: string;
-  direction?: string;
-  focus?: string;
 }
 
 export interface ExerciseData {
-  categoryId: string;
+  id: number;
+  userId: string | null;
   name: string;
+  /** Primary muscle group, e.g. "Bryst", "Rygg", "Ben" */
   category: string;
   workoutTypes: string[];
-  muscleGroups: string[];
   variants?: ExerciseVariant[];
 }
 
@@ -68,7 +66,7 @@ export interface WorkoutTemplate {
 }
 
 export interface ExerciseTemplate {
-  exerciseId: string;
+  exerciseId: number;
   name: string;
   sets: number;
   reps: number;
@@ -89,7 +87,7 @@ export interface WorkoutSession {
 }
 
 export interface WorkoutExercise {
-  exerciseId: string;
+  exerciseId: number;
   name: string;
   sets: WorkoutSet[];
 }

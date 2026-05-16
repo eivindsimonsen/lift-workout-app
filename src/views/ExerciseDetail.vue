@@ -11,26 +11,38 @@
     <!-- Header -->
     <div class="mb-4 mt-4">
       <div class="flex items-center gap-3">
-        <router-link 
-          to="/exercises" 
+        <router-link
+          to="/exercises"
           class="inline-flex items-center justify-center w-10 h-10 bg-[#3F302A] hover:bg-[#4A3A32] rounded-lg transition-colors"
         >
           <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
         </router-link>
-        <h1 class="text-2xl font-bold text-white" @click="openGoogleSearch">{{ exercise?.name }}</h1>
-        <svg 
-          class="w-5 h-5 text-dark-300 group-hover:text-primary-400 flex-shrink-0"
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24" 
-          aria-hidden="true"
+
+        <h1 class="text-2xl font-bold text-white flex-1" @click="openGoogleSearch">{{ exercise?.name }}</h1>
+        <button
+          class="inline-flex items-center justify-center w-10 h-10 bg-dark-700 hover:bg-dark-600 border border-dark-600 hover:border-primary-500/50 rounded-lg transition-colors"
+          title="Rediger"
+          @click="showEditForm = true"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
-        </svg>
+          <svg class="w-4 h-4 text-dark-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
       </div>
     </div>
+
+    <!-- Unified edit drawer for both variants and groups -->
+    <ExerciseEditForm
+      v-model:visible="showEditForm"
+      :variant="isVariant ? currentVariant : null"
+      :parent-exercise-id="isVariant ? mainExerciseForEdit?.id ?? null : null"
+      :exercise="!isVariant ? mainExerciseForEdit : null"
+      @saved="onEditSaved"
+      @deleted="router.push('/exercises')"
+    />
 
     <!-- Loading -->
     <div v-if="isLoading" class="space-y-6 animate-pulse">
@@ -229,6 +241,7 @@
           </div>
         </div>
       </div>
+
     </div>
 
     <div v-else class="text-center py-12">
@@ -241,8 +254,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
+import { useExercises } from '@/composables/useExercises'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
+import ExerciseEditForm from '@/components/ExerciseEditForm.vue'
 import muscleGroups from '@/data/muscle-groups.json'
+import type { ExerciseData } from '@/types/workout'
 
 // Charts
 import VueApexCharts from 'vue3-apexcharts'
@@ -350,8 +366,47 @@ const getWeekNumber = (date: Date): number => {
 const safeWeekKey = (d: Date): number => startOfIsoWeek(d).getTime()
 
 /** ========= State ========= */
+const exercisesStore = useExercises()
 const isLoading = computed(() => workoutData.isLoading.value)
 const exercise = ref<any>(null)
+const showEditForm = ref(false)
+
+/** The main (parent) exercise group. */
+const mainExerciseForEdit = computed<ExerciseData | null>(() => {
+  if (!exercise.value) return null
+  const id = exercise.value.id as number
+  const direct = exercisesStore.exercises.value.find((e) => e.id === id)
+  if (direct) return direct
+  return exercisesStore.exercises.value.find((e) => e.variants?.some((v) => v.id === id)) ?? null
+})
+
+/** True when the current page is for a variant (not a top-level exercise group). */
+const isVariant = computed(() => {
+  if (!exercise.value) return false
+  const id = exercise.value.id as number
+  return !exercisesStore.exercises.value.find((e) => e.id === id)
+})
+
+/** The ExerciseVariant object when viewing a variant page. */
+const currentVariant = computed(() => {
+  if (!isVariant.value || !mainExerciseForEdit.value) return null
+  const id = exercise.value.id as number
+  return mainExerciseForEdit.value.variants?.find((v) => v.id === id) ?? null
+})
+
+// ---------------------------------------------------------------------------
+// Edit handler
+// ---------------------------------------------------------------------------
+
+/** Refreshes local exercise name/title after a successful save in the slide-over. */
+const onEditSaved = () => {
+  showEditForm.value = false
+  // Re-read from store so name/category changes are reflected immediately
+  const id = exercise.value?.id as number | undefined
+  if (!id) return
+  const updated = workoutData.getExerciseById(id)
+  if (updated) exercise.value = updated
+}
 
 /** ========= Core computed data ========= */
 
@@ -796,5 +851,23 @@ onMounted(() => {
 
 .chart-container :deep(.apexcharts-svg) {
   touch-action: none !important;
+}
+
+.exercise-detail__danger-zone {
+  border: 1px solid #7f1d1d;
+  background: #0f0505;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.exercise-detail__danger-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f87171;
 }
 </style>

@@ -1,104 +1,17 @@
-<template>
-  <SlideOver :is-open="isOpen" :title="title" @close="onClose">
-    <div class="space-y-3">
-      <!-- Search input -->
-      <div class="relative">
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input
-          ref="searchInput"
-          v-model="query"
-          type="text"
-          class="input-field w-full pl-10 text-base"
-          placeholder="Søk etter øvelse..."
-          @keydown.escape.prevent="onClose"
-        />
-      </div>
-
-      <!-- Muscle Group Filters -->
-      <div class="space-y-2">
-        <h4 class="text-sm font-medium text-white">Filtrer etter muskelgruppe:</h4>
-        <div v-if="props.workoutType && getDefaultMuscleGroups(props.workoutType).length > 0" class="mb-2">
-          <p class="text-xs text-primary-400">
-            Automatisk valgt basert på {{ workoutTypes.find((t: any) => t.id === props.workoutType)?.name || props.workoutType }}:
-          </p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <label
-            v-for="muscleGroup in availableMuscleGroups"
-            :key="muscleGroup"
-            class="flex items-center gap-2 cursor-pointer"
-          >
-            <input
-              v-model="selectedMuscleGroups"
-              type="checkbox"
-              :value="muscleGroup"
-              class="w-4 h-4 text-dark-600 bg-dark-700 border-dark-600 rounded focus:ring-dark-500 focus:ring-2"
-            />
-            <span class="text-sm text-white">{{ muscleGroup }}</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Results -->
-      <div v-if="filteredResults.length === 0" class="text-sm text-dark-300 py-4">Ingen treff</div>
-      <div v-else class="space-y-1">
-        <button
-          v-for="ex in filteredResults"
-          :key="ex.id"
-          type="button"
-          class="w-full text-left px-3 py-3 rounded-md hover:bg-dark-700 text-sm z-0 relative flex items-center justify-between group"
-          @click="selectExercise(ex)"
-        >
-          <div class="flex-1">
-            <span class="text-white">{{ getVariantName(ex.name) }}</span>
-            <!-- Show variant details if available -->
-            <div v-if="ex.equipment || ex.angle || ex.grip" class="flex gap-1 mt-1">
-              <span v-if="ex.equipment" class="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded">
-                {{ ex.equipment }}
-              </span>
-              <span v-if="ex.angle" class="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">
-                {{ ex.angle }}
-              </span>
-              <span v-if="ex.grip" class="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
-                {{ ex.grip }}
-              </span>
-            </div>
-          </div>
-          <div class="flex gap-1 flex-wrap justify-end">
-            <span
-              v-if="ex.category"
-              class="px-2 py-1 text-sm font-medium rounded-full bg-dark-600"
-              :style="{ color: getMuscleGroupColor(ex.category) }"
-            >
-              {{ ex.category }}
-            </span>
-          </div>
-        </button>
-      </div>
-    </div>
-  </SlideOver>
-</template>
-
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+// ---------------------------------------------------------------------------
+// Imports
+// ---------------------------------------------------------------------------
+import { computed, ref, watch } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
+import { useHybridData } from '@/composables/useHybridData'
 import * as workoutTypesData from '@/data/workout-types.json'
-import * as exercisesData from '@/data/exercises.json'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
+import type { ExerciseData } from '@/types/workout'
 
-interface ExerciseItem {
-  id: string
-  name: string
-  category: string
-  equipment?: string
-  angle?: string
-  grip?: string
-  position?: string
-  direction?: string
-  focus?: string
-}
+// ---------------------------------------------------------------------------
+// Props / Emits
+// ---------------------------------------------------------------------------
 
 const props = defineProps<{
   isOpen: boolean
@@ -108,147 +21,538 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'select', exerciseId: string): void
+  (e: 'select', exerciseId: number): void
 }>()
 
-const title = computed(() => props.title || 'Velg øvelse')
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+
+const workoutData = useHybridData()
+
+const panelTitle = computed(() => props.title || 'Velg variant')
 const onClose = () => emit('close')
 
-// search and filters
 const query = ref('')
-const selectedMuscleGroups = ref<string[]>([])
-const searchInput = ref<HTMLInputElement>()
+const selectedCategories = ref<string[]>([])
 
-// Get all available muscle groups
-const availableMuscleGroups = computed(() => muscleGroupsData.muscleGroups.map(group => group.name))
+/** Set of exercise IDs whose variant list is currently expanded. */
+const expandedIds = ref(new Set<number>())
 
-// Get muscle group colors from the JSON data
-const getMuscleGroupColor = (muscleGroup: string): string => {
-  const group = muscleGroupsData.muscleGroups.find(g => g.name === muscleGroup)
-  return group?.color || '#6b7280' // Grå som fallback
+// ---------------------------------------------------------------------------
+// Computed
+// ---------------------------------------------------------------------------
+
+const availableCategories = computed(() =>
+  muscleGroupsData.muscleGroups.map((g) => g.name)
+)
+
+const getMuscleGroupColor = (category: string): string => {
+  const group = muscleGroupsData.muscleGroups.find((g) => g.name === category)
+  return group?.color || '#6b7280'
 }
 
-// Get all exercises from exercises.json
-const allExercises = computed(() => {
-  const exercises: ExerciseItem[] = []
-  const seenIds = new Set<string>()
-  
-  exercisesData.exercises.forEach(exercise => {
-    if (exercise.variants && exercise.variants.length > 0) {
-      // Add each variant as a separate exercise
-      exercise.variants.forEach(variant => {
-        // Skip if we've already seen this variant ID
-        if (seenIds.has(variant.id)) return
-        
-        seenIds.add(variant.id)
-        exercises.push({
-          id: variant.id,
-          name: `${exercise.name} - ${variant.name}`,
-          category: exercise.category,
-          equipment: (variant as any).equipment,
-          angle: (variant as any).angle,
-          grip: (variant as any).grip,
-          position: (variant as any).position,
-          direction: (variant as any).direction,
-          focus: (variant as any).focus
-        })
-      })
-    } else {
-      // Exercises without variants
-      if (!seenIds.has(exercise.categoryId)) {
-        seenIds.add(exercise.categoryId)
-        exercises.push({
-          id: exercise.categoryId,
-          name: exercise.name,
-          category: exercise.category
-        })
-      }
+/**
+ * Returns exercises filtered by category and search query.
+ * When a query matches the exercise name, all its variants are included.
+ * When a query matches a variant name, only matching variants are shown.
+ */
+const groupedResults = computed<ExerciseData[]>(() => {
+  let exercises = workoutData.exercises.value
+
+  if (selectedCategories.value.length > 0) {
+    exercises = exercises.filter((e) => selectedCategories.value.includes(e.category))
+  }
+
+  const q = query.value.trim().toLowerCase()
+  if (!q) return exercises
+
+  const results: ExerciseData[] = []
+  exercises.forEach((exercise) => {
+    const nameMatch = exercise.name.toLowerCase().includes(q)
+    if (nameMatch) {
+      results.push(exercise)
+      return
+    }
+    const matchingVariants = exercise.variants?.filter((v) =>
+      v.name.toLowerCase().includes(q)
+    )
+    if (matchingVariants && matchingVariants.length > 0) {
+      results.push({ ...exercise, variants: matchingVariants })
     }
   })
-  
-  return exercises
+
+  return results
 })
 
-// Filter results based on search query and selected muscle groups
-const filteredResults = computed(() => {
-  let exercises = allExercises.value
-  
-  // Filter by selected muscle groups
-  if (selectedMuscleGroups.value.length > 0) {
-    exercises = exercises.filter(ex => selectedMuscleGroups.value.includes(ex.category))
-  }
-  
-  // Filter by search query
-  const searchText = query.value.trim().toLowerCase()
-  if (searchText) {
-    exercises = exercises.filter(ex => {
-      const fullName = ex.name.toLowerCase()
-      const variantName = getVariantName(ex.name).toLowerCase()
-      return fullName.includes(searchText) || variantName.includes(searchText)
-    })
-  }
-  
-  return exercises.sort((a, b) => a.name.localeCompare(b.name, 'no'))
-})
-
-const selectExercise = (ex: ExerciseItem) => {
-  emit('select', ex.id)
-}
-
-// Function to get default muscle groups based on workout type
-const getDefaultMuscleGroups = (workoutType: string): string[] => {
-  const muscleGroupMap: Record<string, string[]> = {
-    'push': ['Bryst', 'Skuldre', 'Triceps'],
-    'pull': ['Rygg', 'Biceps'],
-    'legs': ['Ben', 'Legger'],
-    'upper': ['Bryst', 'Rygg', 'Skuldre', 'Biceps', 'Triceps'],
-    'lower': ['Ben', 'Kjerne', 'Legger'],
+/** Returns the default category filters for a given workout type. */
+const getDefaultCategories = (workoutType: string): string[] => {
+  const map: Record<string, string[]> = {
+    push:        ['Bryst', 'Skuldre', 'Triceps'],
+    pull:        ['Rygg', 'Biceps'],
+    legs:        ['Ben', 'Legger'],
+    upper:       ['Bryst', 'Rygg', 'Skuldre', 'Biceps', 'Triceps'],
+    lower:       ['Ben', 'Kjerne', 'Legger'],
     'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Legger'],
-    'bryst': ['Bryst'],
-    'rygg': ['Rygg'],
-    'ben': ['Ben'],
-    'legger': ['Legger'],
-    'skuldre': ['Skuldre'],
-    'biceps': ['Biceps'],
-    'triceps': ['Triceps'],
-    'kjerne': ['Kjerne']
+    bryst:       ['Bryst'],
+    rygg:        ['Rygg'],
+    ben:         ['Ben'],
+    legger:      ['Legger'],
+    skuldre:     ['Skuldre'],
+    biceps:      ['Biceps'],
+    triceps:     ['Triceps'],
+    kjerne:      ['Kjerne'],
   }
-  
-  return muscleGroupMap[workoutType.toLowerCase()] || []
+  return map[workoutType.toLowerCase()] || []
 }
 
 const workoutTypes = computed(() => workoutTypesData.workoutTypes)
 
-// Computed property to extract the variant name from the full exercise name
-const getVariantName = (fullName: string): string => {
-  // Extract variant name from "Main Exercise - Variant" format
-  // For example: "Squats - Front Squats" -> "Front Squats"
-  // "Bench Press - Barbell Bench Press" -> "Barbell Bench Press"
-  const parts = fullName.split(' - ')
-  if (parts.length > 1) {
-    return parts[1] // Return the variant part
+const CATEGORY_ORDER = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Legger', 'Annet']
+
+/** Exercises from groupedResults arranged into labelled category sections. */
+const categorySections = computed(() => {
+  const map = new Map<string, ExerciseData[]>()
+
+  for (const exercise of groupedResults.value) {
+    const cat = exercise.category || 'Annet'
+    if (!map.has(cat)) map.set(cat, [])
+    map.get(cat)!.push(exercise)
   }
-  return fullName // Return original if no dash found
+
+  const sections: Array<{ category: string; exercises: ExerciseData[] }> = []
+
+  // Emit in the standard muscle-group order first
+  for (const cat of CATEGORY_ORDER) {
+    if (map.has(cat)) sections.push({ category: cat, exercises: map.get(cat)! })
+  }
+  // Then any categories not in the standard order
+  for (const [cat, exercises] of map) {
+    if (!CATEGORY_ORDER.includes(cat)) sections.push({ category: cat, exercises })
+  }
+
+  return sections
+})
+
+const isExpanded = (id: number) => expandedIds.value.has(id)
+
+const toggleExpand = (id: number) => {
+  const next = new Set(expandedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  expandedIds.value = next
 }
 
-// Reset when opening
-watch(() => props.isOpen, async (open) => {
-  if (open) {
-    query.value = ''
-    // Auto-select muscle groups based on workout type
-    if (props.workoutType) {
-      selectedMuscleGroups.value = getDefaultMuscleGroups(props.workoutType)
-    } else {
-      selectedMuscleGroups.value = []
+// ---------------------------------------------------------------------------
+// Watchers
+// ---------------------------------------------------------------------------
+
+// Auto-expand all matching groups when the user types a search query
+watch(
+  () => query.value,
+  (q) => {
+    if (q.trim()) {
+      expandedIds.value = new Set(groupedResults.value.map((e) => e.id))
     }
-    
-    // Focus the search input after the slide-over is fully rendered
-    /* await nextTick()
-    if (searchInput.value) {
-      searchInput.value.focus()
-    } */
   }
-})
+)
+
+// Reset state when panel opens
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (!open) return
+    query.value = ''
+    expandedIds.value = new Set()
+    selectedCategories.value = props.workoutType
+      ? getDefaultCategories(props.workoutType)
+      : []
+  }
+)
 </script>
 
+<template>
+  <SlideOver :is-open="isOpen" :title="panelTitle" @close="onClose">
+    <div class="ep-panel">
 
+      <!-- Search -->
+      <div class="ep-panel__search">
+        <svg class="ep-panel__search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          v-model="query"
+          type="text"
+          class="input-field w-full pl-10 text-base"
+          placeholder="Søk etter øvelse eller variant..."
+          @keydown.escape.prevent="onClose"
+        />
+      </div>
+
+      <!-- Category filters -->
+      <div class="ep-panel__filters">
+        <p class="ep-panel__filters-label">
+          Muskelgruppe
+          <span v-if="props.workoutType" class="ep-panel__filters-hint">
+            (filtrert for {{ workoutTypes.find((t) => t.id === props.workoutType)?.name || props.workoutType }})
+          </span>
+        </p>
+        <div class="ep-panel__filter-chips">
+          <label
+            v-for="cat in availableCategories"
+            :key="cat"
+            class="ep-panel__chip"
+            :class="{ 'ep-panel__chip--active': selectedCategories.includes(cat) }"
+          >
+            <input v-model="selectedCategories" type="checkbox" :value="cat" class="sr-only" />
+            <span class="ep-panel__chip-dot" :style="{ background: getMuscleGroupColor(cat) }"></span>
+            {{ cat }}
+          </label>
+        </div>
+      </div>
+
+      <div class="ep-panel__divider"></div>
+
+      <!-- Empty state -->
+      <div v-if="groupedResults.length === 0" class="ep-panel__empty">
+        Ingen øvelser funnet
+      </div>
+
+      <!-- Exercises grouped by muscle category -->
+      <div v-else class="ep-panel__groups">
+        <div
+          v-for="section in categorySections"
+          :key="section.category"
+          class="ep-panel__category-section"
+        >
+          <!-- Category heading -->
+          <div class="ep-panel__category-header">
+            <span
+              class="ep-panel__category-dot"
+              :style="{ background: getMuscleGroupColor(section.category) }"
+            ></span>
+            <span class="ep-panel__category-name">{{ section.category }}</span>
+          </div>
+
+          <!-- Exercise accordions within this category -->
+          <div class="ep-panel__category-exercises">
+        <div
+          v-for="exercise in section.exercises"
+          :key="exercise.id"
+          class="ep-panel__group"
+        >
+
+          <!-- ── Group with variants: expandable accordion header ── -->
+          <template v-if="exercise.variants && exercise.variants.length > 0">
+            <button
+              type="button"
+              class="ep-panel__group-header"
+              :class="{ 'ep-panel__group-header--open': isExpanded(exercise.id) }"
+              @click="toggleExpand(exercise.id)"
+            >
+              <span
+                class="ep-panel__group-dot"
+                :style="{ background: getMuscleGroupColor(exercise.category) }"
+              ></span>
+              <span class="ep-panel__group-name">{{ exercise.name }}</span>
+              <span class="ep-panel__group-meta">
+                {{ exercise.variants.length }} variant{{ exercise.variants.length !== 1 ? 'er' : '' }}
+              </span>
+              <!-- Expand / collapse chevron -->
+              <svg
+                class="ep-panel__chevron"
+                :class="{ 'ep-panel__chevron--open': isExpanded(exercise.id) }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            <!-- Variants panel (shown when expanded) -->
+            <div v-if="isExpanded(exercise.id)" class="ep-panel__variants">
+              <button
+                v-for="variant in exercise.variants"
+                :key="variant.id"
+                type="button"
+                class="ep-panel__variant-btn"
+                @click="emit('select', variant.id)"
+              >
+                <span class="ep-panel__variant-name">{{ variant.name }}</span>
+              </button>
+            </div>
+          </template>
+
+          <!-- ── No variants: exercise is directly selectable ── -->
+          <button
+            v-else
+            type="button"
+            class="ep-panel__group-header ep-panel__group-header--solo"
+            @click="emit('select', exercise.id)"
+          >
+            <span
+              class="ep-panel__group-dot"
+              :style="{ background: getMuscleGroupColor(exercise.category) }"
+            ></span>
+            <span class="ep-panel__group-name">{{ exercise.name }}</span>
+            <span class="ep-panel__group-meta ep-panel__group-meta--solo">Velg</span>
+          </button>
+
+        </div>
+          </div><!-- /.ep-panel__category-exercises -->
+        </div><!-- /.ep-panel__category-section -->
+
+      </div>
+
+    </div>
+  </SlideOver>
+</template>
+
+<style scoped>
+.ep-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* Search */
+.ep-panel__search {
+  position: relative;
+}
+
+.ep-panel__search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: #6b7280;
+  pointer-events: none;
+}
+
+/* Filters */
+.ep-panel__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ep-panel__filters-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ep-panel__filters-hint {
+  font-weight: 400;
+  text-transform: none;
+  color: #f97316;
+}
+
+.ep-panel__filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.ep-panel__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid #374151;
+  background: #111827;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.ep-panel__chip:hover { border-color: #4b5563; color: #e5e7eb; }
+.ep-panel__chip--active { background: #1f2937; border-color: #6b7280; color: #fff; }
+
+.ep-panel__chip-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+/* Divider */
+.ep-panel__divider { height: 1px; background: #1f2937; }
+
+/* Empty */
+.ep-panel__empty {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  padding: 2rem 0;
+}
+
+/* Groups */
+.ep-panel__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Category section */
+.ep-panel__category-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.ep-panel__category-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.25rem;
+}
+
+.ep-panel__category-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.ep-panel__category-name {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+}
+
+.ep-panel__category-exercises {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.ep-panel__group {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #374151;
+}
+
+/* Accordion header (used for both with-variants and solo) */
+.ep-panel__group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  background: #111827;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s;
+}
+
+.ep-panel__group-header:hover {
+  background: #1a2232;
+}
+
+.ep-panel__group-header--open {
+  background: #1a2232;
+  border-bottom: 1px solid #374151;
+}
+
+.ep-panel__group-header--solo:hover {
+  background: #1f2937;
+}
+
+.ep-panel__group-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.ep-panel__group-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #f3f4f6;
+  flex: 1;
+  text-align: left;
+}
+
+.ep-panel__group-meta {
+  font-size: 0.6875rem;
+  color: #6b7280;
+  background: #1f2937;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ep-panel__group-meta--solo {
+  color: #f97316;
+  background: rgb(249 115 22 / 0.1);
+  border: 1px solid rgb(249 115 22 / 0.2);
+}
+
+/* Expand chevron */
+.ep-panel__chevron {
+  width: 1rem;
+  height: 1rem;
+  color: #6b7280;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.ep-panel__chevron--open {
+  transform: rotate(90deg);
+}
+
+/* Variants list */
+.ep-panel__variants {
+  display: flex;
+  flex-direction: column;
+  background: #0c1422;
+  border-top: 1px solid #1e293b;
+}
+
+.ep-panel__variant-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  /* left padding creates visual nesting under the group header */
+  padding: 0.625rem 0.875rem 0.625rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-top: 1px solid #162032;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  width: 100%;
+}
+
+.ep-panel__variant-btn:first-child {
+  border-top: none;
+}
+
+.ep-panel__variant-btn:hover {
+  background: #172032;
+}
+
+.ep-panel__variant-name {
+  font-size: 0.875rem;
+  color: #cbd5e1;
+  flex: 1;
+}
+
+</style>

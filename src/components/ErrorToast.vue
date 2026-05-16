@@ -1,98 +1,31 @@
 <template>
   <Transition
-    enter-active-class="transition ease-out duration-300"
-    enter-from-class="transform translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-    enter-to-class="transform translate-y-0 opacity-100 sm:translate-x-0"
-    leave-active-class="transition ease-in duration-100"
+    enter-active-class="transition ease-out duration-200"
+    enter-from-class="opacity-0 -translate-y-2"
+    enter-to-class="opacity-100 translate-y-0"
+    leave-active-class="transition ease-in duration-150"
     leave-from-class="opacity-100"
     leave-to-class="opacity-0"
   >
     <div
       v-if="error"
-      class="fixed z-50 max-w-sm w-[92%] sm:w-full left-1/2 -translate-x-1/2"
-      :class="toastPosition"
-      style="padding-top: env(safe-area-inset-top)"
+      :class="['toast', toastClasses]"
     >
-      <div
-        class="rounded-lg p-4 shadow-lg border"
-        :class="toastClasses"
-      >
-        <div class="flex items-start">
-          <div class="flex-shrink-0">
-            <svg
-              v-if="error.type === 'error'"
-              class="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <svg
-              v-else-if="error.type === 'warning'"
-              class="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <svg
-              v-else-if="error.type === 'info'"
-              class="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <svg
-              v-else
-              class="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          
-          <div class="ml-3 flex-1">
-            <p class="text-sm font-semibold" :class="textClasses">
-              {{ error.message }}
-            </p>
-            
-            <div v-if="error.details && showDetails" class="mt-2">
-              <details class="text-xs">
-                <summary class="cursor-pointer text-white hover:text-gray-200">
-                  Vis tekniske detaljer
-                </summary>
-                <div class="mt-1 p-2 bg-white/20 rounded text-white font-mono break-all">
-                  {{ error.details }}
-                </div>
-              </details>
-            </div>
-            
-            <div v-if="errorId && error.type === 'error'" class="mt-1">
-              <p class="text-xs text-white/80">
-                Feil-ID: {{ errorId }}
-              </p>
-            </div>
-          </div>
-          
-          <div class="ml-4 flex-shrink-0 flex">
-            <button
-              @click="closeToast"
-              class="inline-flex text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            >
-              <span class="sr-only">Lukk</span>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
+      <!-- Icon -->
+      <svg class="toast__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path v-if="error.type === 'error' || error.type === 'warning'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+      </svg>
+
+      <!-- Message -->
+      <span class="toast__message">{{ error.message }}</span>
+
+      <!-- Close -->
+      <button class="toast__close" aria-label="Lukk" @click="closeToast">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
   </Transition>
 </template>
@@ -152,43 +85,12 @@ watch(error, (newError) => {
 }, { immediate: true })
 
 // Computed classes
-const toastPosition = computed(() => {
-  // Center on all screens, and push it slightly below the safe area/notch
-  // top uses calc to add 8px offset to safe-area-inset-top
-  return 'top-[calc(env(safe-area-inset-top)+12px)]'
-})
-
 const toastClasses = computed(() => {
   if (!error.value) return ''
-  
   switch (error.value.type) {
-    case 'error':
-      return 'bg-red-500 border-red-500'
-    case 'warning':
-      return 'bg-yellow-500 border-yellow-500'
-    case 'info':
-      return 'bg-green-500 border-green-500'
-    case 'success':
-      return 'bg-green-500 border-green-500'
-    default:
-      return 'bg-green-500 border-green-500'
-  }
-})
-
-const textClasses = computed(() => {
-  if (!error.value) return ''
-  
-  switch (error.value.type) {
-    case 'error':
-      return 'text-white'
-    case 'warning':
-      return 'text-white'
-    case 'info':
-      return 'text-white'
-    case 'success':
-      return 'text-white'
-    default:
-      return 'text-white'
+    case 'error':   return 'toast--error'
+    case 'warning': return 'toast--warning'
+    default:        return 'toast--success'
   }
 })
 
@@ -208,4 +110,60 @@ import { onUnmounted } from 'vue'
 onUnmounted(() => {
   clearAutoCloseTimer()
 })
-</script> 
+</script>
+
+<style scoped>
+.toast {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 92%;
+  max-width: 22rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.625rem;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.35);
+  line-height: 1;
+}
+
+.toast--success { background: #16a34a; }
+.toast--error   { background: #dc2626; }
+.toast--warning { background: #d97706; }
+
+.toast__icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.toast__message {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.toast__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: rgb(255 255 255 / 0.75);
+  cursor: pointer;
+  padding: 0.125rem;
+  border-radius: 0.25rem;
+  transition: color 0.15s;
+}
+
+.toast__close:hover {
+  color: #fff;
+}
+</style>

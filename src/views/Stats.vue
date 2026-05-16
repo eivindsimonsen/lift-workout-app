@@ -553,8 +553,10 @@ const muscleGroupStats = computed(() => {
   filteredSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
       // Get exercise data to find muscle groups
-      const exerciseData = workoutData.exercises.value.find(e => e.variants?.find(v => v.id === exercise.exerciseId))
-      const muscleGroups = exerciseData?.muscleGroups || []
+      const exerciseData = workoutData.exercises.value.find((e) =>
+        e.variants?.some((v) => v.id === Number(exercise.exerciseId)) || e.id === Number(exercise.exerciseId)
+      )
+      const muscleGroups = exerciseData ? [exerciseData.category] : []
       exercise.sets.forEach(set => {
         if (set.isCompleted && typeof set.weight === 'number' && typeof set.reps === 'number') {
           const volume = set.weight * set.reps
@@ -917,16 +919,15 @@ const powerExerciseRecords = computed(() => {
 })
 
 // Helper function to get better exercise display names
-const getExerciseDisplayName = (exerciseId: string): string => {
-  const mainExercise = workoutData.getMainExerciseByVariantId(exerciseId)
+const getExerciseDisplayName = (exerciseId: number | string): string => {
+  const numId = Number(exerciseId)
+  const mainExercise = workoutData.getMainExerciseByVariantId(numId)
   if (mainExercise && mainExercise.variants) {
-    const variant = mainExercise.variants.find((v: any) => v.id === exerciseId)
+    const variant = mainExercise.variants.find((v) => v.id === numId)
     return variant ? `${mainExercise.name} - ${variant.name}` : mainExercise.name
   }
-  
-  // Fallback to direct exercise lookup
-  const exerciseData = workoutData.getExerciseById(exerciseId)
-  return exerciseData?.name || exerciseId
+  const exerciseData = workoutData.getExerciseById(numId)
+  return exerciseData?.name || String(exerciseId)
 }
 
 const muscleGroupDistribution = computed(() => {
