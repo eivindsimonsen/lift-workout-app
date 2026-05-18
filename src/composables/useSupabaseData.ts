@@ -927,21 +927,25 @@ const createSupabaseData = () => {
         if (!s.isCompleted) s.isCompleted = true;
       });
 
+      const sessionSeed = Date.now();
       const session: WorkoutSession = {
-        id: `session-${Date.now()}`,
+        id: `session-${sessionSeed}`,
         templateId: template.id,
         templateName: template.name,
         workoutType: template.workoutType,
         date: new Date(),
         duration: 0,
-        exercises: template.exercises.map((ex) => ({
+        exercises: template.exercises.map((ex, exerciseIndex) => ({
           exerciseId: ex.exerciseId,
           name: ex.name,
-          sets: [
-            { id: `set-${Date.now()}-1`, reps: 0, weight: 0, duration: undefined, distance: undefined, isCompleted: false },
-            { id: `set-${Date.now()}-2`, reps: 0, weight: 0, duration: undefined, distance: undefined, isCompleted: false },
-            { id: `set-${Date.now()}-3`, reps: 0, weight: 0, duration: undefined, distance: undefined, isCompleted: false },
-          ],
+          sets: [0, 1, 2].map((setIndex) => ({
+            id: `set-${sessionSeed}-${exerciseIndex}-${setIndex}`,
+            reps: 0,
+            weight: 0,
+            duration: undefined,
+            distance: undefined,
+            isCompleted: false,
+          })),
         })),
         isCompleted: false,
       };

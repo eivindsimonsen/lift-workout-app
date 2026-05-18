@@ -453,7 +453,9 @@
               <span class="ex-set__col-right">Volum</span>
             </div>
 
-            <!-- Set rows — swipe left to delete -->
+            <!-- Keyed wrapper: switching exercises remounts the list so TransitionGroup -->
+            <!-- does not run leave/enter on the same DOM keys from different exercises -->
+            <div class="ex-set__rows" :key="activeExerciseIndex">
             <TransitionGroup
               name="set"
               tag="div"
@@ -532,6 +534,7 @@
                 </div><!-- /.ex-set__row -->
               </div><!-- /.ex-set__swipe-wrapper -->
             </TransitionGroup>
+            </div>
 
             <!-- Sheet footer: volume + add set -->
             <div class="ex-card__footer">
@@ -1038,12 +1041,14 @@ const addExerciseToSession = () => {
 
   const exerciseName = exerciseData.name
   const exerciseId = exerciseData.id
+  const setSeed = Date.now()
+  const exerciseSlotIndex = session.value.exercises.length
 
   const newExercise = {
     exerciseId,
     name: exerciseName,
-    sets: [1, 2, 3].map((_, i) => ({
-      id: `set-${Date.now()}-${i}`,
+    sets: [0, 1, 2].map((setIndex) => ({
+      id: `set-${setSeed}-${exerciseSlotIndex}-${setIndex}`,
       reps: 0,
       weight: 0,
       duration: undefined as number | undefined,
