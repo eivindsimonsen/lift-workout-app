@@ -11,7 +11,8 @@
     <!-- Session content -->
     <div v-else>
       <!-- Sticky compact header -->
-      <div class="sticky top-0 z-30 -mx-4 px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
+      <!-- Safe area: rely on App.vue main padding-top; avoid doubling env(safe-area-inset-top) here -->
+      <div class="sticky top-[env(safe-area-inset-top,0px)] z-30 -mx-4 px-4 pt-2 pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
         <Breadcrumbs 
           :breadcrumbs="[
             { name: 'Økter', path: '/' },
@@ -453,7 +454,9 @@
               <span class="ex-set__col-right">Volum</span>
             </div>
 
-            <!-- Set rows — swipe left to delete -->
+            <!-- Keyed wrapper: switching exercises remounts the list so TransitionGroup -->
+            <!-- does not run leave/enter on the same DOM keys from different exercises -->
+            <div class="ex-set__rows" :key="activeExerciseIndex">
             <TransitionGroup
               name="set"
               tag="div"
@@ -532,6 +535,7 @@
                 </div><!-- /.ex-set__row -->
               </div><!-- /.ex-set__swipe-wrapper -->
             </TransitionGroup>
+            </div>
 
             <!-- Sheet footer: volume + add set -->
             <div class="ex-card__footer">
@@ -626,9 +630,9 @@ const exerciseQuickViewData = ref<{ history: { date: Date; sets: { id: string; w
 let exerciseQuickViewId: number | null = null
 
 function openExerciseQuickView(exerciseId: number, exerciseName: string) {
+  closeExerciseSheet()
   exerciseQuickViewTitle.value = exerciseName
   exerciseQuickViewId = exerciseId
-  isExerciseQuickViewOpen.value = true
 
   // Get best lift (all-time)
   const best = getHeaviestLift(exerciseId)
@@ -666,6 +670,7 @@ function openExerciseQuickView(exerciseId: number, exerciseName: string) {
   }
 
   exerciseQuickViewData.value = { history, best }
+  isExerciseQuickViewOpen.value = true
 }
 
 function closeExerciseQuickView() {
@@ -1038,12 +1043,14 @@ const addExerciseToSession = () => {
 
   const exerciseName = exerciseData.name
   const exerciseId = exerciseData.id
+  const setSeed = Date.now()
+  const exerciseSlotIndex = session.value.exercises.length
 
   const newExercise = {
     exerciseId,
     name: exerciseName,
-    sets: [1, 2, 3].map((_, i) => ({
-      id: `set-${Date.now()}-${i}`,
+    sets: [0, 1, 2].map((setIndex) => ({
+      id: `set-${setSeed}-${exerciseSlotIndex}-${setIndex}`,
       reps: 0,
       weight: 0,
       duration: undefined as number | undefined,
