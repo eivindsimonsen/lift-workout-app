@@ -630,9 +630,9 @@ const exerciseQuickViewData = ref<{ history: { date: Date; sets: { id: string; w
 let exerciseQuickViewId: number | null = null
 
 function openExerciseQuickView(exerciseId: number, exerciseName: string) {
+  closeExerciseSheet()
   exerciseQuickViewTitle.value = exerciseName
   exerciseQuickViewId = exerciseId
-  isExerciseQuickViewOpen.value = true
 
   // Get best lift (all-time)
   const best = getHeaviestLift(exerciseId)
@@ -670,6 +670,7 @@ function openExerciseQuickView(exerciseId: number, exerciseName: string) {
   }
 
   exerciseQuickViewData.value = { history, best }
+  isExerciseQuickViewOpen.value = true
 }
 
 function closeExerciseQuickView() {
