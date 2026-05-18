@@ -11,7 +11,8 @@
     <!-- Session content -->
     <div v-else>
       <!-- Sticky compact header -->
-      <div class="sticky top-0 z-30 -mx-4 px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
+      <!-- Safe area: rely on App.vue main padding-top; avoid doubling env(safe-area-inset-top) here -->
+      <div class="sticky top-[env(safe-area-inset-top,0px)] z-30 -mx-4 px-4 pt-2 pb-2 bg-dark-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-dark-700">
         <Breadcrumbs 
           :breadcrumbs="[
             { name: 'Økter', path: '/' },
