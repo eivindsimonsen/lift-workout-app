@@ -2122,57 +2122,6 @@
       ]
     },
     {
-      "categoryId": "47",
-      "name": "Calf Exercises",
-      "category": "Legger",
-      "workoutTypes": ["legs", "lower"],
-      "muscleGroups": ["Legger"],
-      "variants": [
-        {
-          "id": "calf-raises",
-          "name": "Standing Calf Raises",
-          "equipment": "bodyweight",
-          "position": "standing"
-        },
-        {
-          "id": "seated-calf-raises",
-          "name": "Seated Calf Raises",
-          "equipment": "machine",
-          "position": "seated"
-        },
-        {
-          "id": "smith-machine-calf-raises",
-          "name": "Smith Machine Calf Raises",
-          "equipment": "smith-machine",
-          "position": "standing"
-        },
-        {
-          "id": "standing-single-leg-calf-raises",
-          "name": "Standing Single Leg Calf Raises",
-          "equipment": "bodyweight",
-          "position": "standing"
-        },
-        {
-          "id": "leg-press-calf-raises",
-          "name": "Leg Press Calf Raises",
-          "equipment": "machine",
-          "position": "seated"
-        },
-        {
-          "id": "donkey-calf-raises",
-          "name": "Donkey Calf Raises",
-          "equipment": "machine",
-          "position": "bent-over"
-        },
-        {
-          "id": "tibialis-raises-weighted",
-          "name": "Weighted Tibialis Raises",
-          "equipment": "dumbbell",
-          "position": "seated"
-        }
-      ]
-    },
-    {
       "categoryId": "48",
       "name": "Plyometric Exercises",
       "category": "Ben",
