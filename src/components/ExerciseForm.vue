@@ -65,7 +65,7 @@ const editVariantName = ref('')
 
 const CATEGORIES = [
   'Bryst', 'Rygg', 'Ben', 'Skuldre',
-  'Biceps', 'Triceps', 'Kjerne', 'Legger', 'Annet',
+  'Biceps', 'Triceps', 'Kjerne',
 ]
 
 const WORKOUT_TYPE_OPTIONS = [

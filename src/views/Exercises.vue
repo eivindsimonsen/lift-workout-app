@@ -37,7 +37,7 @@ const addVariantInputRefs = ref<Record<number, HTMLInputElement | null>>({})
 const isLoading = computed(() => workoutData.isLoading.value || workoutData.isLoadingExercises.value)
 const hasSearch = computed(() => searchQuery.value.trim().length > 0)
 
-const CATEGORY_ORDER = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Legger', 'Annet']
+const CATEGORY_ORDER = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Annet']
 
 const CATEGORY_COLORS: Record<string, string> = {
   ...Object.fromEntries(muscleGroupsData.muscleGroups.map((g) => [g.name, g.color])),

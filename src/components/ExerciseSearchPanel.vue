@@ -89,15 +89,14 @@ const groupedResults = computed<ExerciseData[]>(() => {
 const getDefaultCategories = (workoutType: string): string[] => {
   const map: Record<string, string[]> = {
     push:        ['Bryst', 'Skuldre', 'Triceps'],
-    pull:        ['Rygg', 'Biceps'],
-    legs:        ['Ben', 'Legger'],
+    pull:        ['Rygg', 'Skuldre','Biceps'],
+    legs:        ['Ben', 'Kjerne'],
     upper:       ['Bryst', 'Rygg', 'Skuldre', 'Biceps', 'Triceps'],
-    lower:       ['Ben', 'Kjerne', 'Legger'],
-    'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Legger'],
+    lower:       ['Ben', 'Kjerne'],
+    'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne'],
     bryst:       ['Bryst'],
     rygg:        ['Rygg'],
     ben:         ['Ben'],
-    legger:      ['Legger'],
     skuldre:     ['Skuldre'],
     biceps:      ['Biceps'],
     triceps:     ['Triceps'],
@@ -108,7 +107,7 @@ const getDefaultCategories = (workoutType: string): string[] => {
 
 const workoutTypes = computed(() => workoutTypesData.workoutTypes)
 
-const CATEGORY_ORDER = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Legger', 'Annet']
+const CATEGORY_ORDER = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Annet']
 
 /** Exercises from groupedResults arranged into labelled category sections. */
 const categorySections = computed(() => {
