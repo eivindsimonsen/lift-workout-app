@@ -19,6 +19,7 @@ const workoutData = useHybridData()
 const exercisesStore = useExercises()
 
 const searchQuery = ref('')
+const selectedCategories = ref<string[]>([])
 const showForm = ref(false)
 const selectedExercise = ref<ExerciseData | null>(null)
 
@@ -36,6 +37,11 @@ const addVariantInputRefs = ref<Record<number, HTMLInputElement | null>>({})
 
 const isLoading = computed(() => workoutData.isLoading.value || workoutData.isLoadingExercises.value)
 const hasSearch = computed(() => searchQuery.value.trim().length > 0)
+const hasCategoryFilter = computed(() => selectedCategories.value.length > 0)
+
+const availableCategories = computed(() =>
+  muscleGroupsData.muscleGroups.map((g) => g.name)
+)
 
 const CATEGORY_ORDER = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Annet']
 
@@ -80,15 +86,33 @@ const enrichedExercises = computed(() => {
   })
 })
 
+/** Variant IDs currently used in at least one workout template. */
+const templateVariantIds = computed(() => {
+  const ids = new Set<number>()
+  workoutData.templates.value?.forEach((t) =>
+    t.exercises?.forEach((e) => ids.add(Number(e.exerciseId)))
+  )
+  return ids
+})
+
+const isInTemplate = (variantId: number): boolean =>
+  templateVariantIds.value.has(variantId)
+
 /**
- * When a query is active, keep only groups whose name or any variant name
- * contains the query. Variants within a matching group are not filtered —
- * the whole group is shown for context.
+ * Filter by muscle category, then by search query.
+ * When searching, keep whole groups whose name or any variant name matches.
  */
 const filteredExercises = computed(() => {
-  if (!hasSearch.value) return enrichedExercises.value
+  let exercises = enrichedExercises.value
+
+  if (hasCategoryFilter.value) {
+    exercises = exercises.filter((e) => selectedCategories.value.includes(e.category))
+  }
+
+  if (!hasSearch.value) return exercises
+
   const q = searchQuery.value.trim().toLowerCase()
-  return enrichedExercises.value.filter(
+  return exercises.filter(
     (exercise) =>
       exercise.name.toLowerCase().includes(q) ||
       exercise.variants?.some((v) => v.name.toLowerCase().includes(q))
@@ -104,44 +128,6 @@ const getExercisesByCategory = (category: string) =>
   filteredExercises.value
     .filter((e) => e.category === category)
     .sort((a, b) => a.name.localeCompare(b.name, 'no'))
-
-/** Active exercises – those used in at least one template. */
-const activeExercises = computed(() => {
-  const activeVariantIds = new Set<number>()
-
-  workoutData.templates.value?.forEach((t) =>
-    t.exercises?.forEach((e) => activeVariantIds.add(Number(e.exerciseId)))
-  )
-
-  if (activeVariantIds.size === 0) {
-    return []
-  }
-
-  const results: Array<{ id: number; name: string; totalSessions: number }> = []
-
-  workoutData.exercises.value.forEach((exercise) => {
-    if (activeVariantIds.has(exercise.id)) {
-      results.push({ id: exercise.id, name: exercise.name, totalSessions: 0 })
-      return
-    }
-    exercise.variants?.forEach((variant) => {
-      if (activeVariantIds.has(variant.id)) {
-        results.push({ id: variant.id, name: variant.name, totalSessions: 0 })
-      }
-    })
-  })
-
-  return results
-    .map((r) => {
-      const sessions = workoutData.sessions.value?.filter((s) =>
-        s.exercises?.some((e) => Number(e.exerciseId) === r.id)
-      ).length ?? 0
-      return { ...r, totalSessions: sessions }
-    })
-    .sort((a, b) => b.totalSessions - a.totalSessions)
-    .slice(0, 12)
-})
-
 
 // ---------------------------------------------------------------------------
 // Methods – navigation
@@ -234,6 +220,29 @@ const saveNewVariant = async (exercise: ExerciseData) => {
       />
     </div>
 
+    <!-- Category filters -->
+    <div v-if="!isLoading" class="exercises-view__filters">
+      <p class="exercises-view__filters-label">Muskelgruppe</p>
+      <div class="exercises-view__filter-chips">
+        <label
+          v-for="cat in availableCategories"
+          :key="cat"
+          class="exercises-view__chip"
+          :class="{ 'exercises-view__chip--active': selectedCategories.includes(cat) }"
+        >
+          <input v-model="selectedCategories" type="checkbox" :value="cat" class="sr-only" />
+          <span class="exercises-view__chip-dot" :style="{ background: getCategoryColor(cat) }"></span>
+          {{ cat }}
+        </label>
+      </div>
+      <p class="exercises-view__legend">
+        <svg class="exercises-view__legend-star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 7.1-1.01L12 2z" />
+        </svg>
+        Stjerne = brukt i treningsprogram
+      </p>
+    </div>
+
     <!-- Loading state -->
     <div v-if="isLoading" class="exercises-view__skeleton">
       <div v-for="i in 6" :key="i" class="exercises-view__skeleton-row animate-pulse"></div>
@@ -241,37 +250,23 @@ const saveNewVariant = async (exercise: ExerciseData) => {
 
     <template v-else>
 
-      <!-- Active exercises (only when not searching) -->
-      <section v-if="!hasSearch && activeExercises.length > 0" class="exercises-view__section">
-        <div class="exercises-view__section-header">
-          <svg class="w-5 h-5 text-primary-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          <h2 class="text-lg font-semibold text-white">Brukte øvelser</h2>
-        </div>
-        <p class="exercises-view__section-subtitle">Øvelser i dine treningsprogrammer</p>
-        <div class="exercises-view__grid exercises-view__grid--active">
-          <button
-            v-for="exercise in activeExercises"
-            :key="exercise.id"
-            class="exercises-view__active-card"
-            @click="viewExercise(exercise.id)"
-          >
-            <span class="exercises-view__active-card-name">{{ exercise.name }}</span>
-            <svg class="w-4 h-4 text-primary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      </section>
-
-      <!-- No results when searching -->
-      <div v-if="hasSearch && filteredExercises.length === 0" class="exercises-view__empty">
-        <p class="text-dark-300">Ingen treff på "{{ searchQuery }}"</p>
+      <!-- No results when filtering or searching -->
+      <div v-if="filteredExercises.length === 0 && (hasSearch || hasCategoryFilter)" class="exercises-view__empty">
+        <p class="text-dark-300">
+          <template v-if="hasSearch && hasCategoryFilter">
+            Ingen treff på «{{ searchQuery }}» i valgte muskelgrupper
+          </template>
+          <template v-else-if="hasSearch">
+            Ingen treff på «{{ searchQuery }}»
+          </template>
+          <template v-else>
+            Ingen øvelser i valgte muskelgrupper
+          </template>
+        </p>
       </div>
 
-      <!-- Exercises grouped by category (same layout for both search and no-search) -->
-      <template v-if="!hasSearch || filteredExercises.length > 0">
+      <!-- Exercises grouped by category -->
+      <template v-if="filteredExercises.length > 0">
         <div
           v-for="category in categories"
           :key="category"
@@ -329,10 +324,20 @@ const saveNewVariant = async (exercise: ExerciseData) => {
                 >
                   <button
                     class="ex-group__variant-name"
+                    :title="isInTemplate(variant.id) ? 'I treningsprogram' : undefined"
                     @click="viewExercise(variant.id)"
                   >
                     <span class="ex-group__variant-dot"></span>
-                    {{ variant.name }}
+                    <span class="ex-group__variant-label">{{ variant.name }}</span>
+                    <svg
+                      v-if="isInTemplate(variant.id)"
+                      class="ex-group__template-star"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 7.1-1.01L12 2z" />
+                    </svg>
                   </button>
                 </div>
 
@@ -387,7 +392,7 @@ const saveNewVariant = async (exercise: ExerciseData) => {
       </template>
 
       <!-- Empty state (no exercises at all) -->
-      <div v-if="!hasSearch && enrichedExercises.length === 0" class="exercises-view__empty">
+      <div v-if="!hasSearch && !hasCategoryFilter && enrichedExercises.length === 0" class="exercises-view__empty">
         <div class="exercises-view__empty-icon">
           <svg class="w-8 h-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -459,6 +464,79 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   pointer-events: none;
 }
 
+/* ── Category filters ────────────────────────────────────────────────────── */
+
+.exercises-view__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.exercises-view__filters-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.exercises-view__filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.exercises-view__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid #374151;
+  background: #111827;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.exercises-view__chip:hover {
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+.exercises-view__chip--active {
+  background: #1f2937;
+  border-color: #6b7280;
+  color: #fff;
+}
+
+.exercises-view__chip-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.exercises-view__legend {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  font-size: 0.6875rem;
+  color: #6b7280;
+}
+
+.exercises-view__legend-star {
+  width: 0.625rem;
+  height: 0.625rem;
+  color: #fbbf24;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
 /* ── Create button ───────────────────────────────────────────────────────── */
 
 .exercises-view__create-btn {
@@ -478,77 +556,6 @@ const saveNewVariant = async (exercise: ExerciseData) => {
 
 .exercises-view__create-btn:hover {
   background: var(--color-primary-600, #ea6c0e);
-}
-
-/* ── Active exercises section ────────────────────────────────────────────── */
-
-.exercises-view__section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.exercises-view__section-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.exercises-view__section-subtitle {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: -0.25rem 0 0;
-}
-
-.exercises-view__grid {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.exercises-view__grid--active {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-@media (min-width: 768px) {
-  .exercises-view__grid--active {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .exercises-view__grid--active {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-/* Active card */
-.exercises-view__active-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgb(249 115 22 / 0.1);
-  border: 1px solid rgb(249 115 22 / 0.2);
-  border-radius: 0.5rem;
-  padding: 0.625rem 0.75rem;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  text-align: left;
-  overflow: hidden;
-  gap: 0.5rem;
-}
-
-.exercises-view__active-card:hover {
-  background: rgb(249 115 22 / 0.2);
-  border-color: rgb(249 115 22 / 0.4);
-}
-
-.exercises-view__active-card-name {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ── Skeleton ────────────────────────────────────────────────────────────── */
@@ -744,6 +751,11 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   color: #f3f4f6;
   font-size: 0.9rem;
   font-weight: 500;
+}
+
+.ex-group__variant-label {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -752,6 +764,14 @@ const saveNewVariant = async (exercise: ExerciseData) => {
 .ex-group__variant-name:hover {
   background: #1f2937;
   color: #fff;
+}
+
+.ex-group__template-star {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #fbbf24;
+  flex-shrink: 0;
+  opacity: 0.9;
 }
 
 /* The coloured dot before variant name */
