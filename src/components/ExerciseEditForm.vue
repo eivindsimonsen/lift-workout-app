@@ -43,6 +43,11 @@ const CATEGORIES = [
   'Biceps', 'Triceps', 'Kjerne',
 ]
 
+const CATEGORY_COLORS: Record<string, string> = {
+  ...Object.fromEntries(muscleGroupsData.muscleGroups.map((g) => [g.name, g.color])),
+  Annet: '#6b7280',
+}
+
 const WORKOUT_TYPE_OPTIONS = [
   { id: 'push',      label: 'Push' },
   { id: 'pull',      label: 'Pull' },
@@ -65,6 +70,33 @@ const allGroups = computed<ExerciseData[]>(() =>
   exercisesStore.exercises.value.slice().sort((a, b) => a.name.localeCompare(b.name, 'no'))
 )
 
+const selectedGroupCategories = ref<string[]>([])
+
+const availableCategories = computed(() =>
+  muscleGroupsData.muscleGroups.map((g) => g.name)
+)
+
+const selectedGroup = computed(() =>
+  allGroups.value.find((g) => g.id === selectedParentId.value) ?? null
+)
+
+const hasGroupFilter = computed(() => selectedGroupCategories.value.length > 0)
+
+const filteredGroups = computed(() => {
+  if (selectedGroupCategories.value.length === 0) {
+    return allGroups.value
+  }
+
+  return allGroups.value.filter((g) => selectedGroupCategories.value.includes(g.category))
+})
+
+const getCategoryColor = (category: string): string =>
+  CATEGORY_COLORS[category] ?? '#6b7280'
+
+const selectGroup = (groupId: number) => {
+  selectedParentId.value = groupId
+}
+
 // Form fields
 const name = ref('')
 const selectedParentId = ref<number | null>(null)
@@ -75,19 +107,6 @@ const selectedWorkoutTypes = ref<string[]>([])
 const isSaving = ref(false)
 const isDeleting = ref(false)
 const confirmDelete = ref(false)
-
-/** The category of the currently selected parent group (for variant mode, shown as a read-only badge). */
-const derivedCategory = computed<string>(() => {
-  if (!isVariant.value || selectedParentId.value == null) return ''
-  return allGroups.value.find(g => g.id === selectedParentId.value)?.category ?? ''
-})
-
-const categoryColor = computed<string>(() => {
-  const cat = isVariant.value ? derivedCategory.value : selectedCategory.value
-  return (muscleGroupsData.muscleGroups as any[]).find(
-    mg => mg.name.toLowerCase() === cat.toLowerCase()
-  )?.color ?? '#6b7280'
-})
 
 const drawerTitle = computed(() => isVariant.value ? 'Rediger variant' : 'Rediger øvelsegruppe')
 
@@ -101,6 +120,11 @@ watch(
     if (isVariant.value && props.variant) {
       name.value = props.variant.name
       selectedParentId.value = props.parentExerciseId ?? null
+      const parent = allGroups.value.find((g) => g.id === props.parentExerciseId)
+      selectedGroupCategories.value =
+        parent && availableCategories.value.includes(parent.category)
+          ? [parent.category]
+          : []
     } else if (props.exercise) {
       name.value = props.exercise.name
       selectedCategory.value = props.exercise.category
@@ -174,21 +198,56 @@ const deleteItem = async () => {
 
       <!-- Variant: parent group selector -->
       <div v-if="isVariant" class="ef__field">
-        <label class="ef__label" for="ef-parent">Øvelsegruppe</label>
-        <select id="ef-parent" v-model="selectedParentId" class="input-field w-full">
-          <option :value="null" disabled>Velg gruppe</option>
-          <option v-for="group in allGroups" :key="group.id" :value="group.id">
-            {{ group.name }}
-          </option>
-        </select>
-        <!-- Derived category badge -->
-        <span
-          v-if="derivedCategory"
-          class="ef__badge"
-          :style="{ background: categoryColor + '22', color: categoryColor, borderColor: categoryColor + '44' }"
+        <label class="ef__label">Øvelsegruppe</label>
+
+        <div
+          v-if="selectedGroup"
+          class="ef__selected-group"
+          :style="{ '--cat-color': getCategoryColor(selectedGroup.category) }"
         >
-          {{ derivedCategory }}
-        </span>
+          <span class="ef__selected-group-dot"></span>
+          <span class="ef__selected-group-name">{{ selectedGroup.name }}</span>
+          <span class="ef__selected-group-category">{{ selectedGroup.category }}</span>
+        </div>
+
+        <div class="ef__group-filters">
+          <label
+            v-for="cat in availableCategories"
+            :key="cat"
+            class="ef__group-chip"
+            :class="{ 'ef__group-chip--active': selectedGroupCategories.includes(cat) }"
+          >
+            <input v-model="selectedGroupCategories" type="checkbox" :value="cat" class="sr-only" />
+            <span class="ef__group-chip-dot" :style="{ background: getCategoryColor(cat) }"></span>
+            {{ cat }}
+          </label>
+        </div>
+
+        <p v-if="filteredGroups.length === 0" class="ef__group-empty">
+          Ingen grupper funnet
+        </p>
+
+        <div v-else class="ef__group-list" role="listbox" aria-label="Velg øvelsegruppe">
+          <button
+            v-for="group in filteredGroups"
+            :key="group.id"
+            type="button"
+            role="option"
+            class="ef__group-option"
+            :class="{ 'ef__group-option--selected': group.id === selectedParentId }"
+            :aria-selected="group.id === selectedParentId"
+            :style="{ '--cat-color': getCategoryColor(group.category) }"
+            @click="selectGroup(group.id)"
+          >
+            <span class="ef__group-option-dot"></span>
+            <span class="ef__group-option-name">{{ group.name }}</span>
+            <span class="ef__group-option-category">{{ group.category }}</span>
+          </button>
+        </div>
+
+        <p v-if="hasGroupFilter" class="ef__group-meta">
+          {{ filteredGroups.length }} av {{ allGroups.length }} grupper
+        </p>
       </div>
 
       <!-- Group: category selector -->
@@ -277,14 +336,151 @@ const deleteItem = async () => {
   color: #d1d5db;
 }
 
-.ef__badge {
-  display: inline-flex;
-  align-self: flex-start;
-  font-size: 0.75rem;
+.ef__selected-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+}
+
+.ef__selected-group-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--cat-color, #6b7280);
+  flex-shrink: 0;
+}
+
+.ef__selected-group-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.875rem;
   font-weight: 600;
-  padding: 0.2rem 0.625rem;
-  border-radius: 999px;
-  border: 1px solid;
+  color: #f3f4f6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ef__selected-group-category {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--cat-color, #9ca3af);
+  flex-shrink: 0;
+}
+
+.ef__group-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.ef__group-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid #374151;
+  background: #111827;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.ef__group-chip:hover {
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+.ef__group-chip--active {
+  background: #1f2937;
+  border-color: #6b7280;
+  color: #fff;
+}
+
+.ef__group-chip-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.ef__group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  padding: 0.25rem;
+  background: #0f1419;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+}
+
+.ef__group-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ef__group-option:hover {
+  background: #1f2937;
+}
+
+.ef__group-option--selected {
+  background: rgb(249 115 22 / 0.1);
+  border-color: rgb(249 115 22 / 0.25);
+}
+
+.ef__group-option-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--cat-color, #6b7280);
+  flex-shrink: 0;
+}
+
+.ef__group-option-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.875rem;
+  color: #f3f4f6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ef__group-option-category {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.ef__group-option--selected .ef__group-option-category {
+  color: var(--cat-color, #9ca3af);
+}
+
+.ef__group-empty,
+.ef__group-meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #6b7280;
 }
 
 .ef__checkbox-group {
