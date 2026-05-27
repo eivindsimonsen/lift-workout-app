@@ -70,31 +70,22 @@ const allGroups = computed<ExerciseData[]>(() =>
   exercisesStore.exercises.value.slice().sort((a, b) => a.name.localeCompare(b.name, 'no'))
 )
 
-const selectedGroupCategories = ref<string[]>([])
-
-const availableCategories = computed(() =>
-  muscleGroupsData.muscleGroups.map((g) => g.name)
-)
-
 const selectedGroup = computed(() =>
   allGroups.value.find((g) => g.id === selectedParentId.value) ?? null
 )
 
-const hasGroupFilter = computed(() => selectedGroupCategories.value.length > 0)
-
-const filteredGroups = computed(() => {
-  if (selectedGroupCategories.value.length === 0) {
-    return allGroups.value
-  }
-
-  return allGroups.value.filter((g) => selectedGroupCategories.value.includes(g.category))
-})
+const isGroupPickerOpen = ref(false)
 
 const getCategoryColor = (category: string): string =>
   CATEGORY_COLORS[category] ?? '#6b7280'
 
+const toggleGroupPicker = () => {
+  isGroupPickerOpen.value = !isGroupPickerOpen.value
+}
+
 const selectGroup = (groupId: number) => {
   selectedParentId.value = groupId
+  isGroupPickerOpen.value = false
 }
 
 // Form fields
@@ -120,11 +111,7 @@ watch(
     if (isVariant.value && props.variant) {
       name.value = props.variant.name
       selectedParentId.value = props.parentExerciseId ?? null
-      const parent = allGroups.value.find((g) => g.id === props.parentExerciseId)
-      selectedGroupCategories.value =
-        parent && availableCategories.value.includes(parent.category)
-          ? [parent.category]
-          : []
+      isGroupPickerOpen.value = false
     } else if (props.exercise) {
       name.value = props.exercise.name
       selectedCategory.value = props.exercise.category
@@ -200,54 +187,64 @@ const deleteItem = async () => {
       <div v-if="isVariant" class="ef__field">
         <label class="ef__label">Øvelsegruppe</label>
 
-        <div
-          v-if="selectedGroup"
-          class="ef__selected-group"
-          :style="{ '--cat-color': getCategoryColor(selectedGroup.category) }"
-        >
-          <span class="ef__selected-group-dot"></span>
-          <span class="ef__selected-group-name">{{ selectedGroup.name }}</span>
-          <span class="ef__selected-group-category">{{ selectedGroup.category }}</span>
-        </div>
-
-        <div class="ef__group-filters">
-          <label
-            v-for="cat in availableCategories"
-            :key="cat"
-            class="ef__group-chip"
-            :class="{ 'ef__group-chip--active': selectedGroupCategories.includes(cat) }"
-          >
-            <input v-model="selectedGroupCategories" type="checkbox" :value="cat" class="sr-only" />
-            <span class="ef__group-chip-dot" :style="{ background: getCategoryColor(cat) }"></span>
-            {{ cat }}
-          </label>
-        </div>
-
-        <p v-if="filteredGroups.length === 0" class="ef__group-empty">
-          Ingen grupper funnet
-        </p>
-
-        <div v-else class="ef__group-list" role="listbox" aria-label="Velg øvelsegruppe">
+        <div class="ef__group-picker">
           <button
-            v-for="group in filteredGroups"
-            :key="group.id"
             type="button"
-            role="option"
-            class="ef__group-option"
-            :class="{ 'ef__group-option--selected': group.id === selectedParentId }"
-            :aria-selected="group.id === selectedParentId"
-            :style="{ '--cat-color': getCategoryColor(group.category) }"
-            @click="selectGroup(group.id)"
+            class="ef__selected-group"
+            :class="{ 'ef__selected-group--open': isGroupPickerOpen }"
+            :style="selectedGroup ? { '--cat-color': getCategoryColor(selectedGroup.category) } : undefined"
+            :aria-expanded="isGroupPickerOpen"
+            aria-haspopup="listbox"
+            @click="toggleGroupPicker"
           >
-            <span class="ef__group-option-dot"></span>
-            <span class="ef__group-option-name">{{ group.name }}</span>
-            <span class="ef__group-option-category">{{ group.category }}</span>
+            <span
+              v-if="selectedGroup"
+              class="ef__selected-group-dot"
+            ></span>
+            <span
+              class="ef__selected-group-name"
+              :class="{ 'ef__selected-group-name--placeholder': !selectedGroup }"
+            >
+              {{ selectedGroup?.name ?? 'Velg gruppe' }}
+            </span>
+            <span v-if="selectedGroup" class="ef__selected-group-category">
+              {{ selectedGroup.category }}
+            </span>
+            <svg
+              class="ef__selected-group-chevron"
+              :class="{ 'ef__selected-group-chevron--open': isGroupPickerOpen }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
-        </div>
 
-        <p v-if="hasGroupFilter" class="ef__group-meta">
-          {{ filteredGroups.length }} av {{ allGroups.length }} grupper
-        </p>
+          <div
+            v-if="isGroupPickerOpen"
+            class="ef__group-list"
+            role="listbox"
+            aria-label="Velg øvelsegruppe"
+          >
+            <button
+              v-for="group in allGroups"
+              :key="group.id"
+              type="button"
+              role="option"
+              class="ef__group-option"
+              :class="{ 'ef__group-option--selected': group.id === selectedParentId }"
+              :aria-selected="group.id === selectedParentId"
+              :style="{ '--cat-color': getCategoryColor(group.category) }"
+              @click="selectGroup(group.id)"
+            >
+              <span class="ef__group-option-dot"></span>
+              <span class="ef__group-option-name">{{ group.name }}</span>
+              <span class="ef__group-option-category">{{ group.category }}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Group: category selector -->
@@ -340,10 +337,26 @@ const deleteItem = async () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
   padding: 0.625rem 0.75rem;
   background: #111827;
   border: 1px solid #374151;
   border-radius: 0.5rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ef__selected-group:hover {
+  background: #1a2232;
+  border-color: #4b5563;
+}
+
+.ef__selected-group--open {
+  border-color: rgb(249 115 22 / 0.4);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background: #1a2232;
 }
 
 .ef__selected-group-dot {
@@ -365,6 +378,11 @@ const deleteItem = async () => {
   white-space: nowrap;
 }
 
+.ef__selected-group-name--placeholder {
+  color: #6b7280;
+  font-weight: 500;
+}
+
 .ef__selected-group-category {
   font-size: 0.6875rem;
   font-weight: 600;
@@ -372,56 +390,35 @@ const deleteItem = async () => {
   flex-shrink: 0;
 }
 
-.ef__group-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-}
-
-.ef__group-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
-  border: 1px solid #374151;
-  background: #111827;
-  color: #9ca3af;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  user-select: none;
-}
-
-.ef__group-chip:hover {
-  border-color: #4b5563;
-  color: #e5e7eb;
-}
-
-.ef__group-chip--active {
-  background: #1f2937;
-  border-color: #6b7280;
-  color: #fff;
-}
-
-.ef__group-chip-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
+.ef__selected-group-chevron {
+  width: 1rem;
+  height: 1rem;
+  color: #6b7280;
   flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.ef__selected-group-chevron--open {
+  transform: rotate(180deg);
+  color: #f97316;
+}
+
+.ef__group-picker {
+  display: flex;
+  flex-direction: column;
 }
 
 .ef__group-list {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  max-height: 12rem;
+  gap: 0.125rem;
+  max-height: 18rem;
   overflow-y: auto;
   padding: 0.25rem;
   background: #0f1419;
-  border: 1px solid #374151;
-  border-radius: 0.5rem;
+  border: 1px solid rgb(249 115 22 / 0.4);
+  border-top: none;
+  border-radius: 0 0 0.5rem 0.5rem;
 }
 
 .ef__group-option {
@@ -476,13 +473,6 @@ const deleteItem = async () => {
   color: var(--cat-color, #9ca3af);
 }
 
-.ef__group-empty,
-.ef__group-meta {
-  margin: 0;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
 .ef__checkbox-group {
   display: flex;
   flex-wrap: wrap;
@@ -517,18 +507,45 @@ const deleteItem = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
+}
+
+.ef__footer button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ef__footer .btn-sm {
+  padding-inline: 0.625rem !important;
 }
 
 .ef__footer-confirm-label {
   font-size: 0.8125rem;
   color: #9ca3af;
   flex: 1;
+  min-width: 0;
 }
 
 .ef__footer-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.375rem;
   align-items: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 420px) {
+  .ef__footer {
+    flex-wrap: wrap;
+  }
+
+  .ef__footer > .btn-secondary {
+    flex: 1 1 100%;
+  }
+
+  .ef__footer-actions {
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
 }
 </style>

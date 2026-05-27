@@ -670,19 +670,45 @@ const deleteVariant = async (variant: ExerciseVariant) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
 }
 
+.exercise-form__footer button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.exercise-form__footer .btn-sm {
+  padding-inline: 0.625rem !important;
+}
 
 .exercise-form__footer-confirm-label {
   font-size: 0.8125rem;
   color: #9ca3af;
   flex: 1;
+  min-width: 0;
 }
 
 .exercise-form__footer-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.375rem;
   align-items: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 420px) {
+  .exercise-form__footer {
+    flex-wrap: wrap;
+  }
+
+  .exercise-form__footer > .btn-secondary {
+    flex: 1 1 100%;
+  }
+
+  .exercise-form__footer-actions {
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
 }
 </style>
