@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutTemplate, ExerciseTemplate } from '@/types/workout'
 import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
+import SwipeableCard from '@/components/SwipeableCard.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
 import * as workoutTypeData from '@/data/workout-types.json'
@@ -30,27 +31,6 @@ const isEditing = computed(() => {
 const workoutTypes = computed(() => {
   return workoutData.workoutTypes.value
 })
-
-// Function to get default muscle groups based on workout type
-const getDefaultMuscleGroups = (workoutType: string): string[] => {
-  const muscleGroupMap: Record<string, string[]> = {
-    'push': ['Bryst', 'Skuldre', 'Triceps'],
-    'pull': ['Rygg', 'Biceps'],
-    'legs': ['Ben'],
-    'upper': ['Bryst', 'Rygg', 'Skuldre', 'Biceps', 'Triceps'],
-    'lower': ['Ben', 'Kjerne'],
-    'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne'],
-    'bryst': ['Bryst'],
-    'rygg': ['Rygg'],
-    'ben': ['Ben'],
-    'skuldre': ['Skuldre'],
-    'biceps': ['Biceps'],
-    'triceps': ['Triceps'],
-    'kjerne': ['Kjerne']
-  }
-  
-  return muscleGroupMap[workoutType.toLowerCase()] || []
-}
 
 const isExercisePanelOpen: Ref<boolean> = ref(false)
 const activeExerciseIndex: Ref<number | null> = ref(null)
@@ -95,26 +75,24 @@ const handleSelectExercise = (exerciseId: number) => {
   isExercisePanelOpen.value = false
 }
 
-/**
- * Returns a human-readable label: "ParentGroup — Variant" for variants,
- * or just the exercise name for standalone exercises.
- */
-const getExerciseName = (id: number): string => {
+/** Returns the variant name only (not the parent group prefix). */
+const getVariantName = (id: number): string => {
   if (!id) return ''
-  const found = workoutData.getExerciseById(id)
-  if (!found) return ''
+  return workoutData.getExerciseById(id)?.name ?? ''
+}
+
+/** Returns the parent exercise group name for variants. */
+const getExerciseGroupName = (id: number): string => {
+  if (!id) return ''
   const parent = workoutData.getMainExerciseByVariantId(id)
-  return parent ? `${parent.name} — ${found.name}` : found.name
+  if (parent) return parent.name
+  return workoutData.getExerciseById(id)?.name ?? ''
 }
 
 // Display helpers (UI only)
 const getExerciseCategory = (id: number): string => {
   if (!id) return ''
   return workoutData.getExerciseById(id)?.category || ''
-}
-const getExerciseMuscleGroups = (id: number): string[] => {
-  if (!id) return []
-  return workoutData.getExerciseById(id)?.muscleGroups || []
 }
 const getMuscleGroupColor = (muscleGroup: string): string => {
   const group = (muscleGroupsData as any).muscleGroups.find((g: any) => g.name === muscleGroup)
@@ -139,16 +117,8 @@ const getExerciseAccentColor = (exerciseId: number): string => {
 }
 
 // Methods
-const addExercise = () => {
-  templateForm.value.exercises.push({
-    exerciseId: 0,
-    name: '',
-    sets: 0,
-    reps: 0,
-  })
-}
-
 const removeExercise = (index: number) => {
+  if (!confirm('Er du sikker på at du vil fjerne denne øvelsen?')) return
   templateForm.value.exercises.splice(index, 1)
 }
 
@@ -156,9 +126,6 @@ const deleteTemplate = async () => {
   if (template.value && confirm('Er du sikker på at du vil slette denne økten?')) {
     try {
       await workoutData.deleteTemplate(template.value.id)
-      
-      // Cache is already updated by data layer; no repaint from stale cache
-      
       router.push('/')
     } catch (error) {
       console.error('Error deleting template:', error)
@@ -172,13 +139,15 @@ const isSaving = ref(false)
 const saveTemplate = async () => {
   isSaving.value = true
   // Update exercise names based on selected exercise IDs
-  const exercisesWithNames = templateForm.value.exercises.map(exercise => {
-    const exerciseData = workoutData.getExerciseById(exercise.exerciseId)
-    return {
-      ...exercise,
-      name: exerciseData?.name || exercise.name
-    }
-  })
+  const exercisesWithNames = templateForm.value.exercises
+    .filter((exercise) => exercise.exerciseId)
+    .map(exercise => {
+      const exerciseData = workoutData.getExerciseById(exercise.exerciseId)
+      return {
+        ...exercise,
+        name: exerciseData?.name || exercise.name
+      }
+    })
 
   try {
     if (isEditing.value && template.value) {
@@ -199,9 +168,6 @@ const saveTemplate = async () => {
       await workoutData.addTemplate(templateData)
     }
 
-    // Cache is already updated by data layer; no repaint from stale cache
-    
-    // Navigate back to templates list
     router.push('/')
   } catch (error) {
     console.error('Error saving template:', error)
@@ -290,173 +256,131 @@ onMounted(async () => {
     </div>
 
     <!-- Loading State for Template Form -->
-    <div v-if="isLoading" class="space-y-6 animate-pulse">
-      <!-- Basic Info Skeleton -->
-      <div class="card">
-        <div class="h-6 bg-dark-600 rounded w-64 mb-4"></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div v-if="isLoading" class="template-form template-form--loading">
+      <div class="template-form__section">
+        <div class="h-4 bg-dark-700 rounded w-32 mb-4 animate-pulse"></div>
+        <div class="template-form__fields">
           <div v-for="i in 2" :key="i" class="space-y-2">
-            <div class="h-4 bg-dark-600 rounded w-24"></div>
-            <div class="h-10 bg-dark-600 rounded w-full"></div>
+            <div class="h-3 bg-dark-700 rounded w-20 animate-pulse"></div>
+            <div class="h-10 bg-dark-700 rounded w-full animate-pulse"></div>
           </div>
         </div>
       </div>
-
-      <!-- Exercises Skeleton -->
-      <div class="card">
-        <div class="h-6 bg-dark-600 rounded w-20 mb-4"></div>
-        <div class="space-y-4">
-          <div v-for="i in 3" :key="i" class="bg-dark-700 rounded-lg p-4 space-y-3">
-            <div class="h-5 bg-dark-600 rounded w-24"></div>
-            <div class="space-y-2">
-              <div class="h-4 bg-dark-600 rounded w-16"></div>
-              <div class="h-10 bg-dark-600 rounded w-full"></div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div v-for="j in 3" :key="j" class="space-y-2">
-                <div class="h-4 bg-dark-600 rounded w-16"></div>
-                <div class="h-10 bg-dark-600 rounded w-full"></div>
-              </div>
-            </div>
-          </div>
+      <div class="template-form__section">
+        <div class="h-4 bg-dark-700 rounded w-20 mb-4 animate-pulse"></div>
+        <div class="space-y-2">
+          <div v-for="i in 3" :key="i" class="h-14 bg-dark-700 rounded-xl animate-pulse"></div>
         </div>
-      </div>
-
-      <!-- Save Button Skeleton -->
-      <div class="flex justify-end">
-        <div class="h-10 bg-dark-600 rounded w-24"></div>
       </div>
     </div>
 
     <!-- Template Form -->
-    <form v-else @submit.prevent="saveTemplate" class="space-y-6">
+    <form v-else @submit.prevent="saveTemplate" class="template-form">
       <!-- Basic Info -->
-      <div class="card fancy-card">
-        <div class="flex items-center gap-2 mb-4">
-          <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary-500/15 ring-1 ring-primary-500/30">
-            <svg class="w-4 h-4 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v8" />
-              <circle cx="12" cy="18" r="1.25" fill="currentColor" stroke="none" />
-            </svg>
-          </span>
-          <h2 class="text-xl font-semibold text-white">Grunnleggende Informasjon</h2>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-white mb-2">Navn på økt</label>
+      <section class="template-form__section">
+        <h2 class="template-form__section-title">Grunnleggende</h2>
+        <div class="template-form__fields">
+          <div class="template-form__field">
+            <label class="template-form__label" for="template-name">Navn på økt</label>
             <input
+              id="template-name"
               v-model="templateForm.name"
               type="text"
               required
-              class="input-field w-full focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500/50 transition-shadow"
+              class="input-field w-full"
               placeholder="F.eks. Push Økt"
             />
-            <p class="mt-1 text-xs text-dark-300">Gi økten et tydelig og motiverende navn.</p>
+            <p class="template-form__hint">Gi økten et tydelig og motiverende navn.</p>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-white mb-2">Økt Type</label>
-            <select 
+          <div class="template-form__field">
+            <label class="template-form__label" for="template-type">Økt type</label>
+            <select
+              id="template-type"
               v-model="templateForm.workoutType"
               required
-              class="input-field w-full focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500/50 transition-shadow"
+              class="input-field w-full"
             >
               <option value="">Velg type</option>
-              <option 
-                v-for="type in workoutTypes" 
-                :key="type.id" 
+              <option
+                v-for="type in workoutTypes"
+                :key="type.id"
                 :value="type.id"
               >
                 {{ type.name }}
               </option>
             </select>
-            <p class="mt-1 text-xs text-dark-300">Bruk type for å filtrere relevante øvelser.</p>
+            <p class="template-form__hint">Bruk type for å filtrere relevante øvelser.</p>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Exercises -->
-      <div class="card fancy-card">
-        <div class="mb-4 flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary-500/15 ring-1 ring-primary-500/30">
-              <svg class="w-4 h-4 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18" />
-              </svg>
-            </span>
-            <h2 class="text-xl font-semibold text-white">Øvelser</h2>
-          </div>
-          <div v-if="templateForm.exercises.length" class="text-xs text-dark-300">
+      <section class="template-form__section">
+        <div class="template-form__section-header">
+          <h2 class="template-form__section-title">Øvelser</h2>
+          <span v-if="templateForm.exercises.length" class="template-form__count">
             {{ templateForm.exercises.length }} valgt
-          </div>
+          </span>
         </div>
-        
-        <div class="space-y-4">
-          <div 
-            v-for="(exercise, index) in templateForm.exercises" 
-            :key="index"
-            class="exercise-item bg-dark-700/70 rounded-lg p-4 relative border border-dark-600/60 hover:border-primary-500/30 transition-colors"
-            :style="{ '--accent': getExerciseAccentColor(exercise.exerciseId) }"
+        <div v-if="templateForm.exercises.length" class="ex-list">
+          <SwipeableCard
+            v-for="(exercise, index) in templateForm.exercises"
+            :key="`${index}-${exercise.exerciseId}`"
+            :show-swipe-hint="false"
+            @delete="removeExercise(index)"
           >
-            <div class="flex items-center mb-3 gap-2">
-              <div class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-dark-600/60 ring-1 ring-dark-500/40">
-                <span class="text-xs text-dark-200">{{ index + 1 }}</span>
-              </div>
-              <h4 class="font-medium text-white leading-none">Øvelse {{ index + 1 }}</h4>
-              <button 
-                @click="removeExercise(index)"
-                type="button"
-                class="ml-auto text-dark-400 hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-500/10 flex items-center justify-end"
-                title="Slett øvelse"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div>
-              <label class="block text-xs text-dark-300 mb-2">Variant</label>
-              <button
-                type="button"
-                class="input-field w-full flex items-center justify-between gap-2 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500/50 transition-shadow text-left"
-                @click="openExercisePicker(index)"
-              >
-                <span :class="exercise.exerciseId ? 'text-white' : 'text-dark-400'" class="text-sm truncate">
-                  {{ getExerciseName(exercise.exerciseId) || 'Velg variant…' }}
+            <button
+              type="button"
+              class="ex-row"
+              :class="{ 'ex-row--empty': !exercise.exerciseId }"
+              :style="{ '--ex-color': getExerciseAccentColor(exercise.exerciseId) }"
+              @click="openExercisePicker(index)"
+            >
+              <span class="ex-row__dot"></span>
+              <span class="ex-row__body">
+                <span class="ex-row__name">
+                  {{ exercise.exerciseId ? getVariantName(exercise.exerciseId) : 'Velg variant…' }}
                 </span>
-                <svg class="w-4 h-4 text-dark-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                <span v-if="exercise.exerciseId" class="ex-row__ref">
+                  <span v-if="getExerciseGroupName(exercise.exerciseId)">
+                    {{ getExerciseGroupName(exercise.exerciseId) }}
+                  </span>
+                  <span
+                    v-if="getExerciseGroupName(exercise.exerciseId) && getExerciseCategory(exercise.exerciseId)"
+                    class="ex-row__ref-sep"
+                  >·</span>
+                  <span v-if="getExerciseCategory(exercise.exerciseId)">
+                    {{ getExerciseCategory(exercise.exerciseId) }}
+                  </span>
+                </span>
+              </span>
+              <span class="ex-row__right">
+                <svg class="ex-row__chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-              </button>
+              </span>
+            </button>
+          </SwipeableCard>
+        </div>
 
-              <div v-if="exercise.exerciseId" class="mt-3 flex flex-wrap items-center gap-2">
-                <span 
-                  v-for="mg in getExerciseMuscleGroups(exercise.exerciseId)" 
-                  :key="mg"
-                  class="inline-flex px-2 py-1 rounded-md text-[11px] bg-primary-500/10 ring-1 ring-primary-500/30 text-primary-200"
-                >
-                  {{ mg }}
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Add Exercise Button at bottom -->
-          <button 
-            @click="openExercisePicker(templateForm.exercises.length)"
-            type="button"
-            class="w-full btn-secondary py-3 flex items-center justify-center hover:opacity-95 group"
-          >
-            <svg class="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Legg til øvelse
-          </button>
-        </div>
-      </div>
+        <p v-else class="text-sm text-dark-400 italic">
+          Ingen øvelser lagt til ennå.
+        </p>
+
+        <button
+          type="button"
+          class="w-full btn-secondary py-2.5 flex items-center justify-center gap-2"
+          @click="openExercisePicker(templateForm.exercises.length)"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Legg til øvelse
+        </button>
+      </section>
 
       <!-- Actions -->
-      <div class="flex gap-3">
+      <div class="template-form__actions">
         <button 
           v-if="isEditing"
           @click="deleteTemplate"
@@ -497,36 +421,176 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.fancy-card {
-  position: relative;
+.template-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.template-form--loading {
+  gap: 2rem;
+}
+
+.template-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.template-form__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.template-form__section-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.template-form__count {
+  font-size: 0.75rem;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.template-form__fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .template-form__fields {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.template-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.template-form__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #d1d5db;
+}
+
+.template-form__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.template-form__actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #1f2937;
+}
+
+/* ── Compact exercise row list (matches WorkoutSession) ─────────────────── */
+
+.ex-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+.ex-list > * {
+  border-radius: 0.875rem;
   overflow: hidden;
 }
-.fancy-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(59,130,246,0.25), rgba(168,85,247,0.25));
-  -webkit-mask: 
-    linear-gradient(#000 0 0) content-box, 
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  pointer-events: none;
+
+.ex-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8125rem 1rem;
+  background: #0d1117;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 0.875rem;
 }
-.exercise-item {
-  position: relative;
+
+.ex-row:hover,
+.ex-row:active {
+  background: #131c2b;
 }
-.exercise-item::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  border-radius: 2px;
-  background: var(--accent, linear-gradient(180deg, rgba(59,130,246,0.6), rgba(168,85,247,0.6)));
-  opacity: 0.9;
+
+.ex-row--empty .ex-row__name {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.ex-row__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ex-color, #374151);
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.ex-row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.ex-row__name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #f3f4f6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ex-row__ref {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  color: #4b5563;
+  min-width: 0;
+}
+
+.ex-row__ref > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ex-row__ref-sep {
+  flex-shrink: 0;
+  color: #374151;
+}
+
+.ex-row__right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.ex-row__chevron {
+  width: 1rem;
+  height: 1rem;
+  color: #374151;
+  flex-shrink: 0;
 }
 </style>

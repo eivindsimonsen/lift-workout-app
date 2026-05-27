@@ -65,9 +65,8 @@
         </div>
       </div>
 
-      <!-- Footer: motivation + used templates -->
+      <!-- Footer: used templates + motivation -->
       <div class="week-card__footer">
-        <p class="week-card__motivation">{{ weekMotivation }}</p>
         <div v-if="weekTemplateUsage.length > 0" class="week-card__chips">
           <span
             v-for="t in weekTemplateUsage"
@@ -75,9 +74,10 @@
             class="week-card__chip"
             :style="{ backgroundColor: getWorkoutTypeColor(t.workoutType) + '18', color: getWorkoutTypeColor(t.workoutType), borderColor: getWorkoutTypeColor(t.workoutType) + '40' }"
           >
-            {{ t.name }}<span v-if="t.count > 1" class="week-card__chip-count"> ×{{ t.count }}</span>
+            {{ t.count }}× {{ t.name }}
           </span>
         </div>
+        <p class="week-card__motivation">{{ weekMotivation }}</p>
       </div>
     </div>
 
@@ -952,16 +952,18 @@ onUnmounted(() => {
 
 .week-card__footer {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.625rem;
 }
 
 .week-card__motivation {
   font-size: 0.8125rem;
   color: #6b7280;
   font-style: italic;
+  margin: 0;
+  width: 100%;
+  text-align: center;
 }
 
 .week-card__chips {
@@ -977,9 +979,5 @@ onUnmounted(() => {
   border-radius: 999px;
   border: 1px solid;
   white-space: nowrap;
-}
-
-.week-card__chip-count {
-  opacity: 0.7;
 }
 </style>
