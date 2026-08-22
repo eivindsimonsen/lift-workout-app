@@ -7,6 +7,7 @@ import SlideOver from '@/components/SlideOver.vue'
 import { useExercises } from '@/composables/useExercises'
 import { useHybridData } from '@/composables/useHybridData'
 import muscleGroupsData from '@/data/muscle-groups.json'
+import workoutTypesData from '@/data/workout-types.json'
 import type { ExerciseData, ExerciseVariant, ExerciseTrackingType } from '@/types/workout'
 
 // ---------------------------------------------------------------------------
@@ -68,14 +69,11 @@ const editVariantName = ref('')
 // everywhere at once instead of drifting out of sync with a hardcoded list.
 const CATEGORIES = muscleGroupsData.muscleGroups.map((g) => g.name)
 
-const WORKOUT_TYPE_OPTIONS = [
-  { id: 'push',      label: 'Push' },
-  { id: 'pull',      label: 'Pull' },
-  { id: 'legs',      label: 'Legs' },
-  { id: 'upper',     label: 'Upper' },
-  { id: 'lower',     label: 'Lower' },
-  { id: 'full-body', label: 'Full Body' },
-]
+// Derived from workout-types.json, minus 'cardio': this field is only shown for
+// strength exercises, and those don't belong to a cardio session.
+const WORKOUT_TYPE_OPTIONS = workoutTypesData.workoutTypes
+  .filter((wt) => wt.id !== 'cardio')
+  .map((wt) => ({ id: wt.id, label: wt.name }))
 
 // ---------------------------------------------------------------------------
 // Computed

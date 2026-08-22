@@ -30,6 +30,9 @@
 
   const isSaving = ref(false);
 
+  /** Lets the user reveal the set targets on an otherwise cardio-only setup. */
+  const showStrengthSets = ref(false);
+
   /** Working copy — nothing is persisted until the user hits "Lagre". */
   const draft = ref<TrainingGoals>({ planId: "none", sessionsPerWeek: 0, setsPerMuscleGroup: {}, cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 } });
 
@@ -46,6 +49,7 @@
     (open) => {
       if (!open) return;
       draft.value = cloneGoals(goals.value);
+      showStrengthSets.value = false;
       isSaving.value = false;
     },
     { immediate: true },
@@ -59,6 +63,15 @@
 
   const hasCardioTarget = computed(() => draft.value.cardio.minutesPerWeek > 0 || draft.value.cardio.kilometresPerWeek > 0);
   const hasAnyTarget = computed(() => totalTargetSets.value > 0 || hasCardioTarget.value);
+
+  /**
+   * Sets are meaningless for a pure cardio plan, so the section is hidden once
+   * the only targets are cardio ones. Tied to the actual targets rather than the
+   * plan name, because nudging a cardio stepper flips the plan to "custom".
+   */
+  const strengthSectionVisible = computed(
+    () => showStrengthSets.value || totalTargetSets.value > 0 || !hasCardioTarget.value,
+  );
 
   const activePlanName = computed(() => TRAINING_PLANS.find((p) => p.id === draft.value.planId)?.name ?? "Ingen plan valgt");
 
@@ -74,6 +87,7 @@
 
   /** Applies a preset. "Egendefinert" keeps existing numbers when there are any. */
   const selectPlan = (planId: TrainingPlanId) => {
+    showStrengthSets.value = false;
     if (planId === "custom" && hasAnyTarget.value) {
       draft.value = { ...draft.value, planId: "custom" };
       return;
@@ -188,8 +202,8 @@
         </div>
       </section>
 
-      <!-- Sets per muscle group -->
-      <section>
+      <!-- Sets per muscle group — hidden for a cardio-only setup -->
+      <section v-if="strengthSectionVisible">
         <div class="flex items-baseline justify-between">
           <h4 class="goals__heading">Sett per uke</h4>
           <span class="goals__total">{{ totalTargetSets }} totalt</span>
@@ -227,6 +241,14 @@
           </div>
         </div>
       </section>
+
+      <button
+        v-if="!strengthSectionVisible"
+        type="button"
+        class="goals__link"
+        @click="showStrengthSets = true">
+        + Legg til styrkemål
+      </button>
 
       <!-- Cardio goals -->
       <section>

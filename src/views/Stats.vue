@@ -1104,6 +1104,38 @@ const achievements = computed(() => {
     { id: 'months-12', icon: '🗓️', title: '12 aktive måneder', description: 'Et helt år med trening!', earned: trainedMonths.size >= 12 }
   ]
 
+  // Cardio badges only appear once there's cardio to earn them with — otherwise
+  // a pure strength user would stare at a wall of permanently grey running icons.
+  const c = cardioStats.value
+  if (c.hasData) {
+    const minutes = c.seconds / 60
+    const km = c.metres / 1000
+
+    all.push(
+      { id: 'cardio-first', icon: '🏃', title: 'Første kondisjonsøkt', description: 'Du logget ditt første kondisjonsdrag!', earned: c.sets >= 1 },
+      { id: 'cardio-10-sessions', icon: '👟', title: '10 kondisjonsøkter', description: 'Kondisjon er blitt en vane.', earned: c.sessions >= 10 },
+
+      { id: 'cardio-minutes-60', icon: '⏱️', title: '1 time kondisjon', description: 'Totalt 60 minutter logget.', earned: minutes >= 60 },
+      { id: 'cardio-minutes-600', icon: '⏱️', title: '10 timer kondisjon', description: 'Totalt 600 minutter logget.', earned: minutes >= 600 },
+      { id: 'cardio-minutes-3000', icon: '⌛', title: '50 timer kondisjon', description: 'Det begynner å bli en del tid på beina.', earned: minutes >= 3000 },
+
+      { id: 'cardio-km-10', icon: '📍', title: '10 km totalt', description: 'De første ti kilometerne er unnagjort.', earned: km >= 10 },
+      { id: 'cardio-km-100', icon: '🗺️', title: '100 km totalt', description: 'Tresifret distanse!', earned: km >= 100 },
+      { id: 'cardio-km-500', icon: '🧭', title: '500 km totalt', description: 'Oslo–Trondheim på egne bein.', earned: km >= 500 },
+
+      { id: 'cardio-long-5k', icon: '🏅', title: '5 km i strekk', description: 'Ett enkelt drag på 5 km eller mer.', earned: c.longestDistance >= 5000 },
+      { id: 'cardio-long-10k', icon: '🥇', title: '10 km i strekk', description: 'Ett enkelt drag på 10 km eller mer.', earned: c.longestDistance >= 10000 },
+      { id: 'cardio-half', icon: '🏔️', title: 'Halvmaraton', description: '21,1 km i ett strekk!', earned: c.longestDistance >= 21097 },
+      { id: 'cardio-marathon', icon: '🎽', title: 'Maraton', description: '42,2 km i ett strekk. Respekt.', earned: c.longestDistance >= 42195 },
+
+      { id: 'cardio-long-hour', icon: '🕐', title: 'Timesøkta', description: 'Ett drag på over en time.', earned: c.longestDuration >= 3600 },
+
+      { id: 'cardio-pace-6', icon: '💨', title: 'Under 6:00 per km', description: 'Holdt tempoet på et drag over 1 km.', earned: c.bestPaceSecPerKm <= 360 },
+      { id: 'cardio-pace-5', icon: '⚡', title: 'Under 5:00 per km', description: 'Det begynner å gå fort.', earned: c.bestPaceSecPerKm <= 300 },
+      { id: 'cardio-pace-4', icon: '🚀', title: 'Under 4:00 per km', description: 'Rått tempo!', earned: c.bestPaceSecPerKm <= 240 },
+    )
+  }
+
   return all
 })
 
@@ -1136,6 +1168,8 @@ const cardioStats = computed(() => {
   let sets = 0
   let longestDistance = 0
   let longestDuration = 0
+  /** Fastest pace in seconds per km — lower is better. */
+  let bestPaceSecPerKm = Infinity
   const sessionIds = new Set<string>()
 
   filteredSessions.value.forEach(session => {
@@ -1150,6 +1184,10 @@ const cardioStats = computed(() => {
         sets += 1
         longestDistance = Math.max(longestDistance, distance)
         longestDuration = Math.max(longestDuration, duration)
+        // Only drags long enough for pace to mean anything.
+        if (distance >= 1000 && duration > 0) {
+          bestPaceSecPerKm = Math.min(bestPaceSecPerKm, (duration / distance) * 1000)
+        }
         sessionIds.add(session.id)
       })
     })
@@ -1163,6 +1201,7 @@ const cardioStats = computed(() => {
     sessions: sessionIds.size,
     longestDistance,
     longestDuration,
+    bestPaceSecPerKm,
     pace: formatPace(seconds, metres),
   }
 })
