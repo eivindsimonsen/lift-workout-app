@@ -168,22 +168,22 @@
     <div v-else class="card">
       <h3 class="text-lg font-semibold text-white mb-6">Fremgang over Tid</h3>
       
-      <!-- Power Exercise Records -->
+      <!-- Heaviest Lifts -->
       <div class="mb-6">
-        <h4 class="text-md font-medium text-white mb-4">Power Exercise Records</h4>
-        <div v-if="powerExerciseRecords.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div 
-            v-for="pr in powerExerciseRecords" 
-            :key="pr.exercise"
+        <h4 class="text-md font-medium text-white mb-4">Tyngste løft</h4>
+        <div v-if="heaviestLifts.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div
+            v-for="lift in heaviestLifts"
+            :key="lift.exerciseId"
             class="bg-dark-700 rounded-lg p-3"
           >
-            <div class="text-sm text-dark-300">{{ pr.exercise }}</div>
-            <div class="text-lg font-bold text-primary-500">{{ pr.weight }} kg</div>
-            <div class="text-xs text-dark-300">{{ pr.reps }} reps • {{ pr.date }}</div>
+            <div class="text-sm text-dark-300">{{ lift.exercise }}</div>
+            <div class="text-lg font-bold text-primary-500">{{ lift.weight }} kg</div>
+            <div class="text-xs text-dark-300">{{ lift.reps }} reps • {{ lift.date }}</div>
           </div>
         </div>
         <div v-else class="bg-dark-700 rounded-lg p-4 text-sm text-dark-300">
-          Ingen power exercise records ennå. Start med å trene Barbell Bench Press, Deadlift, Squat eller Barbell Shoulder Press for å bygge styrke.
+          Ingen fullførte sett i denne perioden ennå.
         </div>
       </div>
 
@@ -660,7 +660,6 @@ const getCalendarDayClass = (trained: boolean): string => {
 }
 
 // Monthly calendar state
-import { ref } from 'vue'
 const currentMonth = ref(new Date())
 const monthOffset = ref(0)
 
@@ -851,71 +850,45 @@ const oneRepMaxProgression = computed(() => {
     .slice(0, 5) // Show top 5
 })
 
-const powerExerciseRecords = computed(() => {
-  // Define power exercises (major compound movements) - specific variant IDs
-  const powerExerciseIds = [
-    'barbell-bench-press',           // Barbell Bench Press variant
-    'deadlift',                      // Deadlift (no variants)
-    'squat',                         // Squat (no variants)
-    'barbell-shoulder-press'         // Barbell Shoulder Press variant
-  ]
+/**
+ * The four exercises with the heaviest single set in the selected period.
+ *
+ * Replaces an earlier version that matched hardcoded slugs ('deadlift', 'squat', …)
+ * against numeric exercise ids and therefore always came back empty. Deriving the
+ * list from the data keeps it meaningful no matter what the exercises are named.
+ */
+const heaviestLifts = computed(() => {
+  const best = new Map<number, { exerciseId: number; exercise: string; weight: number; reps: number; date: Date }>()
 
-  const records: { exercise: string; weight: number; reps: number; date: string }[] = []
+  filteredSessions.value.forEach(session => {
+    session.exercises.forEach(exercise => {
+      const exerciseId = Number(exercise.exerciseId)
 
-  // Only consider fully completed sessions
-  const completedSessions = filteredSessions.value.filter(session => session.isCompleted)
+      exercise.sets.forEach(set => {
+        if (!set.isCompleted) return
+        const weight = Number(set.weight) || 0
+        const reps = Number(set.reps) || 0
+        if (weight <= 0 || reps <= 0) return
 
-  // Find the heaviest set for each power exercise
-  powerExerciseIds.forEach(exerciseId => {
-    let bestSet: { weight: number; reps: number; date: Date } | null = null
+        // Heaviest wins; on equal weight, more reps wins.
+        const current = best.get(exerciseId)
+        if (current && !(weight > current.weight || (weight === current.weight && reps > current.reps))) return
 
-    completedSessions.forEach(session => {
-      // Consider all occurrences of the exercise within a session
-      session.exercises
-        .filter(e => e.exerciseId === exerciseId)
-        .forEach(exercise => {
-          exercise.sets.forEach(set => {
-            if (set.isCompleted && set.weight && set.reps) {
-              const weight = Number(set.weight) || 0
-              const reps = Number(set.reps) || 0
-              
-              if (!bestSet) {
-                bestSet = { weight, reps, date: session.date }
-                return
-              }
-
-              const isHeavier = weight > bestSet.weight
-              const sameWeightMoreReps = weight === bestSet.weight && reps > bestSet.reps
-              const sameWeightSameRepsNewer = weight === bestSet.weight && reps === bestSet.reps && new Date(session.date).getTime() > new Date(bestSet.date).getTime()
-
-              if (isHeavier || sameWeightMoreReps || sameWeightSameRepsNewer) {
-                bestSet = { weight, reps, date: session.date }
-              }
-            }
-          })
+        best.set(exerciseId, {
+          exerciseId,
+          exercise: getExerciseDisplayName(exerciseId),
+          weight,
+          reps,
+          date: new Date(session.date)
         })
+      })
     })
-
-    if (bestSet) {
-      const exerciseData = workoutData.getExerciseById(exerciseId)
-      if (exerciseData) {
-        const s = bestSet as { weight: number; reps: number; date: Date }
-        records.push({
-          exercise: exerciseData.name,
-          weight: s.weight,
-          reps: s.reps,
-          date: formatDate(s.date)
-        })
-      }
-    }
   })
 
-  // Sort by heaviest weight, then reps, then most recent date
-  return records.sort((a, b) => {
-    if (a.weight !== b.weight) return b.weight - a.weight
-    if (a.reps !== b.reps) return b.reps - a.reps
-    return new Date(b.date).getTime() - new Date(a.date).getTime()
-  })
+  return [...best.values()]
+    .sort((a, b) => b.weight - a.weight || b.reps - a.reps || b.date.getTime() - a.date.getTime())
+    .slice(0, 4)
+    .map(record => ({ ...record, date: formatDate(record.date) }))
 })
 
 // Helper function to get better exercise display names
@@ -991,10 +964,10 @@ const achievements = computed(() => {
   const totalSessions = sessions.length
 
   // Metrics
-  const uniqueExerciseIds = new Set<string>()
+  const uniqueExerciseIds = new Set<number>()
   sessions.forEach(s => s.exercises.forEach(e => uniqueExerciseIds.add(e.exerciseId)))
 
-  const oneRmExercises = new Set<string>()
+  const oneRmExercises = new Set<number>()
   sessions.forEach(s => s.exercises.forEach(e => e.sets.forEach(set => {
     if (set.isCompleted && set.weight && set.reps === 1) {
       oneRmExercises.add(e.exerciseId)

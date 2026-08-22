@@ -15,6 +15,7 @@ import SessionDetails from "@/views/SessionDetails.vue";
 import Profile from "@/views/Profile.vue";
 import ExerciseDetail from "@/views/ExerciseDetail.vue";
 import Exercises from "@/views/Exercises.vue";
+import WeekDetails from "@/views/WeekDetails.vue";
 
 // Route configuration
 const routes = [
@@ -30,6 +31,7 @@ const routes = [
   { path: "/session/:id", name: "SessionDetails", component: SessionDetails, meta: { requiresAuth: true } },
   { path: "/exercise/:id", name: "ExerciseDetail", component: ExerciseDetail, meta: { requiresAuth: true } },
   { path: "/exercises", name: "Exercises", meta: { requiresAuth: true }, component: Exercises },
+  { path: "/week", name: "WeekDetails", component: WeekDetails, meta: { requiresAuth: true } },
   // Catch-all
   { path: "/:pathMatch(.*)*", redirect: "/login" },
 ];

@@ -98,11 +98,14 @@
       </div>
 
       <!-- Exercise list — compact rows, tap to open bottom sheet, swipe to delete -->
-      <div v-if="session" class="ex-list">
+      <div v-if="session" ref="exListRef" class="ex-list">
         <SwipeableCard
           v-for="(exercise, exerciseIndex) in session.exercises"
           :key="exercise.exerciseId"
           :show-swipe-hint="false"
+          :disabled="draggingIndex !== null"
+          :class="{ 'ex-item--dragging': draggingIndex === exerciseIndex }"
+          :style="draggingIndex === exerciseIndex ? { transform: `translateY(${dragTranslateY}px)` } : undefined"
           @delete="removeExercise(exerciseIndex)"
         >
           <button
@@ -110,7 +113,8 @@
             class="ex-row"
             :class="{ 'ex-row--done': isExerciseCompleted(exercise) }"
             :style="{ '--ex-color': getMuscleGroupColor(getExerciseMuscleGroups(exercise.exerciseId)[0] || '') }"
-            @click="openExerciseSheet(exerciseIndex)"
+            @pointerdown="onRowPointerDown($event, exerciseIndex)"
+            @click="onRowClick(exerciseIndex)"
           >
             <span class="ex-row__dot"></span>
             <span class="ex-row__body">
@@ -175,9 +179,9 @@
       </div>
 
       <!-- Mobile Exercise Picker -->
+      <!-- No :exercises binding: the panel reads the exercise store itself. -->
       <ExerciseSearchPanel
         :is-open="isMobileExercisePanelOpen"
-        :exercises="availableExercises"
         :workout-type="session?.workoutType"
         title="Velg øvelse"
         @close="closeMobileAddExercise"
@@ -570,6 +574,7 @@ import SwipeableCard from '@/components/SwipeableCard.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
 import SlideOver from '@/components/SlideOver.vue'
+import { vibrate } from '@/composables/useHaptics'
 
 const route = useRoute()
 const router = useRouter()
@@ -615,7 +620,7 @@ function onSetTouchMove(event: TouchEvent, setId: string) {
 /** Commit or cancel the set row swipe. */
 function onSetTouchEnd(exerciseIndex: number, setIndex: number, setId: string) {
   if (Math.abs(setSwipeX[setId] ?? 0) >= SET_SWIPE_THRESHOLD) {
-    if ('vibrate' in navigator) navigator.vibrate(50)
+    vibrate(50)
     removeSet(exerciseIndex, setIndex)
   }
   setSwipeX[setId] = 0
@@ -750,12 +755,9 @@ const availableExercises = computed(() => {
   return available
 })
 
-// Pending changes functionality
-const pendingChangesCount = ref(0);
-
-const updatePendingChangesCount = async () => {
-  pendingChangesCount.value = 0
-}
+// Offline changes still queued for Supabase. Owned by the data store — the store
+// keeps the count current, so this view just reads it.
+const pendingChangesCount = workoutData.pendingChangesCount
 
 const syncPendingChanges = async () => {
   if (!workoutData.isOnline.value) return
@@ -763,7 +765,6 @@ const syncPendingChanges = async () => {
   isSyncingPendingChanges.value = true
   try {
     await workoutData.syncPendingChanges()
-    await updatePendingChangesCount()
   } catch (error) {
     console.error('❌ Error syncing pending changes:', error)
   } finally {
@@ -1105,9 +1106,186 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   persistExercisesToLocal()
 }
 
+// ===== Deferred cleanup =====
+// Vue can only bind lifecycle hooks synchronously during setup. The onMounted
+// below is async, so calling onUnmounted after one of its awaits silently fails
+// to register — leaving every listener it set up attached for the rest of the
+// session. Collect the teardown callbacks instead and run them from a single
+// hook registered here, synchronously.
+const deferredCleanups: Array<() => void> = []
+
+const addCleanup = (fn: () => void) => {
+  deferredCleanups.push(fn)
+}
+
+onUnmounted(() => {
+  while (deferredCleanups.length > 0) {
+    const fn = deferredCleanups.pop()
+    try {
+      fn?.()
+    } catch (error) {
+      console.warn('⚠️ Cleanup failed:', error)
+    }
+  }
+})
+
+// ===== Long-press drag to reorder exercises =====
+// The rows already own a tap (open sheet) and a horizontal swipe (delete), and a
+// plain vertical drag would be indistinguishable from scrolling the page. A long
+// press settles the intent before we claim the gesture: any movement before the
+// timer fires cancels it, so scrolling and swiping keep working untouched.
+
+const LONG_PRESS_MS = 400
+const DRAG_CANCEL_PX = 8
+
+const exListRef = ref<HTMLElement | null>(null)
+const draggingIndex = ref<number | null>(null)
+const dragTranslateY = ref(0)
+
+let pressTimer: ReturnType<typeof setTimeout> | null = null
+let pressStartX = 0
+let pressStartY = 0
+let lastPointerY = 0
+/** Pointer Y that corresponds to a translate of 0 for the dragged row. */
+let dragBaselineY = 0
+/** Per-row height including the flex gap, measured at drag start. */
+let rowPitch: number[] = []
+let suppressNextClick = false
+
+const clearPressTimer = () => {
+  if (pressTimer === null) return
+  clearTimeout(pressTimer)
+  pressTimer = null
+}
+
+const measureRows = () => {
+  const list = exListRef.value
+  if (!list) {
+    rowPitch = []
+    return
+  }
+  const gap = parseFloat(getComputedStyle(list).rowGap || '0') || 0
+  rowPitch = Array.from(list.children).map((el) => (el as HTMLElement).offsetHeight + gap)
+}
+
+const beginDrag = (index: number) => {
+  pressTimer = null
+  measureRows()
+  draggingIndex.value = index
+  dragBaselineY = pressStartY
+  dragTranslateY.value = 0
+  vibrate(30)
+}
+
+const onRowPointerDown = (event: PointerEvent, index: number) => {
+  if (event.pointerType === 'mouse' && event.button !== 0) return
+  suppressNextClick = false
+  pressStartX = event.clientX
+  pressStartY = event.clientY
+  lastPointerY = event.clientY
+  clearPressTimer()
+  pressTimer = setTimeout(() => beginDrag(index), LONG_PRESS_MS)
+}
+
+/** Moves the dragged exercise one slot and keeps the card under the finger. */
+const moveDraggedExercise = (from: number, to: number, pitch: number) => {
+  if (!session.value) return
+  const items = session.value.exercises
+  const [moved] = items.splice(from, 1)
+  items.splice(to, 0, moved)
+
+  draggingIndex.value = to
+  // The row's natural position just shifted by one slot, so compensate the
+  // baseline — otherwise the card would jump by a full row under the finger.
+  dragBaselineY += to < from ? -pitch : pitch
+  dragTranslateY.value = lastPointerY - dragBaselineY
+
+  nextTick(measureRows)
+}
+
+/** Swaps with a neighbour once the drag passes half of that neighbour's height. */
+const settleDragPosition = () => {
+  const index = draggingIndex.value
+  if (index === null || !session.value) return
+  const items = session.value.exercises
+
+  if (dragTranslateY.value < 0 && index > 0) {
+    const pitch = rowPitch[index - 1] ?? 0
+    if (pitch > 0 && -dragTranslateY.value > pitch / 2) moveDraggedExercise(index, index - 1, pitch)
+    return
+  }
+
+  if (dragTranslateY.value > 0 && index < items.length - 1) {
+    const pitch = rowPitch[index + 1] ?? 0
+    if (pitch > 0 && dragTranslateY.value > pitch / 2) moveDraggedExercise(index, index + 1, pitch)
+  }
+}
+
+const onWindowPointerMove = (event: PointerEvent) => {
+  lastPointerY = event.clientY
+
+  if (draggingIndex.value === null) {
+    // Still waiting on the long press — any real movement means the user meant
+    // to scroll or swipe, so give the gesture back.
+    if (pressTimer !== null && Math.hypot(event.clientX - pressStartX, event.clientY - pressStartY) > DRAG_CANCEL_PX) {
+      clearPressTimer()
+    }
+    return
+  }
+
+  dragTranslateY.value = event.clientY - dragBaselineY
+  settleDragPosition()
+}
+
+const endDrag = () => {
+  clearPressTimer()
+  if (draggingIndex.value === null) return
+
+  draggingIndex.value = null
+  dragTranslateY.value = 0
+  // The pointerup that ends a drag still produces a click; swallow it so the
+  // exercise sheet doesn't open on top of the reorder.
+  suppressNextClick = true
+  persistExercisesToLocal()
+  vibrate(15)
+}
+
+/**
+ * touch-action can't be flipped mid-gesture, so scrolling is blocked here
+ * instead. Safe because any movement before the long press fires cancels the
+ * drag, meaning no scroll is ever in flight when this starts preventing.
+ */
+const blockScrollWhileDragging = (event: TouchEvent) => {
+  if (draggingIndex.value !== null) event.preventDefault()
+}
+
+onMounted(() => {
+  window.addEventListener('pointermove', onWindowPointerMove)
+  window.addEventListener('pointerup', endDrag)
+  window.addEventListener('pointercancel', endDrag)
+  document.addEventListener('touchmove', blockScrollWhileDragging, { passive: false })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('pointermove', onWindowPointerMove)
+  window.removeEventListener('pointerup', endDrag)
+  window.removeEventListener('pointercancel', endDrag)
+  document.removeEventListener('touchmove', blockScrollWhileDragging)
+  clearPressTimer()
+})
+// ===== end drag section =====
+
 /** Opens the bottom sheet for a specific exercise index. */
 const openExerciseSheet = (idx: number) => {
   activeExerciseIndex.value = idx
+}
+
+const onRowClick = (index: number) => {
+  if (suppressNextClick) {
+    suppressNextClick = false
+    return
+  }
+  openExerciseSheet(index)
 }
 
 const closeExerciseSheet = () => {
@@ -1626,7 +1804,7 @@ onMounted(async () => {
           { immediate: false }
         )
         // Ensure we clean these up later
-        onUnmounted(() => {
+        addCleanup(() => {
           try { stopSessionsWatch() } catch {}
           try { stopAuthWatch() } catch {}
         })
@@ -1678,8 +1856,6 @@ onMounted(async () => {
     })
     window.dispatchEvent(updateEvent)
   })
-
-  await updatePendingChangesCount()
 
   // Online auto-sync
   const handleOnlineSync = async () => {
@@ -1744,7 +1920,7 @@ onMounted(async () => {
   window.addEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
   window.addEventListener('beforeunload', handleBeforeUnload)
 
-  onUnmounted(() => {
+  addCleanup(() => {
     window.removeEventListener('keydown', handleKeydown)
     window.removeEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
     window.removeEventListener('beforeunload', handleBeforeUnload)
@@ -1811,6 +1987,27 @@ watch(() => route.params.id, async (newId, oldId) => {
   transition: background 0.15s;
   -webkit-tap-highlight-color: transparent;
   border-radius: 0.875rem;
+  /* A long press must not raise iOS' selection callout on the row. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ── Drag to reorder ─────────────────────────────────────────────────────── */
+
+/* The list clips its children for the swipe animation; the lifted card needs
+   to escape that so its shadow isn't cut off. */
+.ex-list > .ex-item--dragging {
+  overflow: visible;
+  position: relative;
+  z-index: 20;
+}
+
+.ex-item--dragging .ex-row {
+  background: #16202f;
+  transform: scale(1.02);
+  box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.7);
+  cursor: grabbing;
 }
 
 .ex-row:hover, .ex-row:active { background: #131c2b; }

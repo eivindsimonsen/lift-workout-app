@@ -6,6 +6,17 @@ import type { WorkoutType, ExerciseData } from "@/types/workout";
 
 const logHybridAccess = (_operation: string, _details?: unknown) => {};
 
+/** Resolved lookup entry for any exercise or variant id. */
+export type ExerciseIndexEntry = {
+  /** Display name — the variant name when the id belongs to a variant. */
+  name: string;
+  /** Primary muscle group, inherited from the parent exercise group. */
+  category: string;
+  /** Parent group name; equals `name` for standalone exercises. */
+  groupName: string;
+  isVariant: boolean;
+};
+
 export const useHybridData = () => {
   const userData = useSupabaseData();
   const exercisesStore = useExercises();
@@ -62,6 +73,37 @@ export const useHybridData = () => {
     exercisesStore.exercises.value.find((exercise) =>
       exercise.variants?.some((v) => v.id === variantId)
     ) ?? null;
+
+  /**
+   * Flat id → exercise lookup, rebuilt only when the exercise list changes.
+   * `getExerciseById` scans every exercise and every variant on each call, which
+   * gets expensive when resolving a whole week of sessions. Prefer this map for
+   * bulk lookups; `getExerciseById` stays for one-off callers that need the full
+   * exercise object.
+   */
+  const exerciseIndex = computed(() => {
+    const index = new Map<number, ExerciseIndexEntry>();
+
+    exercisesStore.exercises.value.forEach((exercise) => {
+      index.set(exercise.id, {
+        name: exercise.name,
+        category: exercise.category,
+        groupName: exercise.name,
+        isVariant: false,
+      });
+
+      exercise.variants?.forEach((variant) => {
+        index.set(variant.id, {
+          name: variant.name,
+          category: exercise.category,
+          groupName: exercise.name,
+          isVariant: true,
+        });
+      });
+    });
+
+    return index;
+  });
 
   const getFlattenedExercises = computed(() => {
     const flattened: Array<{
@@ -135,6 +177,7 @@ export const useHybridData = () => {
     isAuthenticated: userData.isAuthenticated,
     isOnline: userData.isOnline,
     lastSyncTime: userData.lastSyncTime,
+    pendingChangesCount: userData.pendingChangesCount,
 
     // Exercise data from Supabase (via useExercises)
     exercises: exercisesStore.exercises,
@@ -152,6 +195,7 @@ export const useHybridData = () => {
     getExerciseById,
     getMainExerciseByVariantId,
     getFlattenedExercises,
+    exerciseIndex,
 
     // Actions (all from Supabase)
     loadData: userData.loadData,

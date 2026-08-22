@@ -30,7 +30,7 @@
                 <router-link 
                   to="/" 
                   class="text-dark-300 hover:text-white transition-colors flex items-center gap-2"
-                  :class="{ 'nav-link-active': $route.path === '/' || $route.path.startsWith('/workout/') || $route.path.startsWith('/template/') }"
+                  :class="{ 'nav-link-active': $route.path === '/' || $route.path === '/week' || $route.path.startsWith('/workout/') || $route.path.startsWith('/template/') }"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
@@ -112,7 +112,7 @@
               <router-link 
                 to="/" 
                 class="flex flex-col items-center py-3 px-4 text-dark-300 hover:text-white transition-colors"
-                :class="{ 'nav-link-active': $route.path === '/' || $route.path.startsWith('/workout/') || $route.path.startsWith('/template/') }"
+                :class="{ 'nav-link-active': $route.path === '/' || $route.path === '/week' || $route.path.startsWith('/workout/') || $route.path.startsWith('/template/') }"
               >
                 <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
