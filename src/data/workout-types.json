@@ -35,6 +35,12 @@
       "name": "Full Body",
       "description": "Hele kroppen",
       "color": "#ef4444"
+    },
+    {
+      "id": "cardio",
+      "name": "Kondisjon",
+      "description": "Løping, sykling, roing og intervaller",
+      "color": "#06b6d4"
     }
   ]
 } 

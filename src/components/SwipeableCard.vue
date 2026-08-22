@@ -55,15 +55,19 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { vibrate } from '@/composables/useHaptics'
 
 interface Props {
   threshold?: number // Distance to trigger delete
   showSwipeHint?: boolean
+  /** Ignore swipes entirely — used while another gesture (e.g. drag-to-reorder) owns the pointer. */
+  disabled?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   threshold: 80,
-  showSwipeHint: true
+  showSwipeHint: true,
+  disabled: false
 })
 
 const emit = defineEmits<{
@@ -83,15 +87,14 @@ let isDragging = false
 
 // Haptic feedback
 const triggerHapticFeedback = () => {
-  if ('vibrate' in navigator) {
-    navigator.vibrate(50) // Short vibration
-  }
+  vibrate(50)
 }
 
 // Touch handlers
 const handleTouchStart = (event: TouchEvent) => {
+  if (props.disabled) return
   if (event.touches.length !== 1) return
-  
+
   startX = event.touches[0].clientX
   currentX = startX
   isDragging = true
@@ -104,8 +107,8 @@ const handleTouchStart = (event: TouchEvent) => {
 }
 
 const handleTouchMove = (event: TouchEvent) => {
-  if (!isDragging) return
-  
+  if (props.disabled || !isDragging) return
+
   currentX = event.touches[0].clientX
   const deltaX = currentX - startX
   

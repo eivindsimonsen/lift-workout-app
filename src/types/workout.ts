@@ -40,13 +40,22 @@ export interface ExerciseVariant {
   equipment?: string;
 }
 
+/**
+ * How an exercise is measured.
+ * - `strength`: reps × weight
+ * - `cardio`: duration, plus distance where it makes sense (a warm-up has none)
+ */
+export type ExerciseTrackingType = "strength" | "cardio";
+
 export interface ExerciseData {
   id: number;
   userId: string | null;
   name: string;
-  /** Primary muscle group, e.g. "Bryst", "Rygg", "Ben" */
+  /** Primary muscle group, e.g. "Bryst", "Rygg", "Ben" — "Kondisjon" for cardio */
   category: string;
   workoutTypes: string[];
+  /** Defaults to "strength"; variants inherit it from their parent. */
+  trackingType: ExerciseTrackingType;
   variants?: ExerciseVariant[];
 }
 
@@ -89,6 +98,12 @@ export interface WorkoutSession {
 export interface WorkoutExercise {
   exerciseId: number;
   name: string;
+  /**
+   * Copied from the library when the session starts, so a logged session stays
+   * readable even if the exercise is later renamed, retyped or deleted.
+   * Missing on sessions logged before cardio support — treat as "strength".
+   */
+  trackingType?: ExerciseTrackingType;
   sets: WorkoutSet[];
 }
 

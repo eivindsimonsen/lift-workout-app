@@ -98,11 +98,14 @@
       </div>
 
       <!-- Exercise list — compact rows, tap to open bottom sheet, swipe to delete -->
-      <div v-if="session" class="ex-list">
+      <div v-if="session" ref="exListRef" class="ex-list">
         <SwipeableCard
           v-for="(exercise, exerciseIndex) in session.exercises"
           :key="exercise.exerciseId"
           :show-swipe-hint="false"
+          :disabled="draggingIndex !== null"
+          :class="{ 'ex-item--dragging': draggingIndex === exerciseIndex }"
+          :style="draggingIndex === exerciseIndex ? { transform: `translateY(${dragTranslateY}px)` } : undefined"
           @delete="removeExercise(exerciseIndex)"
         >
           <button
@@ -110,13 +113,14 @@
             class="ex-row"
             :class="{ 'ex-row--done': isExerciseCompleted(exercise) }"
             :style="{ '--ex-color': getMuscleGroupColor(getExerciseMuscleGroups(exercise.exerciseId)[0] || '') }"
-            @click="openExerciseSheet(exerciseIndex)"
+            @pointerdown="onRowPointerDown($event, exerciseIndex)"
+            @click="onRowClick(exerciseIndex)"
           >
             <span class="ex-row__dot"></span>
             <span class="ex-row__body">
               <span class="ex-row__name">{{ exercise.name }}</span>
-              <span v-if="getLastPerformance(exercise.exerciseId)" class="ex-row__ref">
-                Sist {{ getLastPerformance(exercise.exerciseId)?.reps }}×{{ getLastPerformance(exercise.exerciseId)?.weight }}kg
+              <span v-if="lastPerformanceLabel(exercise.exerciseId)" class="ex-row__ref">
+                {{ lastPerformanceLabel(exercise.exerciseId) }}
               </span>
             </span>
             <span class="ex-row__right">
@@ -175,9 +179,9 @@
       </div>
 
       <!-- Mobile Exercise Picker -->
+      <!-- No :exercises binding: the panel reads the exercise store itself. -->
       <ExerciseSearchPanel
         :is-open="isMobileExercisePanelOpen"
-        :exercises="availableExercises"
         :workout-type="session?.workoutType"
         title="Velg øvelse"
         @close="closeMobileAddExercise"
@@ -408,13 +412,13 @@
                 </svg>
               </button>
               <p
-                v-if="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId) || getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)"
+                v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) || getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)"
                 class="ex-sheet__ref"
               >
-                <span v-if="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)">
-                  Sist {{ getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)?.reps }}×{{ getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)?.weight }}kg
+                <span v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId)">
+                  {{ lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) }}
                 </span>
-                <span v-if="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId) && getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-sep"> · </span>
+                <span v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) && getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-sep"> · </span>
                 <span v-if="getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-pb">
                   PB {{ getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)?.weight }}kg
                 </span>
@@ -447,11 +451,18 @@
           <div class="ex-sheet__body">
 
             <!-- Column headers -->
-            <div class="ex-set__headers">
+            <div class="ex-set__headers" :class="{ 'ex-set__headers--cardio': activeExerciseIsCardio }">
               <span>#</span>
-              <span>Reps</span>
-              <span>Vekt (kg)</span>
-              <span class="ex-set__col-right">Volum</span>
+              <template v-if="activeExerciseIsCardio">
+                <span>Min</span>
+                <span>Sek</span>
+                <span class="ex-set__col-right">Km</span>
+              </template>
+              <template v-else>
+                <span>Reps</span>
+                <span>Vekt (kg)</span>
+                <span class="ex-set__col-right">Volum</span>
+              </template>
             </div>
 
             <!-- Keyed wrapper: switching exercises remounts the list so TransitionGroup -->
@@ -484,7 +495,7 @@
                 <!-- Actual row content, slides on swipe -->
                 <div
                   class="ex-set__row"
-                  :class="{ 'ex-set__row--done': set.isCompleted }"
+                  :class="{ 'ex-set__row--done': set.isCompleted, 'ex-set__row--cardio': activeExerciseIsCardio }"
                   :style="{ transform: `translateX(${setSwipeX[set.id] ?? 0}px)`, transition: setSwipeX[set.id] ? 'none' : 'transform 0.2s ease-out' }"
                 >
                 <span
@@ -492,6 +503,51 @@
                   :class="{ 'ex-set__num--done': set.isCompleted }"
                 >{{ setIndex + 1 }}</span>
 
+                <template v-if="activeExerciseIsCardio">
+                  <input
+                    :value="durationMinutes(set)"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    min="0"
+                    class="ex-set__input"
+                    :class="{ 'ex-set__input--done': set.isCompleted }"
+                    placeholder="–"
+                    @focus="markFocus"
+                    @input="(event) => handleDurationInput(event, activeExerciseIndex!, setIndex, 'min')"
+                    @blur="(event) => handleDurationBlur(event, activeExerciseIndex!, setIndex, 'min')"
+                  />
+
+                  <input
+                    :value="durationSeconds(set)"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    min="0"
+                    max="59"
+                    class="ex-set__input"
+                    :class="{ 'ex-set__input--done': set.isCompleted }"
+                    placeholder="–"
+                    @focus="markFocus"
+                    @input="(event) => handleDurationInput(event, activeExerciseIndex!, setIndex, 'sec')"
+                    @blur="(event) => handleDurationBlur(event, activeExerciseIndex!, setIndex, 'sec')"
+                  />
+
+                  <input
+                    :value="distanceKm(set)"
+                    type="text"
+                    inputmode="decimal"
+                    min="0"
+                    class="ex-set__input ex-set__input--right"
+                    :class="{ 'ex-set__input--done': set.isCompleted }"
+                    placeholder="–"
+                    @focus="markFocus"
+                    @input="(event) => handleDistanceInput(event, activeExerciseIndex!, setIndex)"
+                    @blur="(event) => handleDistanceBlur(event, activeExerciseIndex!, setIndex)"
+                  />
+                </template>
+
+                <template v-else>
                 <input
                   :value="set.reps === 0 ? '' : set.reps"
                   type="text"
@@ -532,6 +588,7 @@
                 <span class="ex-set__vol" :class="{ 'ex-set__vol--done': set.isCompleted }">
                   {{ set.weight && set.reps ? formatNumber(set.weight * set.reps) : '–' }}
                 </span>
+                </template>
                 </div><!-- /.ex-set__row -->
               </div><!-- /.ex-set__swipe-wrapper -->
             </TransitionGroup>
@@ -540,7 +597,8 @@
             <!-- Sheet footer: volume + add set -->
             <div class="ex-card__footer">
               <span class="ex-card__footer-vol">
-                {{ formatNumber(calculateExerciseVolume(session.exercises[activeExerciseIndex])) }} kg totalt
+                <template v-if="activeExerciseIsCardio">{{ cardioExerciseSummary(session.exercises[activeExerciseIndex]) }}</template>
+                <template v-else>{{ formatNumber(calculateExerciseVolume(session.exercises[activeExerciseIndex])) }} kg totalt</template>
               </span>
               <button class="ex-card__add-set" @click="addSet(activeExerciseIndex)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -570,6 +628,17 @@ import SwipeableCard from '@/components/SwipeableCard.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
 import SlideOver from '@/components/SlideOver.vue'
+import { vibrate } from '@/composables/useHaptics'
+import { useLongPressReorder } from '@/composables/useLongPressReorder'
+import {
+  isCardioExercise,
+  isSetCounted,
+  isSetLogged,
+  setVolume,
+  formatDuration,
+  formatDistance,
+  formatPace,
+} from '@/composables/useSetMetrics'
 
 const route = useRoute()
 const router = useRouter()
@@ -615,7 +684,7 @@ function onSetTouchMove(event: TouchEvent, setId: string) {
 /** Commit or cancel the set row swipe. */
 function onSetTouchEnd(exerciseIndex: number, setIndex: number, setId: string) {
   if (Math.abs(setSwipeX[setId] ?? 0) >= SET_SWIPE_THRESHOLD) {
-    if ('vibrate' in navigator) navigator.vibrate(50)
+    vibrate(50)
     removeSet(exerciseIndex, setIndex)
   }
   setSwipeX[setId] = 0
@@ -709,10 +778,7 @@ const estimatedVolume = computed(() => {
   if (!session.value) return 0
   return session.value.exercises.reduce((exerciseTotal, exercise) => {
     const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
-      if (set.isCompleted && set.weight && set.reps) {
-        return setTotal + (set.weight * set.reps)
-      }
-      return setTotal
+      return isSetCounted(exercise, set) ? setTotal + setVolume(exercise, set) : setTotal
     }, 0)
     return exerciseTotal + exerciseVolume
   }, 0)
@@ -750,12 +816,9 @@ const availableExercises = computed(() => {
   return available
 })
 
-// Pending changes functionality
-const pendingChangesCount = ref(0);
-
-const updatePendingChangesCount = async () => {
-  pendingChangesCount.value = 0
-}
+// Offline changes still queued for Supabase. Owned by the data store — the store
+// keeps the count current, so this view just reads it.
+const pendingChangesCount = workoutData.pendingChangesCount
 
 const syncPendingChanges = async () => {
   if (!workoutData.isOnline.value) return
@@ -763,7 +826,6 @@ const syncPendingChanges = async () => {
   isSyncingPendingChanges.value = true
   try {
     await workoutData.syncPendingChanges()
-    await updatePendingChangesCount()
   } catch (error) {
     console.error('❌ Error syncing pending changes:', error)
   } finally {
@@ -859,6 +921,99 @@ const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) =
   unhideNavSoon()
 }
 
+/** Cardio duration is stored in seconds but entered as separate min/sec fields. */
+const handleDurationInput = (event: Event, exerciseIndex: number, setIndex: number, part: 'min' | 'sec') => {
+  if (!session.value) return
+  const raw = (event.target as HTMLInputElement).value
+  const entered = raw === '' ? 0 : Math.max(0, parseInt(raw) || 0)
+
+  const set = session.value.exercises[exerciseIndex].sets[setIndex]
+  const current = Number(set.duration) || 0
+  const minutes = part === 'min' ? entered : Math.floor(current / 60)
+  // Seconds above 59 belong in the minutes field; clamp rather than silently
+  // rolling over, so what you typed is what you see.
+  const seconds = part === 'sec' ? Math.min(59, entered) : current % 60
+
+  set.duration = minutes * 60 + seconds
+  updateSetCompletion(exerciseIndex, setIndex)
+  persistExercisesToLocal()
+}
+
+const handleDurationBlur = (event: Event, exerciseIndex: number, setIndex: number, part: 'min' | 'sec') => {
+  handleDurationInput(event, exerciseIndex, setIndex, part)
+  unhideNavSoon()
+}
+
+/** Distance is entered in kilometres and stored in metres. */
+const handleDistanceInput = (event: Event, exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  const raw = (event.target as HTMLInputElement).value
+  const km = raw === '' ? 0 : toNumber(raw)
+  session.value.exercises[exerciseIndex].sets[setIndex].distance = Math.max(0, Math.round(km * 1000))
+  updateSetCompletion(exerciseIndex, setIndex)
+  persistExercisesToLocal()
+}
+
+const handleDistanceBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
+  handleDistanceInput(event, exerciseIndex, setIndex)
+  unhideNavSoon()
+}
+
+/** Minutes / seconds / kilometres for the inputs, blank when unset. */
+const durationMinutes = (set: any): string => {
+  const total = Number(set?.duration) || 0
+  return total >= 60 ? String(Math.floor(total / 60)) : ''
+}
+const durationSeconds = (set: any): string => {
+  const total = Number(set?.duration) || 0
+  return total % 60 === 0 ? '' : String(total % 60)
+}
+const distanceKm = (set: any): string => {
+  const metres = Number(set?.distance) || 0
+  return metres === 0 ? '' : String(metres / 1000)
+}
+
+/** "12:30 · 3,20 km · 5:12 /km" for the cardio sheet footer. */
+const cardioExerciseSummary = (exercise: any): string => {
+  if (!exercise || !Array.isArray(exercise.sets)) return '–'
+
+  let seconds = 0
+  let metres = 0
+  exercise.sets.forEach((set: any) => {
+    if (!isSetCounted(exercise, set)) return
+    seconds += Number(set.duration) || 0
+    metres += Number(set.distance) || 0
+  })
+
+  if (seconds === 0 && metres === 0) return 'Ingen sett logget'
+
+  const parts: string[] = []
+  if (seconds > 0) parts.push(`${formatDuration(seconds)} totalt`)
+  if (metres > 0) parts.push(formatDistance(metres))
+  const pace = formatPace(seconds, metres)
+  if (pace) parts.push(pace)
+  return parts.join(' · ')
+}
+
+/** "Sist 8×60kg" for strength, "Sist 4:00 · 1,00 km" for cardio. */
+const lastPerformanceLabel = (exerciseId: number): string | null => {
+  const last = getLastPerformance(exerciseId)
+  if (!last) return null
+
+  if (!last.isCardio) return `Sist ${last.reps}×${last.weight}kg`
+
+  const parts: string[] = []
+  if (Number(last.duration) > 0) parts.push(formatDuration(Number(last.duration)))
+  if (Number(last.distance) > 0) parts.push(formatDistance(Number(last.distance)))
+  return parts.length > 0 ? `Sist ${parts.join(' · ')}` : null
+}
+
+/** Whether the exercise currently open in the sheet is a cardio one. */
+const activeExerciseIsCardio = computed(() => {
+  if (activeExerciseIndex.value === null || !session.value) return false
+  return isCardioExercise(session.value.exercises[activeExerciseIndex.value])
+})
+
 const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   if (!session.value) return
   const set = session.value.exercises[exerciseIndex].sets[setIndex]
@@ -868,12 +1023,8 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   if (typeof set.reps === 'string') {
     set.reps = parseInt(set.reps) || 0
   }
-  const isCompleted = Boolean(
-    set.weight &&
-    set.reps &&
-    set.weight > 0 &&
-    set.reps > 0
-  )
+  const exercise = session.value.exercises[exerciseIndex]
+  const isCompleted = isSetLogged(exercise, set)
   if (set.isCompleted !== isCompleted) {
     set.isCompleted = isCompleted
   }
@@ -1049,6 +1200,8 @@ const addExerciseToSession = () => {
   const newExercise = {
     exerciseId,
     name: exerciseName,
+    // Same reasoning as when a session starts: carry the type with the session.
+    trackingType: workoutData.exerciseIndex.value.get(exerciseId)?.trackingType ?? 'strength',
     sets: [0, 1, 2].map((setIndex) => ({
       id: `set-${setSeed}-${exerciseSlotIndex}-${setIndex}`,
       reps: 0,
@@ -1105,9 +1258,54 @@ const removeSet = (exerciseIndex: number, setIndex: number) => {
   persistExercisesToLocal()
 }
 
+// ===== Deferred cleanup =====
+// Vue can only bind lifecycle hooks synchronously during setup. The onMounted
+// below is async, so calling onUnmounted after one of its awaits silently fails
+// to register — leaving every listener it set up attached for the rest of the
+// session. Collect the teardown callbacks instead and run them from a single
+// hook registered here, synchronously.
+const deferredCleanups: Array<() => void> = []
+
+const addCleanup = (fn: () => void) => {
+  deferredCleanups.push(fn)
+}
+
+onUnmounted(() => {
+  while (deferredCleanups.length > 0) {
+    const fn = deferredCleanups.pop()
+    try {
+      fn?.()
+    } catch (error) {
+      console.warn('⚠️ Cleanup failed:', error)
+    }
+  }
+})
+
+// ===== Long-press drag to reorder exercises =====
+// Shared with the template editor; see useLongPressReorder for why a long press
+// is required rather than a plain vertical drag.
+const exListRef = ref<HTMLElement | null>(null)
+
+const {
+  draggingIndex,
+  dragTranslateY,
+  onRowPointerDown,
+  consumeClickSuppression,
+} = useLongPressReorder({
+  getItems: () => session.value?.exercises ?? null,
+  listEl: exListRef,
+  onReordered: () => persistExercisesToLocal(),
+})
+// ===== end drag section =====
+
 /** Opens the bottom sheet for a specific exercise index. */
 const openExerciseSheet = (idx: number) => {
   activeExerciseIndex.value = idx
+}
+
+const onRowClick = (index: number) => {
+  if (consumeClickSuppression()) return
+  openExerciseSheet(index)
 }
 
 const closeExerciseSheet = () => {
@@ -1171,13 +1369,16 @@ const getLastPerformance = (exerciseId: number) => {
     const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
     if (!exercise) continue
 
-    const completedSets = exercise.sets.filter(set => set.isCompleted && set.weight && set.reps)
+    const completedSets = exercise.sets.filter(set => isSetCounted(exercise, set))
     if (completedSets.length === 0) continue
 
     const lastSet = completedSets[completedSets.length - 1]
     return {
       weight: lastSet.weight,
       reps: lastSet.reps,
+      duration: lastSet.duration,
+      distance: lastSet.distance,
+      isCardio: isCardioExercise(exercise),
       date: session.date
     }
   }
@@ -1235,10 +1436,7 @@ const getHeaviestLift = (exerciseId: number) => {
 const calculateExerciseVolume = (exercise: any): number => {
   if (!exercise || !Array.isArray(exercise.sets)) return 0
   return exercise.sets.reduce((sum: number, set: any) => {
-    if (set.isCompleted && set.weight && set.reps) {
-      return sum + set.weight * set.reps
-    }
-    return sum
+    return isSetCounted(exercise, set) ? sum + setVolume(exercise, set) : sum
   }, 0)
 }
 
@@ -1415,7 +1613,7 @@ const cleanupSessionData = async (sessionData: WorkoutSession): Promise<WorkoutS
   let totalSetsRemoved = 0
   cleanedSession.exercises.forEach((exercise: any) => {
     exercise.sets = exercise.sets.filter((set: any) => {
-      const isComplete = set.isCompleted && set.weight > 0 && set.reps > 0
+      const isComplete = isSetCounted(exercise, set)
       if (!isComplete) {
         console.log(`🧹 Removing incomplete set from "${exercise.name}" - weight: ${set.weight}, reps: ${set.reps}`)
         totalSetsRemoved++
@@ -1538,7 +1736,7 @@ function afterCollapse(el: Element) {
 // Determine when an exercise is fully completed (all sets complete)
 const isExerciseCompleted = (exercise: any): boolean => {
   if (!exercise || !Array.isArray(exercise.sets) || exercise.sets.length === 0) return false
-  return exercise.sets.every((set: any) => set.isCompleted && set.weight > 0 && set.reps > 0)
+  return exercise.sets.every((set: any) => isSetCounted(exercise, set))
 }
 
 // Lifecycle
@@ -1626,7 +1824,7 @@ onMounted(async () => {
           { immediate: false }
         )
         // Ensure we clean these up later
-        onUnmounted(() => {
+        addCleanup(() => {
           try { stopSessionsWatch() } catch {}
           try { stopAuthWatch() } catch {}
         })
@@ -1678,8 +1876,6 @@ onMounted(async () => {
     })
     window.dispatchEvent(updateEvent)
   })
-
-  await updatePendingChangesCount()
 
   // Online auto-sync
   const handleOnlineSync = async () => {
@@ -1744,7 +1940,7 @@ onMounted(async () => {
   window.addEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
   window.addEventListener('beforeunload', handleBeforeUnload)
 
-  onUnmounted(() => {
+  addCleanup(() => {
     window.removeEventListener('keydown', handleKeydown)
     window.removeEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
     window.removeEventListener('beforeunload', handleBeforeUnload)
@@ -1811,6 +2007,27 @@ watch(() => route.params.id, async (newId, oldId) => {
   transition: background 0.15s;
   -webkit-tap-highlight-color: transparent;
   border-radius: 0.875rem;
+  /* A long press must not raise iOS' selection callout on the row. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ── Drag to reorder ─────────────────────────────────────────────────────── */
+
+/* The list clips its children for the swipe animation; the lifted card needs
+   to escape that so its shadow isn't cut off. */
+.ex-list > .ex-item--dragging {
+  overflow: visible;
+  position: relative;
+  z-index: 20;
+}
+
+.ex-item--dragging .ex-row {
+  background: #16202f;
+  transform: scale(1.02);
+  box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.7);
+  cursor: grabbing;
 }
 
 .ex-row:hover, .ex-row:active { background: #131c2b; }
@@ -2119,6 +2336,13 @@ watch(() => route.params.id, async (newId, oldId) => {
 .ex-set__input::placeholder { color: #5a6e85; font-weight: 400; font-size: 0.875rem; }
 .ex-set__input:focus { outline: none; border-color: #f97316; background: #2d3a4f; box-shadow: 0 0 0 3px #f9731620; }
 .ex-set__input--done { color: #86efac; border-color: #16a34a50; background: #16a34a15; }
+
+.ex-set__headers--cardio,
+.ex-set__row--cardio {
+  grid-template-columns: 2.25rem 1fr 1fr 1fr;
+}
+
+.ex-set__input--right { text-align: right; }
 
 .ex-set__vol {
   text-align: right;

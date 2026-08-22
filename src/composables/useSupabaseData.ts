@@ -2,7 +2,8 @@ import { ref, computed } from "vue";
 import { useSupabase } from "./useSupabase";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 import { useIndexedDB } from "@/composables/useIndexedDB";
-import type { WorkoutTemplate, WorkoutSession } from "@/types/workout";
+import { useExercises } from "./useExercises";
+import type { WorkoutTemplate, WorkoutSession, ExerciseTrackingType } from "@/types/workout";
 
 // ------- tiny logger ----------
 const logSupabaseAccess = (operation: string, details?: any) => {
@@ -115,6 +116,22 @@ const BACKFILL_BATCH_DELAY_MS = 250; // small delay between background pages
 const createSupabaseData = () => {
   const { supabase } = useSupabase();
   const indexedDB = useIndexedDB();
+  const exercisesStore = useExercises();
+
+  /**
+   * How an exercise is measured, looked up when a session is created so the
+   * session can carry the answer with it. Defaults to strength for anything the
+   * library doesn't know about.
+   */
+  const resolveTrackingType = (exerciseId: number | string): ExerciseTrackingType => {
+    const numId = Number(exerciseId);
+    for (const exercise of exercisesStore.exercises.value) {
+      if (exercise.id === numId || exercise.variants?.some((v) => v.id === numId)) {
+        return exercise.trackingType ?? "strength";
+      }
+    }
+    return "strength";
+  };
 
   // state
   const templates = ref<WorkoutTemplate[]>([]);
@@ -716,6 +733,7 @@ const createSupabaseData = () => {
       exercises: existing.exercises.map((ex) => ({
         exerciseId: ex.exerciseId,
         name: ex.name,
+        trackingType: ex.trackingType,
         sets: ex.sets.map((set) => ({
           id: set.id,
           reps: Number(set.reps) || 0,
@@ -938,6 +956,9 @@ const createSupabaseData = () => {
         exercises: template.exercises.map((ex, exerciseIndex) => ({
           exerciseId: ex.exerciseId,
           name: ex.name,
+          // Stamped now so the session stays readable even if the exercise is
+          // later retyped or deleted.
+          trackingType: resolveTrackingType(ex.exerciseId),
           sets: [0, 1, 2].map((setIndex) => ({
             id: `set-${sessionSeed}-${exerciseIndex}-${setIndex}`,
             reps: 0,

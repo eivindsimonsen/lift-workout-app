@@ -125,6 +125,36 @@
           </div>
         </div>
       </div>
+
+      <!-- Cardio sits in the same overview grid, not off in its own corner -->
+      <div v-if="cardioStats.hasData" class="card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-dark-300 text-sm">Kondisjonstid</p>
+            <p class="text-2xl font-bold text-white">{{ formatDuration(cardioStats.seconds) }}</p>
+          </div>
+          <div class="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="cardioStats.metres > 0" class="card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-dark-300 text-sm">Total Distanse</p>
+            <p class="text-2xl font-bold text-white">{{ formatDistance(cardioStats.metres) }}</p>
+          </div>
+          <div class="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Progress Over Time -->
@@ -168,22 +198,22 @@
     <div v-else class="card">
       <h3 class="text-lg font-semibold text-white mb-6">Fremgang over Tid</h3>
       
-      <!-- Power Exercise Records -->
+      <!-- Heaviest Lifts -->
       <div class="mb-6">
-        <h4 class="text-md font-medium text-white mb-4">Power Exercise Records</h4>
-        <div v-if="powerExerciseRecords.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div 
-            v-for="pr in powerExerciseRecords" 
-            :key="pr.exercise"
+        <h4 class="text-md font-medium text-white mb-4">Tyngste løft</h4>
+        <div v-if="heaviestLifts.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div
+            v-for="lift in heaviestLifts"
+            :key="lift.exerciseId"
             class="bg-dark-700 rounded-lg p-3"
           >
-            <div class="text-sm text-dark-300">{{ pr.exercise }}</div>
-            <div class="text-lg font-bold text-primary-500">{{ pr.weight }} kg</div>
-            <div class="text-xs text-dark-300">{{ pr.reps }} reps • {{ pr.date }}</div>
+            <div class="text-sm text-dark-300">{{ lift.exercise }}</div>
+            <div class="text-lg font-bold text-primary-500">{{ lift.weight }} kg</div>
+            <div class="text-xs text-dark-300">{{ lift.reps }} reps • {{ lift.date }}</div>
           </div>
         </div>
         <div v-else class="bg-dark-700 rounded-lg p-4 text-sm text-dark-300">
-          Ingen power exercise records ennå. Start med å trene Barbell Bench Press, Deadlift, Squat eller Barbell Shoulder Press for å bygge styrke.
+          Ingen fullførte sett i denne perioden ennå.
         </div>
       </div>
 
@@ -210,6 +240,46 @@
         </div>
         <div v-else class="bg-dark-700 rounded-lg p-4 text-sm text-dark-300">
           For å logge 1RM: fullfør et sett med 1 repetisjon på en øvelse.
+        </div>
+      </div>
+    </div>
+
+    <!-- Cardio -->
+    <div v-if="!isLoading && cardioStats.hasData" class="card">
+      <h3 class="text-lg font-semibold text-white mb-1">Kondisjon</h3>
+      <p class="text-xs text-dark-300 mb-4">Tid og distanse holdes utenfor volum- og styrketallene over.</p>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Total tid</div>
+          <div class="text-lg font-bold text-cyan-400">{{ formatDuration(cardioStats.seconds) }}</div>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Total distanse</div>
+          <div class="text-lg font-bold text-cyan-400">{{ formatDistance(cardioStats.metres) }}</div>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Snitt tempo</div>
+          <div class="text-lg font-bold text-cyan-400">{{ cardioStats.pace ?? '–' }}</div>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Økter med kondisjon</div>
+          <div class="text-lg font-bold text-cyan-400">{{ cardioStats.sessions }}</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Lengste enkeltdrag</div>
+          <div class="text-base font-semibold text-white">{{ formatDistance(cardioStats.longestDistance) }}</div>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Lengste varighet</div>
+          <div class="text-base font-semibold text-white">{{ formatDuration(cardioStats.longestDuration) }}</div>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Antall drag</div>
+          <div class="text-base font-semibold text-white">{{ cardioStats.sets }}</div>
         </div>
       </div>
     </div>
@@ -430,6 +500,7 @@
 import { computed, ref, watch } from 'vue'
 import { useHybridData } from '@/composables/useHybridData'
 import muscleGroupsData from '@/data/muscle-groups.json';
+import { isCardioExercise, isSetCounted, formatDuration, formatDistance, formatPace } from '@/composables/useSetMetrics';
 
 const workoutData = useHybridData()
 
@@ -552,6 +623,9 @@ const muscleGroupStats = computed(() => {
 
   filteredSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
+      // Cardio carries no kilos, so it would only ever show up as 0 % here.
+      // It gets its own section instead.
+      if (isCardioExercise(exercise)) return
       // Get exercise data to find muscle groups
       const exerciseData = workoutData.exercises.value.find((e) =>
         e.variants?.some((v) => v.id === Number(exercise.exerciseId)) || e.id === Number(exercise.exerciseId)
@@ -660,7 +734,6 @@ const getCalendarDayClass = (trained: boolean): string => {
 }
 
 // Monthly calendar state
-import { ref } from 'vue'
 const currentMonth = ref(new Date())
 const monthOffset = ref(0)
 
@@ -851,71 +924,45 @@ const oneRepMaxProgression = computed(() => {
     .slice(0, 5) // Show top 5
 })
 
-const powerExerciseRecords = computed(() => {
-  // Define power exercises (major compound movements) - specific variant IDs
-  const powerExerciseIds = [
-    'barbell-bench-press',           // Barbell Bench Press variant
-    'deadlift',                      // Deadlift (no variants)
-    'squat',                         // Squat (no variants)
-    'barbell-shoulder-press'         // Barbell Shoulder Press variant
-  ]
+/**
+ * The four exercises with the heaviest single set in the selected period.
+ *
+ * Replaces an earlier version that matched hardcoded slugs ('deadlift', 'squat', …)
+ * against numeric exercise ids and therefore always came back empty. Deriving the
+ * list from the data keeps it meaningful no matter what the exercises are named.
+ */
+const heaviestLifts = computed(() => {
+  const best = new Map<number, { exerciseId: number; exercise: string; weight: number; reps: number; date: Date }>()
 
-  const records: { exercise: string; weight: number; reps: number; date: string }[] = []
+  filteredSessions.value.forEach(session => {
+    session.exercises.forEach(exercise => {
+      const exerciseId = Number(exercise.exerciseId)
 
-  // Only consider fully completed sessions
-  const completedSessions = filteredSessions.value.filter(session => session.isCompleted)
+      exercise.sets.forEach(set => {
+        if (!set.isCompleted) return
+        const weight = Number(set.weight) || 0
+        const reps = Number(set.reps) || 0
+        if (weight <= 0 || reps <= 0) return
 
-  // Find the heaviest set for each power exercise
-  powerExerciseIds.forEach(exerciseId => {
-    let bestSet: { weight: number; reps: number; date: Date } | null = null
+        // Heaviest wins; on equal weight, more reps wins.
+        const current = best.get(exerciseId)
+        if (current && !(weight > current.weight || (weight === current.weight && reps > current.reps))) return
 
-    completedSessions.forEach(session => {
-      // Consider all occurrences of the exercise within a session
-      session.exercises
-        .filter(e => e.exerciseId === exerciseId)
-        .forEach(exercise => {
-          exercise.sets.forEach(set => {
-            if (set.isCompleted && set.weight && set.reps) {
-              const weight = Number(set.weight) || 0
-              const reps = Number(set.reps) || 0
-              
-              if (!bestSet) {
-                bestSet = { weight, reps, date: session.date }
-                return
-              }
-
-              const isHeavier = weight > bestSet.weight
-              const sameWeightMoreReps = weight === bestSet.weight && reps > bestSet.reps
-              const sameWeightSameRepsNewer = weight === bestSet.weight && reps === bestSet.reps && new Date(session.date).getTime() > new Date(bestSet.date).getTime()
-
-              if (isHeavier || sameWeightMoreReps || sameWeightSameRepsNewer) {
-                bestSet = { weight, reps, date: session.date }
-              }
-            }
-          })
+        best.set(exerciseId, {
+          exerciseId,
+          exercise: getExerciseDisplayName(exerciseId),
+          weight,
+          reps,
+          date: new Date(session.date)
         })
+      })
     })
-
-    if (bestSet) {
-      const exerciseData = workoutData.getExerciseById(exerciseId)
-      if (exerciseData) {
-        const s = bestSet as { weight: number; reps: number; date: Date }
-        records.push({
-          exercise: exerciseData.name,
-          weight: s.weight,
-          reps: s.reps,
-          date: formatDate(s.date)
-        })
-      }
-    }
   })
 
-  // Sort by heaviest weight, then reps, then most recent date
-  return records.sort((a, b) => {
-    if (a.weight !== b.weight) return b.weight - a.weight
-    if (a.reps !== b.reps) return b.reps - a.reps
-    return new Date(b.date).getTime() - new Date(a.date).getTime()
-  })
+  return [...best.values()]
+    .sort((a, b) => b.weight - a.weight || b.reps - a.reps || b.date.getTime() - a.date.getTime())
+    .slice(0, 4)
+    .map(record => ({ ...record, date: formatDate(record.date) }))
 })
 
 // Helper function to get better exercise display names
@@ -991,10 +1038,10 @@ const achievements = computed(() => {
   const totalSessions = sessions.length
 
   // Metrics
-  const uniqueExerciseIds = new Set<string>()
+  const uniqueExerciseIds = new Set<number>()
   sessions.forEach(s => s.exercises.forEach(e => uniqueExerciseIds.add(e.exerciseId)))
 
-  const oneRmExercises = new Set<string>()
+  const oneRmExercises = new Set<number>()
   sessions.forEach(s => s.exercises.forEach(e => e.sets.forEach(set => {
     if (set.isCompleted && set.weight && set.reps === 1) {
       oneRmExercises.add(e.exerciseId)
@@ -1057,6 +1104,38 @@ const achievements = computed(() => {
     { id: 'months-12', icon: '🗓️', title: '12 aktive måneder', description: 'Et helt år med trening!', earned: trainedMonths.size >= 12 }
   ]
 
+  // Cardio badges only appear once there's cardio to earn them with — otherwise
+  // a pure strength user would stare at a wall of permanently grey running icons.
+  const c = cardioStats.value
+  if (c.hasData) {
+    const minutes = c.seconds / 60
+    const km = c.metres / 1000
+
+    all.push(
+      { id: 'cardio-first', icon: '🏃', title: 'Første kondisjonsøkt', description: 'Du logget ditt første kondisjonsdrag!', earned: c.sets >= 1 },
+      { id: 'cardio-10-sessions', icon: '👟', title: '10 kondisjonsøkter', description: 'Kondisjon er blitt en vane.', earned: c.sessions >= 10 },
+
+      { id: 'cardio-minutes-60', icon: '⏱️', title: '1 time kondisjon', description: 'Totalt 60 minutter logget.', earned: minutes >= 60 },
+      { id: 'cardio-minutes-600', icon: '⏱️', title: '10 timer kondisjon', description: 'Totalt 600 minutter logget.', earned: minutes >= 600 },
+      { id: 'cardio-minutes-3000', icon: '⌛', title: '50 timer kondisjon', description: 'Det begynner å bli en del tid på beina.', earned: minutes >= 3000 },
+
+      { id: 'cardio-km-10', icon: '📍', title: '10 km totalt', description: 'De første ti kilometerne er unnagjort.', earned: km >= 10 },
+      { id: 'cardio-km-100', icon: '🗺️', title: '100 km totalt', description: 'Tresifret distanse!', earned: km >= 100 },
+      { id: 'cardio-km-500', icon: '🧭', title: '500 km totalt', description: 'Oslo–Trondheim på egne bein.', earned: km >= 500 },
+
+      { id: 'cardio-long-5k', icon: '🏅', title: '5 km i strekk', description: 'Ett enkelt drag på 5 km eller mer.', earned: c.longestDistance >= 5000 },
+      { id: 'cardio-long-10k', icon: '🥇', title: '10 km i strekk', description: 'Ett enkelt drag på 10 km eller mer.', earned: c.longestDistance >= 10000 },
+      { id: 'cardio-half', icon: '🏔️', title: 'Halvmaraton', description: '21,1 km i ett strekk!', earned: c.longestDistance >= 21097 },
+      { id: 'cardio-marathon', icon: '🎽', title: 'Maraton', description: '42,2 km i ett strekk. Respekt.', earned: c.longestDistance >= 42195 },
+
+      { id: 'cardio-long-hour', icon: '🕐', title: 'Timesøkta', description: 'Ett drag på over en time.', earned: c.longestDuration >= 3600 },
+
+      { id: 'cardio-pace-6', icon: '💨', title: 'Under 6:00 per km', description: 'Holdt tempoet på et drag over 1 km.', earned: c.bestPaceSecPerKm <= 360 },
+      { id: 'cardio-pace-5', icon: '⚡', title: 'Under 5:00 per km', description: 'Det begynner å gå fort.', earned: c.bestPaceSecPerKm <= 300 },
+      { id: 'cardio-pace-4', icon: '🚀', title: 'Under 4:00 per km', description: 'Rått tempo!', earned: c.bestPaceSecPerKm <= 240 },
+    )
+  }
+
   return all
 })
 
@@ -1077,6 +1156,54 @@ const totalDuration = computed(() => {
   return filteredSessions.value.reduce((total, session) => {
     return total + session.duration
   }, 0)
+})
+
+/**
+ * Cardio totals for the selected period. Kept apart from the strength numbers
+ * rather than folded in — kilos and kilometres don't add up to anything.
+ */
+const cardioStats = computed(() => {
+  let seconds = 0
+  let metres = 0
+  let sets = 0
+  let longestDistance = 0
+  let longestDuration = 0
+  /** Fastest pace in seconds per km — lower is better. */
+  let bestPaceSecPerKm = Infinity
+  const sessionIds = new Set<string>()
+
+  filteredSessions.value.forEach(session => {
+    session.exercises.forEach(exercise => {
+      if (!isCardioExercise(exercise)) return
+      exercise.sets.forEach(set => {
+        if (!isSetCounted(exercise, set)) return
+        const duration = Number(set.duration) || 0
+        const distance = Number(set.distance) || 0
+        seconds += duration
+        metres += distance
+        sets += 1
+        longestDistance = Math.max(longestDistance, distance)
+        longestDuration = Math.max(longestDuration, duration)
+        // Only drags long enough for pace to mean anything.
+        if (distance >= 1000 && duration > 0) {
+          bestPaceSecPerKm = Math.min(bestPaceSecPerKm, (duration / distance) * 1000)
+        }
+        sessionIds.add(session.id)
+      })
+    })
+  })
+
+  return {
+    hasData: sets > 0,
+    seconds,
+    metres,
+    sets,
+    sessions: sessionIds.size,
+    longestDistance,
+    longestDuration,
+    bestPaceSecPerKm,
+    pace: formatPace(seconds, metres),
+  }
 })
 
 const restDaysCount = computed(() => {

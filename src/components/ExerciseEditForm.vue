@@ -6,6 +6,7 @@ import { ref, computed, watch } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
 import { useExercises } from '@/composables/useExercises'
 import muscleGroupsData from '@/data/muscle-groups.json'
+import workoutTypesData from '@/data/workout-types.json'
 import type { ExerciseData, ExerciseVariant } from '@/types/workout'
 
 // ---------------------------------------------------------------------------
@@ -38,24 +39,19 @@ const emit = defineEmits<{
 // Constants
 // ---------------------------------------------------------------------------
 
-const CATEGORIES = [
-  'Bryst', 'Rygg', 'Ben', 'Skuldre',
-  'Biceps', 'Triceps', 'Kjerne',
-]
+// Derived from muscle-groups.json so a new group (e.g. Kondisjon) shows up
+// everywhere at once instead of drifting out of sync with a hardcoded list.
+const CATEGORIES = muscleGroupsData.muscleGroups.map((g) => g.name)
 
 const CATEGORY_COLORS: Record<string, string> = {
   ...Object.fromEntries(muscleGroupsData.muscleGroups.map((g) => [g.name, g.color])),
   Annet: '#6b7280',
 }
 
-const WORKOUT_TYPE_OPTIONS = [
-  { id: 'push',      label: 'Push' },
-  { id: 'pull',      label: 'Pull' },
-  { id: 'legs',      label: 'Legs' },
-  { id: 'upper',     label: 'Upper' },
-  { id: 'lower',     label: 'Lower' },
-  { id: 'full-body', label: 'Full Body' },
-]
+// Derived from workout-types.json, minus 'cardio' — see ExerciseForm.
+const WORKOUT_TYPE_OPTIONS = workoutTypesData.workoutTypes
+  .filter((wt) => wt.id !== 'cardio')
+  .map((wt) => ({ id: wt.id, label: wt.name }))
 
 // ---------------------------------------------------------------------------
 // State

@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { useSupabase } from "./useSupabase";
 import { useErrorHandler } from "./useErrorHandler";
-import type { ExerciseData, ExerciseVariant } from "@/types/workout";
+import type { ExerciseData, ExerciseVariant, ExerciseTrackingType } from "@/types/workout";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -11,12 +11,14 @@ export interface CreateExercisePayload {
   name: string;
   category: string;
   workoutTypes: string[];
+  trackingType?: ExerciseTrackingType;
 }
 
 export interface UpdateExercisePayload {
   name?: string;
   category?: string;
   workoutTypes?: string[];
+  trackingType?: ExerciseTrackingType;
 }
 
 export interface CreateVariantPayload {
@@ -64,6 +66,7 @@ export const useExercises = () => {
           name,
           category,
           workout_types,
+          tracking_type,
           exercise_variants (
             id,
             exercise_id,
@@ -82,6 +85,7 @@ export const useExercises = () => {
         name: row.name as string,
         category: row.category as string,
         workoutTypes: (row.workout_types ?? []) as string[],
+        trackingType: (row.tracking_type ?? "strength") as ExerciseTrackingType,
         variants: ((row.exercise_variants ?? []) as any[])
           .map((v) => ({
             id: v.id as number,
@@ -119,8 +123,9 @@ export const useExercises = () => {
           name: payload.name.trim(),
           category: payload.category,
           workout_types: payload.workoutTypes,
+          tracking_type: payload.trackingType ?? "strength",
         })
-        .select(`id, user_id, name, category, workout_types`)
+        .select(`id, user_id, name, category, workout_types, tracking_type`)
         .single();
 
       if (error) throw error;
@@ -131,6 +136,7 @@ export const useExercises = () => {
         name: data.name,
         category: data.category,
         workoutTypes: data.workout_types ?? [],
+        trackingType: (data.tracking_type ?? "strength") as ExerciseTrackingType,
         variants: [],
       };
 
@@ -159,6 +165,8 @@ export const useExercises = () => {
       if (payload.category !== undefined) updates.category = payload.category;
       if (payload.workoutTypes !== undefined)
         updates.workout_types = payload.workoutTypes;
+      if (payload.trackingType !== undefined)
+        updates.tracking_type = payload.trackingType;
 
       const { error } = await supabase
         .from("exercises")

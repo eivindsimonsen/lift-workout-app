@@ -132,6 +132,24 @@
           </p>
           <p class="text-xs text-dark-300">Volum per minutt</p>
         </div>
+        <div v-if="sessionCardio.hasData" class="bg-dark-700 rounded-lg p-4 text-center">
+          <p class="text-lg font-bold text-cyan-400 tabular-nums">
+            {{ formatDuration(sessionCardio.seconds) }}
+          </p>
+          <p class="text-xs text-dark-300">Kondisjonstid</p>
+        </div>
+        <div v-if="sessionCardio.metres > 0" class="bg-dark-700 rounded-lg p-4 text-center">
+          <p class="text-lg font-bold text-cyan-400 tabular-nums">
+            {{ formatDistance(sessionCardio.metres) }}
+          </p>
+          <p class="text-xs text-dark-300">Distanse</p>
+        </div>
+        <div v-if="sessionCardio.pace" class="bg-dark-700 rounded-lg p-4 text-center">
+          <p class="text-lg font-bold text-cyan-400 tabular-nums">
+            {{ sessionCardio.pace }}
+          </p>
+          <p class="text-xs text-dark-300">Snitt tempo</p>
+        </div>
       </div>
 
       
@@ -202,8 +220,8 @@
         </div>
       </div>
 
-      <!-- Volume per exercise -->
-      <div class="card">
+      <!-- Volume per exercise (strength only — cardio has no kilos) -->
+      <div v-if="exerciseVolumes.length > 0" class="card">
         <h3 class="text-xl font-semibold text-white mb-4">Volum per øvelse</h3>
         <div class="space-y-3">
           <div v-for="ex in exerciseVolumes" :key="ex.exerciseId" class="space-y-1">
@@ -218,8 +236,27 @@
         </div>
       </div>
 
-      <!-- Muscle groups -->
-      <div class="card">
+      <!-- Cardio in this session -->
+      <div v-if="sessionCardio.hasData" class="card">
+        <h3 class="text-xl font-semibold text-white mb-4">Kondisjon i økten</h3>
+        <div class="space-y-3">
+          <div v-for="ex in cardioExercises" :key="ex.exerciseId" class="space-y-1">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-white truncate">{{ ex.name }}</span>
+              <span class="text-dark-300 tabular-nums">
+                {{ formatDuration(ex.seconds) }}<template v-if="ex.metres > 0"> · {{ formatDistance(ex.metres) }}</template>
+              </span>
+            </div>
+            <div class="flex items-center justify-between text-xs text-dark-400">
+              <span>{{ ex.sets }} drag</span>
+              <span v-if="ex.pace">{{ ex.pace }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Muscle groups (strength only — cardio has its own panel above) -->
+      <div v-if="muscleGroupDistribution.length > 0" class="card">
         <h3 class="text-xl font-semibold text-white mb-4">Muskelgrupper i økten</h3>
         <div class="space-y-3">
           <div v-for="mg in muscleGroupDistribution" :key="mg.name" class="space-y-1">
@@ -258,16 +295,29 @@
               >
                 <span class="text-dark-300">Sett {{ exercise.sets.indexOf(set) + 1 }}:</span>
                 <div class="h-px bg-dark-600"></div>
-                <span class="text-white tabular-nums whitespace-nowrap">{{ set.reps }} reps</span>
-                <span v-if="set.weight" class="text-primary-500 font-medium tabular-nums whitespace-nowrap">{{ set.weight }} kg</span>
+                <template v-if="isCardioExercise(exercise)">
+                  <span class="text-white tabular-nums whitespace-nowrap">{{ set.duration ? formatDuration(set.duration) : '–' }}</span>
+                  <span v-if="set.distance" class="text-cyan-400 font-medium tabular-nums whitespace-nowrap">{{ formatDistance(set.distance) }}</span>
+                </template>
+                <template v-else>
+                  <span class="text-white tabular-nums whitespace-nowrap">{{ set.reps }} reps</span>
+                  <span v-if="set.weight" class="text-primary-500 font-medium tabular-nums whitespace-nowrap">{{ set.weight }} kg</span>
+                </template>
               </div>
             </div>
             <!-- Insights under all sets -->
             <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-dark-300">
-              <span v-if="exerciseInsights[exercise.exerciseId]?.isPR" class="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 font-medium">PR</span>
-              <span class="tabular-nums text-white">Tyngste sett: {{ exerciseInsights[exercise.exerciseId]?.heaviest.weight }}×{{ exerciseInsights[exercise.exerciseId]?.heaviest.reps }}</span>
-              <span class="tabular-nums">Estimert 1RM: ~{{ exerciseInsights[exercise.exerciseId]?.estimated1RM }} kg</span>
-              <span class="text-dark-400">Neste gang: {{ exerciseInsights[exercise.exerciseId]?.nextHint }}</span>
+              <template v-if="isCardioExercise(exercise)">
+                <span class="tabular-nums text-white">Total tid: {{ formatDuration(cardioSummary(exercise).seconds) }}</span>
+                <span v-if="cardioSummary(exercise).metres > 0" class="tabular-nums text-cyan-400">{{ formatDistance(cardioSummary(exercise).metres) }}</span>
+                <span v-if="cardioSummary(exercise).pace" class="tabular-nums">{{ cardioSummary(exercise).pace }}</span>
+              </template>
+              <template v-else>
+                <span v-if="exerciseInsights[exercise.exerciseId]?.isPR" class="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 font-medium">PR</span>
+                <span class="tabular-nums text-white">Tyngste sett: {{ exerciseInsights[exercise.exerciseId]?.heaviest.weight }}×{{ exerciseInsights[exercise.exerciseId]?.heaviest.reps }}</span>
+                <span class="tabular-nums">Estimert 1RM: ~{{ exerciseInsights[exercise.exerciseId]?.estimated1RM }} kg</span>
+                <span class="text-dark-400">Neste gang: {{ exerciseInsights[exercise.exerciseId]?.nextHint }}</span>
+              </template>
             </div>
           </div>
         </div>
@@ -304,6 +354,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutSession } from '@/types/workout'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
+import { isCardioExercise, isSetCounted, formatDuration, formatDistance, formatPace } from '@/composables/useSetMetrics'
 
 const router = useRouter()
 const route = useRoute()
@@ -388,12 +439,46 @@ const repRangePct = computed(() => {
   return { strength: pct(strength), hypertrophy: pct(hypertrophy), endurance: pct(endurance) }
 })
 
+/** Total time, distance and pace for one cardio exercise in this session. */
+const cardioSummary = (exercise: any): { seconds: number; metres: number; pace: string | null } => {
+  let seconds = 0
+  let metres = 0
+  exercise?.sets?.forEach((set: any) => {
+    if (!isSetCounted(exercise, set)) return
+    seconds += Number(set.duration) || 0
+    metres += Number(set.distance) || 0
+  })
+  return { seconds, metres, pace: formatPace(seconds, metres) }
+}
+
+/** Per-exercise cardio breakdown for this session. */
+const cardioExercises = computed(() => {
+  if (!session.value) return [] as Array<{ exerciseId: number; name: string; seconds: number; metres: number; sets: number; pace: string | null }>
+  return session.value.exercises
+    .filter(ex => isCardioExercise(ex))
+    .map(ex => {
+      const summary = cardioSummary(ex)
+      const sets = ex.sets.filter(set => isSetCounted(ex, set)).length
+      return { exerciseId: ex.exerciseId, name: ex.name, seconds: summary.seconds, metres: summary.metres, sets, pace: summary.pace }
+    })
+    .filter(ex => ex.sets > 0)
+})
+
+/** Session-wide cardio totals, for the tiles at the top. */
+const sessionCardio = computed(() => {
+  const seconds = cardioExercises.value.reduce((sum, ex) => sum + ex.seconds, 0)
+  const metres = cardioExercises.value.reduce((sum, ex) => sum + ex.metres, 0)
+  return { hasData: cardioExercises.value.length > 0, seconds, metres, pace: formatPace(seconds, metres) }
+})
+
 const exerciseVolumes = computed(() => {
   if (!session.value) return [] as Array<{ exerciseId: number; name: string; volume: number; percentage: number }>
-  const volumes = session.value.exercises.map(ex => {
-    const vol = ex.sets.reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0)
-    return { exerciseId: ex.exerciseId, name: ex.name, volume: vol }
-  })
+  const volumes = session.value.exercises
+    .filter(ex => !isCardioExercise(ex))
+    .map(ex => {
+      const vol = ex.sets.reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0)
+      return { exerciseId: ex.exerciseId, name: ex.name, volume: vol }
+    })
   const total = volumes.reduce((s, v) => s + v.volume, 0) || 1
   return volumes.map(v => ({ ...v, percentage: Math.round((v.volume / total) * 100) }))
 })
@@ -403,6 +488,8 @@ const muscleGroupDistribution = computed(() => {
   const groups: Record<string, number> = {}
 
   session.value.exercises.forEach(ex => {
+    // Cardio contributes no volume, so it would only ever sit here at 0 %.
+    if (isCardioExercise(ex)) return
     const exerciseData = workoutData.getExerciseById(ex.exerciseId)
     if (exerciseData && exerciseData.muscleGroups) {
       const vol = ex.sets.reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0)

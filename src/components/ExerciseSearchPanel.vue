@@ -94,6 +94,7 @@ const getDefaultCategories = (workoutType: string): string[] => {
     upper:       ['Bryst', 'Rygg', 'Skuldre', 'Biceps', 'Triceps'],
     lower:       ['Ben', 'Kjerne'],
     'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne'],
+    cardio:      ['Kondisjon'],
     bryst:       ['Bryst'],
     rygg:        ['Rygg'],
     ben:         ['Ben'],
@@ -102,12 +103,18 @@ const getDefaultCategories = (workoutType: string): string[] => {
     triceps:     ['Triceps'],
     kjerne:      ['Kjerne'],
   }
-  return map[workoutType.toLowerCase()] || []
+  const key = workoutType.toLowerCase()
+  const defaults = map[key]
+  if (!defaults) return []
+  // Cardio is offered alongside any strength session too — a warm-up or
+  // finisher belongs anywhere — but a cardio session stays cardio-only.
+  return key === 'cardio' ? defaults : [...defaults, 'Kondisjon']
 }
 
 const workoutTypes = computed(() => workoutTypesData.workoutTypes)
 
-const CATEGORY_ORDER = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Annet']
+// Derived from muscle-groups.json; "Annet" catches anything unrecognised.
+const CATEGORY_ORDER = [...muscleGroupsData.muscleGroups.map((g) => g.name), 'Annet']
 
 /** Exercises from groupedResults arranged into labelled category sections. */
 const categorySections = computed(() => {
