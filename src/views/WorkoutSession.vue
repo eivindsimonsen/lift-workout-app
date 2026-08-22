@@ -119,8 +119,8 @@
             <span class="ex-row__dot"></span>
             <span class="ex-row__body">
               <span class="ex-row__name">{{ exercise.name }}</span>
-              <span v-if="getLastPerformance(exercise.exerciseId)" class="ex-row__ref">
-                Sist {{ getLastPerformance(exercise.exerciseId)?.reps }}×{{ getLastPerformance(exercise.exerciseId)?.weight }}kg
+              <span v-if="lastPerformanceLabel(exercise.exerciseId)" class="ex-row__ref">
+                {{ lastPerformanceLabel(exercise.exerciseId) }}
               </span>
             </span>
             <span class="ex-row__right">
@@ -412,13 +412,13 @@
                 </svg>
               </button>
               <p
-                v-if="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId) || getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)"
+                v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) || getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)"
                 class="ex-sheet__ref"
               >
-                <span v-if="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)">
-                  Sist {{ getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)?.reps }}×{{ getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)?.weight }}kg
+                <span v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId)">
+                  {{ lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) }}
                 </span>
-                <span v-if="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId) && getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-sep"> · </span>
+                <span v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) && getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-sep"> · </span>
                 <span v-if="getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-pb">
                   PB {{ getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)?.weight }}kg
                 </span>
@@ -451,11 +451,18 @@
           <div class="ex-sheet__body">
 
             <!-- Column headers -->
-            <div class="ex-set__headers">
+            <div class="ex-set__headers" :class="{ 'ex-set__headers--cardio': activeExerciseIsCardio }">
               <span>#</span>
-              <span>Reps</span>
-              <span>Vekt (kg)</span>
-              <span class="ex-set__col-right">Volum</span>
+              <template v-if="activeExerciseIsCardio">
+                <span>Min</span>
+                <span>Sek</span>
+                <span class="ex-set__col-right">Km</span>
+              </template>
+              <template v-else>
+                <span>Reps</span>
+                <span>Vekt (kg)</span>
+                <span class="ex-set__col-right">Volum</span>
+              </template>
             </div>
 
             <!-- Keyed wrapper: switching exercises remounts the list so TransitionGroup -->
@@ -488,7 +495,7 @@
                 <!-- Actual row content, slides on swipe -->
                 <div
                   class="ex-set__row"
-                  :class="{ 'ex-set__row--done': set.isCompleted }"
+                  :class="{ 'ex-set__row--done': set.isCompleted, 'ex-set__row--cardio': activeExerciseIsCardio }"
                   :style="{ transform: `translateX(${setSwipeX[set.id] ?? 0}px)`, transition: setSwipeX[set.id] ? 'none' : 'transform 0.2s ease-out' }"
                 >
                 <span
@@ -496,6 +503,51 @@
                   :class="{ 'ex-set__num--done': set.isCompleted }"
                 >{{ setIndex + 1 }}</span>
 
+                <template v-if="activeExerciseIsCardio">
+                  <input
+                    :value="durationMinutes(set)"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    min="0"
+                    class="ex-set__input"
+                    :class="{ 'ex-set__input--done': set.isCompleted }"
+                    placeholder="–"
+                    @focus="markFocus"
+                    @input="(event) => handleDurationInput(event, activeExerciseIndex!, setIndex, 'min')"
+                    @blur="(event) => handleDurationBlur(event, activeExerciseIndex!, setIndex, 'min')"
+                  />
+
+                  <input
+                    :value="durationSeconds(set)"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    min="0"
+                    max="59"
+                    class="ex-set__input"
+                    :class="{ 'ex-set__input--done': set.isCompleted }"
+                    placeholder="–"
+                    @focus="markFocus"
+                    @input="(event) => handleDurationInput(event, activeExerciseIndex!, setIndex, 'sec')"
+                    @blur="(event) => handleDurationBlur(event, activeExerciseIndex!, setIndex, 'sec')"
+                  />
+
+                  <input
+                    :value="distanceKm(set)"
+                    type="text"
+                    inputmode="decimal"
+                    min="0"
+                    class="ex-set__input ex-set__input--right"
+                    :class="{ 'ex-set__input--done': set.isCompleted }"
+                    placeholder="–"
+                    @focus="markFocus"
+                    @input="(event) => handleDistanceInput(event, activeExerciseIndex!, setIndex)"
+                    @blur="(event) => handleDistanceBlur(event, activeExerciseIndex!, setIndex)"
+                  />
+                </template>
+
+                <template v-else>
                 <input
                   :value="set.reps === 0 ? '' : set.reps"
                   type="text"
@@ -536,6 +588,7 @@
                 <span class="ex-set__vol" :class="{ 'ex-set__vol--done': set.isCompleted }">
                   {{ set.weight && set.reps ? formatNumber(set.weight * set.reps) : '–' }}
                 </span>
+                </template>
                 </div><!-- /.ex-set__row -->
               </div><!-- /.ex-set__swipe-wrapper -->
             </TransitionGroup>
@@ -544,7 +597,8 @@
             <!-- Sheet footer: volume + add set -->
             <div class="ex-card__footer">
               <span class="ex-card__footer-vol">
-                {{ formatNumber(calculateExerciseVolume(session.exercises[activeExerciseIndex])) }} kg totalt
+                <template v-if="activeExerciseIsCardio">{{ cardioExerciseSummary(session.exercises[activeExerciseIndex]) }}</template>
+                <template v-else>{{ formatNumber(calculateExerciseVolume(session.exercises[activeExerciseIndex])) }} kg totalt</template>
               </span>
               <button class="ex-card__add-set" @click="addSet(activeExerciseIndex)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -575,6 +629,16 @@ import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
 import SlideOver from '@/components/SlideOver.vue'
 import { vibrate } from '@/composables/useHaptics'
+import { useLongPressReorder } from '@/composables/useLongPressReorder'
+import {
+  isCardioExercise,
+  isSetCounted,
+  isSetLogged,
+  setVolume,
+  formatDuration,
+  formatDistance,
+  formatPace,
+} from '@/composables/useSetMetrics'
 
 const route = useRoute()
 const router = useRouter()
@@ -714,10 +778,7 @@ const estimatedVolume = computed(() => {
   if (!session.value) return 0
   return session.value.exercises.reduce((exerciseTotal, exercise) => {
     const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
-      if (set.isCompleted && set.weight && set.reps) {
-        return setTotal + (set.weight * set.reps)
-      }
-      return setTotal
+      return isSetCounted(exercise, set) ? setTotal + setVolume(exercise, set) : setTotal
     }, 0)
     return exerciseTotal + exerciseVolume
   }, 0)
@@ -860,6 +921,99 @@ const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) =
   unhideNavSoon()
 }
 
+/** Cardio duration is stored in seconds but entered as separate min/sec fields. */
+const handleDurationInput = (event: Event, exerciseIndex: number, setIndex: number, part: 'min' | 'sec') => {
+  if (!session.value) return
+  const raw = (event.target as HTMLInputElement).value
+  const entered = raw === '' ? 0 : Math.max(0, parseInt(raw) || 0)
+
+  const set = session.value.exercises[exerciseIndex].sets[setIndex]
+  const current = Number(set.duration) || 0
+  const minutes = part === 'min' ? entered : Math.floor(current / 60)
+  // Seconds above 59 belong in the minutes field; clamp rather than silently
+  // rolling over, so what you typed is what you see.
+  const seconds = part === 'sec' ? Math.min(59, entered) : current % 60
+
+  set.duration = minutes * 60 + seconds
+  updateSetCompletion(exerciseIndex, setIndex)
+  persistExercisesToLocal()
+}
+
+const handleDurationBlur = (event: Event, exerciseIndex: number, setIndex: number, part: 'min' | 'sec') => {
+  handleDurationInput(event, exerciseIndex, setIndex, part)
+  unhideNavSoon()
+}
+
+/** Distance is entered in kilometres and stored in metres. */
+const handleDistanceInput = (event: Event, exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  const raw = (event.target as HTMLInputElement).value
+  const km = raw === '' ? 0 : toNumber(raw)
+  session.value.exercises[exerciseIndex].sets[setIndex].distance = Math.max(0, Math.round(km * 1000))
+  updateSetCompletion(exerciseIndex, setIndex)
+  persistExercisesToLocal()
+}
+
+const handleDistanceBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
+  handleDistanceInput(event, exerciseIndex, setIndex)
+  unhideNavSoon()
+}
+
+/** Minutes / seconds / kilometres for the inputs, blank when unset. */
+const durationMinutes = (set: any): string => {
+  const total = Number(set?.duration) || 0
+  return total >= 60 ? String(Math.floor(total / 60)) : ''
+}
+const durationSeconds = (set: any): string => {
+  const total = Number(set?.duration) || 0
+  return total % 60 === 0 ? '' : String(total % 60)
+}
+const distanceKm = (set: any): string => {
+  const metres = Number(set?.distance) || 0
+  return metres === 0 ? '' : String(metres / 1000)
+}
+
+/** "12:30 · 3,20 km · 5:12 /km" for the cardio sheet footer. */
+const cardioExerciseSummary = (exercise: any): string => {
+  if (!exercise || !Array.isArray(exercise.sets)) return '–'
+
+  let seconds = 0
+  let metres = 0
+  exercise.sets.forEach((set: any) => {
+    if (!isSetCounted(exercise, set)) return
+    seconds += Number(set.duration) || 0
+    metres += Number(set.distance) || 0
+  })
+
+  if (seconds === 0 && metres === 0) return 'Ingen sett logget'
+
+  const parts: string[] = []
+  if (seconds > 0) parts.push(`${formatDuration(seconds)} totalt`)
+  if (metres > 0) parts.push(formatDistance(metres))
+  const pace = formatPace(seconds, metres)
+  if (pace) parts.push(pace)
+  return parts.join(' · ')
+}
+
+/** "Sist 8×60kg" for strength, "Sist 4:00 · 1,00 km" for cardio. */
+const lastPerformanceLabel = (exerciseId: number): string | null => {
+  const last = getLastPerformance(exerciseId)
+  if (!last) return null
+
+  if (!last.isCardio) return `Sist ${last.reps}×${last.weight}kg`
+
+  const parts: string[] = []
+  if (Number(last.duration) > 0) parts.push(formatDuration(Number(last.duration)))
+  if (Number(last.distance) > 0) parts.push(formatDistance(Number(last.distance)))
+  return parts.length > 0 ? `Sist ${parts.join(' · ')}` : null
+}
+
+/** Whether the exercise currently open in the sheet is a cardio one. */
+const activeExerciseIsCardio = computed(() => {
+  if (activeExerciseIndex.value === null || !session.value) return false
+  return isCardioExercise(session.value.exercises[activeExerciseIndex.value])
+})
+
 const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   if (!session.value) return
   const set = session.value.exercises[exerciseIndex].sets[setIndex]
@@ -869,12 +1023,8 @@ const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
   if (typeof set.reps === 'string') {
     set.reps = parseInt(set.reps) || 0
   }
-  const isCompleted = Boolean(
-    set.weight &&
-    set.reps &&
-    set.weight > 0 &&
-    set.reps > 0
-  )
+  const exercise = session.value.exercises[exerciseIndex]
+  const isCompleted = isSetLogged(exercise, set)
   if (set.isCompleted !== isCompleted) {
     set.isCompleted = isCompleted
   }
@@ -1050,6 +1200,8 @@ const addExerciseToSession = () => {
   const newExercise = {
     exerciseId,
     name: exerciseName,
+    // Same reasoning as when a session starts: carry the type with the session.
+    trackingType: workoutData.exerciseIndex.value.get(exerciseId)?.trackingType ?? 'strength',
     sets: [0, 1, 2].map((setIndex) => ({
       id: `set-${setSeed}-${exerciseSlotIndex}-${setIndex}`,
       reps: 0,
@@ -1130,148 +1282,19 @@ onUnmounted(() => {
 })
 
 // ===== Long-press drag to reorder exercises =====
-// The rows already own a tap (open sheet) and a horizontal swipe (delete), and a
-// plain vertical drag would be indistinguishable from scrolling the page. A long
-// press settles the intent before we claim the gesture: any movement before the
-// timer fires cancels it, so scrolling and swiping keep working untouched.
-
-const LONG_PRESS_MS = 400
-const DRAG_CANCEL_PX = 8
-
+// Shared with the template editor; see useLongPressReorder for why a long press
+// is required rather than a plain vertical drag.
 const exListRef = ref<HTMLElement | null>(null)
-const draggingIndex = ref<number | null>(null)
-const dragTranslateY = ref(0)
 
-let pressTimer: ReturnType<typeof setTimeout> | null = null
-let pressStartX = 0
-let pressStartY = 0
-let lastPointerY = 0
-/** Pointer Y that corresponds to a translate of 0 for the dragged row. */
-let dragBaselineY = 0
-/** Per-row height including the flex gap, measured at drag start. */
-let rowPitch: number[] = []
-let suppressNextClick = false
-
-const clearPressTimer = () => {
-  if (pressTimer === null) return
-  clearTimeout(pressTimer)
-  pressTimer = null
-}
-
-const measureRows = () => {
-  const list = exListRef.value
-  if (!list) {
-    rowPitch = []
-    return
-  }
-  const gap = parseFloat(getComputedStyle(list).rowGap || '0') || 0
-  rowPitch = Array.from(list.children).map((el) => (el as HTMLElement).offsetHeight + gap)
-}
-
-const beginDrag = (index: number) => {
-  pressTimer = null
-  measureRows()
-  draggingIndex.value = index
-  dragBaselineY = pressStartY
-  dragTranslateY.value = 0
-  vibrate(30)
-}
-
-const onRowPointerDown = (event: PointerEvent, index: number) => {
-  if (event.pointerType === 'mouse' && event.button !== 0) return
-  suppressNextClick = false
-  pressStartX = event.clientX
-  pressStartY = event.clientY
-  lastPointerY = event.clientY
-  clearPressTimer()
-  pressTimer = setTimeout(() => beginDrag(index), LONG_PRESS_MS)
-}
-
-/** Moves the dragged exercise one slot and keeps the card under the finger. */
-const moveDraggedExercise = (from: number, to: number, pitch: number) => {
-  if (!session.value) return
-  const items = session.value.exercises
-  const [moved] = items.splice(from, 1)
-  items.splice(to, 0, moved)
-
-  draggingIndex.value = to
-  // The row's natural position just shifted by one slot, so compensate the
-  // baseline — otherwise the card would jump by a full row under the finger.
-  dragBaselineY += to < from ? -pitch : pitch
-  dragTranslateY.value = lastPointerY - dragBaselineY
-
-  nextTick(measureRows)
-}
-
-/** Swaps with a neighbour once the drag passes half of that neighbour's height. */
-const settleDragPosition = () => {
-  const index = draggingIndex.value
-  if (index === null || !session.value) return
-  const items = session.value.exercises
-
-  if (dragTranslateY.value < 0 && index > 0) {
-    const pitch = rowPitch[index - 1] ?? 0
-    if (pitch > 0 && -dragTranslateY.value > pitch / 2) moveDraggedExercise(index, index - 1, pitch)
-    return
-  }
-
-  if (dragTranslateY.value > 0 && index < items.length - 1) {
-    const pitch = rowPitch[index + 1] ?? 0
-    if (pitch > 0 && dragTranslateY.value > pitch / 2) moveDraggedExercise(index, index + 1, pitch)
-  }
-}
-
-const onWindowPointerMove = (event: PointerEvent) => {
-  lastPointerY = event.clientY
-
-  if (draggingIndex.value === null) {
-    // Still waiting on the long press — any real movement means the user meant
-    // to scroll or swipe, so give the gesture back.
-    if (pressTimer !== null && Math.hypot(event.clientX - pressStartX, event.clientY - pressStartY) > DRAG_CANCEL_PX) {
-      clearPressTimer()
-    }
-    return
-  }
-
-  dragTranslateY.value = event.clientY - dragBaselineY
-  settleDragPosition()
-}
-
-const endDrag = () => {
-  clearPressTimer()
-  if (draggingIndex.value === null) return
-
-  draggingIndex.value = null
-  dragTranslateY.value = 0
-  // The pointerup that ends a drag still produces a click; swallow it so the
-  // exercise sheet doesn't open on top of the reorder.
-  suppressNextClick = true
-  persistExercisesToLocal()
-  vibrate(15)
-}
-
-/**
- * touch-action can't be flipped mid-gesture, so scrolling is blocked here
- * instead. Safe because any movement before the long press fires cancels the
- * drag, meaning no scroll is ever in flight when this starts preventing.
- */
-const blockScrollWhileDragging = (event: TouchEvent) => {
-  if (draggingIndex.value !== null) event.preventDefault()
-}
-
-onMounted(() => {
-  window.addEventListener('pointermove', onWindowPointerMove)
-  window.addEventListener('pointerup', endDrag)
-  window.addEventListener('pointercancel', endDrag)
-  document.addEventListener('touchmove', blockScrollWhileDragging, { passive: false })
-})
-
-onUnmounted(() => {
-  window.removeEventListener('pointermove', onWindowPointerMove)
-  window.removeEventListener('pointerup', endDrag)
-  window.removeEventListener('pointercancel', endDrag)
-  document.removeEventListener('touchmove', blockScrollWhileDragging)
-  clearPressTimer()
+const {
+  draggingIndex,
+  dragTranslateY,
+  onRowPointerDown,
+  consumeClickSuppression,
+} = useLongPressReorder({
+  getItems: () => session.value?.exercises ?? null,
+  listEl: exListRef,
+  onReordered: () => persistExercisesToLocal(),
 })
 // ===== end drag section =====
 
@@ -1281,10 +1304,7 @@ const openExerciseSheet = (idx: number) => {
 }
 
 const onRowClick = (index: number) => {
-  if (suppressNextClick) {
-    suppressNextClick = false
-    return
-  }
+  if (consumeClickSuppression()) return
   openExerciseSheet(index)
 }
 
@@ -1349,13 +1369,16 @@ const getLastPerformance = (exerciseId: number) => {
     const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
     if (!exercise) continue
 
-    const completedSets = exercise.sets.filter(set => set.isCompleted && set.weight && set.reps)
+    const completedSets = exercise.sets.filter(set => isSetCounted(exercise, set))
     if (completedSets.length === 0) continue
 
     const lastSet = completedSets[completedSets.length - 1]
     return {
       weight: lastSet.weight,
       reps: lastSet.reps,
+      duration: lastSet.duration,
+      distance: lastSet.distance,
+      isCardio: isCardioExercise(exercise),
       date: session.date
     }
   }
@@ -1413,10 +1436,7 @@ const getHeaviestLift = (exerciseId: number) => {
 const calculateExerciseVolume = (exercise: any): number => {
   if (!exercise || !Array.isArray(exercise.sets)) return 0
   return exercise.sets.reduce((sum: number, set: any) => {
-    if (set.isCompleted && set.weight && set.reps) {
-      return sum + set.weight * set.reps
-    }
-    return sum
+    return isSetCounted(exercise, set) ? sum + setVolume(exercise, set) : sum
   }, 0)
 }
 
@@ -1593,7 +1613,7 @@ const cleanupSessionData = async (sessionData: WorkoutSession): Promise<WorkoutS
   let totalSetsRemoved = 0
   cleanedSession.exercises.forEach((exercise: any) => {
     exercise.sets = exercise.sets.filter((set: any) => {
-      const isComplete = set.isCompleted && set.weight > 0 && set.reps > 0
+      const isComplete = isSetCounted(exercise, set)
       if (!isComplete) {
         console.log(`🧹 Removing incomplete set from "${exercise.name}" - weight: ${set.weight}, reps: ${set.reps}`)
         totalSetsRemoved++
@@ -1716,7 +1736,7 @@ function afterCollapse(el: Element) {
 // Determine when an exercise is fully completed (all sets complete)
 const isExerciseCompleted = (exercise: any): boolean => {
   if (!exercise || !Array.isArray(exercise.sets) || exercise.sets.length === 0) return false
-  return exercise.sets.every((set: any) => set.isCompleted && set.weight > 0 && set.reps > 0)
+  return exercise.sets.every((set: any) => isSetCounted(exercise, set))
 }
 
 // Lifecycle
@@ -2316,6 +2336,13 @@ watch(() => route.params.id, async (newId, oldId) => {
 .ex-set__input::placeholder { color: #5a6e85; font-weight: 400; font-size: 0.875rem; }
 .ex-set__input:focus { outline: none; border-color: #f97316; background: #2d3a4f; box-shadow: 0 0 0 3px #f9731620; }
 .ex-set__input--done { color: #86efac; border-color: #16a34a50; background: #16a34a15; }
+
+.ex-set__headers--cardio,
+.ex-set__row--cardio {
+  grid-template-columns: 2.25rem 1fr 1fr 1fr;
+}
+
+.ex-set__input--right { text-align: right; }
 
 .ex-set__vol {
   text-align: right;

@@ -234,7 +234,7 @@
   // Weekly summary — the detailed breakdown lives on /week
   // ---------------------------------------------------------------------------
 
-  const { weekNumber, trainedDayIndices, totals: weekTotals, setsGoalProgress } = useWeekStats(0);
+  const { weekNumber, trainedDayIndices, totals: weekTotals, setsGoalProgress, cardioGoalProgress } = useWeekStats(0);
 
   const todayIdx = computed(() => getTodayIndex());
 
@@ -312,7 +312,7 @@
         </div>
       </div>
 
-      <!-- Progress toward this week's set goal -->
+      <!-- Progress toward this week's goal — sets, or cardio for a cardio-only plan -->
       <div v-if="setsGoalProgress.hasTarget" class="week-card__goal">
         <div class="week-card__goal-head">
           <span class="week-card__goal-label">Ukens sett</span>
@@ -324,6 +324,28 @@
           <div class="week-card__goal-fill" :style="{ width: setsGoalProgress.percentage + '%' }"></div>
         </div>
         <span class="week-card__goal-pct">{{ setsGoalProgress.percentage }} % av målet</span>
+      </div>
+
+      <div v-else-if="cardioGoalProgress.hasTarget" class="week-card__goal">
+        <div class="week-card__goal-head">
+          <span class="week-card__goal-label">{{ cardioGoalProgress.minutesTarget > 0 ? 'Ukens kondisjon' : 'Ukens distanse' }}</span>
+          <span class="week-card__goal-count">
+            <template v-if="cardioGoalProgress.minutesTarget > 0">
+              <strong>{{ cardioGoalProgress.minutesDone }}</strong> / {{ cardioGoalProgress.minutesTarget }} min
+            </template>
+            <template v-else>
+              <strong>{{ cardioGoalProgress.kmDone }}</strong> / {{ cardioGoalProgress.kmTarget }} km
+            </template>
+          </span>
+        </div>
+        <div class="week-card__goal-bar">
+          <div
+            class="week-card__goal-fill week-card__goal-fill--cardio"
+            :style="{ width: (cardioGoalProgress.minutesTarget > 0 ? cardioGoalProgress.minutesPct : cardioGoalProgress.kmPct) + '%' }"></div>
+        </div>
+        <span class="week-card__goal-pct">
+          {{ cardioGoalProgress.minutesTarget > 0 ? cardioGoalProgress.minutesPct : cardioGoalProgress.kmPct }} % av målet
+        </span>
       </div>
 
       <!-- No goals set yet — plain totals instead -->
@@ -732,6 +754,10 @@
     background: #f97316;
     border-radius: 999px;
     transition: width 0.35s ease-out;
+  }
+
+  .week-card__goal-fill--cardio {
+    background: #06b6d4;
   }
 
   .week-card__goal-pct {

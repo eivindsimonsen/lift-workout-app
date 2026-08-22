@@ -48,6 +48,13 @@
       "displayName": "Kjerne",
       "description": "Kjerne- og mage-muskulatur inkludert abs og obliques",
       "color": "#ef4444"
+    },
+    {
+      "id": "kondisjon",
+      "name": "Kondisjon",
+      "displayName": "Kondisjon",
+      "description": "Kondisjons- og utholdenhetstrening som intervaller, løping og roing",
+      "color": "#06b6d4"
     }
   ]
 }

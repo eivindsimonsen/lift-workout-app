@@ -5,6 +5,7 @@ import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutTemplate, ExerciseTemplate } from '@/types/workout'
 import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
 import SwipeableCard from '@/components/SwipeableCard.vue'
+import { useLongPressReorder } from '@/composables/useLongPressReorder'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
 import * as workoutTypeData from '@/data/workout-types.json'
@@ -114,6 +115,42 @@ const getExerciseAccentColor = (exerciseId: number): string => {
     return getWorkoutTypeColor(templateForm.value.workoutType)
   }
   return '#64748b'
+}
+
+// ---------------------------------------------------------------------------
+// Drag to reorder
+// ---------------------------------------------------------------------------
+
+// Rows need an identity that survives reordering, and exerciseId won't do: a
+// freshly added row has none, and the same exercise may appear twice. Keyed on
+// the object itself, which splice preserves.
+const rowKeys = new WeakMap<object, number>()
+let nextRowKey = 0
+const rowKey = (exercise: object): number => {
+  let key = rowKeys.get(exercise)
+  if (key === undefined) {
+    key = nextRowKey += 1
+    rowKeys.set(exercise, key)
+  }
+  return key
+}
+
+const exListRef = ref<HTMLElement | null>(null)
+
+const {
+  draggingIndex,
+  dragTranslateY,
+  onRowPointerDown,
+  consumeClickSuppression,
+} = useLongPressReorder({
+  getItems: () => templateForm.value.exercises,
+  listEl: exListRef,
+})
+
+/** The order is written to the template on save, so nothing to persist here. */
+const onRowClick = (index: number) => {
+  if (consumeClickSuppression()) return
+  openExercisePicker(index)
 }
 
 // Methods
@@ -322,11 +359,14 @@ onMounted(async () => {
             {{ templateForm.exercises.length }} valgt
           </span>
         </div>
-        <div v-if="templateForm.exercises.length" class="ex-list">
+        <div v-if="templateForm.exercises.length" ref="exListRef" class="ex-list">
           <SwipeableCard
             v-for="(exercise, index) in templateForm.exercises"
-            :key="`${index}-${exercise.exerciseId}`"
+            :key="rowKey(exercise)"
             :show-swipe-hint="false"
+            :disabled="draggingIndex !== null"
+            :class="{ 'ex-item--dragging': draggingIndex === index }"
+            :style="draggingIndex === index ? { transform: `translateY(${dragTranslateY}px)` } : undefined"
             @delete="removeExercise(index)"
           >
             <button
@@ -334,7 +374,8 @@ onMounted(async () => {
               class="ex-row"
               :class="{ 'ex-row--empty': !exercise.exerciseId }"
               :style="{ '--ex-color': getExerciseAccentColor(exercise.exerciseId) }"
-              @click="openExercisePicker(index)"
+              @pointerdown="onRowPointerDown($event, index)"
+              @click="onRowClick(index)"
             >
               <span class="ex-row__dot"></span>
               <span class="ex-row__body">
@@ -510,6 +551,9 @@ onMounted(async () => {
 }
 
 .ex-row {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -592,5 +636,22 @@ onMounted(async () => {
   height: 1rem;
   color: #374151;
   flex-shrink: 0;
+}
+
+/* ── Drag to reorder ─────────────────────────────────────────────────────── */
+
+/* The list clips its children for the swipe animation; the lifted card needs to
+   escape that so its shadow isn't cut off. */
+.ex-list > .ex-item--dragging {
+  overflow: visible;
+  position: relative;
+  z-index: 20;
+}
+
+.ex-item--dragging .ex-row {
+  background: #16202f;
+  transform: scale(1.02);
+  box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.7);
+  cursor: grabbing;
 }
 </style>

@@ -2,7 +2,7 @@ import { computed, ref } from "vue";
 import { useSupabaseData } from "./useSupabaseData";
 import { useExercises } from "./useExercises";
 import * as workoutTypesData from "@/data/workout-types.json";
-import type { WorkoutType, ExerciseData } from "@/types/workout";
+import type { WorkoutType, ExerciseData, ExerciseTrackingType } from "@/types/workout";
 
 const logHybridAccess = (_operation: string, _details?: unknown) => {};
 
@@ -14,6 +14,8 @@ export type ExerciseIndexEntry = {
   category: string;
   /** Parent group name; equals `name` for standalone exercises. */
   groupName: string;
+  /** How the exercise is measured; variants inherit their parent's type. */
+  trackingType: ExerciseTrackingType;
   isVariant: boolean;
 };
 
@@ -89,6 +91,7 @@ export const useHybridData = () => {
         name: exercise.name,
         category: exercise.category,
         groupName: exercise.name,
+        trackingType: exercise.trackingType ?? "strength",
         isVariant: false,
       });
 
@@ -97,6 +100,7 @@ export const useHybridData = () => {
           name: variant.name,
           category: exercise.category,
           groupName: exercise.name,
+          trackingType: exercise.trackingType ?? "strength",
           isVariant: true,
         });
       });

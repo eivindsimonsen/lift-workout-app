@@ -6,7 +6,8 @@ import { ref, computed, watch } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
 import { useExercises } from '@/composables/useExercises'
 import { useHybridData } from '@/composables/useHybridData'
-import type { ExerciseData, ExerciseVariant } from '@/types/workout'
+import muscleGroupsData from '@/data/muscle-groups.json'
+import type { ExerciseData, ExerciseVariant, ExerciseTrackingType } from '@/types/workout'
 
 // ---------------------------------------------------------------------------
 // Props / Emits
@@ -42,7 +43,7 @@ const isDeletingExercise = ref(false)
 const confirmDeleteId = ref<'exercise' | number | null>(null)
 
 // Main exercise form fields
-const exerciseForm = ref({ name: '', category: '', workoutTypes: [] as string[] })
+const exerciseForm = ref({ name: '', category: '', workoutTypes: [] as string[], trackingType: 'strength' as ExerciseTrackingType })
 
 // ---- Pending variants (create mode: local list until user hits "Opprett") ----
 interface PendingVariant {
@@ -63,10 +64,9 @@ const editVariantName = ref('')
 // Constants
 // ---------------------------------------------------------------------------
 
-const CATEGORIES = [
-  'Bryst', 'Rygg', 'Ben', 'Skuldre',
-  'Biceps', 'Triceps', 'Kjerne',
-]
+// Derived from muscle-groups.json so a new group (e.g. Kondisjon) shows up
+// everywhere at once instead of drifting out of sync with a hardcoded list.
+const CATEGORIES = muscleGroupsData.muscleGroups.map((g) => g.name)
 
 const WORKOUT_TYPE_OPTIONS = [
   { id: 'push',      label: 'Push' },
@@ -80,6 +80,21 @@ const WORKOUT_TYPE_OPTIONS = [
 // ---------------------------------------------------------------------------
 // Computed
 // ---------------------------------------------------------------------------
+
+/**
+ * Cardio always belongs to the Kondisjon group, so selecting it fills the
+ * category in. Keeps the two fields from drifting apart.
+ */
+const selectTrackingType = (type: ExerciseTrackingType) => {
+  exerciseForm.value.trackingType = type
+  if (type === 'cardio') {
+    exerciseForm.value.category = 'Kondisjon'
+    // Push/pull/legs describes a strength split; it says nothing about a run.
+    exerciseForm.value.workoutTypes = []
+  } else if (exerciseForm.value.category === 'Kondisjon') {
+    exerciseForm.value.category = ''
+  }
+}
 
 const drawerTitle = computed(() => isEditMode.value ? 'Rediger øvelsegruppe' : 'Ny øvelsegruppe')
 const currentVariants = computed<ExerciseVariant[]>(() => props.exercise?.variants ?? [])
@@ -97,8 +112,13 @@ watch(
   () => {
     if (!props.visible) return
     exerciseForm.value = props.exercise
-      ? { name: props.exercise.name, category: props.exercise.category, workoutTypes: [...props.exercise.workoutTypes] }
-      : { name: '', category: '', workoutTypes: [] }
+      ? {
+          name: props.exercise.name,
+          category: props.exercise.category,
+          workoutTypes: [...props.exercise.workoutTypes],
+          trackingType: props.exercise.trackingType ?? 'strength',
+        }
+      : { name: '', category: '', workoutTypes: [], trackingType: 'strength' }
     resetVariantForm()
     pendingVariants.value = []
     confirmDeleteId.value = null
@@ -124,6 +144,7 @@ const saveExercise = async () => {
       name: exerciseForm.value.name.trim(),
       category: exerciseForm.value.category,
       workoutTypes: exerciseForm.value.workoutTypes,
+      trackingType: exerciseForm.value.trackingType,
     }
 
     if (isEditMode.value && props.exercise) {
@@ -268,18 +289,46 @@ const deleteVariant = async (variant: ExerciseVariant) => {
         </div>
 
         <div class="exercise-form__field">
+          <label class="exercise-form__label">Hva måles? *</label>
+          <div class="tracking-toggle">
+            <button
+              type="button"
+              class="tracking-toggle__option"
+              :class="{ 'tracking-toggle__option--active': exerciseForm.trackingType === 'strength' }"
+              @click="selectTrackingType('strength')"
+            >
+              <span class="tracking-toggle__name">Styrke</span>
+              <span class="tracking-toggle__hint">Reps og vekt</span>
+            </button>
+            <button
+              type="button"
+              class="tracking-toggle__option"
+              :class="{ 'tracking-toggle__option--active': exerciseForm.trackingType === 'cardio' }"
+              @click="selectTrackingType('cardio')"
+            >
+              <span class="tracking-toggle__name">Kondisjon</span>
+              <span class="tracking-toggle__hint">Tid og distanse</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="exercise-form__field">
           <label class="exercise-form__label" for="ex-category">Muskelgruppe *</label>
           <select
             id="ex-category"
             v-model="exerciseForm.category"
             class="input-field w-full"
+            :disabled="exerciseForm.trackingType === 'cardio'"
           >
             <option value="" disabled>Velg muskelgruppe</option>
             <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
           </select>
+          <p v-if="exerciseForm.trackingType === 'cardio'" class="exercise-form__note">
+            Kondisjonsøvelser havner alltid i Kondisjon.
+          </p>
         </div>
 
-        <div class="exercise-form__field">
+        <div v-if="exerciseForm.trackingType !== 'cardio'" class="exercise-form__field">
           <label class="exercise-form__label">Treningstype(r)</label>
           <div class="exercise-form__checkbox-group">
             <label
@@ -711,4 +760,52 @@ const deleteVariant = async (variant: ExerciseVariant) => {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+  /* ── Tracking type toggle ────────────────────────────────────────────────── */
+
+  .tracking-toggle {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .tracking-toggle__option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+    padding: 0.625rem 0.75rem;
+    background: #0d1117;
+    border: 1px solid #1f2937;
+    border-radius: 0.625rem;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .tracking-toggle__option--active {
+    border-color: #f97316;
+    background: #f9731610;
+  }
+
+  .tracking-toggle__name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  .tracking-toggle__option--active .tracking-toggle__name {
+    color: #f97316;
+  }
+
+  .tracking-toggle__hint {
+    font-size: 0.6875rem;
+    color: #64748b;
+  }
+
+  .exercise-form__note {
+    margin-top: 0.375rem;
+    font-size: 0.6875rem;
+    color: #64748b;
+  }
 </style>

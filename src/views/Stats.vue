@@ -125,6 +125,36 @@
           </div>
         </div>
       </div>
+
+      <!-- Cardio sits in the same overview grid, not off in its own corner -->
+      <div v-if="cardioStats.hasData" class="card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-dark-300 text-sm">Kondisjonstid</p>
+            <p class="text-2xl font-bold text-white">{{ formatDuration(cardioStats.seconds) }}</p>
+          </div>
+          <div class="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="cardioStats.metres > 0" class="card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-dark-300 text-sm">Total Distanse</p>
+            <p class="text-2xl font-bold text-white">{{ formatDistance(cardioStats.metres) }}</p>
+          </div>
+          <div class="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Progress Over Time -->
@@ -210,6 +240,46 @@
         </div>
         <div v-else class="bg-dark-700 rounded-lg p-4 text-sm text-dark-300">
           For å logge 1RM: fullfør et sett med 1 repetisjon på en øvelse.
+        </div>
+      </div>
+    </div>
+
+    <!-- Cardio -->
+    <div v-if="!isLoading && cardioStats.hasData" class="card">
+      <h3 class="text-lg font-semibold text-white mb-1">Kondisjon</h3>
+      <p class="text-xs text-dark-300 mb-4">Tid og distanse holdes utenfor volum- og styrketallene over.</p>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Total tid</div>
+          <div class="text-lg font-bold text-cyan-400">{{ formatDuration(cardioStats.seconds) }}</div>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Total distanse</div>
+          <div class="text-lg font-bold text-cyan-400">{{ formatDistance(cardioStats.metres) }}</div>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Snitt tempo</div>
+          <div class="text-lg font-bold text-cyan-400">{{ cardioStats.pace ?? '–' }}</div>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Økter med kondisjon</div>
+          <div class="text-lg font-bold text-cyan-400">{{ cardioStats.sessions }}</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Lengste enkeltdrag</div>
+          <div class="text-base font-semibold text-white">{{ formatDistance(cardioStats.longestDistance) }}</div>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Lengste varighet</div>
+          <div class="text-base font-semibold text-white">{{ formatDuration(cardioStats.longestDuration) }}</div>
+        </div>
+        <div class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">Antall drag</div>
+          <div class="text-base font-semibold text-white">{{ cardioStats.sets }}</div>
         </div>
       </div>
     </div>
@@ -430,6 +500,7 @@
 import { computed, ref, watch } from 'vue'
 import { useHybridData } from '@/composables/useHybridData'
 import muscleGroupsData from '@/data/muscle-groups.json';
+import { isCardioExercise, isSetCounted, formatDuration, formatDistance, formatPace } from '@/composables/useSetMetrics';
 
 const workoutData = useHybridData()
 
@@ -552,6 +623,9 @@ const muscleGroupStats = computed(() => {
 
   filteredSessions.value.forEach(session => {
     session.exercises.forEach(exercise => {
+      // Cardio carries no kilos, so it would only ever show up as 0 % here.
+      // It gets its own section instead.
+      if (isCardioExercise(exercise)) return
       // Get exercise data to find muscle groups
       const exerciseData = workoutData.exercises.value.find((e) =>
         e.variants?.some((v) => v.id === Number(exercise.exerciseId)) || e.id === Number(exercise.exerciseId)
@@ -1050,6 +1124,47 @@ const totalDuration = computed(() => {
   return filteredSessions.value.reduce((total, session) => {
     return total + session.duration
   }, 0)
+})
+
+/**
+ * Cardio totals for the selected period. Kept apart from the strength numbers
+ * rather than folded in — kilos and kilometres don't add up to anything.
+ */
+const cardioStats = computed(() => {
+  let seconds = 0
+  let metres = 0
+  let sets = 0
+  let longestDistance = 0
+  let longestDuration = 0
+  const sessionIds = new Set<string>()
+
+  filteredSessions.value.forEach(session => {
+    session.exercises.forEach(exercise => {
+      if (!isCardioExercise(exercise)) return
+      exercise.sets.forEach(set => {
+        if (!isSetCounted(exercise, set)) return
+        const duration = Number(set.duration) || 0
+        const distance = Number(set.distance) || 0
+        seconds += duration
+        metres += distance
+        sets += 1
+        longestDistance = Math.max(longestDistance, distance)
+        longestDuration = Math.max(longestDuration, duration)
+        sessionIds.add(session.id)
+      })
+    })
+  })
+
+  return {
+    hasData: sets > 0,
+    seconds,
+    metres,
+    sets,
+    sessions: sessionIds.size,
+    longestDistance,
+    longestDuration,
+    pace: formatPace(seconds, metres),
+  }
 })
 
 const restDaysCount = computed(() => {

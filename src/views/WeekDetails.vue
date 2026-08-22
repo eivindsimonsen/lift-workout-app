@@ -9,6 +9,8 @@
   import { useTrainingGoals } from "@/composables/useTrainingGoals";
   import Breadcrumbs from "@/components/Breadcrumbs.vue";
   import WeekGoalsSettings from "@/components/WeekGoalsSettings.vue";
+  // Aliased: the local formatDuration takes minutes, this one takes seconds.
+  import { formatDuration as formatSeconds, formatDistance, formatPace } from "@/composables/useSetMetrics";
 
   // ---------------------------------------------------------------------------
   // State
@@ -114,6 +116,33 @@
       { key: "avgVolume", label: "Snitt per økt", value: formatNumber(t.avgVolumePerWorkout), change: null },
     ];
   });
+
+  /** Only shown when the week actually contains cardio. */
+  const cardioStats = computed(() => {
+    const t = week.totals.value;
+    if (t.cardioSeconds <= 0 && t.cardioMetres <= 0) return [];
+
+    const prev = week.previousWeekTotals.value;
+    const rows = [
+      { key: "cardioTime", label: "Kondisjonstid", value: formatSeconds(t.cardioSeconds), change: changeVsLastWeek(t.cardioSeconds, prev.cardioSeconds) },
+    ];
+    if (t.cardioMetres > 0) {
+      rows.push({ key: "cardioDistance", label: "Distanse", value: formatDistance(t.cardioMetres), change: changeVsLastWeek(t.cardioMetres, prev.cardioMetres) });
+      const pace = formatPace(t.cardioSeconds, t.cardioMetres);
+      if (pace) rows.push({ key: "cardioPace", label: "Snitt tempo", value: pace, change: null });
+    }
+    return rows;
+  });
+
+  /** Cardio groups are measured in time and distance, not reps and kilos. */
+  const muscleGroupMeta = (group: { reps: number; volume: number; durationSeconds: number; distanceMetres: number }): string => {
+    if (group.durationSeconds > 0 || group.distanceMetres > 0) {
+      const parts = [formatSeconds(group.durationSeconds)];
+      if (group.distanceMetres > 0) parts.push(formatDistance(group.distanceMetres));
+      return parts.join(" · ");
+    }
+    return `${formatNumber(group.reps)} reps · ${formatNumber(group.volume)} kg`;
+  };
 
   const trainedGroups = computed(() => week.muscleGroups.value.filter((g) => g.sets > 0));
 
@@ -269,6 +298,54 @@
           </div>
         </div>
 
+        <!-- Cardio -->
+        <div v-if="cardioStats.length > 0" class="wk-stats">
+          <div v-for="stat in cardioStats" :key="stat.key" class="wk-stat wk-stat--cardio">
+            <span class="wk-stat__value">{{ stat.value }}</span>
+            <span class="wk-stat__label">{{ stat.label }}</span>
+            <span
+              v-if="stat.change !== null"
+              class="wk-stat__change"
+              :class="stat.change >= 0 ? 'wk-stat__change--up' : 'wk-stat__change--down'">
+              {{ formatChange(stat.change) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Cardio goal -->
+        <section v-if="week.cardioGoalProgress.value.hasTarget" class="wk-card">
+          <h2 class="wk-section-title">Kondisjonsmål</h2>
+          <div class="mt-3 space-y-2.5">
+            <div v-if="week.cardioGoalProgress.value.minutesTarget > 0" class="wk-mg">
+              <div class="wk-mg__top">
+                <span class="wk-mg__dot" style="background-color: #06b6d4"></span>
+                <span class="wk-mg__name">Tid</span>
+                <span class="wk-mg__sets">
+                  <strong :class="{ 'wk-mg__sets--met': week.cardioGoalProgress.value.minutesPct >= 100 }">{{ week.cardioGoalProgress.value.minutesDone }}</strong>
+                  / {{ week.cardioGoalProgress.value.minutesTarget }} min
+                </span>
+              </div>
+              <div class="wk-mg__bar">
+                <div class="wk-mg__fill" :style="{ width: week.cardioGoalProgress.value.minutesPct + '%', backgroundColor: '#06b6d4' }"></div>
+              </div>
+            </div>
+
+            <div v-if="week.cardioGoalProgress.value.kmTarget > 0" class="wk-mg">
+              <div class="wk-mg__top">
+                <span class="wk-mg__dot" style="background-color: #06b6d4"></span>
+                <span class="wk-mg__name">Distanse</span>
+                <span class="wk-mg__sets">
+                  <strong :class="{ 'wk-mg__sets--met': week.cardioGoalProgress.value.kmPct >= 100 }">{{ week.cardioGoalProgress.value.kmDone }}</strong>
+                  / {{ week.cardioGoalProgress.value.kmTarget }} km
+                </span>
+              </div>
+              <div class="wk-mg__bar">
+                <div class="wk-mg__fill" :style="{ width: week.cardioGoalProgress.value.kmPct + '%', backgroundColor: '#06b6d4' }"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Goals CTA -->
         <button
           v-if="!hasGoals"
@@ -288,7 +365,7 @@
         <section class="wk-card">
           <div class="wk-section-head">
             <h2 class="wk-section-title">Muskelgrupper</h2>
-            <span v-if="hasGoals" class="wk-section-meta">{{ week.setsGoalProgress.value.done }} / {{ week.setsGoalProgress.value.target }} sett</span>
+            <span v-if="week.setsGoalProgress.value.hasTarget" class="wk-section-meta">{{ week.setsGoalProgress.value.done }} / {{ week.setsGoalProgress.value.target }} sett</span>
             <span v-else class="wk-section-meta">{{ week.totals.value.sets }} sett</span>
           </div>
 
@@ -319,7 +396,7 @@
                   }"></div>
               </div>
 
-              <div class="wk-mg__meta">{{ formatNumber(group.reps) }} reps · {{ formatNumber(group.volume) }} kg</div>
+              <div class="wk-mg__meta">{{ muscleGroupMeta(group) }}</div>
             </div>
           </div>
 
@@ -673,6 +750,15 @@
 
   .wk-stat__change--down {
     color: #ef4444;
+  }
+
+  /* Cardio borrows the Kondisjon accent so the section reads as its own thing. */
+  .wk-stat--cardio {
+    border-color: #06b6d433;
+  }
+
+  .wk-stat--cardio .wk-stat__value {
+    color: #22d3ee;
   }
 
   /* ── Goals CTA ───────────────────────────────────────────────────────────── */

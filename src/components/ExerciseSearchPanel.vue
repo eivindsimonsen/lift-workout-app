@@ -102,12 +102,15 @@ const getDefaultCategories = (workoutType: string): string[] => {
     triceps:     ['Triceps'],
     kjerne:      ['Kjerne'],
   }
-  return map[workoutType.toLowerCase()] || []
+  // Cardio is always offered: a warm-up or finisher belongs in any session.
+  const defaults = map[workoutType.toLowerCase()]
+  return defaults ? [...defaults, 'Kondisjon'] : []
 }
 
 const workoutTypes = computed(() => workoutTypesData.workoutTypes)
 
-const CATEGORY_ORDER = ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne', 'Annet']
+// Derived from muscle-groups.json; "Annet" catches anything unrecognised.
+const CATEGORY_ORDER = [...muscleGroupsData.muscleGroups.map((g) => g.name), 'Annet']
 
 /** Exercises from groupedResults arranged into labelled category sections. */
 const categorySections = computed(() => {

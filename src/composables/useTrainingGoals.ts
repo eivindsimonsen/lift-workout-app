@@ -8,14 +8,24 @@ import muscleGroupsData from "@/data/muscle-groups.json";
 // Types
 // ---------------------------------------------------------------------------
 
-export type TrainingPlanId = "none" | "ppl" | "upper-lower" | "full-body" | "bro-split" | "ulppl" | "pplul" | "custom";
+export type TrainingPlanId = "none" | "ppl" | "upper-lower" | "full-body" | "bro-split" | "ulppl" | "pplul" | "cardio" | "custom";
+
+/**
+ * Cardio is goal-set in time and distance. Counting "sets" of running is
+ * technically possible but tells you nothing about the week.
+ */
+export interface CardioGoals {
+  minutesPerWeek: number;
+  kilometresPerWeek: number;
+}
 
 export interface TrainingGoals {
   planId: TrainingPlanId;
   /** Target number of completed sessions per week. 0 = no target. */
   sessionsPerWeek: number;
-  /** Muscle group name → target sets per week, e.g. { Bryst: 16 }. */
+  /** Muscle group name → target sets per week, e.g. { Bryst: 16 }. Strength only. */
   setsPerMuscleGroup: Record<string, number>;
+  cardio: CardioGoals;
 }
 
 export interface TrainingPlan {
@@ -24,6 +34,7 @@ export interface TrainingPlan {
   description: string;
   sessionsPerWeek: number;
   setsPerMuscleGroup: Record<string, number>;
+  cardio: CardioGoals;
 }
 
 // ---------------------------------------------------------------------------
@@ -32,6 +43,12 @@ export interface TrainingPlan {
 
 /** Muscle group names, sourced from the same JSON the rest of the app uses. */
 export const MUSCLE_GROUP_NAMES: string[] = muscleGroupsData.muscleGroups.map((g) => g.name);
+
+/** The group cardio work belongs to. Kept out of the set targets. */
+export const CARDIO_GROUP_NAME = "Kondisjon";
+
+/** Groups that take a weekly *set* target — cardio is measured differently. */
+export const STRENGTH_MUSCLE_GROUP_NAMES: string[] = MUSCLE_GROUP_NAMES.filter((n) => n !== CARDIO_GROUP_NAME);
 
 /** Muscle group name → accent colour. */
 export const MUSCLE_GROUP_COLORS: Record<string, string> = Object.fromEntries(muscleGroupsData.muscleGroups.map((g) => [g.name, g.color]));
@@ -48,6 +65,7 @@ export const TRAINING_PLANS: TrainingPlan[] = [
     description: "Bryst-skuldre-triceps, rygg-biceps og ben — hver muskelgruppe to ganger i uka.",
     sessionsPerWeek: 6,
     setsPerMuscleGroup: { Bryst: 16, Rygg: 18, Ben: 18, Skuldre: 14, Biceps: 12, Triceps: 12, Kjerne: 6 },
+    cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 },
   },
   {
     id: "upper-lower",
@@ -55,6 +73,7 @@ export const TRAINING_PLANS: TrainingPlan[] = [
     description: "Overkropp og underkropp annenhver økt.",
     sessionsPerWeek: 4,
     setsPerMuscleGroup: { Bryst: 12, Rygg: 14, Ben: 14, Skuldre: 10, Biceps: 9, Triceps: 9, Kjerne: 6 },
+    cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 },
   },
   {
     id: "full-body",
@@ -62,6 +81,7 @@ export const TRAINING_PLANS: TrainingPlan[] = [
     description: "Hele kroppen hver økt — færre økter, jevnere fordeling.",
     sessionsPerWeek: 3,
     setsPerMuscleGroup: { Bryst: 9, Rygg: 10, Ben: 12, Skuldre: 8, Biceps: 6, Triceps: 6, Kjerne: 6 },
+    cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 },
   },
   {
     id: "bro-split",
@@ -69,6 +89,7 @@ export const TRAINING_PLANS: TrainingPlan[] = [
     description: "Én muskelgruppe per økt, høyt volum per gang.",
     sessionsPerWeek: 5,
     setsPerMuscleGroup: { Bryst: 16, Rygg: 16, Ben: 16, Skuldre: 14, Biceps: 12, Triceps: 12, Kjerne: 6 },
+    cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 },
   },
   {
     id: "ulppl",
@@ -76,6 +97,7 @@ export const TRAINING_PLANS: TrainingPlan[] = [
     description: "ULPPL — starter uka med overkropp og underkropp, avslutter med PPL.",
     sessionsPerWeek: 5,
     setsPerMuscleGroup: { Bryst: 14, Rygg: 16, Ben: 16, Skuldre: 12, Biceps: 10, Triceps: 10, Kjerne: 6 },
+    cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 },
   },
   {
     id: "pplul",
@@ -83,6 +105,15 @@ export const TRAINING_PLANS: TrainingPlan[] = [
     description: "PPLUL — samme fem økter som ULPPL, men PPL først mens du er ferskest.",
     sessionsPerWeek: 5,
     setsPerMuscleGroup: { Bryst: 14, Rygg: 16, Ben: 16, Skuldre: 12, Biceps: 10, Triceps: 10, Kjerne: 6 },
+    cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 },
+  },
+  {
+    id: "cardio",
+    name: "Kondisjon",
+    description: "Kun kondisjon — mål settes i minutter og kilometer, ikke sett.",
+    sessionsPerWeek: 4,
+    setsPerMuscleGroup: {},
+    cardio: { minutesPerWeek: 150, kilometresPerWeek: 25 },
   },
   {
     id: "custom",
@@ -90,18 +121,22 @@ export const TRAINING_PLANS: TrainingPlan[] = [
     description: "Sett dine egne mål per muskelgruppe.",
     sessionsPerWeek: 4,
     setsPerMuscleGroup: { Bryst: 12, Rygg: 12, Ben: 12, Skuldre: 10, Biceps: 8, Triceps: 8, Kjerne: 6 },
+    cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 },
   },
 ];
 
 const STORAGE_KEY = "lift-training-goals";
 const MAX_SETS_PER_GROUP = 60;
 const MAX_SESSIONS_PER_WEEK = 14;
+const MAX_CARDIO_MINUTES = 2000;
+const MAX_CARDIO_KM = 500;
 
 /** No plan chosen yet — the UI falls back to plain totals instead of showing 0 / 84. */
 export const EMPTY_GOALS: TrainingGoals = Object.freeze({
   planId: "none",
   sessionsPerWeek: 0,
   setsPerMuscleGroup: {},
+  cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 },
 }) as TrainingGoals;
 
 // ---------------------------------------------------------------------------
@@ -114,7 +149,7 @@ const clamp = (value: unknown, max: number): number => {
   return Math.min(n, max);
 };
 
-const VALID_PLAN_IDS: TrainingPlanId[] = ["none", "ppl", "upper-lower", "full-body", "bro-split", "ulppl", "pplul", "custom"];
+const VALID_PLAN_IDS: TrainingPlanId[] = ["none", "ppl", "upper-lower", "full-body", "bro-split", "ulppl", "pplul", "cardio", "custom"];
 
 /**
  * Coerces anything read from storage or `user_metadata` into a valid shape.
@@ -122,7 +157,8 @@ const VALID_PLAN_IDS: TrainingPlanId[] = ["none", "ppl", "upper-lower", "full-bo
  * can never leak a stale target into the UI.
  */
 const normalizeGoals = (raw: unknown): TrainingGoals => {
-  if (!raw || typeof raw !== "object") return { ...EMPTY_GOALS, setsPerMuscleGroup: {} };
+  const empty = (): TrainingGoals => ({ planId: "none", sessionsPerWeek: 0, setsPerMuscleGroup: {}, cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 } });
+  if (!raw || typeof raw !== "object") return empty();
 
   const input = raw as Partial<TrainingGoals>;
   const planId = VALID_PLAN_IDS.includes(input.planId as TrainingPlanId) ? (input.planId as TrainingPlanId) : "none";
@@ -130,16 +166,24 @@ const normalizeGoals = (raw: unknown): TrainingGoals => {
   const setsPerMuscleGroup: Record<string, number> = {};
   const rawSets = input.setsPerMuscleGroup;
   if (rawSets && typeof rawSets === "object") {
-    for (const name of MUSCLE_GROUP_NAMES) {
+    // Strength groups only: a set target for Kondisjon would be silently ignored
+    // by the UI, so drop it rather than keep a value nothing acts on.
+    for (const name of STRENGTH_MUSCLE_GROUP_NAMES) {
       const target = clamp((rawSets as Record<string, unknown>)[name], MAX_SETS_PER_GROUP);
       if (target > 0) setsPerMuscleGroup[name] = target;
     }
   }
 
+  const rawCardio = (input.cardio ?? {}) as Partial<CardioGoals>;
+
   return {
     planId,
     sessionsPerWeek: clamp(input.sessionsPerWeek, MAX_SESSIONS_PER_WEEK),
     setsPerMuscleGroup,
+    cardio: {
+      minutesPerWeek: clamp(rawCardio.minutesPerWeek, MAX_CARDIO_MINUTES),
+      kilometresPerWeek: clamp(rawCardio.kilometresPerWeek, MAX_CARDIO_KM),
+    },
   };
 };
 
@@ -219,8 +263,10 @@ export const useTrainingGoals = () => {
   /** Total target sets across every muscle group. */
   const totalTargetSets = computed(() => Object.values(_goals.value.setsPerMuscleGroup).reduce((sum, n) => sum + n, 0));
 
-  /** True once the user has actually chosen a plan with at least one target. */
-  const hasGoals = computed(() => _goals.value.planId !== "none" && totalTargetSets.value > 0);
+  const hasCardioGoal = computed(() => _goals.value.cardio.minutesPerWeek > 0 || _goals.value.cardio.kilometresPerWeek > 0);
+
+  /** True once the user has chosen a plan with at least one target of any kind. */
+  const hasGoals = computed(() => _goals.value.planId !== "none" && (totalTargetSets.value > 0 || hasCardioGoal.value));
 
   const activePlan = computed<TrainingPlan | null>(() => TRAINING_PLANS.find((p) => p.id === _goals.value.planId) ?? null);
 
@@ -235,6 +281,7 @@ export const useTrainingGoals = () => {
       planId: plan.id,
       sessionsPerWeek: plan.sessionsPerWeek,
       setsPerMuscleGroup: { ...plan.setsPerMuscleGroup },
+      cardio: { ...plan.cardio },
     });
   };
 
@@ -270,6 +317,7 @@ export const useTrainingGoals = () => {
   return {
     goals,
     hasGoals,
+    hasCardioGoal,
     activePlan,
     totalTargetSets,
     getTargetSets,

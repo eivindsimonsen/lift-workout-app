@@ -4,7 +4,7 @@
   // ---------------------------------------------------------------------------
   import { ref, computed, watch } from "vue";
   import SlideOver from "@/components/SlideOver.vue";
-  import { useTrainingGoals, TRAINING_PLANS, MUSCLE_GROUP_NAMES, MUSCLE_GROUP_COLORS, type TrainingGoals, type TrainingPlanId } from "@/composables/useTrainingGoals";
+  import { useTrainingGoals, TRAINING_PLANS, STRENGTH_MUSCLE_GROUP_NAMES, MUSCLE_GROUP_COLORS, CARDIO_GROUP_NAME, type TrainingGoals, type TrainingPlanId } from "@/composables/useTrainingGoals";
 
   // ---------------------------------------------------------------------------
   // Props / Emits
@@ -25,16 +25,19 @@
 
   const MAX_SETS = 60;
   const MAX_SESSIONS = 14;
+  const MAX_CARDIO_MINUTES = 2000;
+  const MAX_CARDIO_KM = 500;
 
   const isSaving = ref(false);
 
   /** Working copy — nothing is persisted until the user hits "Lagre". */
-  const draft = ref<TrainingGoals>({ planId: "none", sessionsPerWeek: 0, setsPerMuscleGroup: {} });
+  const draft = ref<TrainingGoals>({ planId: "none", sessionsPerWeek: 0, setsPerMuscleGroup: {}, cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 } });
 
   const cloneGoals = (source: TrainingGoals): TrainingGoals => ({
     planId: source.planId,
     sessionsPerWeek: source.sessionsPerWeek,
     setsPerMuscleGroup: { ...source.setsPerMuscleGroup },
+    cardio: { ...source.cardio },
   });
 
   // Reset the draft each time the drawer opens so a cancelled edit is discarded.
@@ -54,7 +57,8 @@
 
   const totalTargetSets = computed(() => Object.values(draft.value.setsPerMuscleGroup).reduce((sum, n) => sum + n, 0));
 
-  const hasAnyTarget = computed(() => totalTargetSets.value > 0);
+  const hasCardioTarget = computed(() => draft.value.cardio.minutesPerWeek > 0 || draft.value.cardio.kilometresPerWeek > 0);
+  const hasAnyTarget = computed(() => totalTargetSets.value > 0 || hasCardioTarget.value);
 
   const activePlanName = computed(() => TRAINING_PLANS.find((p) => p.id === draft.value.planId)?.name ?? "Ingen plan valgt");
 
@@ -88,6 +92,14 @@
     markCustom();
   };
 
+  /** Cardio goals are time and distance; sets say nothing about a run. */
+  const adjustCardio = (field: "minutesPerWeek" | "kilometresPerWeek", delta: number) => {
+    const max = field === "minutesPerWeek" ? MAX_CARDIO_MINUTES : MAX_CARDIO_KM;
+    const next = Math.max(0, Math.min(max, draft.value.cardio[field] + delta));
+    draft.value.cardio = { ...draft.value.cardio, [field]: next };
+    markCustom();
+  };
+
   const adjustSessions = (delta: number) => {
     draft.value.sessionsPerWeek = Math.max(0, Math.min(MAX_SESSIONS, draft.value.sessionsPerWeek + delta));
     markCustom();
@@ -101,7 +113,7 @@
 
   /** Turns goal tracking off entirely — the week card falls back to plain totals. */
   const clearGoals = () => {
-    draft.value = { planId: "none", sessionsPerWeek: 0, setsPerMuscleGroup: {} };
+    draft.value = { planId: "none", sessionsPerWeek: 0, setsPerMuscleGroup: {}, cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 } };
   };
 
   const save = async () => {
@@ -186,7 +198,7 @@
 
         <div class="mt-3 space-y-2">
           <div
-            v-for="group in MUSCLE_GROUP_NAMES"
+            v-for="group in STRENGTH_MUSCLE_GROUP_NAMES"
             :key="group"
             class="goals__row">
             <span
@@ -209,6 +221,66 @@
                 :disabled="getSets(group) >= MAX_SETS"
                 :aria-label="`Flere sett for ${group}`"
                 @click="adjustSets(group, 1)">
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cardio goals -->
+      <section>
+        <h4 class="goals__heading">Kondisjon per uke</h4>
+        <p class="goals__hint">Måles i tid og distanse. La stå på null om du ikke trener kondisjon.</p>
+
+        <div class="mt-3 space-y-2">
+          <div class="goals__row">
+            <span
+              class="goals__dot"
+              :style="{ backgroundColor: getColor(CARDIO_GROUP_NAME) }"></span>
+            <span class="goals__row-label">Minutter</span>
+            <div class="goals__stepper">
+              <button
+                type="button"
+                class="goals__step-btn"
+                :disabled="draft.cardio.minutesPerWeek <= 0"
+                aria-label="Færre minutter"
+                @click="adjustCardio('minutesPerWeek', -10)">
+                −
+              </button>
+              <span class="goals__step-value">{{ draft.cardio.minutesPerWeek || "–" }}</span>
+              <button
+                type="button"
+                class="goals__step-btn"
+                :disabled="draft.cardio.minutesPerWeek >= MAX_CARDIO_MINUTES"
+                aria-label="Flere minutter"
+                @click="adjustCardio('minutesPerWeek', 10)">
+                +
+              </button>
+            </div>
+          </div>
+
+          <div class="goals__row">
+            <span
+              class="goals__dot"
+              :style="{ backgroundColor: getColor(CARDIO_GROUP_NAME) }"></span>
+            <span class="goals__row-label">Kilometer</span>
+            <div class="goals__stepper">
+              <button
+                type="button"
+                class="goals__step-btn"
+                :disabled="draft.cardio.kilometresPerWeek <= 0"
+                aria-label="Færre kilometer"
+                @click="adjustCardio('kilometresPerWeek', -1)">
+                −
+              </button>
+              <span class="goals__step-value">{{ draft.cardio.kilometresPerWeek || "–" }}</span>
+              <button
+                type="button"
+                class="goals__step-btn"
+                :disabled="draft.cardio.kilometresPerWeek >= MAX_CARDIO_KM"
+                aria-label="Flere kilometer"
+                @click="adjustCardio('kilometresPerWeek', 1)">
                 +
               </button>
             </div>

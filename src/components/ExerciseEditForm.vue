@@ -38,10 +38,9 @@ const emit = defineEmits<{
 // Constants
 // ---------------------------------------------------------------------------
 
-const CATEGORIES = [
-  'Bryst', 'Rygg', 'Ben', 'Skuldre',
-  'Biceps', 'Triceps', 'Kjerne',
-]
+// Derived from muscle-groups.json so a new group (e.g. Kondisjon) shows up
+// everywhere at once instead of drifting out of sync with a hardcoded list.
+const CATEGORIES = muscleGroupsData.muscleGroups.map((g) => g.name)
 
 const CATEGORY_COLORS: Record<string, string> = {
   ...Object.fromEntries(muscleGroupsData.muscleGroups.map((g) => [g.name, g.color])),

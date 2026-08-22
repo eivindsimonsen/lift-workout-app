@@ -1,7 +1,8 @@
 import { computed, unref, type ComputedRef, type Ref } from "vue";
 import { useHybridData } from "./useHybridData";
-import { useTrainingGoals, MUSCLE_GROUP_COLORS, MUSCLE_GROUP_NAMES } from "./useTrainingGoals";
+import { useTrainingGoals, MUSCLE_GROUP_COLORS, MUSCLE_GROUP_NAMES, CARDIO_GROUP_NAME } from "./useTrainingGoals";
 import type { WorkoutSession } from "@/types/workout";
+import { isSetCounted, setVolume, setReps, setDuration, setDistance, isCardioExercise } from "./useSetMetrics";
 
 // ---------------------------------------------------------------------------
 // Date helpers (ISO weeks, Monday-first)
@@ -58,6 +59,9 @@ export interface WeekTotals {
   reps: number;
   volume: number;
   durationMinutes: number;
+  /** Cardio time logged on sets, separate from the session's own duration. */
+  cardioSeconds: number;
+  cardioMetres: number;
   uniqueExercises: number;
   avgVolumePerWorkout: number;
   avgDuration: number;
@@ -71,6 +75,9 @@ export interface MuscleGroupWeekStat {
   sets: number;
   reps: number;
   volume: number;
+  /** Cardio only; zero for strength groups. */
+  durationSeconds: number;
+  distanceMetres: number;
   /** Weekly target from the user's plan; 0 when no goal is set. */
   targetSets: number;
   /** Progress toward the target, capped at 100. 0 when no target. */
@@ -108,18 +115,14 @@ export interface TemplateUsage {
 // Set counting
 // ---------------------------------------------------------------------------
 
-/**
- * A set only counts once it's actually been performed. Identical to the rule the
- * old inline week card used, so the numbers don't shift under the user's feet.
- */
-const isCountableSet = (set: any): boolean => Boolean(set?.isCompleted) && Number(set?.weight) > 0 && Number(set?.reps) > 0;
-
 const emptyTotals = (): WeekTotals => ({
   workouts: 0,
   sets: 0,
   reps: 0,
   volume: 0,
   durationMinutes: 0,
+  cardioSeconds: 0,
+  cardioMetres: 0,
   uniqueExercises: 0,
   avgVolumePerWorkout: 0,
   avgDuration: 0,
@@ -136,13 +139,15 @@ const buildTotals = (sessions: WorkoutSession[]): WeekTotals => {
     session.exercises?.forEach((exercise: any) => {
       let exerciseHadSets = false;
       exercise.sets?.forEach((set: any) => {
-        if (!isCountableSet(set)) return;
+        if (!isSetCounted(exercise, set)) return;
         exerciseHadSets = true;
-        const weight = Number(set.weight);
-        const reps = Number(set.reps);
+        // A set is a set whichever way it's measured — an interval counts.
+        // Reps and volume stay strength-only; kilos mean nothing on a run.
         totals.sets += 1;
-        totals.reps += reps;
-        totals.volume += weight * reps;
+        totals.reps += setReps(exercise, set);
+        totals.volume += setVolume(exercise, set);
+        totals.cardioSeconds += setDuration(exercise, set);
+        totals.cardioMetres += setDistance(exercise, set);
       });
       if (exerciseHadSets) exerciseIds.add(Number(exercise.exerciseId));
     });
@@ -168,7 +173,7 @@ const buildTotals = (sessions: WorkoutSession[]): WeekTotals => {
  */
 export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
   const workoutData = useHybridData();
-  const { getTargetSets, hasGoals } = useTrainingGoals();
+  const { getTargetSets, hasGoals, hasCardioGoal, goals } = useTrainingGoals();
 
   const offset = computed(() => unref(weekOffset));
 
@@ -253,7 +258,7 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
       session.exercises?.forEach((exercise: any) => {
         if (resolveExercise(exercise)) return;
         exercise.sets?.forEach((set: any) => {
-          if (isCountableSet(set)) count += 1;
+          if (isSetCounted(exercise, set)) count += 1;
         });
       });
     });
@@ -261,24 +266,25 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
   });
 
   const muscleGroups = computed<MuscleGroupWeekStat[]>(() => {
-    const acc: Record<string, { sets: number; reps: number; volume: number }> = {};
+    const acc: Record<string, { sets: number; reps: number; volume: number; durationSeconds: number; distanceMetres: number }> = {};
+    const emptyBucket = () => ({ sets: 0, reps: 0, volume: 0, durationSeconds: 0, distanceMetres: 0 });
     MUSCLE_GROUP_NAMES.forEach((name) => {
-      acc[name] = { sets: 0, reps: 0, volume: 0 };
+      acc[name] = emptyBucket();
     });
 
     sessions.value.forEach((session) => {
       session.exercises?.forEach((exercise: any) => {
         const entry = resolveExercise(exercise);
         if (!entry) return;
-        const bucket = acc[entry.category] ?? (acc[entry.category] = { sets: 0, reps: 0, volume: 0 });
+        const bucket = acc[entry.category] ?? (acc[entry.category] = emptyBucket());
 
         exercise.sets?.forEach((set: any) => {
-          if (!isCountableSet(set)) return;
-          const weight = Number(set.weight);
-          const reps = Number(set.reps);
+          if (!isSetCounted(exercise, set)) return;
           bucket.sets += 1;
-          bucket.reps += reps;
-          bucket.volume += weight * reps;
+          bucket.reps += setReps(exercise, set);
+          bucket.volume += setVolume(exercise, set);
+          bucket.durationSeconds += setDuration(exercise, set);
+          bucket.distanceMetres += setDistance(exercise, set);
         });
       });
     });
@@ -294,6 +300,8 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
           sets: v.sets,
           reps: v.reps,
           volume: Math.round(v.volume),
+          durationSeconds: v.durationSeconds,
+          distanceMetres: Math.round(v.distanceMetres),
           targetSets,
           pctOfTarget: targetSets > 0 ? Math.min(100, Math.round((v.sets / targetSets) * 100)) : 0,
           isMet: targetSets > 0 && v.sets >= targetSets,
@@ -303,15 +311,38 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
       .sort((a, b) => b.sets - a.sets || a.name.localeCompare(b.name, "no"));
   });
 
-  /** Progress toward the sum of every muscle group target. */
+  /**
+   * Progress toward the sum of every muscle group target.
+   * Cardio is excluded on both sides: it has no set target, so counting its sets
+   * against a strength goal would quietly inflate the bar.
+   */
   const setsGoalProgress = computed(() => {
     const target = muscleGroups.value.reduce((sum, g) => sum + g.targetSets, 0);
-    const done = totals.value.sets;
+    const done = muscleGroups.value.filter((g) => g.name !== CARDIO_GROUP_NAME).reduce((sum, g) => sum + g.sets, 0);
     return {
       done,
       target,
-      hasTarget: hasGoals.value && target > 0,
+      hasTarget: target > 0,
       percentage: target > 0 ? Math.min(100, Math.round((done / target) * 100)) : 0,
+    };
+  });
+
+  /** Progress toward the weekly cardio goal, in minutes and kilometres. */
+  const cardioGoalProgress = computed(() => {
+    const target = goals.value.cardio;
+    const minutesDone = Math.round(totals.value.cardioSeconds / 60);
+    const kmDone = Math.round((totals.value.cardioMetres / 1000) * 10) / 10;
+
+    const pct = (done: number, goal: number) => (goal > 0 ? Math.min(100, Math.round((done / goal) * 100)) : 0);
+
+    return {
+      hasTarget: hasCardioGoal.value,
+      minutesDone,
+      minutesTarget: target.minutesPerWeek,
+      minutesPct: pct(minutesDone, target.minutesPerWeek),
+      kmDone,
+      kmTarget: target.kilometresPerWeek,
+      kmPct: pct(kmDone, target.kilometresPerWeek),
     };
   });
 
@@ -325,9 +356,9 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
 
       session.exercises?.forEach((exercise: any) => {
         exercise.sets?.forEach((set: any) => {
-          if (!isCountableSet(set)) return;
+          if (!isSetCounted(exercise, set)) return;
           days[idx].sets += 1;
-          days[idx].volume += Number(set.weight) * Number(set.reps);
+          days[idx].volume += setVolume(exercise, set);
         });
       });
     });
@@ -343,8 +374,10 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
 
     sessions.value.forEach((session) => {
       session.exercises?.forEach((exercise: any) => {
+        // Rep ranges describe strength work; a run has no meaningful rep count.
+        if (isCardioExercise(exercise)) return;
         exercise.sets?.forEach((set: any) => {
-          if (!isCountableSet(set)) return;
+          if (!isSetCounted(exercise, set)) return;
           const reps = Number(set.reps);
           if (reps <= 5) strength += reps;
           else if (reps <= 12) hypertrophy += reps;
@@ -391,9 +424,11 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
     completedSessions.value.forEach((session) => {
       if (new Date(session.date) >= weekStart.value) return;
       session.exercises?.forEach((exercise: any) => {
+        // Personal bests here are load-based, so cardio has nothing to beat.
+        if (isCardioExercise(exercise)) return;
         const key = keyFor(exercise);
         exercise.sets?.forEach((set: any) => {
-          if (!isCountableSet(set)) return;
+          if (!isSetCounted(exercise, set)) return;
           const weight = Number(set.weight);
           if (weight > (historicBest.get(key) ?? 0)) historicBest.set(key, weight);
         });
@@ -403,6 +438,7 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
     const bests = new Map<string, NewPersonalBest>();
     sessions.value.forEach((session) => {
       session.exercises?.forEach((exercise: any) => {
+        if (isCardioExercise(exercise)) return;
         const key = keyFor(exercise);
         const previousBest = historicBest.get(key) ?? 0;
 
@@ -410,7 +446,7 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
         if (previousBest === 0) return;
 
         exercise.sets?.forEach((set: any) => {
-          if (!isCountableSet(set)) return;
+          if (!isSetCounted(exercise, set)) return;
           const weight = Number(set.weight);
           if (weight <= previousBest) return;
 
@@ -453,6 +489,7 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
     newPersonalBests,
     unresolvedSets,
     exercisesReady,
+    cardioGoalProgress,
   };
 };
 
