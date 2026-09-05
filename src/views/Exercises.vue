@@ -35,13 +35,13 @@ const addVariantInputRefs = ref<Record<number, HTMLInputElement | null>>({})
 // Computed
 // ---------------------------------------------------------------------------
 
-const isLoading = computed(() => workoutData.isLoading.value || workoutData.isLoadingExercises.value)
+const isLoading = computed(
+  () => workoutData.isLoading.value || workoutData.isLoadingExercises.value
+)
 const hasSearch = computed(() => searchQuery.value.trim().length > 0)
 const hasCategoryFilter = computed(() => selectedCategories.value.length > 0)
 
-const availableCategories = computed(() =>
-  muscleGroupsData.muscleGroups.map((g) => g.name)
-)
+const availableCategories = computed(() => muscleGroupsData.muscleGroups.map((g) => g.name))
 
 // Derived from muscle-groups.json; "Annet" catches anything unrecognised.
 const CATEGORY_ORDER = [...muscleGroupsData.muscleGroups.map((g) => g.name), 'Annet']
@@ -52,8 +52,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 /** Returns the accent color for a given category name. */
-const getCategoryColor = (category: string): string =>
-  CATEGORY_COLORS[category] ?? '#6b7280'
+const getCategoryColor = (category: string): string => CATEGORY_COLORS[category] ?? '#6b7280'
 
 /** All exercises enriched with session stats (totalSessions, oneRepMax). */
 const enrichedExercises = computed(() => {
@@ -69,9 +68,7 @@ const enrichedExercises = computed(() => {
     workoutData.sessions.value
       ?.filter((s) => s.isCompleted)
       .forEach((session) => {
-        const matched = session.exercises?.filter((e) =>
-          allVariantIds.has(Number(e.exerciseId))
-        )
+        const matched = session.exercises?.filter((e) => allVariantIds.has(Number(e.exerciseId)))
         if (matched && matched.length > 0) totalSessions++
 
         matched?.forEach((e) => {
@@ -96,8 +93,7 @@ const templateVariantIds = computed(() => {
   return ids
 })
 
-const isInTemplate = (variantId: number): boolean =>
-  templateVariantIds.value.has(variantId)
+const isInTemplate = (variantId: number): boolean => templateVariantIds.value.has(variantId)
 
 /**
  * Filter by muscle category, then by search query.
@@ -144,8 +140,7 @@ const getExercisesByCategory = (category: string) =>
 // Methods – navigation
 // ---------------------------------------------------------------------------
 
-const viewExercise = (exerciseId: number) =>
-  router.push(`/exercise/${exerciseId}`)
+const viewExercise = (exerciseId: number) => router.push(`/exercise/${exerciseId}`)
 
 // ---------------------------------------------------------------------------
 // Methods – form (create / edit group metadata)
@@ -165,7 +160,6 @@ const openEditForm = (exercise: ExerciseData) => {
 const onExerciseSaved = (_exercise: ExerciseData) => {
   showForm.value = false
 }
-
 
 // ---------------------------------------------------------------------------
 // Methods – inline variant add
@@ -192,26 +186,38 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   isSavingVariant.value = false
   cancelAddVariant()
 }
-
 </script>
 
 <template>
   <div class="exercises-view">
-
     <!-- Header -->
     <header class="exercises-view__header">
       <div class="exercises-view__header-left">
         <div class="exercises-view__header-icon">
-          <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          <svg
+            class="h-6 w-6 text-primary-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+            />
           </svg>
         </div>
         <h1 class="text-2xl font-bold text-white">Øvelser</h1>
       </div>
       <button class="exercises-view__create-btn" @click="openCreateForm">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 4v16m8-8H4"
+          />
         </svg>
         Ny gruppe
       </button>
@@ -219,9 +225,18 @@ const saveNewVariant = async (exercise: ExerciseData) => {
 
     <!-- Search -->
     <div class="exercises-view__search">
-      <svg class="exercises-view__search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      <svg
+        class="exercises-view__search-icon"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
       </svg>
       <input
         v-model="searchQuery"
@@ -242,13 +257,23 @@ const saveNewVariant = async (exercise: ExerciseData) => {
           :class="{ 'exercises-view__chip--active': selectedCategories.includes(cat) }"
         >
           <input v-model="selectedCategories" type="checkbox" :value="cat" class="sr-only" />
-          <span class="exercises-view__chip-dot" :style="{ background: getCategoryColor(cat) }"></span>
+          <span
+            class="exercises-view__chip-dot"
+            :style="{ background: getCategoryColor(cat) }"
+          ></span>
           {{ cat }}
         </label>
       </div>
       <p class="exercises-view__legend">
-        <svg class="exercises-view__legend-star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 7.1-1.01L12 2z" />
+        <svg
+          class="exercises-view__legend-star"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 7.1-1.01L12 2z"
+          />
         </svg>
         Stjerne = brukt i treningsprogram
       </p>
@@ -260,19 +285,17 @@ const saveNewVariant = async (exercise: ExerciseData) => {
     </div>
 
     <template v-else>
-
       <!-- No results when filtering or searching -->
-      <div v-if="filteredExercises.length === 0 && (hasSearch || hasCategoryFilter)" class="exercises-view__empty">
+      <div
+        v-if="filteredExercises.length === 0 && (hasSearch || hasCategoryFilter)"
+        class="exercises-view__empty"
+      >
         <p class="text-dark-300">
           <template v-if="hasSearch && hasCategoryFilter">
             Ingen treff på «{{ searchQuery }}» i valgte muskelgrupper
           </template>
-          <template v-else-if="hasSearch">
-            Ingen treff på «{{ searchQuery }}»
-          </template>
-          <template v-else>
-            Ingen øvelser i valgte muskelgrupper
-          </template>
+          <template v-else-if="hasSearch">Ingen treff på «{{ searchQuery }}»</template>
+          <template v-else>Ingen øvelser i valgte muskelgrupper</template>
         </p>
       </div>
 
@@ -297,37 +320,28 @@ const saveNewVariant = async (exercise: ExerciseData) => {
               :key="exercise.id"
               class="ex-group"
             >
-
-              <!-- Group header: muted name + action buttons -->
+              <!-- Group header: muted name + edit group action -->
               <div class="ex-group__header">
                 <span class="ex-group__name">{{ exercise.name }}</span>
-                <div class="ex-group__header-actions">
-                  <button
-                    class="ex-group__add-btn"
-                    title="Legg til variant"
-                    @click.stop="openAddVariant(exercise.id)"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>Legg til variant</span>
-                  </button>
-                  <button
-                    class="ex-group__settings-btn"
-                    title="Gruppeinnstillinger"
-                    @click.stop="openEditForm(exercise)"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                </div>
+                <button
+                  class="ex-group__settings-btn"
+                  title="Rediger gruppenavn og muskelgruppe"
+                  @click.stop="openEditForm(exercise)"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                  <span>Rediger</span>
+                </button>
               </div>
 
               <!-- Variant rows -->
               <div class="ex-group__variants">
-
                 <div
                   v-for="variant in exercise.variants"
                   :key="variant.id"
@@ -347,14 +361,19 @@ const saveNewVariant = async (exercise: ExerciseData) => {
                       fill="currentColor"
                       aria-hidden="true"
                     >
-                      <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 7.1-1.01L12 2z" />
+                      <path
+                        d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 7.1-1.01L12 2z"
+                      />
                     </svg>
                   </button>
                 </div>
 
                 <!-- Empty state -->
                 <div
-                  v-if="(!exercise.variants || exercise.variants.length === 0) && addingToGroupId !== exercise.id"
+                  v-if="
+                    (!exercise.variants || exercise.variants.length === 0) &&
+                    addingToGroupId !== exercise.id
+                  "
                   class="ex-group__empty"
                 >
                   Ingen varianter ennå —
@@ -363,10 +382,32 @@ const saveNewVariant = async (exercise: ExerciseData) => {
                   </button>
                 </div>
 
+                <!-- Add variant (below the last variant, once at least one exists) -->
+                <button
+                  v-if="exercise.variants && exercise.variants.length > 0 && addingToGroupId !== exercise.id"
+                  class="ex-group__add-btn"
+                  title="Legg til variant"
+                  @click.stop="openAddVariant(exercise.id)"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2.5"
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  <span>Legg til variant</span>
+                </button>
+
                 <!-- Inline add row -->
                 <div v-if="addingToGroupId === exercise.id" class="ex-group__add-row">
                   <input
-                    :ref="(el) => { addVariantInputRefs[exercise.id] = el as HTMLInputElement }"
+                    :ref="
+                      (el) => {
+                        addVariantInputRefs[exercise.id] = el as HTMLInputElement
+                      }
+                    "
                     v-model="newInlineVariantName"
                     type="text"
                     class="input-field ex-group__variant-input"
@@ -380,22 +421,33 @@ const saveNewVariant = async (exercise: ExerciseData) => {
                     :disabled="!newInlineVariantName.trim() || isSavingVariant"
                     @click="saveNewVariant(exercise)"
                   >
-                    <svg v-if="!isSavingVariant" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    <svg
+                      v-if="!isSavingVariant"
+                      class="h-3.5 w-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2.5"
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                     <span v-else class="text-xs">...</span>
                   </button>
-                  <button
-                    class="ex-group__action-btn"
-                    title="Avbryt"
-                    @click="cancelAddVariant"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                  <button class="ex-group__action-btn" title="Avbryt" @click="cancelAddVariant">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2.5"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
-
               </div>
             </div>
           </div>
@@ -403,17 +455,25 @@ const saveNewVariant = async (exercise: ExerciseData) => {
       </template>
 
       <!-- Empty state (no exercises at all) -->
-      <div v-if="!hasSearch && !hasCategoryFilter && enrichedExercises.length === 0" class="exercises-view__empty">
+      <div
+        v-if="!hasSearch && !hasCategoryFilter && enrichedExercises.length === 0"
+        class="exercises-view__empty"
+      >
         <div class="exercises-view__empty-icon">
-          <svg class="w-8 h-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          <svg class="h-8 w-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 10h16M4 14h16M4 18h16"
+            />
           </svg>
         </div>
-        <p class="text-dark-300 mb-2">Ingen øvelser funnet</p>
-        <button class="exercises-view__create-btn" @click="openCreateForm">Opprett din første øvelsegruppe</button>
+        <p class="mb-2 text-dark-300">Ingen øvelser funnet</p>
+        <button class="exercises-view__create-btn" @click="openCreateForm">
+          Opprett din første øvelsegruppe
+        </button>
       </div>
-
     </template>
 
     <!-- Exercise create / edit drawer -->
@@ -423,7 +483,6 @@ const saveNewVariant = async (exercise: ExerciseData) => {
       @saved="onExerciseSaved"
       @deleted="showForm = false"
     />
-
   </div>
 </template>
 
@@ -631,7 +690,11 @@ const saveNewVariant = async (exercise: ExerciseData) => {
 .ex-cat__divider {
   flex: 1;
   height: 1px;
-  background: linear-gradient(to right, color-mix(in srgb, var(--cat-color, #6b7280) 35%, transparent), transparent);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--cat-color, #6b7280) 35%, transparent),
+    transparent
+  );
 }
 
 .ex-cat__groups {
@@ -677,27 +740,23 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   white-space: nowrap;
 }
 
-.ex-group__header-actions {
+/* "+ Legg til variant" text button — sits below the last variant row */
+.ex-group__add-btn {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  flex-shrink: 0;
-}
-
-/* "+ Legg til variant" text button */
-.ex-group__add-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+  gap: 0.375rem;
+  margin: 0.125rem 0.5rem 0 0.375rem;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #6b7280;
   background: transparent;
   border: none;
   border-radius: 0.375rem;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
   white-space: nowrap;
 }
 
@@ -706,19 +765,22 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   background: rgb(249 115 22 / 0.08);
 }
 
-/* Settings (pencil) icon button */
+/* Edit-group button — icon + label so it reads clearly on touch devices */
 .ex-group__settings-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  gap: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
   border-radius: 0.375rem;
   border: none;
   background: transparent;
   color: #4b5563;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
   flex-shrink: 0;
 }
 
@@ -810,7 +872,9 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   flex-shrink: 0;
 }
 

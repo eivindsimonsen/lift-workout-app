@@ -6,7 +6,6 @@ import { ref, computed, watch } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
 import { useExercises } from '@/composables/useExercises'
 import muscleGroupsData from '@/data/muscle-groups.json'
-import workoutTypesData from '@/data/workout-types.json'
 import type { ExerciseData, ExerciseVariant } from '@/types/workout'
 
 // ---------------------------------------------------------------------------
@@ -48,10 +47,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   Annet: '#6b7280',
 }
 
-// Derived from workout-types.json, minus 'cardio' — see ExerciseForm.
-const WORKOUT_TYPE_OPTIONS = workoutTypesData.workoutTypes
-  .filter((wt) => wt.id !== 'cardio')
-  .map((wt) => ({ id: wt.id, label: wt.name }))
+// Same category order used throughout the app (Exercises.vue, ExerciseSearchPanel.vue).
+const CATEGORY_ORDER = [...CATEGORIES, 'Annet']
 
 // ---------------------------------------------------------------------------
 // State
@@ -62,9 +59,25 @@ const exercisesStore = useExercises()
 const isVariant = computed(() => props.variant != null)
 
 /** All exercise groups available as parent options for variants. */
-const allGroups = computed<ExerciseData[]>(() =>
-  exercisesStore.exercises.value.slice().sort((a, b) => a.name.localeCompare(b.name, 'no'))
-)
+const allGroups = computed<ExerciseData[]>(() => exercisesStore.exercises.value)
+
+/**
+ * Parent-group options for the picker, grouped by muscle category and
+ * alphabetised within each — a flat, unsorted list was hard to scan for a
+ * specific group.
+ */
+const groupedAllGroups = computed(() => {
+  const map = new Map<string, ExerciseData[]>()
+  for (const group of allGroups.value) {
+    const cat = group.category || 'Annet'
+    if (!map.has(cat)) map.set(cat, [])
+    map.get(cat)!.push(group)
+  }
+  return CATEGORY_ORDER.filter((cat) => map.has(cat)).map((cat) => ({
+    category: cat,
+    groups: map.get(cat)!.sort((a, b) => a.name.localeCompare(b.name, 'no')),
+  }))
+})
 
 const selectedGroup = computed(() =>
   allGroups.value.find((g) => g.id === selectedParentId.value) ?? null
@@ -88,7 +101,6 @@ const selectGroup = (groupId: number) => {
 const name = ref('')
 const selectedParentId = ref<number | null>(null)
 const selectedCategory = ref('')
-const selectedWorkoutTypes = ref<string[]>([])
 
 // Deletion
 const isSaving = ref(false)
@@ -111,7 +123,6 @@ watch(
     } else if (props.exercise) {
       name.value = props.exercise.name
       selectedCategory.value = props.exercise.category
-      selectedWorkoutTypes.value = [...(props.exercise.workoutTypes ?? [])]
     }
   },
   { immediate: true }
@@ -140,7 +151,6 @@ const save = async () => {
     const ok = await exercisesStore.updateExercise(props.exercise.id, {
       name: trimmedName,
       category: selectedCategory.value,
-      workoutTypes: selectedWorkoutTypes.value,
     })
     if (ok) emit('saved')
   }
@@ -224,21 +234,29 @@ const deleteItem = async () => {
             role="listbox"
             aria-label="Velg øvelsegruppe"
           >
-            <button
-              v-for="group in allGroups"
-              :key="group.id"
-              type="button"
-              role="option"
-              class="ef__group-option"
-              :class="{ 'ef__group-option--selected': group.id === selectedParentId }"
-              :aria-selected="group.id === selectedParentId"
-              :style="{ '--cat-color': getCategoryColor(group.category) }"
-              @click="selectGroup(group.id)"
-            >
-              <span class="ef__group-option-dot"></span>
-              <span class="ef__group-option-name">{{ group.name }}</span>
-              <span class="ef__group-option-category">{{ group.category }}</span>
-            </button>
+            <div v-for="section in groupedAllGroups" :key="section.category" class="ef__group-section">
+              <div
+                class="ef__group-section-header"
+                :style="{ '--cat-color': getCategoryColor(section.category) }"
+              >
+                <span class="ef__group-section-dot"></span>
+                <span>{{ section.category }}</span>
+              </div>
+              <button
+                v-for="group in section.groups"
+                :key="group.id"
+                type="button"
+                role="option"
+                class="ef__group-option"
+                :class="{ 'ef__group-option--selected': group.id === selectedParentId }"
+                :aria-selected="group.id === selectedParentId"
+                :style="{ '--cat-color': getCategoryColor(group.category) }"
+                @click="selectGroup(group.id)"
+              >
+                <span class="ef__group-option-dot"></span>
+                <span class="ef__group-option-name">{{ group.name }}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -250,21 +268,6 @@ const deleteItem = async () => {
           <option value="" disabled>Velg muskeltype</option>
           <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
         </select>
-      </div>
-
-      <!-- Group: workout types -->
-      <div v-if="!isVariant" class="ef__field">
-        <label class="ef__label">Treningstype(r)</label>
-        <div class="ef__checkbox-group">
-          <label
-            v-for="wt in WORKOUT_TYPE_OPTIONS"
-            :key="wt.id"
-            class="ef__checkbox-item"
-          >
-            <input v-model="selectedWorkoutTypes" type="checkbox" :value="wt.id" />
-            <span>{{ wt.label }}</span>
-          </label>
-        </div>
       </div>
 
     </div>
@@ -417,6 +420,30 @@ const deleteItem = async () => {
   border-radius: 0 0 0.5rem 0.5rem;
 }
 
+.ef__group-section:not(:last-child) {
+  margin-bottom: 0.5rem;
+}
+
+.ef__group-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.375rem 0.625rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+
+.ef__group-section-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--cat-color, #6b7280);
+  flex-shrink: 0;
+}
+
 .ef__group-option {
   display: flex;
   align-items: center;
@@ -456,47 +483,6 @@ const deleteItem = async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.ef__group-option-category {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: #6b7280;
-  flex-shrink: 0;
-}
-
-.ef__group-option--selected .ef__group-option-category {
-  color: var(--cat-color, #9ca3af);
-}
-
-.ef__checkbox-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.ef__checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.875rem;
-  color: #d1d5db;
-  cursor: pointer;
-  padding: 0.375rem 0.75rem;
-  background: #1f2937;
-  border: 1px solid #374151;
-  border-radius: 0.5rem;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.ef__checkbox-item:has(input:checked) {
-  background: #f9731620;
-  border-color: #f9731650;
-  color: #f97316;
-}
-
-.ef__checkbox-item input {
-  display: none;
 }
 
 .ef__footer {

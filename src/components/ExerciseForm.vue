@@ -7,7 +7,6 @@ import SlideOver from '@/components/SlideOver.vue'
 import { useExercises } from '@/composables/useExercises'
 import { useHybridData } from '@/composables/useHybridData'
 import muscleGroupsData from '@/data/muscle-groups.json'
-import workoutTypesData from '@/data/workout-types.json'
 import type { ExerciseData, ExerciseVariant, ExerciseTrackingType } from '@/types/workout'
 
 // ---------------------------------------------------------------------------
@@ -44,7 +43,7 @@ const isDeletingExercise = ref(false)
 const confirmDeleteId = ref<'exercise' | number | null>(null)
 
 // Main exercise form fields
-const exerciseForm = ref({ name: '', category: '', workoutTypes: [] as string[], trackingType: 'strength' as ExerciseTrackingType })
+const exerciseForm = ref({ name: '', category: '', trackingType: 'strength' as ExerciseTrackingType })
 
 // ---- Pending variants (create mode: local list until user hits "Opprett") ----
 interface PendingVariant {
@@ -69,12 +68,6 @@ const editVariantName = ref('')
 // everywhere at once instead of drifting out of sync with a hardcoded list.
 const CATEGORIES = muscleGroupsData.muscleGroups.map((g) => g.name)
 
-// Derived from workout-types.json, minus 'cardio': this field is only shown for
-// strength exercises, and those don't belong to a cardio session.
-const WORKOUT_TYPE_OPTIONS = workoutTypesData.workoutTypes
-  .filter((wt) => wt.id !== 'cardio')
-  .map((wt) => ({ id: wt.id, label: wt.name }))
-
 // ---------------------------------------------------------------------------
 // Computed
 // ---------------------------------------------------------------------------
@@ -87,8 +80,6 @@ const selectTrackingType = (type: ExerciseTrackingType) => {
   exerciseForm.value.trackingType = type
   if (type === 'cardio') {
     exerciseForm.value.category = 'Kondisjon'
-    // Push/pull/legs describes a strength split; it says nothing about a run.
-    exerciseForm.value.workoutTypes = []
   } else if (exerciseForm.value.category === 'Kondisjon') {
     exerciseForm.value.category = ''
   }
@@ -113,10 +104,9 @@ watch(
       ? {
           name: props.exercise.name,
           category: props.exercise.category,
-          workoutTypes: [...props.exercise.workoutTypes],
           trackingType: props.exercise.trackingType ?? 'strength',
         }
-      : { name: '', category: '', workoutTypes: [], trackingType: 'strength' }
+      : { name: '', category: '', trackingType: 'strength' }
     resetVariantForm()
     pendingVariants.value = []
     confirmDeleteId.value = null
@@ -141,7 +131,6 @@ const saveExercise = async () => {
     const payload = {
       name: exerciseForm.value.name.trim(),
       category: exerciseForm.value.category,
-      workoutTypes: exerciseForm.value.workoutTypes,
       trackingType: exerciseForm.value.trackingType,
     }
 
@@ -154,7 +143,7 @@ const saveExercise = async () => {
     } else {
       const userId = workoutData.currentUser.value?.id
       if (!userId) return
-      const created = await exercisesStore.createExercise(userId, payload)
+      const created = await exercisesStore.createExercise(userId, { ...payload, workoutTypes: [] })
       if (created) {
         // Persist all pending variants in one pass
         for (const pv of pendingVariants.value) {
@@ -324,24 +313,6 @@ const deleteVariant = async (variant: ExerciseVariant) => {
           <p v-if="exerciseForm.trackingType === 'cardio'" class="exercise-form__note">
             Kondisjonsøvelser havner alltid i Kondisjon.
           </p>
-        </div>
-
-        <div v-if="exerciseForm.trackingType !== 'cardio'" class="exercise-form__field">
-          <label class="exercise-form__label">Treningstype(r)</label>
-          <div class="exercise-form__checkbox-group">
-            <label
-              v-for="wt in WORKOUT_TYPE_OPTIONS"
-              :key="wt.id"
-              class="exercise-form__checkbox-item"
-            >
-              <input
-                v-model="exerciseForm.workoutTypes"
-                type="checkbox"
-                :value="wt.id"
-              />
-              <span>{{ wt.label }}</span>
-            </label>
-          </div>
         </div>
       </section>
 
@@ -598,27 +569,6 @@ const deleteVariant = async (variant: ExerciseVariant) => {
 .exercise-form__label {
   font-size: 0.875rem;
   color: #d1d5db;
-}
-
-.exercise-form__checkbox-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.exercise-form__checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.875rem;
-  color: #e5e7eb;
-  cursor: pointer;
-}
-
-.exercise-form__checkbox-item input[type="checkbox"] {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--color-primary-500, #f97316);
 }
 
 /* Variant list */
