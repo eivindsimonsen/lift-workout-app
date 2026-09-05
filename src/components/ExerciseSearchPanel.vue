@@ -54,8 +54,10 @@ const getMuscleGroupColor = (category: string): string => {
 
 /**
  * Returns exercises filtered by category and search query.
- * When a query matches the exercise name, all its variants are included.
- * When a query matches a variant name, only matching variants are shown.
+ * A query that matches one or more variant names shows only those variants.
+ * Only when NO variant matches, but the exercise name itself does, do all
+ * variants show — otherwise a specific search would surface unrelated
+ * siblings the user didn't type.
  */
 const groupedResults = computed<ExerciseData[]>(() => {
   let exercises = workoutData.exercises.value
@@ -69,16 +71,16 @@ const groupedResults = computed<ExerciseData[]>(() => {
 
   const results: ExerciseData[] = []
   exercises.forEach((exercise) => {
-    const nameMatch = exercise.name.toLowerCase().includes(q)
-    if (nameMatch) {
-      results.push(exercise)
-      return
-    }
     const matchingVariants = exercise.variants?.filter((v) =>
       v.name.toLowerCase().includes(q)
     )
     if (matchingVariants && matchingVariants.length > 0) {
       results.push({ ...exercise, variants: matchingVariants })
+      return
+    }
+    const nameMatch = exercise.name.toLowerCase().includes(q)
+    if (nameMatch) {
+      results.push(exercise)
     }
   })
 
@@ -104,11 +106,9 @@ const getDefaultCategories = (workoutType: string): string[] => {
     kjerne:      ['Kjerne'],
   }
   const key = workoutType.toLowerCase()
-  const defaults = map[key]
-  if (!defaults) return []
-  // Cardio is offered alongside any strength session too — a warm-up or
-  // finisher belongs anywhere — but a cardio session stays cardio-only.
-  return key === 'cardio' ? defaults : [...defaults, 'Kondisjon']
+  // Kondisjon er kun forhåndsvalgt for kondisjonsøkter; på styrkeøkter er den
+  // fortsatt tilgjengelig som filter, bare avslått i utgangspunktet.
+  return map[key] ?? []
 }
 
 const workoutTypes = computed(() => workoutTypesData.workoutTypes)
