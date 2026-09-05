@@ -101,7 +101,10 @@ const isInTemplate = (variantId: number): boolean =>
 
 /**
  * Filter by muscle category, then by search query.
- * When searching, keep whole groups whose name or any variant name matches.
+ * A query that matches one or more variant names keeps only those variants.
+ * Only when no variant matches, but the group name itself does, do all
+ * variants stay — otherwise a specific search would surface unrelated
+ * siblings the user didn't type.
  */
 const filteredExercises = computed(() => {
   let exercises = enrichedExercises.value
@@ -113,11 +116,18 @@ const filteredExercises = computed(() => {
   if (!hasSearch.value) return exercises
 
   const q = searchQuery.value.trim().toLowerCase()
-  return exercises.filter(
-    (exercise) =>
-      exercise.name.toLowerCase().includes(q) ||
-      exercise.variants?.some((v) => v.name.toLowerCase().includes(q))
-  )
+  const results: typeof exercises = []
+  exercises.forEach((exercise) => {
+    const matchingVariants = exercise.variants?.filter((v) => v.name.toLowerCase().includes(q))
+    if (matchingVariants && matchingVariants.length > 0) {
+      results.push({ ...exercise, variants: matchingVariants })
+      return
+    }
+    if (exercise.name.toLowerCase().includes(q)) {
+      results.push(exercise)
+    }
+  })
+  return results
 })
 
 const categories = computed(() => {
