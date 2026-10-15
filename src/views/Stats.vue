@@ -158,41 +158,50 @@
     </div>
 
     <!-- Cardio -->
-    <div v-if="!isLoading && cardioStats.hasData" class="card">
-      <h3 class="text-lg font-semibold text-white mb-1">Kondisjon</h3>
-      <p class="text-xs text-dark-300 mb-4">Tid og distanse holdes utenfor volum- og styrketallene over.</p>
+    <div v-if="!isLoading && cardioStats.hasData" class="card space-y-6">
+      <div>
+        <h3 class="text-lg font-semibold text-white mb-1">Kondisjon</h3>
+        <p class="text-xs text-dark-300">Tid og distanse holdes utenfor volum- og styrketallene over.</p>
+      </div>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="bg-dark-700 rounded-lg p-3">
-          <div class="text-xs text-dark-300">Total tid</div>
-          <div class="text-lg font-bold text-cyan-400">{{ formatDuration(cardioStats.seconds) }}</div>
-        </div>
-        <div class="bg-dark-700 rounded-lg p-3">
-          <div class="text-xs text-dark-300">Total distanse</div>
-          <div class="text-lg font-bold text-cyan-400">{{ formatDistance(cardioStats.metres) }}</div>
-        </div>
-        <div class="bg-dark-700 rounded-lg p-3">
-          <div class="text-xs text-dark-300">Snitt tempo</div>
-          <div class="text-lg font-bold text-cyan-400">{{ cardioStats.pace ?? '–' }}</div>
-        </div>
-        <div class="bg-dark-700 rounded-lg p-3">
-          <div class="text-xs text-dark-300">Økter med kondisjon</div>
-          <div class="text-lg font-bold text-cyan-400">{{ cardioStats.sessions }}</div>
+        <div v-for="tile in cardioOverviewTiles" :key="tile.label" class="bg-dark-700 rounded-lg p-3">
+          <div class="text-xs text-dark-300">{{ tile.label }}</div>
+          <div class="text-lg font-bold text-cyan-400">{{ tile.value }}</div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-        <div class="bg-dark-700 rounded-lg p-3">
-          <div class="text-xs text-dark-300">Lengste enkeltdrag</div>
-          <div class="text-base font-semibold text-white">{{ formatDistance(cardioStats.longestDistance) }}</div>
+      <CardioWeeklyChart :weeks="cardioWeeklyStats" />
+
+      <!-- Time per activity type: football, running, intervals … -->
+      <div>
+        <h4 class="text-md font-medium text-white mb-3">Per aktivitet</h4>
+        <div class="space-y-3">
+          <div v-for="row in cardioByActivity" :key="row.exerciseId" class="space-y-1">
+            <div class="flex items-baseline justify-between gap-3 text-sm">
+              <span class="text-white truncate">{{ row.name }}</span>
+              <span class="text-dark-300 tabular-nums whitespace-nowrap">
+                {{ formatTotalTime(row.seconds) }}<template v-if="row.metres > 0"> · {{ formatDistance(row.metres) }}</template>
+              </span>
+            </div>
+            <div class="h-2 bg-dark-700 rounded-full overflow-hidden">
+              <div class="h-2 bg-cyan-500 rounded-r" :style="{ width: row.share + '%' }"></div>
+            </div>
+            <div class="text-xs text-dark-400">
+              {{ row.count }} {{ row.count === 1 ? 'gang' : 'ganger' }}<template v-if="row.effort"> · snitt anstrengelse {{ row.effort }}/10</template>
+            </div>
+          </div>
         </div>
-        <div class="bg-dark-700 rounded-lg p-3">
-          <div class="text-xs text-dark-300">Lengste varighet</div>
-          <div class="text-base font-semibold text-white">{{ formatDuration(cardioStats.longestDuration) }}</div>
-        </div>
-        <div class="bg-dark-700 rounded-lg p-3">
-          <div class="text-xs text-dark-300">Antall drag</div>
-          <div class="text-base font-semibold text-white">{{ cardioStats.sets }}</div>
+      </div>
+
+      <div v-if="cardioStatsRecords.length > 0">
+        <h4 class="text-md font-medium text-white mb-3">Rekorder</h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div v-for="record in cardioStatsRecords" :key="record.label" class="bg-dark-700 rounded-lg p-3">
+            <div class="text-xs text-dark-300">{{ record.label }}</div>
+            <div class="text-base font-semibold text-white">{{ record.value }}</div>
+            <div class="text-xs text-dark-400 mt-0.5 truncate">{{ record.detail }}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -414,6 +423,15 @@ import { computed, ref, watch } from 'vue'
 import { useHybridData } from '@/composables/useHybridData'
 import muscleGroupsData from '@/data/muscle-groups.json';
 import { isCardioExercise, isSetCounted, formatDuration, formatDistance, formatPace } from '@/composables/useSetMetrics';
+import {
+  averageEffort,
+  cardioRecords,
+  cardioWeeks,
+  collectCardioActivities,
+  formatTotalTime,
+  type CardioActivity,
+} from '@/composables/useCardioActivities'
+import CardioWeeklyChart from '@/components/CardioWeeklyChart.vue'
 
 const workoutData = useHybridData()
 
@@ -1035,6 +1053,81 @@ const cardioStats = computed(() => {
     bestPaceSecPerKm,
     pace: formatPace(seconds, metres),
   }
+})
+
+/** Cardio as activities — one per cardio exercise per session — for the selected period. */
+const cardioActivities = computed(() => collectCardioActivities(filteredSessions.value))
+
+/** The chart ends this week, or with the last week of a past year being viewed. */
+const cardioChartEnd = computed(() => {
+  if (selectedYear.value === 'all') return new Date()
+  const year = Number(selectedYear.value)
+  return year < new Date().getFullYear() ? new Date(year, 11, 31) : new Date()
+})
+
+const cardioWeeklyStats = computed(() => cardioWeeks(cardioActivities.value, cardioChartEnd.value, 12))
+
+const formatEffortAverage = (effort: number | null): string | null =>
+  effort === null ? null : String(effort).replace('.', ',')
+
+const cardioOverviewTiles = computed(() => {
+  const tiles = [
+    { label: 'Total tid', value: formatTotalTime(cardioStats.value.seconds) },
+    { label: 'Aktiviteter', value: String(cardioActivities.value.length) },
+  ]
+  if (cardioStats.value.metres > 0) tiles.push({ label: 'Total distanse', value: formatDistance(cardioStats.value.metres) })
+  const effort = formatEffortAverage(averageEffort(cardioActivities.value))
+  if (effort) tiles.push({ label: 'Snitt anstrengelse', value: `${effort}/10` })
+  return tiles
+})
+
+/** Time per activity type, biggest first — where the cardio actually went. */
+const cardioByActivity = computed(() => {
+  const groups = new Map<number, { exerciseId: number; name: string; seconds: number; metres: number; activities: CardioActivity[] }>()
+
+  cardioActivities.value.forEach(activity => {
+    const group = groups.get(activity.exerciseId) ?? {
+      exerciseId: activity.exerciseId,
+      // Current library name if the exercise still exists, else what was logged.
+      name: workoutData.exerciseIndex.value.get(activity.exerciseId)?.name ?? activity.name,
+      seconds: 0,
+      metres: 0,
+      activities: [],
+    }
+    group.seconds += activity.seconds
+    group.metres += activity.metres
+    group.activities.push(activity)
+    groups.set(activity.exerciseId, group)
+  })
+
+  const rows = [...groups.values()].sort((a, b) => b.seconds - a.seconds)
+  const longest = Math.max(1, ...rows.map(r => r.seconds))
+
+  return rows.map(row => ({
+    exerciseId: row.exerciseId,
+    name: row.name,
+    seconds: row.seconds,
+    metres: row.metres,
+    count: row.activities.length,
+    effort: formatEffortAverage(averageEffort(row.activities)),
+    share: Math.max(2, Math.round((row.seconds / longest) * 100)),
+  }))
+})
+
+const cardioStatsRecords = computed(() => {
+  const records = cardioRecords(cardioActivities.value)
+  const tiles: Array<{ label: string; value: string; detail: string }> = []
+
+  if (records.longest) {
+    tiles.push({ label: 'Lengste aktivitet', value: formatDuration(records.longest.seconds), detail: `${records.longest.name} · ${formatDate(records.longest.date)}` })
+  }
+  if (records.farthest) {
+    tiles.push({ label: 'Lengste distanse', value: formatDistance(records.farthest.metres), detail: `${records.farthest.name} · ${formatDate(records.farthest.date)}` })
+  }
+  if (records.bestWeek) {
+    tiles.push({ label: 'Beste uke', value: formatTotalTime(records.bestWeek.seconds), detail: `Uke ${records.bestWeek.weekNumber}` })
+  }
+  return tiles
 })
 
 const restDaysCount = computed(() => {

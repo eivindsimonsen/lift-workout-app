@@ -81,10 +81,12 @@
             <p class="text-dark-300">
               {{ formatDate(session.date) }} • {{ session.duration }} minutter
             </p>
-            <p class="text-sm font-semibold text-primary-500 whitespace-nowrap tabular-nums">
-              {{ formatNumber(session.totalVolume || 0) }} kg
-            </p>
-            <p class="text-[10px] text-dark-300 leading-tight">Total volum</p>
+            <template v-if="hasStrength">
+              <p class="text-sm font-semibold text-primary-500 whitespace-nowrap tabular-nums">
+                {{ formatNumber(session.totalVolume || 0) }} kg
+              </p>
+              <p class="text-[10px] text-dark-300 leading-tight">Total volum</p>
+            </template>
           </div>
           <div class="text-right whitespace-nowrap">
             <span 
@@ -100,8 +102,15 @@
         </div>
       </div>
       
-      <!-- Metrics Grid (ordered: Øvelser, Sett, Reps, Varighet, Volum/min) -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Cardio activities: one summary per activity, like a running app -->
+      <CardioActivitySummary
+        v-for="exercise in cardioSessionExercises"
+        :key="exercise.exerciseId"
+        :exercise="exercise"
+      />
+
+      <!-- Metrics Grid (ordered: Øvelser, Sett, Reps, Varighet, Volum/min) — strength only -->
+      <div v-if="hasStrength" class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-dark-700 rounded-lg p-4 text-center">
           <p class="text-lg font-bold text-primary-500 tabular-nums">
             {{ session.exercises.length }}
@@ -131,24 +140,6 @@
             {{ volumePerMinute }} kg/min
           </p>
           <p class="text-xs text-dark-300">Volum per minutt</p>
-        </div>
-        <div v-if="sessionCardio.hasData" class="bg-dark-700 rounded-lg p-4 text-center">
-          <p class="text-lg font-bold text-cyan-400 tabular-nums">
-            {{ formatDuration(sessionCardio.seconds) }}
-          </p>
-          <p class="text-xs text-dark-300">Kondisjonstid</p>
-        </div>
-        <div v-if="sessionCardio.metres > 0" class="bg-dark-700 rounded-lg p-4 text-center">
-          <p class="text-lg font-bold text-cyan-400 tabular-nums">
-            {{ formatDistance(sessionCardio.metres) }}
-          </p>
-          <p class="text-xs text-dark-300">Distanse</p>
-        </div>
-        <div v-if="sessionCardio.pace" class="bg-dark-700 rounded-lg p-4 text-center">
-          <p class="text-lg font-bold text-cyan-400 tabular-nums">
-            {{ sessionCardio.pace }}
-          </p>
-          <p class="text-xs text-dark-300">Snitt tempo</p>
         </div>
       </div>
 
@@ -183,7 +174,7 @@
       </div> -->
 
       <!-- Rep ranges -->
-      <div class="card">
+      <div v-if="hasStrength" class="card">
         <h3 class="text-xl font-semibold text-white mb-4">Rep-områder</h3>
         <div class="space-y-3 mb-4">
           <div class="space-y-1">
@@ -236,26 +227,7 @@
         </div>
       </div>
 
-      <!-- Cardio in this session -->
-      <div v-if="sessionCardio.hasData" class="card">
-        <h3 class="text-xl font-semibold text-white mb-4">Kondisjon i økten</h3>
-        <div class="space-y-3">
-          <div v-for="ex in cardioExercises" :key="ex.exerciseId" class="space-y-1">
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-white truncate">{{ ex.name }}</span>
-              <span class="text-dark-300 tabular-nums">
-                {{ formatDuration(ex.seconds) }}<template v-if="ex.metres > 0"> · {{ formatDistance(ex.metres) }}</template>
-              </span>
-            </div>
-            <div class="flex items-center justify-between text-xs text-dark-400">
-              <span>{{ ex.sets }} drag</span>
-              <span v-if="ex.pace">{{ ex.pace }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Muscle groups (strength only — cardio has its own panel above) -->
+      <!-- Muscle groups (strength only — cardio has its own cards above) -->
       <div v-if="muscleGroupDistribution.length > 0" class="card">
         <h3 class="text-xl font-semibold text-white mb-4">Muskelgrupper i økten</h3>
         <div class="space-y-3">
@@ -271,12 +243,12 @@
         </div>
       </div>
 
-      <!-- Exercises -->
-      <div class="card">
+      <!-- Exercises (strength — cardio activities have their own cards above) -->
+      <div v-if="hasStrength" class="card">
         <h3 class="text-xl font-semibold text-white mb-4">Øvelser</h3>
         <div class="space-y-4">
-          <div 
-            v-for="exercise in session.exercises" 
+          <div
+            v-for="exercise in strengthSessionExercises"
             :key="exercise.exerciseId"
             class="bg-dark-700 rounded-lg p-4"
           >
@@ -295,29 +267,16 @@
               >
                 <span class="text-dark-300">Sett {{ exercise.sets.indexOf(set) + 1 }}:</span>
                 <div class="h-px bg-dark-600"></div>
-                <template v-if="isCardioExercise(exercise)">
-                  <span class="text-white tabular-nums whitespace-nowrap">{{ set.duration ? formatDuration(set.duration) : '–' }}</span>
-                  <span v-if="set.distance" class="text-cyan-400 font-medium tabular-nums whitespace-nowrap">{{ formatDistance(set.distance) }}</span>
-                </template>
-                <template v-else>
-                  <span class="text-white tabular-nums whitespace-nowrap">{{ set.reps }} reps</span>
-                  <span v-if="set.weight" class="text-primary-500 font-medium tabular-nums whitespace-nowrap">{{ set.weight }} kg</span>
-                </template>
+                <span class="text-white tabular-nums whitespace-nowrap">{{ set.reps }} reps</span>
+                <span v-if="set.weight" class="text-primary-500 font-medium tabular-nums whitespace-nowrap">{{ set.weight }} kg</span>
               </div>
             </div>
             <!-- Insights under all sets -->
             <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-dark-300">
-              <template v-if="isCardioExercise(exercise)">
-                <span class="tabular-nums text-white">Total tid: {{ formatDuration(cardioSummary(exercise).seconds) }}</span>
-                <span v-if="cardioSummary(exercise).metres > 0" class="tabular-nums text-cyan-400">{{ formatDistance(cardioSummary(exercise).metres) }}</span>
-                <span v-if="cardioSummary(exercise).pace" class="tabular-nums">{{ cardioSummary(exercise).pace }}</span>
-              </template>
-              <template v-else>
-                <span v-if="exerciseInsights[exercise.exerciseId]?.isPR" class="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 font-medium">PR</span>
-                <span class="tabular-nums text-white">Tyngste sett: {{ exerciseInsights[exercise.exerciseId]?.heaviest.weight }}×{{ exerciseInsights[exercise.exerciseId]?.heaviest.reps }}</span>
-                <span class="tabular-nums">Estimert 1RM: ~{{ exerciseInsights[exercise.exerciseId]?.estimated1RM }} kg</span>
-                <span class="text-dark-400">Neste gang: {{ exerciseInsights[exercise.exerciseId]?.nextHint }}</span>
-              </template>
+              <span v-if="exerciseInsights[exercise.exerciseId]?.isPR" class="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 font-medium">PR</span>
+              <span class="tabular-nums text-white">Tyngste sett: {{ exerciseInsights[exercise.exerciseId]?.heaviest.weight }}×{{ exerciseInsights[exercise.exerciseId]?.heaviest.reps }}</span>
+              <span class="tabular-nums">Estimert 1RM: ~{{ exerciseInsights[exercise.exerciseId]?.estimated1RM }} kg</span>
+              <span class="text-dark-400">Neste gang: {{ exerciseInsights[exercise.exerciseId]?.nextHint }}</span>
             </div>
           </div>
         </div>
@@ -354,7 +313,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutSession } from '@/types/workout'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
-import { isCardioExercise, isSetCounted, formatDuration, formatDistance, formatPace } from '@/composables/useSetMetrics'
+import CardioActivitySummary from '@/components/CardioActivitySummary.vue'
+import { isCardioExercise, isSetCounted } from '@/composables/useSetMetrics'
 
 const router = useRouter()
 const route = useRoute()
@@ -439,37 +399,17 @@ const repRangePct = computed(() => {
   return { strength: pct(strength), hypertrophy: pct(hypertrophy), endurance: pct(endurance) }
 })
 
-/** Total time, distance and pace for one cardio exercise in this session. */
-const cardioSummary = (exercise: any): { seconds: number; metres: number; pace: string | null } => {
-  let seconds = 0
-  let metres = 0
-  exercise?.sets?.forEach((set: any) => {
-    if (!isSetCounted(exercise, set)) return
-    seconds += Number(set.duration) || 0
-    metres += Number(set.distance) || 0
-  })
-  return { seconds, metres, pace: formatPace(seconds, metres) }
-}
+/** Cardio activities with something logged — each gets its own summary card. */
+const cardioSessionExercises = computed(() =>
+  (session.value?.exercises ?? []).filter(ex => isCardioExercise(ex) && ex.sets.some(set => isSetCounted(ex, set)))
+)
 
-/** Per-exercise cardio breakdown for this session. */
-const cardioExercises = computed(() => {
-  if (!session.value) return [] as Array<{ exerciseId: number; name: string; seconds: number; metres: number; sets: number; pace: string | null }>
-  return session.value.exercises
-    .filter(ex => isCardioExercise(ex))
-    .map(ex => {
-      const summary = cardioSummary(ex)
-      const sets = ex.sets.filter(set => isSetCounted(ex, set)).length
-      return { exerciseId: ex.exerciseId, name: ex.name, seconds: summary.seconds, metres: summary.metres, sets, pace: summary.pace }
-    })
-    .filter(ex => ex.sets > 0)
-})
+const strengthSessionExercises = computed(() =>
+  (session.value?.exercises ?? []).filter(ex => !isCardioExercise(ex))
+)
 
-/** Session-wide cardio totals, for the tiles at the top. */
-const sessionCardio = computed(() => {
-  const seconds = cardioExercises.value.reduce((sum, ex) => sum + ex.seconds, 0)
-  const metres = cardioExercises.value.reduce((sum, ex) => sum + ex.metres, 0)
-  return { hasData: cardioExercises.value.length > 0, seconds, metres, pace: formatPace(seconds, metres) }
-})
+/** Kilos, reps and rep ranges only mean something when the session had strength work. */
+const hasStrength = computed(() => strengthSessionExercises.value.length > 0)
 
 const exerciseVolumes = computed(() => {
   if (!session.value) return [] as Array<{ exerciseId: number; name: string; volume: number; percentage: number }>

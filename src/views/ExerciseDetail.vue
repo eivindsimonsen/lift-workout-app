@@ -99,30 +99,10 @@
       </div>
 
       <!-- Stats Overview — cardio -->
-      <div v-if="isCardio" class="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <div class="card text-center">
-          <p class="text-2xl font-bold text-cyan-400">{{ cardioTotals.sessions }}</p>
-          <p class="text-sm text-dark-300">Totale økter</p>
-        </div>
-        <div class="card text-center">
-          <p class="text-2xl font-bold text-cyan-400">{{ cardioTotals.sets }}</p>
-          <p class="text-sm text-dark-300">Antall drag</p>
-        </div>
-        <div class="card text-center">
-          <p class="text-2xl font-bold text-cyan-400">{{ formatDuration(cardioTotals.seconds) }}</p>
-          <p class="text-sm text-dark-300">Total tid</p>
-        </div>
-        <div class="card text-center">
-          <p class="text-2xl font-bold text-cyan-400">{{ formatDistance(cardioTotals.metres) }}</p>
-          <p class="text-sm text-dark-300">Total distanse</p>
-        </div>
-        <div class="card text-center">
-          <p class="text-2xl font-bold text-cyan-400">{{ cardioTotals.pace ?? '–' }}</p>
-          <p class="text-sm text-dark-300">Snitt tempo</p>
-        </div>
-        <div class="card text-center">
-          <p class="text-2xl font-bold text-cyan-400">{{ lastWorkout }}</p>
-          <p class="text-sm text-dark-300">Sist trent</p>
+      <div v-if="isCardio" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div v-for="tile in cardioTiles" :key="tile.label" class="card text-center">
+          <p class="text-2xl font-bold text-cyan-400">{{ tile.value }}</p>
+          <p class="text-sm text-dark-300">{{ tile.label }}</p>
         </div>
       </div>
 
@@ -154,61 +134,50 @@
         </div>
       </div>
 
-      <!-- Kondisjon: utvikling og rekorder -->
+      <!-- Kondisjon: utvikling, rekorder og aktiviteter -->
       <template v-if="isCardio">
         <div class="card">
-          <h3 class="text-lg font-semibold text-white mb-4">
-            {{ cardioChartUsesDistance ? 'Distanse per uke' : 'Tid per uke' }}
-          </h3>
-          <div v-if="cardioWeekly.length === 0" class="text-center py-8">
-            <p class="text-dark-300">Ingen data ennå</p>
-          </div>
-          <VueApexCharts v-else type="line" height="260" :options="cardioOptions" :series="cardioSeries" />
+          <CardioWeeklyChart :weeks="cardioWeekly" />
         </div>
 
-        <div class="card">
+        <div v-if="cardioRecordTiles.length > 0" class="card">
           <h3 class="text-lg font-semibold text-white mb-4">Rekorder</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div class="bg-dark-700 rounded-lg p-3">
-              <div class="text-xs text-dark-300">Lengste drag</div>
-              <div class="text-lg font-bold text-cyan-400">{{ formatDistance(cardioBests.longestDistance) }}</div>
-            </div>
-            <div class="bg-dark-700 rounded-lg p-3">
-              <div class="text-xs text-dark-300">Lengste varighet</div>
-              <div class="text-lg font-bold text-cyan-400">{{ formatDuration(cardioBests.longestDuration) }}</div>
-            </div>
-            <div class="bg-dark-700 rounded-lg p-3">
-              <div class="text-xs text-dark-300">Beste tempo</div>
-              <div class="text-lg font-bold text-cyan-400">{{ cardioBests.bestPace ?? '–' }}</div>
-              <div v-if="!cardioBests.bestPace" class="text-xs text-dark-400 mt-0.5">Krever et drag på minst 400 m</div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div v-for="record in cardioRecordTiles" :key="record.label" class="bg-dark-700 rounded-lg p-3">
+              <div class="text-xs text-dark-300">{{ record.label }}</div>
+              <div class="text-lg font-bold text-white">{{ record.value }}</div>
+              <div class="text-xs text-dark-400 mt-0.5">{{ record.detail }}</div>
             </div>
           </div>
         </div>
 
-        <!-- Siste drag -->
+        <!-- Siste aktiviteter -->
         <div class="card">
-          <h3 class="text-lg font-semibold text-white mb-4">Siste drag</h3>
+          <h3 class="text-lg font-semibold text-white mb-4">Siste aktiviteter</h3>
           <div v-if="recentCardio.length === 0" class="text-center py-8">
-            <p class="text-dark-300">Ingen data ennå</p>
+            <p class="text-dark-300">Ingen aktiviteter ennå</p>
           </div>
-          <div v-else class="space-y-3">
-            <div
-              v-for="performance in recentCardio"
-              :key="performance.id"
-              class="flex items-center justify-between p-3 bg-dark-700 rounded-lg"
+          <div v-else class="space-y-2">
+            <router-link
+              v-for="activity in recentCardio"
+              :key="activity.key"
+              :to="`/session/${activity.sessionId}`"
+              class="cardio-recent"
             >
-              <div>
-                <p class="text-white font-medium">
-                  {{ formatDuration(performance.duration) }}
-                  <span v-if="performance.distance > 0" class="text-cyan-400"> · {{ formatDistance(performance.distance) }}</span>
+              <div class="cardio-recent__main">
+                <p class="cardio-recent__title">
+                  {{ formatDuration(activity.seconds) }}<span v-if="activity.metres > 0"> · {{ formatDistance(activity.metres) }}</span>
                 </p>
-                <p class="text-sm text-dark-300">{{ formatDate(performance.date) }}</p>
+                <p class="cardio-recent__meta">
+                  {{ formatDate(activity.date) }} · {{ activity.sessionName }}<template v-if="activity.rounds.length > 1"> · {{ activity.rounds.length }} runder</template>
+                </p>
+                <p v-if="activity.note" class="cardio-recent__note">{{ activity.note }}</p>
               </div>
-              <div class="text-right">
-                <p v-if="performance.pace" class="text-cyan-400 font-medium">{{ performance.pace }}</p>
-                <p class="text-xs text-dark-400">{{ performance.sessionName }}</p>
+              <div class="cardio-recent__side">
+                <span v-if="activity.effort" class="cardio-recent__effort">{{ activity.effort }}/10</span>
+                <span v-if="activityPace(activity.rounds)" class="cardio-recent__pace">{{ activityPace(activity.rounds) }}</span>
               </div>
-            </div>
+            </router-link>
           </div>
         </div>
       </template>
@@ -346,7 +315,18 @@ import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import ExerciseEditForm from '@/components/ExerciseEditForm.vue'
 import muscleGroups from '@/data/muscle-groups.json'
 import type { ExerciseData } from '@/types/workout'
-import { isSetCounted, formatDuration, formatDistance, formatPace } from '@/composables/useSetMetrics'
+import { formatDuration, formatDistance, formatPace } from '@/composables/useSetMetrics'
+import {
+  MIN_PACE_DISTANCE_M,
+  activityPace,
+  averageEffort,
+  cardioRecords,
+  cardioWeeks,
+  collectCardioActivities,
+  formatTotalTime,
+  type CardioActivity,
+} from '@/composables/useCardioActivities'
+import CardioWeeklyChart from '@/components/CardioWeeklyChart.vue'
 
 // Charts
 import VueApexCharts from 'vue3-apexcharts'
@@ -879,8 +859,10 @@ const averageWeight = computed(() => {
 })
 
 const lastWorkout = computed(() => {
-  if (performances.value.length === 0) return 'Aldri'
-  const lastDate = toDate(performances.value[0].date)
+  // Cardio has no weight × reps sets, so its latest date comes from the activities.
+  const latest = isCardio.value ? cardioActivities.value[0]?.date : performances.value[0]?.date
+  if (!latest) return 'Aldri'
+  const lastDate = toDate(latest)
   const now = new Date()
   const diffDays = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
   if (diffDays === 0) return 'I dag'
@@ -896,145 +878,52 @@ const lastWorkout = computed(() => {
  *  analytics below (1RM, Epley, PR board, intensity) say nothing about them. */
 const isCardio = computed(() => exercise.value?.trackingType === 'cardio')
 
-type CardioPerformance = {
-  id: string
-  duration: number
-  distance: number
-  date: Date
-  sessionName?: string
-  pace: string | null
-}
-
-const cardioPerformances = computed<CardioPerformance[]>(() => {
-  if (!exercise.value) return []
-  const out: CardioPerformance[] = []
-
-  ;(workoutData.sessions.value || [])
-    .filter((session: any) => (session.isCompleted ?? true))
-    .forEach((session: any) => {
-      const sessionExercise = session.exercises?.find((e: any) => sameId(e.exerciseId, exercise.value.id))
-      if (!sessionExercise) return
-
-      ;(sessionExercise.sets || []).forEach((set: any) => {
-        if (!isSetCounted(sessionExercise, set)) return
-        const duration = Number(set.duration) || 0
-        const distance = Number(set.distance) || 0
-        out.push({
-          id: `${session.id}-${set.id}`,
-          duration,
-          distance,
-          date: getSafeDate(session, set),
-          sessionName: session.templateName,
-          pace: formatPace(duration, distance),
-        })
-      })
-    })
-
-  return out.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 500)
+/** Every finished activity with this exercise, newest first. */
+const cardioActivities = computed<CardioActivity[]>(() => {
+  if (!exercise.value || !isCardio.value) return []
+  return collectCardioActivities(workoutData.sessions.value || []).filter(a => sameId(a.exerciseId, exercise.value.id))
 })
 
-const recentCardio = computed(() => cardioPerformances.value.slice(0, 5))
+const recentCardio = computed(() => cardioActivities.value.slice(0, 8))
 
-const cardioTotals = computed(() => {
-  const seconds = cardioPerformances.value.reduce((sum, p) => sum + p.duration, 0)
-  const metres = cardioPerformances.value.reduce((sum, p) => sum + p.distance, 0)
-  const sessions = new Set(cardioPerformances.value.map((p) => p.id.split('-')[0])).size
-  return {
-    sessions,
-    sets: cardioPerformances.value.length,
-    seconds,
-    metres,
-    pace: formatPace(seconds, metres),
+const cardioWeekly = computed(() => cardioWeeks(cardioActivities.value, new Date(), weeksToShow))
+
+const cardioTiles = computed(() => {
+  const activities = cardioActivities.value
+  const seconds = activities.reduce((sum, a) => sum + a.seconds, 0)
+  const metres = activities.reduce((sum, a) => sum + a.metres, 0)
+  const effort = averageEffort(activities)
+
+  const tiles = [
+    { label: 'Aktiviteter', value: String(activities.length) },
+    { label: 'Total tid', value: formatTotalTime(seconds) },
+    { label: 'Snitt per aktivitet', value: activities.length > 0 ? formatDuration(seconds / activities.length) : '–' },
+  ]
+  if (metres > 0) tiles.push({ label: 'Total distanse', value: formatDistance(metres) })
+  if (effort !== null) tiles.push({ label: 'Snitt anstrengelse', value: `${String(effort).replace('.', ',')}/10` })
+  tiles.push({ label: 'Sist trent', value: lastWorkout.value })
+  return tiles
+})
+
+const cardioRecordTiles = computed(() => {
+  const records = cardioRecords(cardioActivities.value)
+  const tiles: Array<{ label: string; value: string; detail: string }> = []
+
+  if (records.longest) {
+    tiles.push({ label: 'Lengste aktivitet', value: formatDuration(records.longest.seconds), detail: formatDate(records.longest.date) })
   }
-})
-
-const cardioBests = computed(() => {
-  let longestDistance = 0
-  let longestDuration = 0
-  /** Fastest pace, in seconds per kilometre — lower is better. */
-  let bestPaceSecPerKm = Infinity
-
-  cardioPerformances.value.forEach((p) => {
-    longestDistance = Math.max(longestDistance, p.distance)
-    longestDuration = Math.max(longestDuration, p.duration)
-    // Only single drags long enough for pace to mean anything.
-    if (p.distance >= 400 && p.duration > 0) {
-      bestPaceSecPerKm = Math.min(bestPaceSecPerKm, (p.duration / p.distance) * 1000)
-    }
-  })
-
-  return {
-    longestDistance,
-    longestDuration,
-    bestPace: Number.isFinite(bestPaceSecPerKm) ? `${formatDuration(bestPaceSecPerKm)} /km` : null,
+  if (records.farthest) {
+    tiles.push({ label: 'Lengste distanse', value: formatDistance(records.farthest.metres), detail: formatDate(records.farthest.date) })
   }
+  if (records.fastestPace) {
+    // formatPace over one kilometre is the pace itself.
+    tiles.push({ label: 'Raskeste tempo', value: formatPace(records.fastestPace.secPerKm, 1000) ?? '–', detail: `Runde på minst ${MIN_PACE_DISTANCE_M} m` })
+  }
+  if (records.bestWeek) {
+    tiles.push({ label: 'Beste uke', value: formatTotalTime(records.bestWeek.seconds), detail: `Uke ${records.bestWeek.weekNumber}` })
+  }
+  return tiles
 })
-
-/** Weekly buckets for the cardio chart — distance when logged, else duration. */
-const cardioWeekly = computed(() => {
-  const byWeek = new Map<number, { label: string; metres: number; seconds: number }>()
-
-  cardioPerformances.value.forEach((p) => {
-    const ws = safeWeekKey(p.date)
-    const existing = byWeek.get(ws)
-    if (existing) {
-      existing.metres += p.distance
-      existing.seconds += p.duration
-    } else {
-      byWeek.set(ws, { label: `Uke ${getWeekNumber(new Date(ws))}`, metres: p.distance, seconds: p.duration })
-    }
-  })
-
-  return Array.from(byWeek.entries())
-    .sort((a, b) => a[0] - b[0])
-    .slice(-weeksToShow)
-    .map(([, v]) => v)
-})
-
-const cardioChartUsesDistance = computed(() => cardioWeekly.value.some((w) => w.metres > 0))
-
-const cardioSeries = computed(() => [{
-  name: cardioChartUsesDistance.value ? 'Distanse' : 'Tid',
-  data: cardioWeekly.value.map((w) =>
-    cardioChartUsesDistance.value
-      ? Math.round((w.metres / 1000) * 100) / 100
-      : Math.round(w.seconds / 60)
-  ),
-}])
-
-const cardioOptions = computed<ApexOptions>(() => ({
-  chart: {
-    id: 'cardio-weekly',
-    toolbar: { show: false },
-    foreColor: '#CBD5E1',
-    zoom: { enabled: false },
-    animations: { enabled: false },
-  },
-  stroke: { curve: 'smooth', width: 3, colors: ['#06b6d4'] },
-  markers: { size: 4, colors: ['#06b6d4'] },
-  grid: { borderColor: '#CBD5E1', show: true, position: 'back' },
-  xaxis: {
-    categories: cardioWeekly.value.map((w) => w.label),
-    labels: { rotate: 0, style: { colors: '#CBD5E1', fontSize: '12px', fontFamily: 'Inter, system-ui, sans-serif' } },
-    axisBorder: { show: false },
-    axisTicks: { show: false },
-  },
-  yaxis: {
-    labels: {
-      formatter: (v: number) => (cardioChartUsesDistance.value ? `${v} km` : `${Math.round(v)} min`),
-      style: { colors: '#CBD5E1', fontSize: '12px', fontFamily: 'Inter, system-ui, sans-serif' },
-    },
-    axisBorder: { show: false },
-    axisTicks: { show: false },
-  },
-  tooltip: {
-    y: { formatter: (v: number) => (cardioChartUsesDistance.value ? `${v} km` : `${Math.round(v)} min`) },
-    fixed: { enabled: true, position: 'topRight' },
-    theme: 'dark',
-  },
-  dataLabels: { enabled: false },
-  legend: { show: false },
-}))
 
 /** ========= Methods ========= */
 const openGoogleSearch = () => {
@@ -1085,6 +974,70 @@ onMounted(() => {
 
 .chart-container :deep(.apexcharts-svg) {
   touch-action: none !important;
+}
+
+/* ── Cardio: recent activities ─────────────────────────────────────────── */
+
+.cardio-recent {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #334155;
+  border-radius: 0.5rem;
+  transition: background 0.15s;
+}
+
+.cardio-recent:active {
+  background: #475569;
+}
+
+.cardio-recent__main {
+  min-width: 0;
+}
+
+.cardio-recent__title {
+  font-weight: 600;
+  color: #fff;
+}
+
+.cardio-recent__meta {
+  margin-top: 0.125rem;
+  font-size: 0.8125rem;
+  color: #cbd5e1;
+}
+
+.cardio-recent__note {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardio-recent__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.cardio-recent__effort {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fdba74;
+  background: #f9731618;
+  border: 1px solid #f9731640;
+  border-radius: 999px;
+}
+
+.cardio-recent__pace {
+  font-size: 0.8125rem;
+  color: #cbd5e1;
 }
 
 .exercise-detail__danger-zone {

@@ -93,6 +93,8 @@ export interface DayVolume {
   volume: number;
   sets: number;
   sessions: number;
+  /** Cardio time logged that day — kept apart from `volume`, which is kilos. */
+  cardioSeconds: number;
 }
 
 export interface NewPersonalBest {
@@ -347,7 +349,7 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
   });
 
   const dailyVolume = computed<DayVolume[]>(() => {
-    const days: DayVolume[] = WEEK_DAYS.map((label, dayIdx) => ({ dayIdx, label, volume: 0, sets: 0, sessions: 0 }));
+    const days: DayVolume[] = WEEK_DAYS.map((label, dayIdx) => ({ dayIdx, label, volume: 0, sets: 0, sessions: 0, cardioSeconds: 0 }));
 
     sessions.value.forEach((session) => {
       const idx = Math.floor((new Date(session.date).getTime() - weekStart.value.getTime()) / MS_PER_DAY);
@@ -359,6 +361,7 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
           if (!isSetCounted(exercise, set)) return;
           days[idx].sets += 1;
           days[idx].volume += setVolume(exercise, set);
+          days[idx].cardioSeconds += setDuration(exercise, set);
         });
       });
     });

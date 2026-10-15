@@ -10,7 +10,8 @@
   import Breadcrumbs from "@/components/Breadcrumbs.vue";
   import WeekGoalsSettings from "@/components/WeekGoalsSettings.vue";
   // Aliased: the local formatDuration takes minutes, this one takes seconds.
-  import { formatDuration as formatSeconds, formatDistance, formatPace } from "@/composables/useSetMetrics";
+  import { formatDuration as formatSeconds, formatDistance, formatPace, isSetCounted, setDistance } from "@/composables/useSetMetrics";
+  import type { WorkoutSession } from "@/types/workout";
 
   // ---------------------------------------------------------------------------
   // State
@@ -155,6 +156,25 @@
   const isLoadingExercises = computed(() => workoutData.isLoadingExercises.value);
 
   const maxDailyVolume = computed(() => Math.max(0, ...week.dailyVolume.value.map((d) => d.volume)));
+  const maxDailyCardio = computed(() => Math.max(0, ...week.dailyVolume.value.map((d) => d.cardioSeconds)));
+
+  /** The kilo row stays when there's nothing else to show, so the card is never empty. */
+  const showVolumeRow = computed(() => maxDailyVolume.value > 0 || maxDailyCardio.value === 0);
+
+  /** Column height as a share of the week's biggest day, with a sliver for any non-zero day. */
+  const barHeight = (value: number, max: number): string => (max > 0 ? `${Math.max(value > 0 ? 6 : 0, (value / max) * 100)}%` : "0%");
+
+  /** "tor. 15. okt. · 92 min · 8,40 km" — kilos only when something was lifted. */
+  const sessionMeta = (session: WorkoutSession): string => {
+    const parts = [formatSessionDate(session.date), `${session.duration} min`];
+    if ((session.totalVolume || 0) > 0) parts.push(`${formatNumber(session.totalVolume || 0)} kg`);
+    const metres = session.exercises.reduce(
+      (sum, ex) => sum + ex.sets.reduce((s, set) => (isSetCounted(ex, set) ? s + setDistance(ex, set) : s), 0),
+      0,
+    );
+    if (metres > 0) parts.push(formatDistance(metres));
+    return parts.join(" · ");
+  };
 
   const hasSessions = computed(() => week.sessions.value.length > 0);
 
@@ -432,19 +452,46 @@
           </p>
         </section>
 
-        <!-- Volume per day -->
+        <!-- Per day: kilos and minutes don't share a scale, so each gets its own row -->
         <section class="wk-card">
-          <h2 class="wk-section-title">Volum per dag</h2>
-          <div class="wk-bars">
-            <div v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar">
-              <div class="wk-bar__track">
-                <div
-                  class="wk-bar__fill"
-                  :style="{ height: maxDailyVolume > 0 ? Math.max(day.volume > 0 ? 6 : 0, (day.volume / maxDailyVolume) * 100) + '%' : '0%' }"
-                  :title="`${day.label}: ${formatNumber(day.volume)} kg`"></div>
-              </div>
-              <span class="wk-bar__label">{{ day.label }}</span>
+          <h2 class="wk-section-title">Per dag</h2>
+
+          <div v-if="showVolumeRow" class="wk-daily">
+            <div class="wk-daily__head">
+              <span class="wk-daily__name">Volum</span>
+              <span v-if="maxDailyVolume > 0" class="wk-daily__max">maks {{ formatNumber(maxDailyVolume) }} kg</span>
             </div>
+            <div class="wk-bars">
+              <div v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar">
+                <div class="wk-bar__track">
+                  <div
+                    class="wk-bar__fill"
+                    :style="{ height: barHeight(day.volume, maxDailyVolume) }"
+                    :title="`${day.label}: ${formatNumber(day.volume)} kg`"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="maxDailyCardio > 0" class="wk-daily">
+            <div class="wk-daily__head">
+              <span class="wk-daily__name">Kondisjon</span>
+              <span class="wk-daily__max">maks {{ formatDuration(Math.round(maxDailyCardio / 60)) }}</span>
+            </div>
+            <div class="wk-bars">
+              <div v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar">
+                <div class="wk-bar__track">
+                  <div
+                    class="wk-bar__fill wk-bar__fill--cardio"
+                    :style="{ height: barHeight(day.cardioSeconds, maxDailyCardio) }"
+                    :title="`${day.label}: ${formatDuration(Math.round(day.cardioSeconds / 60))}`"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="wk-bars wk-bars--labels">
+            <span v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar__label">{{ day.label }}</span>
           </div>
         </section>
 
@@ -495,7 +542,7 @@
               class="wk-session">
               <span class="wk-session__body">
                 <span class="wk-session__name">{{ session.templateName }}</span>
-                <span class="wk-session__meta">{{ formatSessionDate(session.date) }} · {{ session.duration }} min · {{ formatNumber(session.totalVolume || 0) }} kg</span>
+                <span class="wk-session__meta">{{ sessionMeta(session) }}</span>
               </span>
               <span
                 class="wk-session__type"
@@ -944,10 +991,48 @@
   }
 
   .wk-bar__label {
+    flex: 1;
     font-size: 0.5625rem;
     font-weight: 500;
     color: #4b5563;
+    text-align: center;
     text-transform: uppercase;
+  }
+
+  .wk-bar__fill--cardio {
+    background: #06b6d4;
+  }
+
+  /* One row per measure; the day labels are shared underneath both. */
+  .wk-daily {
+    margin-top: 0.875rem;
+  }
+
+  .wk-daily__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .wk-daily__name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #cbd5e1;
+  }
+
+  .wk-daily__max {
+    font-size: 0.6875rem;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wk-daily .wk-bars {
+    margin-top: 0.375rem;
+  }
+
+  .wk-bars--labels {
+    margin-top: 0.375rem;
   }
 
   /* ── Rep ranges ──────────────────────────────────────────────────────────── */

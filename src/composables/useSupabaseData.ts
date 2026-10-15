@@ -4,6 +4,7 @@ import { useErrorHandler } from "@/composables/useErrorHandler";
 import { useIndexedDB } from "@/composables/useIndexedDB";
 import { useExercises } from "./useExercises";
 import type { WorkoutTemplate, WorkoutSession, ExerciseTrackingType } from "@/types/workout";
+import { isSetCounted, setDuration } from "./useSetMetrics";
 
 // ------- tiny logger ----------
 const logSupabaseAccess = (operation: string, details?: any) => {
@@ -734,12 +735,15 @@ const createSupabaseData = () => {
         exerciseId: ex.exerciseId,
         name: ex.name,
         trackingType: ex.trackingType,
+        effort: ex.effort,
+        note: ex.note,
         sets: ex.sets.map((set) => ({
           id: set.id,
           reps: Number(set.reps) || 0,
           weight: Number(set.weight) || 0,
           duration: set.duration,
           distance: set.distance,
+          timerStartedAt: set.timerStartedAt,
           isCompleted: Boolean(set.isCompleted),
         })),
       })),
@@ -953,21 +957,25 @@ const createSupabaseData = () => {
         workoutType: template.workoutType,
         date: new Date(),
         duration: 0,
-        exercises: template.exercises.map((ex, exerciseIndex) => ({
-          exerciseId: ex.exerciseId,
-          name: ex.name,
+        exercises: template.exercises.map((ex, exerciseIndex) => {
           // Stamped now so the session stays readable even if the exercise is
           // later retyped or deleted.
-          trackingType: resolveTrackingType(ex.exerciseId),
-          sets: [0, 1, 2].map((setIndex) => ({
-            id: `set-${sessionSeed}-${exerciseIndex}-${setIndex}`,
-            reps: 0,
-            weight: 0,
-            duration: undefined,
-            distance: undefined,
-            isCompleted: false,
-          })),
-        })),
+          const trackingType = resolveTrackingType(ex.exerciseId);
+          return {
+            exerciseId: ex.exerciseId,
+            name: ex.name,
+            trackingType,
+            // Cardio is one activity that grows rounds as you go, not three blank sets.
+            sets: (trackingType === "cardio" ? [0] : [0, 1, 2]).map((setIndex) => ({
+              id: `set-${sessionSeed}-${exerciseIndex}-${setIndex}`,
+              reps: 0,
+              weight: 0,
+              duration: undefined,
+              distance: undefined,
+              isCompleted: false,
+            })),
+          };
+        }),
         isCompleted: false,
       };
 
@@ -1084,7 +1092,15 @@ const createSupabaseData = () => {
         }, 0)
       );
 
-      const duration = Math.round((Date.now() - new Date(session.date).getTime()) / 60000);
+      // Wall clock from start, unless the logged activity time says more — a
+      // 90-minute match logged afterwards took 90 minutes, not the one it took
+      // to type in.
+      const wallClockMinutes = Math.round((Date.now() - new Date(session.date).getTime()) / 60000);
+      const activeSeconds = session.exercises.reduce(
+        (sum, ex) => sum + ex.sets.reduce((s, set) => (isSetCounted(ex, set) ? s + setDuration(ex, set) : s), 0),
+        0
+      );
+      const duration = Math.max(wallClockMinutes, Math.round(activeSeconds / 60));
 
       const idx = sessions.value.findIndex((s) => s.id === sessionId);
       if (idx !== -1) {

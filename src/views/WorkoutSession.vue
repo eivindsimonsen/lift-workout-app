@@ -43,9 +43,14 @@
                 </span>
               </div>
               <div class="mt-1 flex items-center gap-3 text-xs text-dark-300">
-                <span>{{ completedSets }} / {{ totalSets }} sett</span>
-                <span class="hidden sm:inline">•</span>
-                <span class="hidden sm:inline">{{ formatNumber(estimatedVolume) }} kg</span>
+                <template v-if="isCardioOnly">
+                  <span class="tabular-nums">Aktiv tid {{ formatClock(sessionCardioSeconds) }}</span>
+                </template>
+                <template v-else>
+                  <span>{{ completedSets }} / {{ totalSets }} sett</span>
+                  <span class="hidden sm:inline">•</span>
+                  <span class="hidden sm:inline">{{ formatNumber(estimatedVolume) }} kg</span>
+                </template>
                 <span class="hidden sm:inline">•</span>
                 <span>{{ sessionDuration }}</span>
               </div>
@@ -86,7 +91,7 @@
         </div>
         <div v-if="workoutData.isOnline.value && pendingChangesCount > 0" class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-300 text-xs">
           <span>{{ pendingChangesCount }} endring(er)</span>
-          <button 
+          <button
             @click="syncPendingChanges"
             class="px-2 py-0.5 rounded bg-blue-500 hover:bg-blue-600 text-white text-[11px]"
             :disabled="isSyncingPendingChanges"
@@ -124,7 +129,18 @@
               </span>
             </span>
             <span class="ex-row__right">
-              <span v-if="isExerciseCompleted(exercise)" class="ex-row__badge ex-row__badge--done">
+              <!-- Cardio shows its clock, live while it runs, instead of a set count -->
+              <template v-if="isCardioExercise(exercise)">
+                <span v-if="isExerciseRunning(exercise)" class="ex-row__badge ex-row__badge--running">
+                  <span class="ex-row__live-dot"></span>
+                  {{ formatClock(liveExerciseSeconds(exercise, now)) }}
+                </span>
+                <span v-else-if="liveExerciseSeconds(exercise, now) > 0" class="ex-row__badge ex-row__badge--done">
+                  {{ formatClock(liveExerciseSeconds(exercise, now)) }}
+                </span>
+                <span v-else class="ex-row__badge">Ikke startet</span>
+              </template>
+              <span v-else-if="isExerciseCompleted(exercise)" class="ex-row__badge ex-row__badge--done">
                 <svg class="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                 </svg>
@@ -274,14 +290,27 @@
       <div class="mt-4">
         <div class="rounded-xl border border-dark-700 bg-dark-800/60 p-4">
           <div class="grid grid-cols-3 gap-3 text-center">
-            <div>
-              <p class="text-lg font-bold text-primary-500">{{ completedSets }} / {{ totalSets }}</p>
-              <p class="text-[12px] text-dark-300">Sett</p>
-            </div>
-            <div>
-              <p class="text-lg font-bold text-primary-500">{{ formatNumber(estimatedVolume) }}</p>
-              <p class="text-[12px] text-dark-300">Volum (kg)</p>
-            </div>
+            <!-- A cardio-only session has no sets or kilos worth summing -->
+            <template v-if="isCardioOnly">
+              <div>
+                <p class="text-lg font-bold text-primary-500">{{ sessionCardioRounds }}</p>
+                <p class="text-[12px] text-dark-300">{{ sessionCardioRounds === 1 ? 'Runde' : 'Runder' }}</p>
+              </div>
+              <div>
+                <p class="text-lg font-bold text-primary-500 tabular-nums">{{ formatClock(sessionCardioSeconds) }}</p>
+                <p class="text-[12px] text-dark-300">Aktiv tid</p>
+              </div>
+            </template>
+            <template v-else>
+              <div>
+                <p class="text-lg font-bold text-primary-500">{{ completedSets }} / {{ totalSets }}</p>
+                <p class="text-[12px] text-dark-300">Sett</p>
+              </div>
+              <div>
+                <p class="text-lg font-bold text-primary-500">{{ formatNumber(estimatedVolume) }}</p>
+                <p class="text-[12px] text-dark-300">Volum (kg)</p>
+              </div>
+            </template>
             <div>
               <p class="text-lg font-bold text-primary-500">{{ sessionDuration }}</p>
               <p class="text-[12px] text-dark-300">Varighet</p>
@@ -295,15 +324,15 @@
         <button 
           @click="handleCompleteWorkout"
           class="w-full btn-primary py-3 flex items-center justify-center gap-2"
-          :disabled="completedSets === 0"
+          :disabled="!canComplete"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
           Fullfør Økt
         </button>
-        <p v-if="completedSets === 0" class="text-xs text-dark-400 text-center mt-2">
-          Du må fullføre minst ett sett for å kunne fullføre økten
+        <p v-if="!canComplete" class="text-xs text-dark-400 text-center mt-2">
+          {{ isCardioOnly ? 'Start klokka eller før inn tid for å kunne fullføre økten' : 'Du må fullføre minst ett sett for å kunne fullføre økten' }}
         </p>
       </div>
 
@@ -447,22 +476,27 @@
             ></span>
           </div>
 
-          <!-- Set table -->
+          <!-- Set table, or the stopwatch view for cardio -->
           <div class="ex-sheet__body">
 
+            <CardioActivity
+              v-if="activeExerciseIsCardio"
+              :key="session.exercises[activeExerciseIndex].exerciseId"
+              :exercise="session.exercises[activeExerciseIndex]"
+              :now="now"
+              :remember-distance="hasDistanceHistory(session.exercises[activeExerciseIndex].exerciseId)"
+              :is-only-exercise="session.exercises.length === 1"
+              @change="persistExercisesToLocal"
+              @done="onCardioDone"
+            />
+
+            <template v-else>
             <!-- Column headers -->
-            <div class="ex-set__headers" :class="{ 'ex-set__headers--cardio': activeExerciseIsCardio }">
+            <div class="ex-set__headers">
               <span>#</span>
-              <template v-if="activeExerciseIsCardio">
-                <span>Min</span>
-                <span>Sek</span>
-                <span class="ex-set__col-right">Km</span>
-              </template>
-              <template v-else>
-                <span>Reps</span>
-                <span>Vekt (kg)</span>
-                <span class="ex-set__col-right">Volum</span>
-              </template>
+              <span>Reps</span>
+              <span>Vekt (kg)</span>
+              <span class="ex-set__col-right">Volum</span>
             </div>
 
             <!-- Keyed wrapper: switching exercises remounts the list so TransitionGroup -->
@@ -495,7 +529,7 @@
                 <!-- Actual row content, slides on swipe -->
                 <div
                   class="ex-set__row"
-                  :class="{ 'ex-set__row--done': set.isCompleted, 'ex-set__row--cardio': activeExerciseIsCardio }"
+                  :class="{ 'ex-set__row--done': set.isCompleted }"
                   :style="{ transform: `translateX(${setSwipeX[set.id] ?? 0}px)`, transition: setSwipeX[set.id] ? 'none' : 'transform 0.2s ease-out' }"
                 >
                 <span
@@ -503,51 +537,6 @@
                   :class="{ 'ex-set__num--done': set.isCompleted }"
                 >{{ setIndex + 1 }}</span>
 
-                <template v-if="activeExerciseIsCardio">
-                  <input
-                    :value="durationMinutes(set)"
-                    type="text"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    min="0"
-                    class="ex-set__input"
-                    :class="{ 'ex-set__input--done': set.isCompleted }"
-                    placeholder="–"
-                    @focus="markFocus"
-                    @input="(event) => handleDurationInput(event, activeExerciseIndex!, setIndex, 'min')"
-                    @blur="(event) => handleDurationBlur(event, activeExerciseIndex!, setIndex, 'min')"
-                  />
-
-                  <input
-                    :value="durationSeconds(set)"
-                    type="text"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    min="0"
-                    max="59"
-                    class="ex-set__input"
-                    :class="{ 'ex-set__input--done': set.isCompleted }"
-                    placeholder="–"
-                    @focus="markFocus"
-                    @input="(event) => handleDurationInput(event, activeExerciseIndex!, setIndex, 'sec')"
-                    @blur="(event) => handleDurationBlur(event, activeExerciseIndex!, setIndex, 'sec')"
-                  />
-
-                  <input
-                    :value="distanceKm(set)"
-                    type="text"
-                    inputmode="decimal"
-                    min="0"
-                    class="ex-set__input ex-set__input--right"
-                    :class="{ 'ex-set__input--done': set.isCompleted }"
-                    placeholder="–"
-                    @focus="markFocus"
-                    @input="(event) => handleDistanceInput(event, activeExerciseIndex!, setIndex)"
-                    @blur="(event) => handleDistanceBlur(event, activeExerciseIndex!, setIndex)"
-                  />
-                </template>
-
-                <template v-else>
                 <input
                   :value="set.reps === 0 ? '' : set.reps"
                   type="text"
@@ -588,7 +577,6 @@
                 <span class="ex-set__vol" :class="{ 'ex-set__vol--done': set.isCompleted }">
                   {{ set.weight && set.reps ? formatNumber(set.weight * set.reps) : '–' }}
                 </span>
-                </template>
                 </div><!-- /.ex-set__row -->
               </div><!-- /.ex-set__swipe-wrapper -->
             </TransitionGroup>
@@ -597,8 +585,7 @@
             <!-- Sheet footer: volume + add set -->
             <div class="ex-card__footer">
               <span class="ex-card__footer-vol">
-                <template v-if="activeExerciseIsCardio">{{ cardioExerciseSummary(session.exercises[activeExerciseIndex]) }}</template>
-                <template v-else>{{ formatNumber(calculateExerciseVolume(session.exercises[activeExerciseIndex])) }} kg totalt</template>
+                {{ formatNumber(calculateExerciseVolume(session.exercises[activeExerciseIndex])) }} kg totalt
               </span>
               <button class="ex-card__add-set" @click="addSet(activeExerciseIndex)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -607,6 +594,7 @@
                 Sett
               </button>
             </div>
+            </template>
 
           </div>
         </div>
@@ -628,6 +616,7 @@ import SwipeableCard from '@/components/SwipeableCard.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
 import SlideOver from '@/components/SlideOver.vue'
+import CardioActivity from '@/components/CardioActivity.vue'
 import { vibrate } from '@/composables/useHaptics'
 import { useLongPressReorder } from '@/composables/useLongPressReorder'
 import {
@@ -637,8 +626,15 @@ import {
   setVolume,
   formatDuration,
   formatDistance,
-  formatPace,
 } from '@/composables/useSetMetrics'
+import {
+  formatClock,
+  isExerciseRunning,
+  isSetRunning,
+  liveExerciseSeconds,
+  pauseTimer,
+} from '@/composables/useCardioTimer'
+import { summarizeCardioExercise } from '@/composables/useCardioActivities'
 
 const route = useRoute()
 const router = useRouter()
@@ -921,81 +917,7 @@ const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) =
   unhideNavSoon()
 }
 
-/** Cardio duration is stored in seconds but entered as separate min/sec fields. */
-const handleDurationInput = (event: Event, exerciseIndex: number, setIndex: number, part: 'min' | 'sec') => {
-  if (!session.value) return
-  const raw = (event.target as HTMLInputElement).value
-  const entered = raw === '' ? 0 : Math.max(0, parseInt(raw) || 0)
-
-  const set = session.value.exercises[exerciseIndex].sets[setIndex]
-  const current = Number(set.duration) || 0
-  const minutes = part === 'min' ? entered : Math.floor(current / 60)
-  // Seconds above 59 belong in the minutes field; clamp rather than silently
-  // rolling over, so what you typed is what you see.
-  const seconds = part === 'sec' ? Math.min(59, entered) : current % 60
-
-  set.duration = minutes * 60 + seconds
-  updateSetCompletion(exerciseIndex, setIndex)
-  persistExercisesToLocal()
-}
-
-const handleDurationBlur = (event: Event, exerciseIndex: number, setIndex: number, part: 'min' | 'sec') => {
-  handleDurationInput(event, exerciseIndex, setIndex, part)
-  unhideNavSoon()
-}
-
-/** Distance is entered in kilometres and stored in metres. */
-const handleDistanceInput = (event: Event, exerciseIndex: number, setIndex: number) => {
-  if (!session.value) return
-  const raw = (event.target as HTMLInputElement).value
-  const km = raw === '' ? 0 : toNumber(raw)
-  session.value.exercises[exerciseIndex].sets[setIndex].distance = Math.max(0, Math.round(km * 1000))
-  updateSetCompletion(exerciseIndex, setIndex)
-  persistExercisesToLocal()
-}
-
-const handleDistanceBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
-  handleDistanceInput(event, exerciseIndex, setIndex)
-  unhideNavSoon()
-}
-
-/** Minutes / seconds / kilometres for the inputs, blank when unset. */
-const durationMinutes = (set: any): string => {
-  const total = Number(set?.duration) || 0
-  return total >= 60 ? String(Math.floor(total / 60)) : ''
-}
-const durationSeconds = (set: any): string => {
-  const total = Number(set?.duration) || 0
-  return total % 60 === 0 ? '' : String(total % 60)
-}
-const distanceKm = (set: any): string => {
-  const metres = Number(set?.distance) || 0
-  return metres === 0 ? '' : String(metres / 1000)
-}
-
-/** "12:30 · 3,20 km · 5:12 /km" for the cardio sheet footer. */
-const cardioExerciseSummary = (exercise: any): string => {
-  if (!exercise || !Array.isArray(exercise.sets)) return '–'
-
-  let seconds = 0
-  let metres = 0
-  exercise.sets.forEach((set: any) => {
-    if (!isSetCounted(exercise, set)) return
-    seconds += Number(set.duration) || 0
-    metres += Number(set.distance) || 0
-  })
-
-  if (seconds === 0 && metres === 0) return 'Ingen sett logget'
-
-  const parts: string[] = []
-  if (seconds > 0) parts.push(`${formatDuration(seconds)} totalt`)
-  if (metres > 0) parts.push(formatDistance(metres))
-  const pace = formatPace(seconds, metres)
-  if (pace) parts.push(pace)
-  return parts.join(' · ')
-}
-
-/** "Sist 8×60kg" for strength, "Sist 4:00 · 1,00 km" for cardio. */
+/** "Sist 8×60kg" for strength, "Sist 45:00 · 7,20 km · 7/10" for cardio. */
 const lastPerformanceLabel = (exerciseId: number): string | null => {
   const last = getLastPerformance(exerciseId)
   if (!last) return null
@@ -1005,7 +927,78 @@ const lastPerformanceLabel = (exerciseId: number): string | null => {
   const parts: string[] = []
   if (Number(last.duration) > 0) parts.push(formatDuration(Number(last.duration)))
   if (Number(last.distance) > 0) parts.push(formatDistance(Number(last.distance)))
+  if (last.effort) parts.push(`${last.effort}/10`)
   return parts.length > 0 ? `Sist ${parts.join(' · ')}` : null
+}
+
+// ===== Cardio =====
+
+/** A session made only of cardio has no sets or kilos worth showing. */
+const isCardioOnly = computed(() => {
+  const exercises = session.value?.exercises ?? []
+  return exercises.length > 0 && exercises.every(ex => isCardioExercise(ex))
+})
+
+const sessionCardioSeconds = computed(() =>
+  (session.value?.exercises ?? [])
+    .filter(ex => isCardioExercise(ex))
+    .reduce((sum, ex) => sum + liveExerciseSeconds(ex, now.value), 0)
+)
+
+const sessionCardioRounds = computed(() =>
+  (session.value?.exercises ?? [])
+    .filter(ex => isCardioExercise(ex))
+    .reduce((sum, ex) => sum + ex.sets.filter(set => isSetRunning(set) || isSetLogged(ex, set)).length, 0)
+)
+
+const anyCardioRunning = computed(() =>
+  (session.value?.exercises ?? []).some(ex => isCardioExercise(ex) && isExerciseRunning(ex))
+)
+
+/** A second-level tick only while a stopwatch actually runs; otherwise the 10 s one is enough. */
+let clockTicker: ReturnType<typeof setInterval> | undefined
+watch(anyCardioRunning, (running) => {
+  clearInterval(clockTicker)
+  clockTicker = undefined
+  if (!running) return
+  now.value = Date.now()
+  clockTicker = setInterval(() => { now.value = Date.now() }, 500)
+}, { immediate: true })
+onUnmounted(() => clearInterval(clockTicker))
+
+/** A running clock counts: completing the session banks it first. */
+const canComplete = computed(() => completedSets.value > 0 || anyCardioRunning.value)
+
+/** Banks every running stopwatch, so the logged time is final. */
+const stopCardioTimers = () => {
+  if (!session.value) return
+  const stoppedAt = Date.now()
+  session.value.exercises.forEach(ex => {
+    if (isCardioExercise(ex)) pauseTimer(ex, stoppedAt)
+  })
+}
+
+/** Whether km has been logged on this exercise before — then the field shows up front. */
+const hasDistanceHistory = (exerciseId: number): boolean =>
+  workoutData.sessions.value.some(s =>
+    s.isCompleted && s.exercises.some(e => e.exerciseId === exerciseId && e.sets.some(set => Number(set.distance) > 0))
+  )
+
+/** "Fullfør økt" when the activity is the whole session, otherwise just close the sheet. */
+const onCardioDone = () => {
+  if (session.value?.exercises.length === 1) handleCompleteWorkout()
+  else closeExerciseSheet()
+}
+
+/**
+ * Lands straight in the stopwatch when that's what the session is for: a
+ * running clock, or a session holding a single cardio exercise.
+ */
+const openCardioOnArrival = () => {
+  const exercises = session.value?.exercises ?? []
+  const running = exercises.findIndex(ex => isCardioExercise(ex) && isExerciseRunning(ex))
+  if (running >= 0) openExerciseSheet(running)
+  else if (exercises.length === 1 && isCardioExercise(exercises[0])) openExerciseSheet(0)
 }
 
 /** Whether the exercise currently open in the sheet is a cardio one. */
@@ -1197,12 +1190,15 @@ const addExerciseToSession = () => {
   const setSeed = Date.now()
   const exerciseSlotIndex = session.value.exercises.length
 
+  // Same reasoning as when a session starts: carry the type with the session.
+  const trackingType = workoutData.exerciseIndex.value.get(exerciseId)?.trackingType ?? 'strength'
+
   const newExercise = {
     exerciseId,
     name: exerciseName,
-    // Same reasoning as when a session starts: carry the type with the session.
-    trackingType: workoutData.exerciseIndex.value.get(exerciseId)?.trackingType ?? 'strength',
-    sets: [0, 1, 2].map((setIndex) => ({
+    trackingType,
+    // Cardio is one activity that grows rounds as you go, not three blank sets.
+    sets: (trackingType === 'cardio' ? [0] : [0, 1, 2]).map((setIndex) => ({
       id: `set-${setSeed}-${exerciseSlotIndex}-${setIndex}`,
       reps: 0,
       weight: 0,
@@ -1372,13 +1368,28 @@ const getLastPerformance = (exerciseId: number) => {
     const completedSets = exercise.sets.filter(set => isSetCounted(exercise, set))
     if (completedSets.length === 0) continue
 
+    // Cardio compares whole activities — last time's football match, not its last round.
+    if (isCardioExercise(exercise)) {
+      const activity = summarizeCardioExercise(exercise)
+      return {
+        weight: 0,
+        reps: 0,
+        duration: activity.seconds,
+        distance: activity.metres,
+        effort: exercise.effort,
+        isCardio: true,
+        date: session.date
+      }
+    }
+
     const lastSet = completedSets[completedSets.length - 1]
     return {
       weight: lastSet.weight,
       reps: lastSet.reps,
       duration: lastSet.duration,
       distance: lastSet.distance,
-      isCardio: isCardioExercise(exercise),
+      effort: undefined as number | undefined,
+      isCardio: false,
       date: session.date
     }
   }
@@ -1466,12 +1477,13 @@ const updateAppSaveState = () => {
 }
 
 const handleCompleteWorkout = () => {
+  // A round whose clock is still running is kept: completing banks its time.
   const incompleteExercises = session.value?.exercises.filter(exercise =>
-    !exercise.sets.some(set => set.isCompleted)
+    !exercise.sets.some(set => set.isCompleted || isSetRunning(set))
   ) || []
 
   const incompleteSets = session.value?.exercises.reduce((total, exercise) =>
-    total + exercise.sets.filter(set => !set.isCompleted).length, 0
+    total + exercise.sets.filter(set => !set.isCompleted && !isSetRunning(set)).length, 0
   ) || 0
 
   let message = 'Er du sikker på at du vil fullføre økten?'
@@ -1555,6 +1567,12 @@ const completeWorkout = async () => {
 
   try {
     const sessionId = session.value.id
+
+    // Bank running stopwatches and write them locally first — the local copy is
+    // what gets saved below.
+    stopCardioTimers()
+    persistExercisesToLocal()
+
     const localChanges = getLocalChanges(sessionId)
 
     const cleanedSession = await cleanupSessionData(session.value)
@@ -1841,6 +1859,9 @@ onMounted(async () => {
   // Restore local shape/values first (local wins for in-progress)
   await restoreLocalChanges()
 
+  // After the restore: a running stopwatch lives in the local copy.
+  openCardioOnArrival()
+
   // Initialize collapsed state: keep completed collapsed, expand only active/incomplete
   if (session.value) {
     collapsedExercises.value = session.value.exercises.map((ex: any) => isExerciseCompleted(ex))
@@ -2092,6 +2113,30 @@ watch(() => route.params.id, async (newId, oldId) => {
   color: #4ade80;
 }
 
+/* A stopwatch running in the background, visible from the list. */
+.ex-row__badge--running {
+  background: #06b6d41a;
+  color: #22d3ee;
+  font-variant-numeric: tabular-nums;
+}
+
+.ex-row__live-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ex-row-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ex-row-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ex-row__live-dot { animation: none; }
+}
+
 .ex-row__chevron {
   width: 1rem;
   height: 1rem;
@@ -2336,11 +2381,6 @@ watch(() => route.params.id, async (newId, oldId) => {
 .ex-set__input::placeholder { color: #5a6e85; font-weight: 400; font-size: 0.875rem; }
 .ex-set__input:focus { outline: none; border-color: #f97316; background: #2d3a4f; box-shadow: 0 0 0 3px #f9731620; }
 .ex-set__input--done { color: #86efac; border-color: #16a34a50; background: #16a34a15; }
-
-.ex-set__headers--cardio,
-.ex-set__row--cardio {
-  grid-template-columns: 2.25rem 1fr 1fr 1fr;
-}
 
 .ex-set__input--right { text-align: right; }
 

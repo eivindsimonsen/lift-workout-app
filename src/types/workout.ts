@@ -105,6 +105,10 @@ export interface WorkoutExercise {
    */
   trackingType?: ExerciseTrackingType;
   sets: WorkoutSet[];
+  /** Cardio only: perceived effort, 1 (easy) – 10 (max). Absent when not rated. */
+  effort?: number;
+  /** Cardio only: free-text note, e.g. "kamp mot Lyn" or "4×4 på mølle". */
+  note?: string;
 }
 
 export interface WorkoutSet {
@@ -112,7 +116,11 @@ export interface WorkoutSet {
   reps: number;
   weight?: number;
   weightUnit?: 'kg' | 'lbs' | 'bodyweight'; // Default is 'kg'
+  /** Seconds. For a cardio round with a running stopwatch, the time banked before the current stint. */
   duration?: number;
+  /** Metres. */
   distance?: number;
+  /** Cardio only: epoch ms when the stopwatch on this round was (re)started; absent when stopped. */
+  timerStartedAt?: number | null;
   isCompleted: boolean;
 }
