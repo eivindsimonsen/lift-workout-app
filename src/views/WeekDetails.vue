@@ -109,11 +109,11 @@
     const prev = week.previousWeekTotals.value;
     return [
       { key: "workouts", label: "Økter", value: String(t.workouts), change: changeVsLastWeek(t.workouts, prev.workouts) },
-      { key: "volume", label: "Volum (kg)", value: formatNumber(t.volume), change: changeVsLastWeek(t.volume, prev.volume) },
       { key: "duration", label: "Varighet", value: formatDuration(t.durationMinutes), change: changeVsLastWeek(t.durationMinutes, prev.durationMinutes) },
       { key: "sets", label: "Sett", value: String(t.sets), change: changeVsLastWeek(t.sets, prev.sets) },
       { key: "reps", label: "Reps", value: formatNumber(t.reps), change: changeVsLastWeek(t.reps, prev.reps) },
-      { key: "avgVolume", label: "Snitt per økt", value: formatNumber(t.avgVolumePerWorkout), change: null },
+      { key: "avgVolume", label: "Snitt volum (kg)", value: formatNumber(t.avgVolumePerWorkout), change: null },
+      { key: "volume", label: "Volum (kg)", value: formatNumber(t.volume), change: changeVsLastWeek(t.volume, prev.volume) },
     ];
   });
 
@@ -178,13 +178,24 @@
       ]" />
 
     <!-- Header -->
-    <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0">
-        <h1 class="text-2xl font-bold text-white">Uke {{ week.weekNumber.value }}</h1>
-        <p class="text-sm text-dark-400 mt-0.5">
-          {{ week.weekLabel.value }}
-          <span v-if="week.isCurrentWeek.value" class="text-primary-500 font-medium"> · denne uken</span>
-        </p>
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <router-link
+          to="/"
+          class="inline-flex items-center justify-center w-10 h-10 flex-shrink-0 bg-[#3F302A] hover:bg-[#4A3A32] rounded-lg transition-colors"
+          aria-label="Tilbake til økter">
+          <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </router-link>
+
+        <div class="min-w-0">
+          <h1 class="text-2xl font-bold text-white">Uke {{ week.weekNumber.value }}</h1>
+          <p class="text-sm text-dark-400 mt-0.5">
+            {{ week.weekLabel.value }}
+            <span v-if="week.isCurrentWeek.value" class="text-primary-500 font-medium"> · denne uken</span>
+          </p>
+        </div>
       </div>
 
       <button
@@ -586,13 +597,19 @@
     cursor: pointer;
   }
 
+  /* Keep the box and dim only the chevron, so a disabled arrow still reads as
+     the end of the strip rather than a stray icon. */
   .wk-picker__arrow:disabled {
-    opacity: 0.3;
+    color: #475569;
     cursor: not-allowed;
   }
 
+  /* min-width: 0 on the strip and its pills overrides the global 44px button
+     minimum in style.css — without it six pills plus two arrows are wider than
+     a phone and push the right arrow off-screen. */
   .wk-picker__weeks {
     flex: 1;
+    min-width: 0;
     display: flex;
     gap: 0.25rem;
     justify-content: space-between;
@@ -600,6 +617,7 @@
 
   .wk-picker__week {
     flex: 1;
+    min-width: 0;
     padding: 0.4375rem 0;
     font-size: 0.8125rem;
     font-weight: 600;
