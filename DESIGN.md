@@ -1,8 +1,8 @@
 # DESIGN.md
 
-Designstilen for LIFT. Nye sider, og sider som tegnes om, følger dette. Fasiten er **Ukesoversikt** ([WeekDetails.vue](src/views/WeekDetails.vue)), **Øktdetaljer** ([SessionDetails.vue](src/views/SessionDetails.vue)) og **Historikk** ([History.vue](src/views/History.vue)). Står noe her i strid med de sidene, er det dokumentet som skal rettes.
+Designstilen for LIFT. Nye sider, og sider som tegnes om, følger dette. Fasiten er **Ukesoversikt** ([WeekDetails.vue](src/views/WeekDetails.vue)), **Øktdetaljer** ([SessionDetails.vue](src/views/SessionDetails.vue)), **Historikk** ([History.vue](src/views/History.vue)) og **Øvelsesdetaljer** ([ExerciseDetail.vue](src/views/ExerciseDetail.vue)). Står noe her i strid med de sidene, er det dokumentet som skal rettes.
 
-Eldre sider (Statistikk, Øvelsesdetaljer, Profil) bruker fortsatt den gamle `.card`-stilen. Se [Kjente avvik](#kjente-avvik) nederst.
+Eldre sider (Statistikk, Profil) bruker fortsatt den gamle `.card`-stilen. Se [Kjente avvik](#kjente-avvik) nederst.
 
 ## Prinsipper
 
@@ -176,6 +176,13 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 - **Ingen tall på hver søyle.** Vis heller utvalgte tall, som snitt og beste uke, under diagrammet.
 - Søylene følger samme form som over: rett start, 4 px avrunding, maks 24 px brede.
 - Bruk [CardioWeeklyChart.vue](src/components/CardioWeeklyChart.vue) som mal.
+- **Søyler for mengde, linje for nivå.**
+  - Mengder (minutter, kilo per uke) vises som søyler som starter på null.
+  - Et nivå over tid (tyngste sett per uke) vises som en 2 px linje med 8 px punkter og en 2 px ring i panelfargen.
+  - Uker uten data blir hull i linja, ikke en forbindelse.
+  - Under grafen står start- og sluttverdien («Fra 67,5 kg i uke 33 til 80 kg i uke 42»).
+  - Se tyngste sett i [ExerciseDetail.vue](src/views/ExerciseDetail.vue).
+- **Tall i stedet for søyler når verdiene ligger tett**, for eksempel snitt kg per rep fra 69 til 78. Søyler fra null blir da like lange og bare støy. Vis i stedet en rad med etikett og tall, eldst til venstre.
 
 ## Ikke gjør
 
@@ -191,7 +198,7 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 Dette bryter med stilen i dag og ryddes når den aktuelle siden tegnes om:
 
-- **Statistikk, Øvelsesdetaljer, Profil og innloggingssidene** bruker `.card` (`#1e293b` / `#334155`), og flere av dem har midtstilte flis-rutenett med ikoner.
+- **Statistikk, Profil og innloggingssidene** bruker `.card` (`#1e293b` / `#334155`), og flere av dem har midtstilte flis-rutenett med ikoner.
 - **Tilbakeknappens farger** (`#3F302A` / `#4A3A32`) er hardkodet i fem filer. Den bør bli en felles komponent.
 - **Seksjonstitlene i Ukesoversikt** bruker `#6b7280`, mens resten følger `#94a3b8`, som har bedre kontrast.
 - **Alle farger er hex i scoped CSS.** De bør på sikt bli CSS-variabler, så dette dokumentet og koden ikke kan komme ut av takt.

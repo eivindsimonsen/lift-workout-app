@@ -1,6 +1,6 @@
 import { computed, unref, type ComputedRef, type Ref } from "vue";
 import { useHybridData } from "./useHybridData";
-import { useTrainingGoals, MUSCLE_GROUP_COLORS, MUSCLE_GROUP_NAMES, CARDIO_GROUP_NAME } from "./useTrainingGoals";
+import { useTrainingGoals, MUSCLE_GROUP_COLORS, STRENGTH_MUSCLE_GROUP_NAMES, CARDIO_GROUP_NAME } from "./useTrainingGoals";
 import type { WorkoutSession } from "@/types/workout";
 import { isSetCounted, setVolume, setReps, setDuration, setDistance, isCardioExercise } from "./useSetMetrics";
 
@@ -75,9 +75,6 @@ export interface MuscleGroupWeekStat {
   sets: number;
   reps: number;
   volume: number;
-  /** Cardio only; zero for strength groups. */
-  durationSeconds: number;
-  distanceMetres: number;
   /** Weekly target from the user's plan; 0 when no goal is set. */
   targetSets: number;
   /** Progress toward the target, capped at 100. 0 when no target. */
@@ -267,17 +264,23 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
     return count;
   });
 
+  /**
+   * Strength muscle groups only. Cardio is measured in time and distance and
+   * has its own figures and goal; counted here, its rounds would show up as
+   * "sets" and could become the group every bar is scaled against.
+   */
   const muscleGroups = computed<MuscleGroupWeekStat[]>(() => {
-    const acc: Record<string, { sets: number; reps: number; volume: number; durationSeconds: number; distanceMetres: number }> = {};
-    const emptyBucket = () => ({ sets: 0, reps: 0, volume: 0, durationSeconds: 0, distanceMetres: 0 });
-    MUSCLE_GROUP_NAMES.forEach((name) => {
+    const acc: Record<string, { sets: number; reps: number; volume: number }> = {};
+    const emptyBucket = () => ({ sets: 0, reps: 0, volume: 0 });
+    STRENGTH_MUSCLE_GROUP_NAMES.forEach((name) => {
       acc[name] = emptyBucket();
     });
 
     sessions.value.forEach((session) => {
       session.exercises?.forEach((exercise: any) => {
+        if (isCardioExercise(exercise)) return;
         const entry = resolveExercise(exercise);
-        if (!entry) return;
+        if (!entry || entry.category === CARDIO_GROUP_NAME) return;
         const bucket = acc[entry.category] ?? (acc[entry.category] = emptyBucket());
 
         exercise.sets?.forEach((set: any) => {
@@ -285,8 +288,6 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
           bucket.sets += 1;
           bucket.reps += setReps(exercise, set);
           bucket.volume += setVolume(exercise, set);
-          bucket.durationSeconds += setDuration(exercise, set);
-          bucket.distanceMetres += setDistance(exercise, set);
         });
       });
     });
@@ -302,8 +303,6 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
           sets: v.sets,
           reps: v.reps,
           volume: Math.round(v.volume),
-          durationSeconds: v.durationSeconds,
-          distanceMetres: Math.round(v.distanceMetres),
           targetSets,
           pctOfTarget: targetSets > 0 ? Math.min(100, Math.round((v.sets / targetSets) * 100)) : 0,
           isMet: targetSets > 0 && v.sets >= targetSets,
@@ -314,13 +313,12 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
   });
 
   /**
-   * Progress toward the sum of every muscle group target.
-   * Cardio is excluded on both sides: it has no set target, so counting its sets
-   * against a strength goal would quietly inflate the bar.
+   * Progress toward the sum of every muscle group target. Strength sets only —
+   * `muscleGroups` already leaves cardio out, which has no set target.
    */
   const setsGoalProgress = computed(() => {
     const target = muscleGroups.value.reduce((sum, g) => sum + g.targetSets, 0);
-    const done = muscleGroups.value.filter((g) => g.name !== CARDIO_GROUP_NAME).reduce((sum, g) => sum + g.sets, 0);
+    const done = muscleGroups.value.reduce((sum, g) => sum + g.sets, 0);
     return {
       done,
       target,

@@ -135,15 +135,8 @@
     return rows;
   });
 
-  /** Cardio groups are measured in time and distance, not reps and kilos. */
-  const muscleGroupMeta = (group: { reps: number; volume: number; durationSeconds: number; distanceMetres: number }): string => {
-    if (group.durationSeconds > 0 || group.distanceMetres > 0) {
-      const parts = [formatSeconds(group.durationSeconds)];
-      if (group.distanceMetres > 0) parts.push(formatDistance(group.distanceMetres));
-      return parts.join(" · ");
-    }
-    return `${formatNumber(group.reps)} reps · ${formatNumber(group.volume)} kg`;
-  };
+  /** Muscle groups are strength only, so this is always reps and kilos. */
+  const muscleGroupMeta = (group: { reps: number; volume: number }): string => `${formatNumber(group.reps)} reps · ${formatNumber(group.volume)} kg`;
 
   const trainedGroups = computed(() => week.muscleGroups.value.filter((g) => g.sets > 0));
 
@@ -397,7 +390,8 @@
           <div class="wk-section-head">
             <h2 class="wk-section-title">Muskelgrupper</h2>
             <span v-if="week.setsGoalProgress.value.hasTarget" class="wk-section-meta">{{ week.setsGoalProgress.value.done }} / {{ week.setsGoalProgress.value.target }} sett</span>
-            <span v-else class="wk-section-meta">{{ week.totals.value.sets }} sett</span>
+            <!-- Strength sets only, like the groups below — not the cardio rounds in totals.sets -->
+            <span v-else class="wk-section-meta">{{ week.setsGoalProgress.value.done }} sett</span>
           </div>
 
           <div class="mt-3 space-y-2.5">
