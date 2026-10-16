@@ -11,7 +11,10 @@
   // Props
   // ---------------------------------------------------------------------------
 
-  /** One finished cardio activity, laid out the way a running app's summary is. */
+  /**
+   * One finished cardio activity, laid out the way a running app's summary is.
+   * Flat on purpose: it sits inside the session page's cardio panel.
+   */
   const props = defineProps<{
     exercise: WorkoutExercise;
   }>();
@@ -32,7 +35,7 @@
     const items: Array<{ label: string; value: string }> = [];
     if (summary.value.metres > 0) items.push({ label: "Distanse", value: formatDistance(summary.value.metres) });
     if (pace.value) items.push({ label: "Snitt tempo", value: pace.value });
-    if (summary.value.rounds.length > 1) items.push({ label: "Runder", value: String(summary.value.rounds.length) });
+    // Round count isn't repeated here — the rounds list below shows it.
     return items;
   });
 
@@ -54,13 +57,7 @@
 <template>
   <article class="act">
     <header class="act__head">
-      <div class="act__title-block">
-        <p class="act__eyebrow">
-          <span class="act__dot"></span>
-          Kondisjon
-        </p>
-        <h3 class="act__name">{{ exercise.name }}</h3>
-      </div>
+      <h3 class="act__name">{{ exercise.name }}</h3>
       <span v-if="effort" class="act__effort">{{ formatEffort(effort) }}</span>
     </header>
 
@@ -94,47 +91,18 @@
 </template>
 
 <style scoped>
-  .act {
-    padding: 1.25rem;
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 0.75rem;
-  }
-
   .act__head {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
   }
 
-  .act__title-block {
-    min-width: 0;
-  }
-
-  .act__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #94a3b8;
-  }
-
-  .act__dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    background: #06b6d4;
-  }
-
   .act__name {
-    margin-top: 0.125rem;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #fff;
+    min-width: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #f1f5f9;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -153,8 +121,8 @@
   }
 
   .act__hero {
-    margin-top: 1rem;
-    font-size: 2.75rem;
+    margin-top: 0.75rem;
+    font-size: 2.5rem;
     font-weight: 700;
     line-height: 1;
     letter-spacing: -0.02em;
@@ -172,8 +140,8 @@
     grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
     gap: 0.75rem;
     margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #334155;
+    padding-top: 0.875rem;
+    border-top: 1px solid #1f2937;
   }
 
   .act__metric dt {
@@ -194,7 +162,7 @@
     font-size: 0.875rem;
     line-height: 1.45;
     color: #cbd5e1;
-    background: #0f172a;
+    background: #0d1117;
     border-left: 2px solid #06b6d4;
     border-radius: 0 0.5rem 0.5rem 0;
     white-space: pre-line;
@@ -203,9 +171,9 @@
   /* ── Rounds ──────────────────────────────────────────────────────────────── */
 
   .act__rounds {
-    margin-top: 1.25rem;
-    padding-top: 1rem;
-    border-top: 1px solid #334155;
+    margin-top: 1rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid #1f2937;
   }
 
   .act__rounds-title {
@@ -239,7 +207,7 @@
 
   .act__round-track {
     height: 0.5rem;
-    background: #0f172a;
+    background: #0d1117;
     border-radius: 2px 4px 4px 2px;
     overflow: hidden;
   }

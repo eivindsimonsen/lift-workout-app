@@ -74,6 +74,7 @@ Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` 
 
 - `vite-plugin-pwa` uses `registerType: 'prompt'`. `src/sw.ts` dispatches `sw-update-available`, which `UpdateNotification.vue` uses to ask the user to reload. Supabase requests are cached NetworkFirst for 7 days.
 - Tailwind adds custom `primary` (orange) and `dark` (slate) palettes. Shared component classes (`btn-primary`, `btn-secondary`, `btn-danger`, `card`, `input-field`) and the safe-area and PWA navigation rules are in `src/style.css`.
+- **Read [DESIGN.md](DESIGN.md) before any UI work.** It defines the visual style that new and redesigned views follow (panels, colors, type scale, patterns), with `WeekDetails.vue` and `SessionDetails.vue` as the reference pages. The older `.card`-based views are listed there as known deviations, so don't copy their style.
 
 ## Database changes (`supabase-setup/`)
 
