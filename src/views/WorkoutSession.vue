@@ -289,31 +289,11 @@
       <!-- Summary -->
       <div class="mt-4">
         <div class="rounded-xl border border-dark-700 bg-dark-800/60 p-4">
-          <div class="grid grid-cols-3 gap-3 text-center">
-            <!-- A cardio-only session has no sets or kilos worth summing -->
-            <template v-if="isCardioOnly">
-              <div>
-                <p class="text-lg font-bold text-primary-500">{{ sessionCardioRounds }}</p>
-                <p class="text-[12px] text-dark-300">{{ sessionCardioRounds === 1 ? 'Runde' : 'Runder' }}</p>
-              </div>
-              <div>
-                <p class="text-lg font-bold text-primary-500 tabular-nums">{{ formatClock(sessionCardioSeconds) }}</p>
-                <p class="text-[12px] text-dark-300">Aktiv tid</p>
-              </div>
-            </template>
-            <template v-else>
-              <div>
-                <p class="text-lg font-bold text-primary-500">{{ completedSets }} / {{ totalSets }}</p>
-                <p class="text-[12px] text-dark-300">Sett</p>
-              </div>
-              <div>
-                <p class="text-lg font-bold text-primary-500">{{ formatNumber(estimatedVolume) }}</p>
-                <p class="text-[12px] text-dark-300">Volum (kg)</p>
-              </div>
-            </template>
-            <div>
-              <p class="text-lg font-bold text-primary-500">{{ sessionDuration }}</p>
-              <p class="text-[12px] text-dark-300">Varighet</p>
+          <!-- Each kind of training only shows up when it's part of the session -->
+          <div class="grid gap-3 text-center" :style="{ gridTemplateColumns: `repeat(${summaryTiles.length}, minmax(0, 1fr))` }">
+            <div v-for="tile in summaryTiles" :key="tile.key">
+              <p class="text-lg font-bold" :class="tile.cardio ? 'text-cyan-400 tabular-nums' : 'text-primary-500'">{{ tile.value }}</p>
+              <p class="text-[12px] text-dark-300">{{ tile.label }}</p>
             </div>
           </div>
         </div>
@@ -409,7 +389,7 @@
         <div class="ex-sheet__panel">
 
           <!-- Drag handle -->
-          <div class="ex-sheet__handle" @click="closeExerciseSheet"></div>
+          <div class="ex-sheet__handle" role="button" tabindex="0" aria-label="Lukk" @click="closeExerciseSheet" @keydown.enter="closeExerciseSheet"></div>
 
           <!-- Header: prev / name+ref / next -->
           <div class="ex-sheet__header">
@@ -484,7 +464,6 @@
               :key="session.exercises[activeExerciseIndex].exerciseId"
               :exercise="session.exercises[activeExerciseIndex]"
               :now="now"
-              :remember-distance="hasDistanceHistory(session.exercises[activeExerciseIndex].exerciseId)"
               :is-only-exercise="session.exercises.length === 1"
               @change="persistExercisesToLocal"
               @done="onCardioDone"
@@ -945,11 +924,29 @@ const sessionCardioSeconds = computed(() =>
     .reduce((sum, ex) => sum + liveExerciseSeconds(ex, now.value), 0)
 )
 
-const sessionCardioRounds = computed(() =>
-  (session.value?.exercises ?? [])
-    .filter(ex => isCardioExercise(ex))
-    .reduce((sum, ex) => sum + ex.sets.filter(set => isSetRunning(set) || isSetLogged(ex, set)).length, 0)
-)
+/**
+ * The summary card: sets only when the session has strength work, volume only
+ * once a strength set is done, cardio only when there's cardio in the session.
+ */
+const summaryTiles = computed(() => {
+  const exercises = session.value?.exercises ?? []
+  const strength = exercises.filter(ex => !isCardioExercise(ex))
+  const tiles: Array<{ key: string; value: string; label: string; cardio?: boolean }> = []
+
+  if (strength.length > 0) {
+    const done = strength.reduce((sum, ex) => sum + ex.sets.filter(set => isSetCounted(ex, set)).length, 0)
+    const total = strength.reduce((sum, ex) => sum + ex.sets.length, 0)
+    tiles.push({ key: 'sets', value: `${done} / ${total}`, label: 'Sett' })
+    if (done > 0) tiles.push({ key: 'volume', value: formatNumber(estimatedVolume.value), label: 'Volum (kg)' })
+  }
+
+  if (exercises.some(ex => isCardioExercise(ex))) {
+    tiles.push({ key: 'cardio', value: formatClock(sessionCardioSeconds.value), label: 'Kondisjon', cardio: true })
+  }
+
+  tiles.push({ key: 'duration', value: sessionDuration.value, label: 'Varighet' })
+  return tiles
+})
 
 const anyCardioRunning = computed(() =>
   (session.value?.exercises ?? []).some(ex => isCardioExercise(ex) && isExerciseRunning(ex))
@@ -977,12 +974,6 @@ const stopCardioTimers = () => {
     if (isCardioExercise(ex)) pauseTimer(ex, stoppedAt)
   })
 }
-
-/** Whether km has been logged on this exercise before — then the field shows up front. */
-const hasDistanceHistory = (exerciseId: number): boolean =>
-  workoutData.sessions.value.some(s =>
-    s.isCompleted && s.exercises.some(e => e.exerciseId === exerciseId && e.sets.some(set => Number(set.distance) > 0))
-  )
 
 /** "Fullfør økt" when the activity is the whole session, otherwise just close the sheet. */
 const onCardioDone = () => {
@@ -2174,24 +2165,34 @@ watch(() => route.params.id, async (newId, oldId) => {
 }
 
 /* Drag handle */
+/* The visible bar is 4px; the tap target is the full width of the sheet top,
+   so closing doesn't take aim. */
 .ex-sheet__handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 1.5rem;
+  cursor: pointer;
+}
+
+.ex-sheet__handle::before {
+  content: '';
   width: 2.5rem;
   height: 0.25rem;
   background: #4b5563;
   border-radius: 999px;
-  margin: 0.75rem auto 0;
-  cursor: pointer;
   transition: background 0.15s;
 }
 
-.ex-sheet__handle:hover { background: #9ca3af; }
+.ex-sheet__handle:hover::before { background: #9ca3af; }
 
 /* Sheet header */
 .ex-sheet__header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem 0.5rem;
+  padding: 0.375rem 1rem 0.5rem;
 }
 
 .ex-sheet__header-info {

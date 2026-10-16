@@ -38,8 +38,6 @@
     exercise: WorkoutExercise;
     /** Wall clock from the parent's ticker, so the row list and this view agree. */
     now: number;
-    /** Show the km field up front — this exercise has distance in its history. */
-    rememberDistance: boolean;
     /** Nothing else in the session, so finishing here finishes the session. */
     isOnlyExercise: boolean;
   }>();
@@ -51,7 +49,9 @@
   // ---------------------------------------------------------------------------
 
   const hasDistance = computed(() => props.exercise.sets.some((s) => Number(s.distance) > 0));
-  const distanceOpen = ref(props.rememberDistance || hasDistance.value);
+
+  /** Km is opt-in per activity: hidden until asked for, open again only if km was logged. */
+  const distanceOpen = ref(hasDistance.value);
 
   const state = computed(() => cardioTimerState(props.exercise));
   const totalSeconds = computed(() => liveExerciseSeconds(props.exercise, props.now));
@@ -155,6 +155,21 @@
     commit();
   };
 
+  /**
+   * Turning km off removes it from the rounds, so what's saved matches what's
+   * shown — a hidden distance would still count towards pace and totals.
+   */
+  const toggleDistance = () => {
+    if (!distanceOpen.value) {
+      distanceOpen.value = true;
+      return;
+    }
+    if (hasDistance.value && !confirm("Fjerne km fra alle rundene?")) return;
+    props.exercise.sets.forEach((_, index) => setRoundDistance(props.exercise, index, 0));
+    distanceOpen.value = false;
+    commit();
+  };
+
   const onAddRound = () => {
     addRound(props.exercise);
     commit();
@@ -177,9 +192,12 @@
     commit();
   };
 
+  /** One line until there's more to say: the field grows with what's typed. */
   const onNote = (event: Event) => {
-    const value = (event.target as HTMLTextAreaElement).value;
-    props.exercise.note = value.trim() ? value : undefined;
+    const field = event.target as HTMLTextAreaElement;
+    field.style.height = "auto";
+    field.style.height = `${field.scrollHeight + 2}px`;
+    props.exercise.note = field.value.trim() ? field.value : undefined;
     commit();
   };
 </script>
@@ -194,7 +212,7 @@
       </span>
       <p class="cardio__clock" :class="{ 'cardio__clock--idle': state === 'idle' }">{{ formatClock(totalSeconds) }}</p>
       <p v-if="currentRoundLabel" class="cardio__sub">{{ currentRoundLabel }}</p>
-      <p v-else class="cardio__sub">{{ summaryParts.join(" · ") }}</p>
+      <p v-else-if="summaryParts.length > 0" class="cardio__sub">{{ summaryParts.join(" · ") }}</p>
     </div>
 
     <!-- Controls -->
@@ -212,7 +230,7 @@
         Ny runde
       </button>
 
-      <button type="button" class="cardio__btn cardio__btn--primary" :class="{ 'cardio__btn--wide': state === 'idle' }" @click="onPrimary">
+      <button type="button" class="cardio__btn cardio__btn--primary" @click="onPrimary">
         <svg v-if="state === 'running'" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
           <rect x="6" y="5" width="4" height="14" rx="1" />
           <rect x="14" y="5" width="4" height="14" rx="1" />
@@ -224,14 +242,32 @@
       </button>
     </div>
 
-    <p v-if="state === 'idle'" class="cardio__hint">Trente du uten klokka? Før inn tiden i runden under.</p>
-    <p v-else-if="state === 'running'" class="cardio__hint">Pause i hvilen mellom intervaller, og trykk «Ny runde» når neste drag starter.</p>
+    <p v-if="state === 'idle'" class="cardio__hint">Trente du uten klokka? Før inn tiden under.</p>
+    <p v-else-if="state === 'running'" class="cardio__hint">Intervaller: pause i hvilen, trykk «Ny runde» for neste drag.</p>
 
     <!-- Rounds -->
     <section class="cardio__section">
       <div class="cardio__section-head">
         <h3 class="cardio__section-title">{{ rounds.length > 1 ? "Runder" : "Tid" }}</h3>
-        <button v-if="!distanceOpen" type="button" class="cardio__link" @click="distanceOpen = true">+ Distanse</button>
+        <div class="cardio__head-actions">
+          <button
+            type="button"
+            class="cardio__chip"
+            :class="{ 'cardio__chip--on': distanceOpen }"
+            :aria-pressed="distanceOpen"
+            :aria-label="distanceOpen ? 'Fjern km' : 'Legg til km'"
+            @click="toggleDistance">
+            <svg v-if="distanceOpen" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span v-else aria-hidden="true">+</span>
+            Km
+          </button>
+          <button v-if="state !== 'running'" type="button" class="cardio__chip" @click="onAddRound">
+            <span aria-hidden="true">+</span>
+            Runde
+          </button>
+        </div>
       </div>
 
       <div class="cardio__rounds">
@@ -294,63 +330,55 @@
           <span v-else class="cardio__round-remove-spacer"></span>
         </div>
       </div>
-
-      <button v-if="state !== 'running'" type="button" class="cardio__link cardio__link--add" @click="onAddRound">+ Legg til runde</button>
     </section>
 
-    <!-- Effort -->
-    <section class="cardio__section">
-      <div class="cardio__section-head">
-        <h3 class="cardio__section-title">Anstrengelse</h3>
-        <span v-if="exercise.effort" class="cardio__effort-label">{{ exercise.effort }} · {{ effortLabel(exercise.effort) }}</span>
-        <span v-else class="cardio__effort-label cardio__effort-label--muted">Valgfritt</span>
-      </div>
-      <div class="cardio__effort" role="radiogroup" aria-label="Anstrengelse fra 1 til 10">
-        <button
-          v-for="level in EFFORT_LEVELS"
-          :key="level"
-          type="button"
-          role="radio"
-          class="cardio__effort-btn"
-          :class="{ 'cardio__effort-btn--active': exercise.effort === level, 'cardio__effort-btn--within': !!exercise.effort && level < exercise.effort }"
-          :aria-checked="exercise.effort === level"
-          @click="onEffort(level)">
-          {{ level }}
+    <!-- Effort, note and done — once there's something to rate: after the activity or in a rest -->
+    <template v-if="state === 'paused'">
+      <section class="cardio__section">
+        <div class="cardio__section-head">
+          <h3 class="cardio__section-title">Anstrengelse</h3>
+          <span v-if="exercise.effort" class="cardio__effort-label">{{ exercise.effort }} · {{ effortLabel(exercise.effort) }}</span>
+          <span v-else class="cardio__effort-label cardio__effort-label--muted">1 lett · 10 maks</span>
+        </div>
+        <div class="cardio__effort" role="radiogroup" aria-label="Anstrengelse fra 1 til 10">
+          <button
+            v-for="level in EFFORT_LEVELS"
+            :key="level"
+            type="button"
+            role="radio"
+            class="cardio__effort-btn"
+            :class="{ 'cardio__effort-btn--active': exercise.effort === level, 'cardio__effort-btn--within': !!exercise.effort && level < exercise.effort }"
+            :aria-checked="exercise.effort === level"
+            @click="onEffort(level)">
+            {{ level }}
+          </button>
+        </div>
+
+        <textarea
+          :value="exercise.note ?? ''"
+          rows="1"
+          class="cardio__note"
+          aria-label="Notat"
+          placeholder="Notat, f.eks. «kamp mot Lyn» eller «4×4 på mølla»"
+          @input="onNote"></textarea>
+      </section>
+
+      <div class="cardio__done">
+        <button type="button" class="cardio__btn cardio__btn--done" @click="emit('done')">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M5 13l4 4L19 7" />
+          </svg>
+          {{ isOnlyExercise ? "Fullfør økt" : "Ferdig" }}
         </button>
       </div>
-      <div class="cardio__effort-scale">
-        <span>Lett</span>
-        <span>Maks</span>
-      </div>
-    </section>
-
-    <!-- Note -->
-    <section class="cardio__section">
-      <h3 class="cardio__section-title">Notat</h3>
-      <textarea
-        :value="exercise.note ?? ''"
-        rows="2"
-        class="cardio__note"
-        placeholder="F.eks. «kamp mot Lyn» eller «4×4 på mølla»"
-        @input="onNote"></textarea>
-    </section>
-
-    <!-- Done -->
-    <div v-if="state === 'paused'" class="cardio__done">
-      <button type="button" class="cardio__btn cardio__btn--done" @click="emit('done')">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M5 13l4 4L19 7" />
-        </svg>
-        {{ isOnlyExercise ? "Fullfør økt" : "Ferdig" }}
-      </button>
-    </div>
+    </template>
     <div v-else class="cardio__done-spacer"></div>
   </div>
 </template>
 
 <style scoped>
   .cardio {
-    padding: 1.25rem 1rem 0;
+    padding: 0.875rem 1rem 0;
   }
 
   /* ── Clock ───────────────────────────────────────────────────────────────── */
@@ -359,7 +387,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.125rem;
     text-align: center;
   }
 
@@ -415,7 +443,7 @@
   /* Tabular figures on purpose: the clock updates every second, and
      proportional digits would make it jitter sideways. */
   .cardio__clock {
-    font-size: 3.75rem;
+    font-size: 3rem;
     font-weight: 700;
     line-height: 1;
     letter-spacing: -0.02em;
@@ -428,8 +456,7 @@
   }
 
   .cardio__sub {
-    min-height: 1.25rem;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: #94a3b8;
     font-variant-numeric: tabular-nums;
   }
@@ -439,7 +466,7 @@
   .cardio__controls {
     display: flex;
     gap: 0.625rem;
-    margin-top: 1.25rem;
+    margin-top: 0.875rem;
   }
 
   .cardio__btn {
@@ -448,7 +475,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    min-height: 3.25rem;
+    min-height: 3rem;
     font-size: 1rem;
     font-weight: 700;
     border-radius: 0.875rem;
@@ -489,9 +516,9 @@
   }
 
   .cardio__hint {
-    margin-top: 0.75rem;
+    margin-top: 0.5rem;
     font-size: 0.75rem;
-    line-height: 1.4;
+    line-height: 1.35;
     color: #64748b;
     text-align: center;
   }
@@ -499,16 +526,17 @@
   /* ── Sections ────────────────────────────────────────────────────────────── */
 
   .cardio__section {
-    margin-top: 1.25rem;
-    padding-top: 1rem;
+    margin-top: 0.875rem;
+    padding-top: 0.75rem;
     border-top: 1px solid #2d3a4f;
   }
 
   .cardio__section-head {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
+    min-height: 2rem;
   }
 
   .cardio__section-title {
@@ -519,18 +547,33 @@
     color: #64748b;
   }
 
-  .cardio__link {
-    min-height: auto;
-    min-width: auto;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #f97316;
-    cursor: pointer;
+  .cardio__head-actions {
+    display: flex;
+    gap: 0.375rem;
   }
 
-  .cardio__link--add {
-    margin-top: 0.625rem;
-    padding: 0.25rem 0;
+  /* Compact toggles; opt out of the global 44px button minimum. */
+  .cardio__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: auto;
+    min-height: 2rem;
+    padding: 0 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    background: #243044;
+    border: 1px solid #3d5068;
+    border-radius: 999px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .cardio__chip--on {
+    color: #fdba74;
+    background: #f9731618;
+    border-color: #f9731640;
   }
 
   /* ── Rounds ──────────────────────────────────────────────────────────────── */
@@ -538,8 +581,8 @@
   .cardio__rounds {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 0.625rem;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
   }
 
   .cardio__round {
@@ -581,9 +624,9 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    height: 2.75rem;
+    height: 2.5rem;
     padding: 0 0.75rem;
-    font-size: 1.0625rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #22d3ee;
     background: #06b6d414;
@@ -599,9 +642,9 @@
   .cardio__input {
     width: 100%;
     min-width: 0;
-    height: 2.75rem;
+    height: 2.5rem;
     padding: 0 0.5rem;
-    font-size: 1.0625rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #f3f4f6;
     background: #243044;
@@ -647,7 +690,7 @@
     background: #7f1d1d40;
   }
 
-  /* ── Effort ──────────────────────────────────────────────────────────────── */
+  /* ── Effort and note ─────────────────────────────────────────────────────── */
 
   .cardio__effort-label {
     font-size: 0.8125rem;
@@ -664,12 +707,13 @@
     display: grid;
     grid-template-columns: repeat(10, minmax(0, 1fr));
     gap: 0.25rem;
-    margin-top: 0.625rem;
+    margin-top: 0.5rem;
   }
 
   .cardio__effort-btn {
     min-width: 0;
-    height: 2.75rem;
+    min-height: 0;
+    height: 2.5rem;
     font-size: 0.875rem;
     font-weight: 700;
     color: #94a3b8;
@@ -698,28 +742,21 @@
     border-color: #f97316;
   }
 
-  .cardio__effort-scale {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 0.375rem;
-    font-size: 0.6875rem;
-    color: #64748b;
-  }
-
-  /* ── Note ────────────────────────────────────────────────────────────────── */
-
   .cardio__note {
+    display: block;
     width: 100%;
-    margin-top: 0.625rem;
-    padding: 0.625rem 0.75rem;
+    min-height: 2.5rem;
+    margin-top: 0.5rem;
+    padding: 0.5625rem 0.75rem;
     font-size: 0.9375rem;
     line-height: 1.4;
     color: #f3f4f6;
     background: #243044;
     border: 1px solid #3d5068;
     border-radius: 0.625rem;
-    resize: vertical;
-    min-height: 3.5rem;
+    resize: none;
+    overflow: hidden;
+    field-sizing: content;
   }
 
   .cardio__note::placeholder {
@@ -736,11 +773,11 @@
 
   .cardio__done {
     display: flex;
-    margin-top: 1.25rem;
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    margin-top: 0.875rem;
+    padding-bottom: calc(0.875rem + env(safe-area-inset-bottom));
   }
 
   .cardio__done-spacer {
-    height: calc(1rem + env(safe-area-inset-bottom));
+    height: calc(0.875rem + env(safe-area-inset-bottom));
   }
 </style>
