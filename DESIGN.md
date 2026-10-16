@@ -1,8 +1,8 @@
 # DESIGN.md
 
-Designstilen for LIFT. Nye sider, og sider som tegnes om, følger dette. Fasiten er **Ukesoversikt** ([WeekDetails.vue](src/views/WeekDetails.vue)) og **Øktdetaljer** ([SessionDetails.vue](src/views/SessionDetails.vue)). Står noe her i strid med de to sidene, er det dokumentet som skal rettes.
+Designstilen for LIFT. Nye sider, og sider som tegnes om, følger dette. Fasiten er **Ukesoversikt** ([WeekDetails.vue](src/views/WeekDetails.vue)), **Øktdetaljer** ([SessionDetails.vue](src/views/SessionDetails.vue)) og **Historikk** ([History.vue](src/views/History.vue)). Står noe her i strid med de sidene, er det dokumentet som skal rettes.
 
-Eldre sider (Statistikk, Øvelsesdetaljer, Historikk, Profil) bruker fortsatt den gamle `.card`-stilen. Se [Kjente avvik](#kjente-avvik) nederst.
+Eldre sider (Statistikk, Øvelsesdetaljer, Profil) bruker fortsatt den gamle `.card`-stilen. Se [Kjente avvik](#kjente-avvik) nederst.
 
 ## Prinsipper
 
@@ -120,6 +120,12 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 - Radene skilles med en tynn linje over (`border-top: 1px solid #1f2937`) og har `padding: 0.875rem 0`.
 - Navnet står til venstre og hovedverdien til høyre (`margin-left: auto`). Detaljer går i en metalinje under.
 
+### Navigerbare lister (Historikk)
+
+- Rader som åpner en annen side, går helt ut til panelets kanter (panelet har `overflow: hidden`, raden `padding: 0.875rem 1.125rem`). Da fyller trykket tilstand (`#161f2e`) hele raden. Til høyre står en chevron i `#475569`.
+- Grupper, for eksempel måneder, får en seksjonstittel **utenfor** panelet, med antall til høyre. Grupper bare når rekkefølgen gir mening (dato), ikke når lista er sortert på noe annet.
+- Høyreverdien sier hva økta var: kilo for styrke og tid for kondisjon. En blandet økt viser kilo med «+ kondisjon» under, så kilo og minutter aldri slås sammen til ett tall.
+
 ### Brikker og piller
 
 | Type | Utseende |
@@ -185,7 +191,7 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 Dette bryter med stilen i dag og ryddes når den aktuelle siden tegnes om:
 
-- **Statistikk, Øvelsesdetaljer, Historikk, Profil og innloggingssidene** bruker `.card` (`#1e293b` / `#334155`), og flere av dem har midtstilte flis-rutenett med ikoner.
+- **Statistikk, Øvelsesdetaljer, Profil og innloggingssidene** bruker `.card` (`#1e293b` / `#334155`), og flere av dem har midtstilte flis-rutenett med ikoner.
 - **Tilbakeknappens farger** (`#3F302A` / `#4A3A32`) er hardkodet i fem filer. Den bør bli en felles komponent.
 - **Seksjonstitlene i Ukesoversikt** bruker `#6b7280`, mens resten følger `#94a3b8`, som har bedre kontrast.
 - **Alle farger er hex i scoped CSS.** De bør på sikt bli CSS-variabler, så dette dokumentet og koden ikke kan komme ut av takt.
