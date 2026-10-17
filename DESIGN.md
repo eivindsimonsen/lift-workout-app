@@ -1,8 +1,8 @@
 # DESIGN.md
 
-Designstilen for LIFT. Nye sider, og sider som tegnes om, følger dette. Fasiten er **Ukesoversikt** ([WeekDetails.vue](src/views/WeekDetails.vue)), **Øktdetaljer** ([SessionDetails.vue](src/views/SessionDetails.vue)), **Historikk** ([History.vue](src/views/History.vue)) og **Øvelsesdetaljer** ([ExerciseDetail.vue](src/views/ExerciseDetail.vue)). Står noe her i strid med de sidene, er det dokumentet som skal rettes.
+Designstilen for LIFT. Nye sider, og sider som tegnes om, følger dette. Fasiten er **Ukesoversikt** ([WeekDetails.vue](src/views/WeekDetails.vue)), **Øktdetaljer** ([SessionDetails.vue](src/views/SessionDetails.vue)), **Historikk** ([History.vue](src/views/History.vue)), **Øvelsesdetaljer** ([ExerciseDetail.vue](src/views/ExerciseDetail.vue)), **Statistikk** ([Stats.vue](src/views/Stats.vue)) og **Profil** ([Profile.vue](src/views/Profile.vue)). Står noe her i strid med de sidene, er det dokumentet som skal rettes.
 
-Eldre sider (Statistikk, Profil) bruker fortsatt den gamle `.card`-stilen. Se [Kjente avvik](#kjente-avvik) nederst.
+Bare innloggingssidene bruker fortsatt den gamle `.card`-stilen. Se [Kjente avvik](#kjente-avvik) nederst.
 
 ## Prinsipper
 
@@ -153,6 +153,26 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 - `btn-sm`: kompakte varianter.
 - Sletting er en tekstknapp (`#f87171`), ikke en stor rød knapp, med mindre sletting er hele poenget med visningen.
 
+### Kalender (Statistikk)
+
+- Dagene er avrundede ruter (radius 0.5rem) på innfelt bakgrunn.
+- Styrkedager er fylt oransje og rene kondisjonsdager cyan. En dag med både styrke og kondisjon regnes som styrke.
+- Dagens dato får en hvit ring. Dager utenfor måneden er nesten usynlige.
+- Måneden har pilknapper i samme stil som ikonknappene. Over rutenettet står antall treningsdager og hviledager i måneden, fram til i dag. Hviledager vises som et nøytralt tall, ikke som et brudd.
+
+### Prestasjoner
+
+- Kompakte rader med emoji, tittel og beskrivelse. Oppnådde merker kommer først.
+- Ikke oppnådde merker vises i gråtoner med dempet tittel, så de leses som mål og ikke som trofeer.
+- Bare de første vises, med «Vis alle (N)» for resten.
+
+### Skjema (Profil)
+
+- Feltene er stablet i én kolonne på mobil og står i to fra 768 px. Etiketten står over feltet (0.8125rem / 600, `#cbd5e1`). «valgfritt» står dempet etter etiketten, og hjelpeteksten står under (0.75rem, `#64748b`).
+- Felt bruker den felles `.input-field`-klassen.
+- Handlingen står nederst i panelet etter en skillelinje: full bredde på mobil, høyrejustert fra 640 px. Én `btn-primary` per side. Andre skjema på samme side bruker `btn-secondary`.
+- Utlogging er en rad i rød tekst i et eget panel nederst, ikke en stor rød knapp.
+
 ### Bunnark (aktiv økt)
 
 - Brukes til redigering underveis i økta. Arket kan være opptil 88dvh høyt, men innholdet holdes kompakt.
@@ -198,7 +218,8 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 Dette bryter med stilen i dag og ryddes når den aktuelle siden tegnes om:
 
-- **Statistikk, Profil og innloggingssidene** bruker `.card` (`#1e293b` / `#334155`), og flere av dem har midtstilte flis-rutenett med ikoner.
+- **Innloggingssidene** (Login, ResetPassword) bruker `.card` (`#1e293b` / `#334155`).
+- **`.input-field` i `style.css`** setter `border-dark-600` og nullstiller den rett etter med `border: 1px solid;`. Da blir kantfargen tekstfargen, altså hvit, på alle felt i appen. Det er en enlinjes retting, men den endrer alle skjemaene samtidig.
 - **Tilbakeknappens farger** (`#3F302A` / `#4A3A32`) er hardkodet i fem filer. Den bør bli en felles komponent.
 - **Seksjonstitlene i Ukesoversikt** bruker `#6b7280`, mens resten følger `#94a3b8`, som har bedre kontrast.
 - **Alle farger er hex i scoped CSS.** De bør på sikt bli CSS-variabler, så dette dokumentet og koden ikke kan komme ut av takt.

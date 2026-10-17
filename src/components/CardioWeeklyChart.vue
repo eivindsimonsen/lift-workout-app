@@ -142,10 +142,13 @@
     gap: 0.75rem;
   }
 
+  /* Same as a sub-title inside a panel — the chart always sits in one. */
   .cweek__title {
-    font-size: 1.125rem;
+    font-size: 0.6875rem;
     font-weight: 600;
-    color: #fff;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #64748b;
   }
 
   .cweek__unit {
