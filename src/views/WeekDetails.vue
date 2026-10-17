@@ -118,21 +118,16 @@
     ];
   });
 
-  /** Only shown when the week actually contains cardio. */
+  /** Always shown — a week without cardio reads as zero cardio, not as missing tiles. */
   const cardioStats = computed(() => {
     const t = week.totals.value;
-    if (t.cardioSeconds <= 0 && t.cardioMetres <= 0) return [];
-
     const prev = week.previousWeekTotals.value;
-    const rows = [
+    return [
       { key: "cardioTime", label: "Kondisjonstid", value: formatSeconds(t.cardioSeconds), change: changeVsLastWeek(t.cardioSeconds, prev.cardioSeconds) },
+      // formatDistance shows "–" for zero.
+      { key: "cardioDistance", label: "Distanse", value: formatDistance(t.cardioMetres), change: changeVsLastWeek(t.cardioMetres, prev.cardioMetres) },
+      { key: "cardioPace", label: "Snitt tempo", value: formatPace(t.cardioSeconds, t.cardioMetres) ?? "–", change: null },
     ];
-    if (t.cardioMetres > 0) {
-      rows.push({ key: "cardioDistance", label: "Distanse", value: formatDistance(t.cardioMetres), change: changeVsLastWeek(t.cardioMetres, prev.cardioMetres) });
-      const pace = formatPace(t.cardioSeconds, t.cardioMetres);
-      if (pace) rows.push({ key: "cardioPace", label: "Snitt tempo", value: pace, change: null });
-    }
-    return rows;
   });
 
   /** Muscle groups are strength only, so this is always reps and kilos. */
@@ -151,8 +146,6 @@
   const maxDailyVolume = computed(() => Math.max(0, ...week.dailyVolume.value.map((d) => d.volume)));
   const maxDailyCardio = computed(() => Math.max(0, ...week.dailyVolume.value.map((d) => d.cardioSeconds)));
 
-  /** The kilo row stays when there's nothing else to show, so the card is never empty. */
-  const showVolumeRow = computed(() => maxDailyVolume.value > 0 || maxDailyCardio.value === 0);
 
   /** Column height as a share of the week's biggest day, with a sliver for any non-zero day. */
   const barHeight = (value: number, max: number): string => (max > 0 ? `${Math.max(value > 0 ? 6 : 0, (value / max) * 100)}%` : "0%");
@@ -308,67 +301,34 @@
       </div>
 
       <template v-else>
-        <!-- Key figures -->
-        <div class="wk-stats">
-          <div v-for="stat in stats" :key="stat.key" class="wk-stat">
-            <span class="wk-stat__value">{{ stat.value }}</span>
-            <span class="wk-stat__label">{{ stat.label }}</span>
-            <span
-              v-if="stat.change !== null"
-              class="wk-stat__change"
-              :class="stat.change >= 0 ? 'wk-stat__change--up' : 'wk-stat__change--down'">
-              {{ formatChange(stat.change) }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Cardio -->
-        <div v-if="cardioStats.length > 0" class="wk-stats">
-          <div v-for="stat in cardioStats" :key="stat.key" class="wk-stat wk-stat--cardio">
-            <span class="wk-stat__value">{{ stat.value }}</span>
-            <span class="wk-stat__label">{{ stat.label }}</span>
-            <span
-              v-if="stat.change !== null"
-              class="wk-stat__change"
-              :class="stat.change >= 0 ? 'wk-stat__change--up' : 'wk-stat__change--down'">
-              {{ formatChange(stat.change) }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Cardio goal -->
-        <section v-if="week.cardioGoalProgress.value.hasTarget" class="wk-card">
-          <h2 class="wk-section-title">Kondisjonsmål</h2>
-          <div class="mt-3 space-y-2.5">
-            <div v-if="week.cardioGoalProgress.value.minutesTarget > 0" class="wk-mg">
-              <div class="wk-mg__top">
-                <span class="wk-mg__dot" style="background-color: #06b6d4"></span>
-                <span class="wk-mg__name">Tid</span>
-                <span class="wk-mg__sets">
-                  <strong :class="{ 'wk-mg__sets--met': week.cardioGoalProgress.value.minutesPct >= 100 }">{{ week.cardioGoalProgress.value.minutesDone }}</strong>
-                  / {{ week.cardioGoalProgress.value.minutesTarget }} min
-                </span>
-              </div>
-              <div class="wk-mg__bar">
-                <div class="wk-mg__fill" :style="{ width: week.cardioGoalProgress.value.minutesPct + '%', backgroundColor: '#06b6d4' }"></div>
-              </div>
-            </div>
-
-            <div v-if="week.cardioGoalProgress.value.kmTarget > 0" class="wk-mg">
-              <div class="wk-mg__top">
-                <span class="wk-mg__dot" style="background-color: #06b6d4"></span>
-                <span class="wk-mg__name">Distanse</span>
-                <span class="wk-mg__sets">
-                  <strong :class="{ 'wk-mg__sets--met': week.cardioGoalProgress.value.kmPct >= 100 }">{{ week.cardioGoalProgress.value.kmDone }}</strong>
-                  / {{ week.cardioGoalProgress.value.kmTarget }} km
-                </span>
-              </div>
-              <div class="wk-mg__bar">
-                <div class="wk-mg__fill" :style="{ width: week.cardioGoalProgress.value.kmPct + '%', backgroundColor: '#06b6d4' }"></div>
-              </div>
+        <!-- Key figures: strength, then cardio — one wrapper, so the gap between
+             the two grids is the same as the gap inside them -->
+        <div class="wk-figures">
+          <div class="wk-stats">
+            <div v-for="stat in stats" :key="stat.key" class="wk-stat">
+              <span class="wk-stat__value">{{ stat.value }}</span>
+              <span class="wk-stat__label">{{ stat.label }}</span>
+              <!-- Always rendered, so every tile has the same height with or without a change -->
+              <span
+                class="wk-stat__change"
+                :class="stat.change === null ? '' : stat.change >= 0 ? 'wk-stat__change--up' : 'wk-stat__change--down'">
+                {{ stat.change !== null ? formatChange(stat.change) : "" }}
+              </span>
             </div>
           </div>
-        </section>
+
+          <div class="wk-stats">
+            <div v-for="stat in cardioStats" :key="stat.key" class="wk-stat wk-stat--cardio">
+              <span class="wk-stat__value">{{ stat.value }}</span>
+              <span class="wk-stat__label">{{ stat.label }}</span>
+              <span
+                class="wk-stat__change"
+                :class="stat.change === null ? '' : stat.change >= 0 ? 'wk-stat__change--up' : 'wk-stat__change--down'">
+                {{ stat.change !== null ? formatChange(stat.change) : "" }}
+              </span>
+            </div>
+          </div>
+        </div>
 
         <!-- Goals CTA -->
         <button
@@ -385,10 +345,10 @@
           </svg>
         </button>
 
-        <!-- Muscle groups -->
+        <!-- Strength goal: sets per muscle group, then volume per day -->
         <section class="wk-card">
           <div class="wk-section-head">
-            <h2 class="wk-section-title">Muskelgrupper</h2>
+            <h2 class="wk-section-title">Styrkemål</h2>
             <span v-if="week.setsGoalProgress.value.hasTarget" class="wk-section-meta">{{ week.setsGoalProgress.value.done }} / {{ week.setsGoalProgress.value.target }} sett</span>
             <!-- Strength sets only, like the groups below — not the cardio rounds in totals.sets -->
             <span v-else class="wk-section-meta">{{ week.setsGoalProgress.value.done }} sett</span>
@@ -444,15 +404,10 @@
           <p v-else-if="week.unresolvedSets.value > 0" class="wk-note">
             {{ week.unresolvedSets.value }} sett er ikke fordelt på muskelgruppe — øvelsen finnes ikke lenger i øvelsesbiblioteket.
           </p>
-        </section>
 
-        <!-- Per day: kilos and minutes don't share a scale, so each gets its own row -->
-        <section class="wk-card">
-          <h2 class="wk-section-title">Per dag</h2>
-
-          <div v-if="showVolumeRow" class="wk-daily">
+          <div class="wk-daily">
             <div class="wk-daily__head">
-              <span class="wk-daily__name">Volum</span>
+              <span class="wk-daily__name">Volum per dag</span>
               <span v-if="maxDailyVolume > 0" class="wk-daily__max">maks {{ formatNumber(maxDailyVolume) }} kg</span>
             </div>
             <div class="wk-bars">
@@ -465,12 +420,59 @@
                 </div>
               </div>
             </div>
+            <div class="wk-bars wk-bars--labels">
+              <span v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar__label">{{ day.label }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Cardio goal: always shown, since the cardio-per-day bars live here -->
+        <section class="wk-card">
+          <div class="wk-section-head">
+            <h2 class="wk-section-title">Kondisjonsmål</h2>
+            <span class="wk-section-meta wk-section-meta--cardio">{{ formatDuration(week.cardioGoalProgress.value.minutesDone) }}</span>
           </div>
 
-          <div v-if="maxDailyCardio > 0" class="wk-daily">
+          <template v-if="week.cardioGoalProgress.value.hasTarget">
+            <div class="mt-3 space-y-2.5">
+              <div v-if="week.cardioGoalProgress.value.minutesTarget > 0" class="wk-mg">
+                <div class="wk-mg__top">
+                  <span class="wk-mg__dot" style="background-color: #06b6d4"></span>
+                  <span class="wk-mg__name">Tid</span>
+                  <span class="wk-mg__sets">
+                    <strong :class="{ 'wk-mg__sets--met': week.cardioGoalProgress.value.minutesPct >= 100 }">{{ week.cardioGoalProgress.value.minutesDone }}</strong>
+                    / {{ week.cardioGoalProgress.value.minutesTarget }} min
+                  </span>
+                </div>
+                <div class="wk-mg__bar">
+                  <div class="wk-mg__fill" :style="{ width: week.cardioGoalProgress.value.minutesPct + '%', backgroundColor: '#06b6d4' }"></div>
+                </div>
+              </div>
+
+              <div v-if="week.cardioGoalProgress.value.kmTarget > 0" class="wk-mg">
+                <div class="wk-mg__top">
+                  <span class="wk-mg__dot" style="background-color: #06b6d4"></span>
+                  <span class="wk-mg__name">Distanse</span>
+                  <span class="wk-mg__sets">
+                    <strong :class="{ 'wk-mg__sets--met': week.cardioGoalProgress.value.kmPct >= 100 }">{{ week.cardioGoalProgress.value.kmDone }}</strong>
+                    / {{ week.cardioGoalProgress.value.kmTarget }} km
+                  </span>
+                </div>
+                <div class="wk-mg__bar">
+                  <div class="wk-mg__fill" :style="{ width: week.cardioGoalProgress.value.kmPct + '%', backgroundColor: '#06b6d4' }"></div>
+                </div>
+              </div>
+            </div>
+          </template>
+          <p v-else class="wk-goal-empty">
+            Ingen kondisjonsmål satt.
+            <button type="button" class="wk-link" @click="showSettings = true">Sett mål</button>
+          </p>
+
+          <div class="wk-daily">
             <div class="wk-daily__head">
-              <span class="wk-daily__name">Kondisjon</span>
-              <span class="wk-daily__max">maks {{ formatDuration(Math.round(maxDailyCardio / 60)) }}</span>
+              <span class="wk-daily__name">Kondisjon per dag</span>
+              <span v-if="maxDailyCardio > 0" class="wk-daily__max">maks {{ formatDuration(Math.round(maxDailyCardio / 60)) }}</span>
             </div>
             <div class="wk-bars">
               <div v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar">
@@ -482,10 +484,9 @@
                 </div>
               </div>
             </div>
-          </div>
-
-          <div class="wk-bars wk-bars--labels">
-            <span v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar__label">{{ day.label }}</span>
+            <div class="wk-bars wk-bars--labels">
+              <span v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar__label">{{ day.label }}</span>
+            </div>
           </div>
         </section>
 
@@ -797,10 +798,19 @@
     text-align: center;
   }
 
+  /* Reserves its line even when empty, so all tiles line up at the same height. */
   .wk-stat__change {
+    min-height: 0.875rem;
     font-size: 0.625rem;
     font-weight: 700;
+    line-height: 0.875rem;
     margin-top: 0.125rem;
+  }
+
+  .wk-figures {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .wk-stat__change--up {
@@ -997,9 +1007,11 @@
     background: #06b6d4;
   }
 
-  /* One row per measure; the day labels are shared underneath both. */
+  /* Per-day bars as the last part of their goal panel, split off by a hairline. */
   .wk-daily {
-    margin-top: 0.875rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #1f2937;
   }
 
   .wk-daily__head {
@@ -1010,9 +1022,30 @@
   }
 
   .wk-daily__name {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 600;
-    color: #cbd5e1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  .wk-section-meta--cardio {
+    color: #22d3ee;
+  }
+
+  .wk-goal-empty {
+    margin-top: 0.75rem;
+    font-size: 0.8125rem;
+    color: #64748b;
+  }
+
+  .wk-link {
+    min-width: auto;
+    min-height: auto;
+    margin-left: 0.25rem;
+    font-weight: 600;
+    color: #f97316;
+    cursor: pointer;
   }
 
   .wk-daily__max {
