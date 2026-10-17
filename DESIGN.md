@@ -177,7 +177,12 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 - Brukes til redigering underveis i økta. Arket kan være opptil 88dvh høyt, men innholdet holdes kompakt.
 - Håndtaket øverst er en tynn strek, men hele toppen av arket er trykkflate for å lukke.
-- Vis bare det som er relevant i tilstanden du er i. Kondisjonsarket viser for eksempel anstrengelse og notat først når aktiviteten er satt på pause.
+- Hold arket kompakt, men skjul ikke felt som brukeren vil fylle ut underveis. Kondisjonsarket viser anstrengelse og notat i alle tilstander.
+- Arket har ingen egen knapp for å fullføre. Økta fullføres med «Fullfør Økt» på selve øktsiden, så det finnes bare én måte å avslutte på.
+- **Sett og runder virker likt:**
+  - Nye legges til med den tonede oransje knappen med +-ikon («+ Sett» / «+ Runde») under lista, med en kort oppsummering til venstre.
+  - De slettes ved å sveipe raden til venstre, som viser en rød bakgrunn med søppelkasse.
+  - Sveiper du bort den siste raden, fjernes hele øvelsen, med bekreftelse.
 
 ## Mobil og berøring
 

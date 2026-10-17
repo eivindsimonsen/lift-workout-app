@@ -2,7 +2,7 @@
   // ---------------------------------------------------------------------------
   // Imports
   // ---------------------------------------------------------------------------
-  import { computed, ref } from "vue";
+  import { computed, reactive, ref } from "vue";
   import type { WorkoutExercise } from "@/types/workout";
   import { vibrate } from "@/composables/useHaptics";
   import { formatDistance, isSetLogged } from "@/composables/useSetMetrics";
@@ -38,11 +38,10 @@
     exercise: WorkoutExercise;
     /** Wall clock from the parent's ticker, so the row list and this view agree. */
     now: number;
-    /** Nothing else in the session, so finishing here finishes the session. */
-    isOnlyExercise: boolean;
   }>();
 
-  const emit = defineEmits<{ change: []; done: [] }>();
+  /** `remove-exercise`: the last round was swiped away — like the last strength set, that removes the exercise. */
+  const emit = defineEmits<{ change: []; "remove-exercise": [] }>();
 
   // ---------------------------------------------------------------------------
   // State
@@ -175,8 +174,61 @@
     commit();
   };
 
-  const onRemoveRound = (index: number) => {
-    if (props.exercise.sets.length <= 1 || isSetRunning(props.exercise.sets[index])) return;
+  /** "04:05 totalt · 1,00 km" under the rounds, like "1 650 kg totalt" under strength sets. */
+  const roundsSummary = computed(() => {
+    const parts = [`${formatClock(totalSeconds.value)} totalt`];
+    if (totalMetres.value > 0) parts.push(formatDistance(totalMetres.value));
+    return parts.join(" · ");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Swipe to delete — the same gesture as strength sets
+  // ---------------------------------------------------------------------------
+
+  const SWIPE_THRESHOLD = 60;
+  const swipeX = reactive<Record<string, number>>({});
+  const swipeActive = reactive<Record<string, boolean>>({});
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchId = "";
+
+  const onRoundTouchStart = (event: TouchEvent, set: { id: string; timerStartedAt?: number | null }) => {
+    // A round that is still being timed can't be swiped away.
+    if (event.touches.length !== 1 || isSetRunning(set)) return;
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
+    touchId = set.id;
+  };
+
+  const onRoundTouchMove = (event: TouchEvent, setId: string) => {
+    if (touchId !== setId) return;
+    const dx = event.touches[0].clientX - touchStartX;
+    const dy = event.touches[0].clientY - touchStartY;
+    // Mostly vertical: the sheet is being scrolled, not the row swiped.
+    if (Math.abs(dy) > Math.abs(dx)) return;
+    if (dx < 0) {
+      swipeX[setId] = Math.max(dx, -SWIPE_THRESHOLD * 1.5);
+      swipeActive[setId] = Math.abs(dx) > SWIPE_THRESHOLD / 3;
+    }
+  };
+
+  const onRoundTouchEnd = (index: number, setId: string) => {
+    if (touchId !== setId) return;
+    if (Math.abs(swipeX[setId] ?? 0) >= SWIPE_THRESHOLD) {
+      vibrate(50);
+      removeRound(index);
+    }
+    swipeX[setId] = 0;
+    swipeActive[setId] = false;
+    touchId = "";
+  };
+
+  const removeRound = (index: number) => {
+    if (isSetRunning(props.exercise.sets[index])) return;
+    if (props.exercise.sets.length <= 1) {
+      emit("remove-exercise");
+      return;
+    }
     props.exercise.sets.splice(index, 1);
     commit();
   };
@@ -242,9 +294,6 @@
       </button>
     </div>
 
-    <p v-if="state === 'idle'" class="cardio__hint">Trente du uten klokka? Før inn tiden under.</p>
-    <p v-else-if="state === 'running'" class="cardio__hint">Intervaller: pause i hvilen, trykk «Ny runde» for neste drag.</p>
-
     <!-- Rounds -->
     <section class="cardio__section">
       <div class="cardio__section-head">
@@ -263,10 +312,6 @@
             <span v-else aria-hidden="true">+</span>
             Km
           </button>
-          <button v-if="state !== 'running'" type="button" class="cardio__chip" @click="onAddRound">
-            <span aria-hidden="true">+</span>
-            Runde
-          </button>
         </div>
       </div>
 
@@ -274,111 +319,118 @@
         <div
           v-for="(set, index) in rounds"
           :key="set.id"
-          class="cardio__round"
-          :class="{ 'cardio__round--running': isSetRunning(set), 'cardio__round--km': distanceOpen }">
-          <span class="cardio__round-num">{{ index + 1 }}</span>
-
-          <span v-if="isSetRunning(set)" class="cardio__round-live">
-            <span class="cardio__state-dot"></span>
-            {{ formatClock(liveSetSeconds(set, now)) }}
-          </span>
-          <span v-else class="cardio__time">
-            <input
-              :value="minutesOf(set.duration)"
-              type="text"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              class="cardio__input"
-              placeholder="min"
-              aria-label="Minutter"
-              @input="(event) => onTimeInput(event, index, 'min')" />
-            <span class="cardio__time-sep">:</span>
-            <input
-              :value="secondsOf(set.duration, `${set.id}-sec`)"
-              type="text"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              class="cardio__input"
-              placeholder="sek"
-              aria-label="Sekunder"
-              @focus="focusedInput = `${set.id}-sec`"
-              @blur="focusedInput = null"
-              @input="(event) => onTimeInput(event, index, 'sec')" />
-          </span>
-
-          <span v-if="distanceOpen" class="cardio__km">
-            <input
-              :value="kmOf(set.distance)"
-              type="text"
-              inputmode="decimal"
-              class="cardio__input"
-              placeholder="km"
-              aria-label="Kilometer"
-              @input="(event) => onDistanceInput(event, index)" />
-          </span>
-
-          <button
-            v-if="rounds.length > 1 && !isSetRunning(set)"
-            type="button"
-            class="cardio__round-remove"
-            :aria-label="`Fjern runde ${index + 1}`"
-            @click="onRemoveRound(index)">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M6 18L18 6M6 6l12 12" />
+          class="cardio__swipe"
+          @touchstart="(event) => onRoundTouchStart(event, set)"
+          @touchmove="(event) => onRoundTouchMove(event, set.id)"
+          @touchend="onRoundTouchEnd(index, set.id)">
+          <!-- Revealed behind the row while swiping -->
+          <div class="cardio__swipe-bg" :class="{ 'cardio__swipe-bg--visible': swipeActive[set.id] }" aria-hidden="true">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-          </button>
-          <span v-else class="cardio__round-remove-spacer"></span>
+          </div>
+
+          <div
+            class="cardio__round"
+            :class="{ 'cardio__round--running': isSetRunning(set), 'cardio__round--km': distanceOpen }"
+            :style="{ transform: `translateX(${swipeX[set.id] ?? 0}px)`, transition: swipeX[set.id] ? 'none' : 'transform 0.2s ease-out' }">
+            <span class="cardio__round-num">{{ index + 1 }}</span>
+
+            <span v-if="isSetRunning(set)" class="cardio__round-live">
+              <span class="cardio__state-dot"></span>
+              {{ formatClock(liveSetSeconds(set, now)) }}
+            </span>
+            <span v-else class="cardio__time">
+              <input
+                :value="minutesOf(set.duration)"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                class="cardio__input"
+                placeholder="min"
+                aria-label="Minutter"
+                @input="(event) => onTimeInput(event, index, 'min')" />
+              <span class="cardio__time-sep">:</span>
+              <input
+                :value="secondsOf(set.duration, `${set.id}-sec`)"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                class="cardio__input"
+                placeholder="sek"
+                aria-label="Sekunder"
+                @focus="focusedInput = `${set.id}-sec`"
+                @blur="focusedInput = null"
+                @input="(event) => onTimeInput(event, index, 'sec')" />
+            </span>
+
+            <span v-if="distanceOpen" class="cardio__km">
+              <input
+                :value="kmOf(set.distance)"
+                type="text"
+                inputmode="decimal"
+                class="cardio__input"
+                placeholder="km"
+                aria-label="Kilometer"
+                @input="(event) => onDistanceInput(event, index)" />
+            </span>
+          </div>
         </div>
       </div>
+
+      <!-- Same as "+ Sett" under strength sets: what's logged, and add another -->
+      <!-- <div class="cardio__rounds-foot">
+        <span class="cardio__rounds-sum">{{ roundsSummary }}</span>
+        <button
+          type="button"
+          class="cardio__add-round"
+          :disabled="state === 'running'"
+          :title="state === 'running' ? 'Bruk «Runde» mens klokka går' : 'Legg til runde'"
+          @click="onAddRound">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+          </svg>
+          Runde
+        </button>
+      </div> -->
     </section>
 
-    <!-- Effort, note and done — once there's something to rate: after the activity or in a rest -->
-    <template v-if="state === 'paused'">
-      <section class="cardio__section">
-        <div class="cardio__section-head">
-          <h3 class="cardio__section-title">Anstrengelse</h3>
-          <span v-if="exercise.effort" class="cardio__effort-label">{{ exercise.effort }} · {{ effortLabel(exercise.effort) }}</span>
-          <span v-else class="cardio__effort-label cardio__effort-label--muted">1 lett · 10 maks</span>
-        </div>
-        <div class="cardio__effort" role="radiogroup" aria-label="Anstrengelse fra 1 til 10">
-          <button
-            v-for="level in EFFORT_LEVELS"
-            :key="level"
-            type="button"
-            role="radio"
-            class="cardio__effort-btn"
-            :class="{ 'cardio__effort-btn--active': exercise.effort === level, 'cardio__effort-btn--within': !!exercise.effort && level < exercise.effort }"
-            :aria-checked="exercise.effort === level"
-            @click="onEffort(level)">
-            {{ level }}
-          </button>
-        </div>
-
-        <textarea
-          :value="exercise.note ?? ''"
-          rows="1"
-          class="cardio__note"
-          aria-label="Notat"
-          placeholder="Notat, f.eks. «kamp mot Lyn» eller «4×4 på mølla»"
-          @input="onNote"></textarea>
-      </section>
-
-      <div class="cardio__done">
-        <button type="button" class="cardio__btn cardio__btn--done" @click="emit('done')">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M5 13l4 4L19 7" />
-          </svg>
-          {{ isOnlyExercise ? "Fullfør økt" : "Ferdig" }}
+    <!-- Effort and note — always shown; the session is finished from the page, not here -->
+    <section class="cardio__section">
+      <div class="cardio__section-head">
+        <h3 class="cardio__section-title">Anstrengelse</h3>
+        <span v-if="exercise.effort" class="cardio__effort-label">{{ exercise.effort }} · {{ effortLabel(exercise.effort) }}</span>
+        <span v-else class="cardio__effort-label cardio__effort-label--muted">1 lett · 10 maks</span>
+      </div>
+      <div class="cardio__effort" role="radiogroup" aria-label="Anstrengelse fra 1 til 10">
+        <button
+          v-for="level in EFFORT_LEVELS"
+          :key="level"
+          type="button"
+          role="radio"
+          class="cardio__effort-btn"
+          :class="{ 'cardio__effort-btn--active': exercise.effort === level, 'cardio__effort-btn--within': !!exercise.effort && level < exercise.effort }"
+          :aria-checked="exercise.effort === level"
+          @click="onEffort(level)">
+          {{ level }}
         </button>
       </div>
-    </template>
-    <div v-else class="cardio__done-spacer"></div>
+
+      <textarea
+        :value="exercise.note ?? ''"
+        rows="1"
+        class="cardio__note"
+        aria-label="Notat"
+        placeholder="Notat, f.eks. «kamp mot Lyn» eller «4×4 på mølla»"
+        @input="onNote"></textarea>
+    </section>
   </div>
 </template>
 
 <style scoped>
+  /* Bottom padding clears the home indicator on phones. */
   .cardio {
-    padding: 0.875rem 1rem 0;
+    padding: 0.875rem 1rem calc(1rem + env(safe-area-inset-bottom));
   }
 
   /* ── Clock ───────────────────────────────────────────────────────────────── */
@@ -509,12 +561,6 @@
     background: #2d3a4f;
   }
 
-  .cardio__btn--done {
-    color: #4ade80;
-    background: #16a34a1a;
-    border: 1px solid #16a34a50;
-  }
-
   .cardio__hint {
     margin-top: 0.5rem;
     font-size: 0.75rem;
@@ -585,15 +631,84 @@
     margin-top: 0.5rem;
   }
 
+  /* Opaque row over the red delete background, so the red only shows while swiping. */
   .cardio__round {
+    position: relative;
     display: grid;
-    grid-template-columns: 1.5rem 1fr 2rem;
+    grid-template-columns: 1.5rem 1fr;
     align-items: center;
     gap: 0.5rem;
+    background: #1a2233;
   }
 
   .cardio__round--km {
-    grid-template-columns: 1.5rem 1fr 5.5rem 2rem;
+    grid-template-columns: 1.5rem 1fr 5.5rem;
+  }
+
+  .cardio__swipe {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.625rem;
+  }
+
+  .cardio__swipe-bg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 1.25rem;
+    color: #fff;
+    background: #dc2626;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .cardio__swipe-bg--visible {
+    opacity: 1;
+  }
+
+  .cardio__rounds-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.625rem;
+  }
+
+  .cardio__rounds-sum {
+    font-size: 0.6875rem;
+    color: #7b8fa8;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Matches .ex-card__add-set on strength exercises. */
+  .cardio__add-round {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    min-width: auto;
+    min-height: 2.25rem;
+    padding: 0.4375rem 0.875rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #f97316;
+    background: #f9731612;
+    border: 1px solid #f9731630;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .cardio__add-round:hover {
+    background: #f9731622;
+  }
+
+  .cardio__add-round:disabled {
+    color: #475569;
+    background: #1e293b;
+    border-color: #334155;
+    cursor: not-allowed;
   }
 
   .cardio__round-num {
@@ -670,24 +785,6 @@
     border-color: #f97316;
     background: #2d3a4f;
     box-shadow: 0 0 0 3px #f9731620;
-  }
-
-  .cardio__round-remove {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    min-height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #64748b;
-    border-radius: 0.5rem;
-    cursor: pointer;
-  }
-
-  .cardio__round-remove:active {
-    color: #f87171;
-    background: #7f1d1d40;
   }
 
   /* ── Effort and note ─────────────────────────────────────────────────────── */
@@ -767,17 +864,5 @@
     outline: none;
     border-color: #f97316;
     box-shadow: 0 0 0 3px #f9731620;
-  }
-
-  /* ── Done ────────────────────────────────────────────────────────────────── */
-
-  .cardio__done {
-    display: flex;
-    margin-top: 0.875rem;
-    padding-bottom: calc(0.875rem + env(safe-area-inset-bottom));
-  }
-
-  .cardio__done-spacer {
-    height: calc(0.875rem + env(safe-area-inset-bottom));
   }
 </style>

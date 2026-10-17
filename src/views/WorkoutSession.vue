@@ -464,9 +464,8 @@
               :key="session.exercises[activeExerciseIndex].exerciseId"
               :exercise="session.exercises[activeExerciseIndex]"
               :now="now"
-              :is-only-exercise="session.exercises.length === 1"
               @change="persistExercisesToLocal"
-              @done="onCardioDone"
+              @remove-exercise="removeExercise(activeExerciseIndex!)"
             />
 
             <template v-else>
@@ -973,12 +972,6 @@ const stopCardioTimers = () => {
   session.value.exercises.forEach(ex => {
     if (isCardioExercise(ex)) pauseTimer(ex, stoppedAt)
   })
-}
-
-/** "Fullfør økt" when the activity is the whole session, otherwise just close the sheet. */
-const onCardioDone = () => {
-  if (session.value?.exercises.length === 1) handleCompleteWorkout()
-  else closeExerciseSheet()
 }
 
 /**
