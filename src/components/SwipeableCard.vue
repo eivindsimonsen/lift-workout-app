@@ -5,6 +5,7 @@
     @touchstart="handleTouchStart"
     @touchmove="handleTouchMove"
     @touchend="handleTouchEnd"
+    @touchcancel="handleTouchCancel"
   >
     <!-- Main Card Content -->
     <div 
@@ -54,8 +55,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { vibrate } from '@/composables/useHaptics'
+import { useSwipeToDelete } from '@/composables/useSwipeToDelete'
 
 interface Props {
   threshold?: number // Distance to trigger delete
@@ -76,65 +78,48 @@ const emit = defineEmits<{
 
 // Refs
 const cardRef = ref<HTMLElement>()
-const translateX = ref(0)
-const showDeleteAction = ref(false)
 const hasInteracted = ref(false)
 
-// Touch state
-let startX = 0
-let currentX = 0
-let isDragging = false
+/** The card is a single row, so it uses one fixed key in the shared swipe logic. */
+const CARD = 'card'
 
-// Haptic feedback
-const triggerHapticFeedback = () => {
-  vibrate(50)
-}
+// Shared with set and round rows: an interrupted gesture (screen lock, app switch)
+// resets instead of leaving a half-swipe that the next tap would complete.
+const swipe = useSwipeToDelete({
+  threshold: props.threshold,
+  canSwipe: () => !props.disabled,
+  onDelete: () => {
+    vibrate(50)
+    emit('delete')
+  },
+})
+
+const translateX = computed(() => swipe.offset[CARD] ?? 0)
+const showDeleteAction = computed(() => swipe.revealed[CARD] ?? false)
 
 // Touch handlers
 const handleTouchStart = (event: TouchEvent) => {
-  if (props.disabled) return
-  if (event.touches.length !== 1) return
+  swipe.onTouchStart(event, CARD)
 
-  startX = event.touches[0].clientX
-  currentX = startX
-  isDragging = true
-  
   // Hide hint after first interaction
-  if (!hasInteracted.value) {
+  if (!props.disabled && !hasInteracted.value) {
     hasInteracted.value = true
     localStorage.setItem('swipe-hint-shown', 'true')
   }
 }
 
 const handleTouchMove = (event: TouchEvent) => {
-  if (props.disabled || !isDragging) return
-
-  currentX = event.touches[0].clientX
-  const deltaX = currentX - startX
-  
-  // Only allow left swipe (negative deltaX)
-  if (deltaX < 0) {
-    translateX.value = Math.max(deltaX, -props.threshold * 1.5)
-    // Show delete action earlier for better visual feedback
-    showDeleteAction.value = Math.abs(deltaX) > props.threshold / 3
+  // Another gesture (e.g. drag-to-reorder) took over mid-swipe: let go, don't delete.
+  if (props.disabled) {
+    swipe.onTouchCancel()
+    return
   }
+  swipe.onTouchMove(event, CARD)
 }
 
-const handleTouchEnd = () => {
-  if (!isDragging) return
-  
-  isDragging = false
-  
-  if (Math.abs(translateX.value) > props.threshold) {
-    // Trigger delete
-    triggerHapticFeedback()
-    emit('delete')
-  }
-  
-  // Reset position
-  translateX.value = 0
-  showDeleteAction.value = false
-}
+const handleTouchEnd = () => swipe.onTouchEnd(CARD)
+
+const handleTouchCancel = () => swipe.onTouchCancel()
 
 // Check if hint has been shown before
 onMounted(() => {
@@ -144,11 +129,6 @@ onMounted(() => {
   }
 })
 
-// Cleanup
-onUnmounted(() => {
-  translateX.value = 0
-  showDeleteAction.value = false
-})
 </script>
 
 <style scoped>

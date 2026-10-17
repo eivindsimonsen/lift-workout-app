@@ -490,14 +490,15 @@
                 v-for="(set, setIndex) in session.exercises[activeExerciseIndex].sets"
                 :key="set.id"
                 class="ex-set__swipe-wrapper"
-                @touchstart="onSetTouchStart($event, set.id)"
-                @touchmove="onSetTouchMove($event, set.id)"
-                @touchend="onSetTouchEnd(activeExerciseIndex!, setIndex, set.id)"
+                @touchstart="setSwipe.onTouchStart($event, set.id)"
+                @touchmove="setSwipe.onTouchMove($event, set.id)"
+                @touchend="setSwipe.onTouchEnd(set.id)"
+                @touchcancel="setSwipe.onTouchCancel()"
               >
                 <!-- Swipe delete background -->
                 <div
                   class="ex-set__swipe-bg"
-                  :class="{ 'ex-set__swipe-bg--visible': setSwipeActive[set.id] }"
+                  :class="{ 'ex-set__swipe-bg--visible': setSwipe.revealed[set.id] }"
                 >
                   <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16"/>
@@ -508,7 +509,7 @@
                 <div
                   class="ex-set__row"
                   :class="{ 'ex-set__row--done': set.isCompleted }"
-                  :style="{ transform: `translateX(${setSwipeX[set.id] ?? 0}px)`, transition: setSwipeX[set.id] ? 'none' : 'transform 0.2s ease-out' }"
+                  :style="{ transform: `translateX(${setSwipe.offset[set.id] ?? 0}px)`, transition: setSwipe.offset[set.id] ? 'none' : 'transform 0.2s ease-out' }"
                 >
                 <span
                   class="ex-set__num"
@@ -584,7 +585,7 @@
 
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, type Ref, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, type Ref, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useErrorHandler } from '@/composables/useErrorHandler'
@@ -596,6 +597,7 @@ import * as muscleGroupsData from '@/data/muscle-groups.json'
 import SlideOver from '@/components/SlideOver.vue'
 import CardioActivity from '@/components/CardioActivity.vue'
 import { vibrate } from '@/composables/useHaptics'
+import { useSwipeToDelete } from '@/composables/useSwipeToDelete'
 import { useLongPressReorder } from '@/composables/useLongPressReorder'
 import {
   isCardioExercise,
@@ -631,40 +633,18 @@ const isSyncingPendingChanges = ref(false)
 const showResetConfirm = ref(false)
 const activeExerciseIndex = ref<number | null>(null)
 
-// Inline swipe-to-delete state for set rows inside the sheet
-const setSwipeX = reactive<Record<string, number>>({})
-const setSwipeActive = reactive<Record<string, boolean>>({})
-const SET_SWIPE_THRESHOLD = 60
-let _setTouchStartX = 0
-let _setTouchId = ''
-
-/** Begin tracking a set row swipe. */
-function onSetTouchStart(event: TouchEvent, setId: string) {
-  if (event.touches.length !== 1) return
-  _setTouchStartX = event.touches[0].clientX
-  _setTouchId = setId
-}
-
-/** Track horizontal drag for set row. */
-function onSetTouchMove(event: TouchEvent, setId: string) {
-  if (_setTouchId !== setId) return
-  const delta = event.touches[0].clientX - _setTouchStartX
-  if (delta < 0) {
-    setSwipeX[setId] = Math.max(delta, -SET_SWIPE_THRESHOLD * 1.5)
-    setSwipeActive[setId] = Math.abs(delta) > SET_SWIPE_THRESHOLD / 3
-  }
-}
-
-/** Commit or cancel the set row swipe. */
-function onSetTouchEnd(exerciseIndex: number, setIndex: number, setId: string) {
-  if (Math.abs(setSwipeX[setId] ?? 0) >= SET_SWIPE_THRESHOLD) {
+// Swipe-to-delete for set rows inside the sheet. The set is looked up by id when
+// the swipe completes, so the index is the current one even if the list changed.
+const setSwipe = useSwipeToDelete({
+  onDelete: (setId) => {
+    if (activeExerciseIndex.value === null || !session.value) return
+    const exerciseIndex = activeExerciseIndex.value
+    const setIndex = session.value.exercises[exerciseIndex].sets.findIndex(set => set.id === setId)
+    if (setIndex < 0) return
     vibrate(50)
     removeSet(exerciseIndex, setIndex)
-  }
-  setSwipeX[setId] = 0
-  setSwipeActive[setId] = false
-  _setTouchId = ''
-}
+  },
+})
 
 // Quick View state
 const isExerciseQuickViewOpen = ref(false)

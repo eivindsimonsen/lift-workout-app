@@ -2,7 +2,8 @@
   // ---------------------------------------------------------------------------
   // Imports
   // ---------------------------------------------------------------------------
-  import { computed, reactive, ref } from "vue";
+  import { computed, ref } from "vue";
+  import { useSwipeToDelete } from "@/composables/useSwipeToDelete";
   import type { WorkoutExercise } from "@/types/workout";
   import { vibrate } from "@/composables/useHaptics";
   import { formatDistance, isSetLogged } from "@/composables/useSetMetrics";
@@ -185,46 +186,11 @@
   // Swipe to delete — the same gesture as strength sets
   // ---------------------------------------------------------------------------
 
-  const SWIPE_THRESHOLD = 60;
-  const swipeX = reactive<Record<string, number>>({});
-  const swipeActive = reactive<Record<string, boolean>>({});
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let touchId = "";
-
-  const onRoundTouchStart = (event: TouchEvent, set: { id: string; timerStartedAt?: number | null }) => {
-    // A round that is still being timed can't be swiped away.
-    if (event.touches.length !== 1 || isSetRunning(set)) return;
-    touchStartX = event.touches[0].clientX;
-    touchStartY = event.touches[0].clientY;
-    touchId = set.id;
-  };
-
-  const onRoundTouchMove = (event: TouchEvent, setId: string) => {
-    if (touchId !== setId) return;
-    const dx = event.touches[0].clientX - touchStartX;
-    const dy = event.touches[0].clientY - touchStartY;
-    // Mostly vertical: the sheet is being scrolled, not the row swiped.
-    if (Math.abs(dy) > Math.abs(dx)) return;
-    if (dx < 0) {
-      swipeX[setId] = Math.max(dx, -SWIPE_THRESHOLD * 1.5);
-      swipeActive[setId] = Math.abs(dx) > SWIPE_THRESHOLD / 3;
-    }
-  };
-
-  const onRoundTouchEnd = (index: number, setId: string) => {
-    if (touchId !== setId) return;
-    if (Math.abs(swipeX[setId] ?? 0) >= SWIPE_THRESHOLD) {
-      vibrate(50);
-      removeRound(index);
-    }
-    swipeX[setId] = 0;
-    swipeActive[setId] = false;
-    touchId = "";
-  };
-
-  const removeRound = (index: number) => {
-    if (isSetRunning(props.exercise.sets[index])) return;
+  /** Looked up by id when the swipe completes, so the index is the current one. */
+  const removeRound = (setId: string) => {
+    const index = props.exercise.sets.findIndex((s) => s.id === setId);
+    if (index < 0 || isSetRunning(props.exercise.sets[index])) return;
+    vibrate(50);
     if (props.exercise.sets.length <= 1) {
       emit("remove-exercise");
       return;
@@ -232,6 +198,12 @@
     props.exercise.sets.splice(index, 1);
     commit();
   };
+
+  const roundSwipe = useSwipeToDelete({
+    // A round that is still being timed can't be swiped away.
+    canSwipe: (setId) => !isSetRunning(props.exercise.sets.find((s) => s.id === setId)),
+    onDelete: removeRound,
+  });
 
   // ---------------------------------------------------------------------------
   // Effort and note
@@ -320,11 +292,12 @@
           v-for="(set, index) in rounds"
           :key="set.id"
           class="cardio__swipe"
-          @touchstart="(event) => onRoundTouchStart(event, set)"
-          @touchmove="(event) => onRoundTouchMove(event, set.id)"
-          @touchend="onRoundTouchEnd(index, set.id)">
+          @touchstart="(event) => roundSwipe.onTouchStart(event, set.id)"
+          @touchmove="(event) => roundSwipe.onTouchMove(event, set.id)"
+          @touchend="roundSwipe.onTouchEnd(set.id)"
+          @touchcancel="roundSwipe.onTouchCancel()">
           <!-- Revealed behind the row while swiping -->
-          <div class="cardio__swipe-bg" :class="{ 'cardio__swipe-bg--visible': swipeActive[set.id] }" aria-hidden="true">
+          <div class="cardio__swipe-bg" :class="{ 'cardio__swipe-bg--visible': roundSwipe.revealed[set.id] }" aria-hidden="true">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
@@ -333,7 +306,7 @@
           <div
             class="cardio__round"
             :class="{ 'cardio__round--running': isSetRunning(set), 'cardio__round--km': distanceOpen }"
-            :style="{ transform: `translateX(${swipeX[set.id] ?? 0}px)`, transition: swipeX[set.id] ? 'none' : 'transform 0.2s ease-out' }">
+            :style="{ transform: `translateX(${roundSwipe.offset[set.id] ?? 0}px)`, transition: roundSwipe.offset[set.id] ? 'none' : 'transform 0.2s ease-out' }">
             <span class="cardio__round-num">{{ index + 1 }}</span>
 
             <span v-if="isSetRunning(set)" class="cardio__round-live">
