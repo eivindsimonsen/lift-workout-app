@@ -20,7 +20,7 @@
   const route = useRoute();
   const router = useRouter();
   const workoutData = useHybridData();
-  const { hasGoals } = useTrainingGoals();
+  const { hasGoals, hasCardioGoal } = useTrainingGoals();
 
   /** How far back the week picker reaches. 0 = current week only. */
   const MAX_WEEKS_BACK = 5;
@@ -90,44 +90,71 @@
   const getWorkoutTypeName = (typeId: string): string => workoutData.getWorkoutType(typeId);
   const getWorkoutTypeColor = (typeId: string): string => workoutData.getWorkoutTypeColor(typeId);
 
-  /**
-   * Percentage change against the same figure last week.
-   * Returns null when last week had nothing to compare against.
-   */
-  const changeVsLastWeek = (current: number, previous: number): number | null => {
-    if (previous <= 0) return null;
-    return Math.round(((current - previous) / previous) * 100);
-  };
-
   const formatChange = (pct: number): string => `${pct > 0 ? "+" : ""}${pct} %`;
+
+  type StatComparison = { text: string; tone: "up" | "down" | "muted" } | null;
+
+  /**
+   * How a figure compares with last week. A finished week gets the percentage
+   * change. The current week is still in progress, and measuring a few days
+   * against a whole week reads as a drop every Monday, so it shows last week's
+   * figure instead, as something to aim for rather than a verdict.
+   * Null when last week had nothing to compare against.
+   */
+  const vsLastWeek = (current: number, previous: number, format: (value: number) => string): StatComparison => {
+    if (previous <= 0) return null;
+    if (week.isCurrentWeek.value) return { text: `forrige uke ${format(previous)}`, tone: "muted" };
+    const pct = Math.round(((current - previous) / previous) * 100);
+    return { text: formatChange(pct), tone: pct >= 0 ? "up" : "down" };
+  };
 
   // ---------------------------------------------------------------------------
   // Derived view data
   // ---------------------------------------------------------------------------
 
-  const stats = computed(() => {
-    const t = week.totals.value;
-    const prev = week.previousWeekTotals.value;
-    return [
-      { key: "workouts", label: "Økter", value: String(t.workouts), change: changeVsLastWeek(t.workouts, prev.workouts) },
-      { key: "duration", label: "Varighet", value: formatDuration(t.durationMinutes), change: changeVsLastWeek(t.durationMinutes, prev.durationMinutes) },
-      { key: "sets", label: "Sett", value: String(t.sets), change: changeVsLastWeek(t.sets, prev.sets) },
-      { key: "reps", label: "Reps", value: formatNumber(t.reps), change: changeVsLastWeek(t.reps, prev.reps) },
-      { key: "avgVolume", label: "Snitt volum (kg)", value: formatNumber(t.avgVolumePerWorkout), change: null },
-      { key: "volume", label: "Volum (kg)", value: formatNumber(t.volume), change: changeVsLastWeek(t.volume, prev.volume) },
-    ];
-  });
+  /** Whether the week has any counted strength or cardio work at all. */
+  const hasStrength = computed(() => week.totals.value.strengthSets > 0);
+  const hasCardio = computed(() => week.totals.value.cardioSets > 0);
 
-  /** Always shown — a week without cardio reads as zero cardio, not as missing tiles. */
-  const cardioStats = computed(() => {
+  /**
+   * The goal panels also show when there's a goal with nothing done yet — a
+   * target you haven't started on is still worth seeing, the same reasoning as
+   * the untrained groups list.
+   */
+  const showStrengthPanel = computed(() => hasStrength.value || week.setsGoalProgress.value.hasTarget);
+  const showCardioPanel = computed(() => hasCardio.value || hasCardioGoal.value);
+
+  type KeyFigure = { key: string; label: string; value: string; comparison: StatComparison; cardio?: boolean };
+
+  /**
+   * Sessions and duration describe every week. Strength and cardio figures only
+   * appear when the week has that kind of training, so a week of lifting isn't
+   * padded with empty cardio tiles, or the other way round.
+   */
+  const keyFigures = computed<KeyFigure[]>(() => {
     const t = week.totals.value;
     const prev = week.previousWeekTotals.value;
-    return [
-      { key: "cardioTime", label: "Kondisjonstid", value: formatSeconds(t.cardioSeconds), change: changeVsLastWeek(t.cardioSeconds, prev.cardioSeconds) },
-      // formatDistance shows "–" for zero.
-      { key: "cardioDistance", label: "Distanse", value: formatDistance(t.cardioMetres), change: changeVsLastWeek(t.cardioMetres, prev.cardioMetres) },
-      { key: "cardioPace", label: "Snitt tempo", value: formatPace(t.cardioSeconds, t.cardioMetres) ?? "–", change: null },
+    const figures: KeyFigure[] = [
+      { key: "workouts", label: "Økter", value: String(t.workouts), comparison: vsLastWeek(t.workouts, prev.workouts, String) },
+      { key: "duration", label: "Varighet", value: formatDuration(t.durationMinutes), comparison: vsLastWeek(t.durationMinutes, prev.durationMinutes, formatDuration) },
     ];
+    if (hasStrength.value) {
+      figures.push(
+        { key: "sets", label: "Sett", value: String(t.sets), comparison: vsLastWeek(t.sets, prev.sets, String) },
+        { key: "reps", label: "Reps", value: formatNumber(t.reps), comparison: vsLastWeek(t.reps, prev.reps, formatNumber) },
+        { key: "avgVolume", label: "Snitt volum (kg)", value: formatNumber(t.avgVolumePerWorkout), comparison: null },
+        { key: "volume", label: "Volum (kg)", value: formatNumber(t.volume), comparison: vsLastWeek(t.volume, prev.volume, formatNumber) },
+      );
+    }
+    if (hasCardio.value) {
+      figures.push(
+        { key: "cardioTime", label: "Kondisjonstid", value: formatSeconds(t.cardioSeconds), comparison: vsLastWeek(t.cardioSeconds, prev.cardioSeconds, formatSeconds), cardio: true },
+        // formatDistance shows "–" for zero.
+        { key: "cardioDistance", label: "Distanse", value: formatDistance(t.cardioMetres), comparison: vsLastWeek(t.cardioMetres, prev.cardioMetres, formatDistance), cardio: true },
+        { key: "cardioPace", label: "Snitt tempo", value: formatPace(t.cardioSeconds, t.cardioMetres) ?? "–", comparison: null, cardio: true },
+      );
+    }
+    return figures;
   });
 
   /** Muscle groups are strength only, so this is always reps and kilos. */
@@ -301,32 +328,17 @@
       </div>
 
       <template v-else>
-        <!-- Key figures: strength, then cardio — one wrapper, so the gap between
-             the two grids is the same as the gap inside them -->
-        <div class="wk-figures">
-          <div class="wk-stats">
-            <div v-for="stat in stats" :key="stat.key" class="wk-stat">
-              <span class="wk-stat__value">{{ stat.value }}</span>
-              <span class="wk-stat__label">{{ stat.label }}</span>
-              <!-- Always rendered, so every tile has the same height with or without a change -->
-              <span
-                class="wk-stat__change"
-                :class="stat.change === null ? '' : stat.change >= 0 ? 'wk-stat__change--up' : 'wk-stat__change--down'">
-                {{ stat.change !== null ? formatChange(stat.change) : "" }}
-              </span>
-            </div>
-          </div>
-
-          <div class="wk-stats">
-            <div v-for="stat in cardioStats" :key="stat.key" class="wk-stat wk-stat--cardio">
-              <span class="wk-stat__value">{{ stat.value }}</span>
-              <span class="wk-stat__label">{{ stat.label }}</span>
-              <span
-                class="wk-stat__change"
-                :class="stat.change === null ? '' : stat.change >= 0 ? 'wk-stat__change--up' : 'wk-stat__change--down'">
-                {{ stat.change !== null ? formatChange(stat.change) : "" }}
-              </span>
-            </div>
+        <!-- Key figures: shared ones first, then strength, then cardio -->
+        <div class="wk-stats">
+          <div v-for="stat in keyFigures" :key="stat.key" :class="['wk-stat', { 'wk-stat--cardio': stat.cardio }]">
+            <span class="wk-stat__value">{{ stat.value }}</span>
+            <span class="wk-stat__label">{{ stat.label }}</span>
+            <!-- Always rendered, so every tile has the same height with or without a comparison -->
+            <span
+              class="wk-stat__change"
+              :class="stat.comparison ? `wk-stat__change--${stat.comparison.tone}` : ''">
+              {{ stat.comparison?.text ?? "" }}
+            </span>
           </div>
         </div>
 
@@ -345,8 +357,8 @@
           </svg>
         </button>
 
-        <!-- Strength goal: sets per muscle group, then volume per day -->
-        <section class="wk-card">
+        <!-- Strength goal: sets per muscle group, volume per day, then rep ranges -->
+        <section v-if="showStrengthPanel" class="wk-card">
           <div class="wk-section-head">
             <h2 class="wk-section-title">Styrkemål</h2>
             <span v-if="week.setsGoalProgress.value.hasTarget" class="wk-section-meta">{{ week.setsGoalProgress.value.done }} / {{ week.setsGoalProgress.value.target }} sett</span>
@@ -424,10 +436,28 @@
               <span v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar__label">{{ day.label }}</span>
             </div>
           </div>
+
+          <div v-if="showRepRanges" class="wk-sub">
+            <span class="wk-sub__title">Rep-områder</span>
+            <div class="wk-ranges">
+              <div class="wk-range">
+                <span class="wk-range__value">{{ week.repRanges.value.strength }} %</span>
+                <span class="wk-range__label">Styrke<br />1–5</span>
+              </div>
+              <div class="wk-range">
+                <span class="wk-range__value">{{ week.repRanges.value.hypertrophy }} %</span>
+                <span class="wk-range__label">Hypertrofi<br />6–12</span>
+              </div>
+              <div class="wk-range">
+                <span class="wk-range__value">{{ week.repRanges.value.endurance }} %</span>
+                <span class="wk-range__label">Utholdenhet<br />13+</span>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <!-- Cardio goal: always shown, since the cardio-per-day bars live here -->
-        <section class="wk-card">
+        <!-- Cardio goal: progress toward the goal, then cardio per day -->
+        <section v-if="showCardioPanel" class="wk-card">
           <div class="wk-section-head">
             <h2 class="wk-section-title">Kondisjonsmål</h2>
             <span class="wk-section-meta wk-section-meta--cardio">{{ formatDuration(week.cardioGoalProgress.value.minutesDone) }}</span>
@@ -486,42 +516,6 @@
             </div>
             <div class="wk-bars wk-bars--labels">
               <span v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar__label">{{ day.label }}</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- Rep ranges -->
-        <section v-if="showRepRanges" class="wk-card">
-          <h2 class="wk-section-title">Rep-områder</h2>
-          <div class="wk-ranges">
-            <div class="wk-range">
-              <span class="wk-range__value">{{ week.repRanges.value.strength }} %</span>
-              <span class="wk-range__label">Styrke<br />1–5</span>
-            </div>
-            <div class="wk-range">
-              <span class="wk-range__value">{{ week.repRanges.value.hypertrophy }} %</span>
-              <span class="wk-range__label">Hypertrofi<br />6–12</span>
-            </div>
-            <div class="wk-range">
-              <span class="wk-range__value">{{ week.repRanges.value.endurance }} %</span>
-              <span class="wk-range__label">Utholdenhet<br />13+</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- New personal bests -->
-        <section v-if="week.newPersonalBests.value.length > 0" class="wk-card">
-          <h2 class="wk-section-title">Nye personlige rekorder</h2>
-          <div class="mt-3 space-y-2">
-            <div v-for="pb in week.newPersonalBests.value" :key="pb.key" class="wk-pb">
-              <svg class="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
-              </svg>
-              <span class="wk-pb__name">{{ pb.name }}</span>
-              <span class="wk-pb__value">
-                {{ pb.weight }} kg × {{ pb.reps }}
-                <span class="wk-pb__prev">før {{ pb.previousBest }} kg</span>
-              </span>
             </div>
           </div>
         </section>
@@ -807,18 +801,18 @@
     margin-top: 0.125rem;
   }
 
-  .wk-figures {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
   .wk-stat__change--up {
     color: #22c55e;
   }
 
   .wk-stat__change--down {
     color: #ef4444;
+  }
+
+  /* Last week's figure on the current week: a reference point, not a status. */
+  .wk-stat__change--muted {
+    color: #64748b;
+    font-weight: 500;
   }
 
   /* Cardio borrows the Kondisjon accent so the section reads as its own thing. */
@@ -1008,7 +1002,9 @@
   }
 
   /* Per-day bars as the last part of their goal panel, split off by a hairline. */
-  .wk-daily {
+  /* A further part inside a panel (per-day bars, rep ranges): rule above. */
+  .wk-daily,
+  .wk-sub {
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid #1f2937;
@@ -1021,7 +1017,8 @@
     gap: 0.5rem;
   }
 
-  .wk-daily__name {
+  .wk-daily__name,
+  .wk-sub__title {
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.05em;
@@ -1067,7 +1064,7 @@
   .wk-ranges {
     display: flex;
     gap: 0.5rem;
-    margin-top: 0.875rem;
+    margin-top: 0.5rem;
   }
 
   .wk-range {
@@ -1093,43 +1090,6 @@
     line-height: 1.3;
     color: #4b5563;
     text-align: center;
-  }
-
-  /* ── Personal bests ──────────────────────────────────────────────────────── */
-
-  .wk-pb {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    background: #0d1117;
-    border-radius: 0.625rem;
-  }
-
-  .wk-pb__name {
-    flex: 1;
-    min-width: 0;
-    font-size: 0.8125rem;
-    color: #e2e8f0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .wk-pb__value {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    font-size: 0.8125rem;
-    font-weight: 700;
-    color: #fff;
-    white-space: nowrap;
-  }
-
-  .wk-pb__prev {
-    font-size: 0.625rem;
-    font-weight: 500;
-    color: #4b5563;
   }
 
   /* ── Sessions ────────────────────────────────────────────────────────────── */

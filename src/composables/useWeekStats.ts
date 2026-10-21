@@ -56,6 +56,9 @@ export const getTodayIndex = (): number => (new Date().getDay() + 6) % 7;
 export interface WeekTotals {
   workouts: number;
   sets: number;
+  /** `sets` split by tracking type — tells whether the week had any strength or cardio at all. */
+  strengthSets: number;
+  cardioSets: number;
   reps: number;
   volume: number;
   durationMinutes: number;
@@ -94,16 +97,6 @@ export interface DayVolume {
   cardioSeconds: number;
 }
 
-export interface NewPersonalBest {
-  /** Stable identity for list rendering — the exercise id may be unresolvable. */
-  key: string;
-  exerciseId: number;
-  name: string;
-  weight: number;
-  reps: number;
-  previousBest: number;
-}
-
 export interface TemplateUsage {
   name: string;
   workoutType: string;
@@ -117,6 +110,8 @@ export interface TemplateUsage {
 const emptyTotals = (): WeekTotals => ({
   workouts: 0,
   sets: 0,
+  strengthSets: 0,
+  cardioSets: 0,
   reps: 0,
   volume: 0,
   durationMinutes: 0,
@@ -143,6 +138,8 @@ const buildTotals = (sessions: WorkoutSession[]): WeekTotals => {
         // A set is a set whichever way it's measured — an interval counts.
         // Reps and volume stay strength-only; kilos mean nothing on a run.
         totals.sets += 1;
+        if (isCardioExercise(exercise)) totals.cardioSets += 1;
+        else totals.strengthSets += 1;
         totals.reps += setReps(exercise, set);
         totals.volume += setVolume(exercise, set);
         totals.cardioSeconds += setDuration(exercise, set);
@@ -408,67 +405,6 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
     return [...usage.values()];
   });
 
-  /**
-   * Sets from this week that beat the heaviest load ever recorded for that
-   * exercise before the week started. One entry per exercise, best first.
-   */
-  const newPersonalBests = computed<NewPersonalBest[]>(() => {
-    /**
-     * Stable identity for an exercise across sessions. Uses the raw id as a
-     * string rather than `Number(...)`, so an unresolvable id can't collapse
-     * into a shared `NaN` bucket and get compared against unrelated exercises.
-     */
-    const keyFor = (exercise: any): string => `id:${String(exercise?.exerciseId ?? exercise?.name ?? "")}`;
-
-    // Heaviest weight per exercise strictly before this week.
-    const historicBest = new Map<string, number>();
-    completedSessions.value.forEach((session) => {
-      if (new Date(session.date) >= weekStart.value) return;
-      session.exercises?.forEach((exercise: any) => {
-        // Personal bests here are load-based, so cardio has nothing to beat.
-        if (isCardioExercise(exercise)) return;
-        const key = keyFor(exercise);
-        exercise.sets?.forEach((set: any) => {
-          if (!isSetCounted(exercise, set)) return;
-          const weight = Number(set.weight);
-          if (weight > (historicBest.get(key) ?? 0)) historicBest.set(key, weight);
-        });
-      });
-    });
-
-    const bests = new Map<string, NewPersonalBest>();
-    sessions.value.forEach((session) => {
-      session.exercises?.forEach((exercise: any) => {
-        if (isCardioExercise(exercise)) return;
-        const key = keyFor(exercise);
-        const previousBest = historicBest.get(key) ?? 0;
-
-        // Nothing to beat yet — a first-ever lift isn't a personal best.
-        if (previousBest === 0) return;
-
-        exercise.sets?.forEach((set: any) => {
-          if (!isSetCounted(exercise, set)) return;
-          const weight = Number(set.weight);
-          if (weight <= previousBest) return;
-
-          const current = bests.get(key);
-          if (!current || weight > current.weight) {
-            bests.set(key, {
-              key,
-              exerciseId: Number(exercise.exerciseId),
-              name: resolveExercise(exercise)?.name ?? exercise.name ?? "Ukjent øvelse",
-              weight,
-              reps: Number(set.reps),
-              previousBest,
-            });
-          }
-        });
-      });
-    });
-
-    return [...bests.values()].sort((a, b) => b.weight - a.weight);
-  });
-
   return {
     // Period
     weekStart,
@@ -487,7 +423,6 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
     dailyVolume,
     repRanges,
     templateUsage,
-    newPersonalBests,
     unresolvedSets,
     exercisesReady,
     cardioGoalProgress,
