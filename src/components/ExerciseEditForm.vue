@@ -5,6 +5,7 @@
 import { ref, computed, watch } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
 import { useExercises } from '@/composables/useExercises'
+import { STRENGTH_MUSCLE_GROUP_NAMES, CARDIO_GROUP_NAME } from '@/composables/useTrainingGoals'
 import muscleGroupsData from '@/data/muscle-groups.json'
 import type { ExerciseData, ExerciseVariant } from '@/types/workout'
 
@@ -58,6 +59,15 @@ const exercisesStore = useExercises()
 
 const isVariant = computed(() => props.variant != null)
 
+/**
+ * Cardio always belongs to Kondisjon and strength never does. Same rule as in
+ * ExerciseForm: a strength exercise under Kondisjon drops out of the week stats.
+ */
+const isCardio = computed(() => props.exercise?.trackingType === 'cardio')
+const categoryOptions = computed(() =>
+  isCardio.value ? [CARDIO_GROUP_NAME] : STRENGTH_MUSCLE_GROUP_NAMES
+)
+
 /** All exercise groups available as parent options for variants. */
 const allGroups = computed<ExerciseData[]>(() => exercisesStore.exercises.value)
 
@@ -108,6 +118,9 @@ const isDeleting = ref(false)
 const confirmDelete = ref(false)
 
 const drawerTitle = computed(() => isVariant.value ? 'Rediger variant' : 'Rediger øvelsegruppe')
+const canSave = computed(() =>
+  name.value.trim().length > 0 && (isVariant.value || selectedCategory.value.length > 0)
+)
 
 // Populate form when props change
 watch(
@@ -122,7 +135,11 @@ watch(
       isGroupPickerOpen.value = false
     } else if (props.exercise) {
       name.value = props.exercise.name
-      selectedCategory.value = props.exercise.category
+      // A category that doesn't fit the tracking type is replaced, so saving
+      // fixes the mismatch instead of keeping it.
+      selectedCategory.value = categoryOptions.value.includes(props.exercise.category)
+        ? props.exercise.category
+        : isCardio.value ? CARDIO_GROUP_NAME : ''
     }
   },
   { immediate: true }
@@ -135,8 +152,8 @@ watch(
 const close = () => emit('update:visible', false)
 
 const save = async () => {
+  if (!canSave.value) return
   const trimmedName = name.value.trim()
-  if (!trimmedName) return
 
   isSaving.value = true
 
@@ -264,10 +281,16 @@ const deleteItem = async () => {
       <!-- Group: category selector -->
       <div v-else class="ef__field">
         <label class="ef__label" for="ef-category">Muskeltype</label>
-        <select id="ef-category" v-model="selectedCategory" class="input-field w-full">
+        <select
+          id="ef-category"
+          v-model="selectedCategory"
+          class="input-field w-full"
+          :disabled="isCardio"
+        >
           <option value="" disabled>Velg muskeltype</option>
-          <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
+          <option v-for="cat in categoryOptions" :key="cat" :value="cat">{{ cat }}</option>
         </select>
+        <p v-if="isCardio" class="ef__note">Kondisjonsøvelser havner alltid i Kondisjon.</p>
       </div>
 
     </div>
@@ -281,30 +304,25 @@ const deleteItem = async () => {
           <span class="ef__footer-confirm-label">
             {{ isVariant ? 'Slett varianten permanent?' : 'Slett gruppen og alle varianter?' }}
           </span>
-          <div class="ef__footer-actions">
-            <button class="btn-secondary btn-sm" type="button" @click="confirmDelete = false">Avbryt</button>
-            <button class="btn-danger btn-sm" type="button" :disabled="isDeleting" @click="deleteItem">
-              {{ isDeleting ? 'Sletter…' : 'Ja, slett' }}
-            </button>
-          </div>
+          <button class="btn-secondary" type="button" @click="confirmDelete = false">Avbryt</button>
+          <button class="btn-danger" type="button" :disabled="isDeleting" @click="deleteItem">
+            {{ isDeleting ? 'Sletter…' : 'Ja, slett' }}
+          </button>
         </template>
 
-        <!-- Normal footer -->
+        <!-- Normal footer: closing the slide-over is how you cancel -->
         <template v-else>
-          <button class="btn-secondary btn-sm" type="button" @click="close">Avbryt</button>
-          <div class="ef__footer-actions">
-            <button class="btn-danger-outline btn-sm" type="button" @click="confirmDelete = true">
-              {{ isVariant ? 'Slett variant' : 'Slett gruppe' }}
-            </button>
-            <button
-              class="btn-primary btn-sm"
-              type="button"
-              :disabled="isSaving || !name.trim()"
-              @click="save"
-            >
-              {{ isSaving ? 'Lagrer…' : 'Lagre endringer' }}
-            </button>
-          </div>
+          <button class="btn-danger-outline" type="button" @click="confirmDelete = true">
+            {{ isVariant ? 'Slett variant' : 'Slett gruppe' }}
+          </button>
+          <button
+            class="btn-primary"
+            type="button"
+            :disabled="isSaving || !canSave"
+            @click="save"
+          >
+            {{ isSaving ? 'Lagrer…' : 'Lagre endringer' }}
+          </button>
         </template>
 
       </div>
@@ -330,6 +348,11 @@ const deleteItem = async () => {
   font-size: 0.875rem;
   font-weight: 600;
   color: #d1d5db;
+}
+
+.ef__note {
+  font-size: 0.6875rem;
+  color: #64748b;
 }
 
 .ef__selected-group {
@@ -485,49 +508,22 @@ const deleteItem = async () => {
   white-space: nowrap;
 }
 
+/* Footer: full-size buttons share the row and wrap onto their own rows
+   when the labels don't fit side by side (narrow phones). */
 .ef__footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.375rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .ef__footer button {
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.ef__footer .btn-sm {
-  padding-inline: 0.625rem !important;
+  flex: 1 1 auto;
+  padding-inline: 0.875rem;
 }
 
 .ef__footer-confirm-label {
+  flex: 1 1 100%;
   font-size: 0.8125rem;
   color: #9ca3af;
-  flex: 1;
-  min-width: 0;
-}
-
-.ef__footer-actions {
-  display: flex;
-  gap: 0.375rem;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-@media (max-width: 420px) {
-  .ef__footer {
-    flex-wrap: wrap;
-  }
-
-  .ef__footer > .btn-secondary {
-    flex: 1 1 100%;
-  }
-
-  .ef__footer-actions {
-    flex: 1 1 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
 }
 </style>

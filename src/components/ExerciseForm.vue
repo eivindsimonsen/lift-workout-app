@@ -6,7 +6,7 @@ import { ref, computed, watch } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
 import { useExercises } from '@/composables/useExercises'
 import { useHybridData } from '@/composables/useHybridData'
-import muscleGroupsData from '@/data/muscle-groups.json'
+import { STRENGTH_MUSCLE_GROUP_NAMES, CARDIO_GROUP_NAME } from '@/composables/useTrainingGoals'
 import type { ExerciseData, ExerciseVariant, ExerciseTrackingType } from '@/types/workout'
 
 // ---------------------------------------------------------------------------
@@ -61,28 +61,26 @@ const editingVariantId = ref<number | null>(null)
 const editVariantName = ref('')
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-// Derived from muscle-groups.json so a new group (e.g. Kondisjon) shows up
-// everywhere at once instead of drifting out of sync with a hardcoded list.
-const CATEGORIES = muscleGroupsData.muscleGroups.map((g) => g.name)
-
-// ---------------------------------------------------------------------------
 // Computed
 // ---------------------------------------------------------------------------
 
 /**
- * Cardio always belongs to the Kondisjon group, so selecting it fills the
- * category in. Keeps the two fields from drifting apart.
+ * Cardio always belongs to the Kondisjon group, and strength never does: a
+ * strength exercise filed under Kondisjon is skipped by the muscle-group stats
+ * and not counted as cardio either, so its sets would vanish from the week.
  */
+const categoryOptionsFor = (type: ExerciseTrackingType) =>
+  type === 'cardio' ? [CARDIO_GROUP_NAME] : STRENGTH_MUSCLE_GROUP_NAMES
+
+const categoryOptions = computed(() => categoryOptionsFor(exerciseForm.value.trackingType))
+
+/** Cardio fills the category in; strength clears it if it no longer fits. */
+const defaultCategoryFor = (type: ExerciseTrackingType, category: string) =>
+  categoryOptionsFor(type).includes(category) ? category : type === 'cardio' ? CARDIO_GROUP_NAME : ''
+
 const selectTrackingType = (type: ExerciseTrackingType) => {
   exerciseForm.value.trackingType = type
-  if (type === 'cardio') {
-    exerciseForm.value.category = 'Kondisjon'
-  } else if (exerciseForm.value.category === 'Kondisjon') {
-    exerciseForm.value.category = ''
-  }
+  exerciseForm.value.category = defaultCategoryFor(type, exerciseForm.value.category)
 }
 
 const drawerTitle = computed(() => isEditMode.value ? 'Rediger øvelsegruppe' : 'Ny øvelsegruppe')
@@ -100,11 +98,14 @@ watch(
   () => [props.visible, props.exercise],
   () => {
     if (!props.visible) return
+    // An existing exercise whose category doesn't match its tracking type gets
+    // normalised here, so saving it fixes the mismatch instead of keeping it.
+    const trackingType = props.exercise?.trackingType ?? 'strength'
     exerciseForm.value = props.exercise
       ? {
           name: props.exercise.name,
-          category: props.exercise.category,
-          trackingType: props.exercise.trackingType ?? 'strength',
+          category: defaultCategoryFor(trackingType, props.exercise.category),
+          trackingType,
         }
       : { name: '', category: '', trackingType: 'strength' }
     resetVariantForm()
@@ -308,7 +309,7 @@ const deleteVariant = async (variant: ExerciseVariant) => {
             :disabled="exerciseForm.trackingType === 'cardio'"
           >
             <option value="" disabled>Velg muskelgruppe</option>
-            <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
+            <option v-for="cat in categoryOptions" :key="cat" :value="cat">{{ cat }}</option>
           </select>
           <p v-if="exerciseForm.trackingType === 'cardio'" class="exercise-form__note">
             Kondisjonsøvelser havner alltid i Kondisjon.
@@ -457,50 +458,45 @@ const deleteVariant = async (variant: ExerciseVariant) => {
         <!-- Confirm delete state: replaces everything -->
         <template v-if="isEditMode && confirmDeleteId === 'exercise'">
           <span class="exercise-form__footer-confirm-label">Sikker på at du vil slette gruppen?</span>
-          <div class="exercise-form__footer-actions">
-            <button class="btn-secondary btn-sm" type="button" @click="confirmDeleteId = null">
-              Avbryt
-            </button>
-            <button
-              class="btn-danger btn-sm"
-              :disabled="isDeletingExercise"
-              type="button"
-              @click="deleteExercise"
-            >
-              {{ isDeletingExercise ? 'Sletter...' : 'Ja, slett' }}
-            </button>
-          </div>
+          <button class="btn-secondary" type="button" @click="confirmDeleteId = null">
+            Avbryt
+          </button>
+          <button
+            class="btn-danger"
+            :disabled="isDeletingExercise"
+            type="button"
+            @click="deleteExercise"
+          >
+            {{ isDeletingExercise ? 'Sletter...' : 'Ja, slett' }}
+          </button>
         </template>
 
-        <!-- Normal footer -->
+        <!-- Normal footer: closing the slide-over is how you cancel -->
         <template v-else>
-          <button class="btn-secondary btn-sm" type="button" @click="close">Avbryt</button>
-          <div class="exercise-form__footer-actions">
-            <button
-              v-if="isEditMode"
-              class="btn-danger-outline btn-sm"
-              :disabled="isDeletingExercise"
-              type="button"
-              @click="confirmDeleteId = 'exercise'"
-            >
-              Slett gruppe
-            </button>
-            <button
-              class="btn-primary btn-sm"
-              :disabled="!canSave || isSaving"
-              type="button"
-              @click="saveExercise"
-            >
-              {{ isSaving
-                ? (isEditMode ? 'Lagrer...' : 'Oppretter...')
-                : isEditMode
-                  ? 'Lagre endringer'
-                  : pendingVariants.length > 0
-                    ? `Opprett gruppe + ${pendingVariants.length} variant${pendingVariants.length !== 1 ? 'er' : ''}`
-                    : 'Opprett gruppe'
-              }}
-            </button>
-          </div>
+          <button
+            v-if="isEditMode"
+            class="btn-danger-outline"
+            :disabled="isDeletingExercise"
+            type="button"
+            @click="confirmDeleteId = 'exercise'"
+          >
+            Slett gruppe
+          </button>
+          <button
+            class="btn-primary"
+            :disabled="!canSave || isSaving"
+            type="button"
+            @click="saveExercise"
+          >
+            {{ isSaving
+              ? (isEditMode ? 'Lagrer...' : 'Oppretter...')
+              : isEditMode
+                ? 'Lagre endringer'
+                : pendingVariants.length > 0
+                  ? `Opprett gruppe + ${pendingVariants.length} variant${pendingVariants.length !== 1 ? 'er' : ''}`
+                  : 'Opprett gruppe'
+            }}
+          </button>
         </template>
 
       </div>
@@ -662,51 +658,23 @@ const deleteVariant = async (variant: ExerciseVariant) => {
   align-items: flex-start;
 }
 
-/* Footer */
+/* Footer: full-size buttons share the row and wrap onto their own rows
+   when the labels don't fit side by side (narrow phones). */
 .exercise-form__footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.375rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .exercise-form__footer button {
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.exercise-form__footer .btn-sm {
-  padding-inline: 0.625rem !important;
+  flex: 1 1 auto;
+  padding-inline: 0.875rem;
 }
 
 .exercise-form__footer-confirm-label {
+  flex: 1 1 100%;
   font-size: 0.8125rem;
   color: #9ca3af;
-  flex: 1;
-  min-width: 0;
-}
-
-.exercise-form__footer-actions {
-  display: flex;
-  gap: 0.375rem;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-@media (max-width: 420px) {
-  .exercise-form__footer {
-    flex-wrap: wrap;
-  }
-
-  .exercise-form__footer > .btn-secondary {
-    flex: 1 1 100%;
-  }
-
-  .exercise-form__footer-actions {
-    flex: 1 1 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
 }
 
   /* ── Tracking type toggle ────────────────────────────────────────────────── */
