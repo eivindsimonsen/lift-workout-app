@@ -6,6 +6,7 @@
   import SwipeableCard from "@/components/SwipeableCard.vue";
   import NetworkStatus from "@/components/NetworkStatus.vue";
   import { vibrate } from "@/composables/useHaptics";
+  import muscleGroupsData from "@/data/muscle-groups.json";
 
   const router = useRouter();
   const workoutData = useHybridData();
@@ -193,41 +194,14 @@
     vibrate([50, 100, 50]);
   };
 
-  // Helper methods for exercise grouping
-  const getExerciseGroups = (exercises: any[]) => {
-    const groups: Record<string, any[]> = {};
-
-    // Safety check for exercises
-    if (!exercises || !Array.isArray(exercises)) {
-      return groups;
-    }
-
-    exercises.forEach((exercise) => {
-      // Find the exercise data using getExerciseById which can handle both main exercises and variants
-      const exerciseData = workoutData.getExerciseById(exercise.exerciseId);
-      if (exerciseData && exerciseData.muscleGroups && exerciseData.muscleGroups.length > 0) {
-        // Use the first muscle group as the primary category
-        const primaryGroup = exerciseData.muscleGroups[0];
-        if (!groups[primaryGroup]) {
-          groups[primaryGroup] = [];
-        }
-        groups[primaryGroup].push(exercise);
-      } else if (exerciseData && exerciseData.category) {
-        // Fallback to category if no muscleGroups
-        if (!groups[exerciseData.category]) {
-          groups[exerciseData.category] = [];
-        }
-        groups[exerciseData.category].push(exercise);
-      } else {
-        // Last resort fallback
-        if (!groups["other"]) {
-          groups["other"] = [];
-        }
-        groups["other"].push(exercise);
-      }
-    });
-
-    return groups;
+  /** Muscle-group colour for the dot in front of each exercise in the template preview */
+  const getExerciseColor = (exerciseId: number): string => {
+    // getExerciseById resolves both main exercises and variants
+    const exercise = workoutData.getExerciseById(exerciseId);
+    // Primary muscle group first, then category (cardio exercises use "Kondisjon")
+    const groupName = exercise?.muscleGroups?.[0] || exercise?.category;
+    const group = muscleGroupsData.muscleGroups.find((g) => g.name === groupName);
+    return group?.color || "#64748b";
   };
 
   // ---------------------------------------------------------------------------
@@ -456,15 +430,10 @@
             <div class="h-4 bg-dark-600 rounded w-24 mb-6"></div>
 
             <!-- Exercise Preview Skeleton -->
-            <div class="mb-6 space-y-3">
-              <div class="space-y-2">
-                <div class="h-3 bg-dark-600 rounded w-16"></div>
-                <div class="space-y-1">
-                  <div class="h-3 bg-dark-600 rounded w-full"></div>
-                  <div class="h-3 bg-dark-600 rounded w-3/4"></div>
-                  <div class="h-3 bg-dark-600 rounded w-1/2"></div>
-                </div>
-              </div>
+            <div class="mb-6 space-y-2">
+              <div class="h-3 bg-dark-600 rounded w-full"></div>
+              <div class="h-3 bg-dark-600 rounded w-3/4"></div>
+              <div class="h-3 bg-dark-600 rounded w-1/2"></div>
             </div>
 
             <!-- Action Buttons Skeleton -->
@@ -524,21 +493,13 @@
 
                 <p class="text-sm text-dark-300 mb-4">{{ template.exercises.length }} øvelser</p>
 
-                <!-- Exercise Preview -->
-                <div class="mb-6 flex-grow">
-                  <div class="space-y-3">
-                    <div v-for="(exGroup, exGroupName) in (getExerciseGroups && getExerciseGroups(template.exercises)) || {}" :key="exGroupName" class="space-y-1">
-                      <h4 class="text-xs font-medium text-primary-400 uppercase tracking-wide">
-                        {{ exGroupName }}
-                      </h4>
-                      <div class="space-y-1">
-                        <div v-for="exercise in exGroup" :key="exercise.exerciseId" class="text-sm text-dark-200">
-                          <span class="truncate">{{ exercise.name }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <!-- Exercise Preview — in the order set up in the template -->
+                <ul class="mb-6 flex-grow space-y-1.5">
+                  <li v-for="(exercise, index) in template.exercises" :key="`${index}-${exercise.exerciseId}`" class="flex items-center gap-2.5 min-w-0 text-sm text-dark-200">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0" :style="{ backgroundColor: getExerciseColor(exercise.exerciseId) }"></span>
+                    <span class="truncate">{{ exercise.name }}</span>
+                  </li>
+                </ul>
 
                 <!-- Action Buttons -->
                 <div class="flex gap-2 mt-auto">
