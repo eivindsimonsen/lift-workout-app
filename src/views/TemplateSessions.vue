@@ -194,14 +194,14 @@
     vibrate([50, 100, 50]);
   };
 
-  /** Muscle-group colour for the dot in front of each exercise in the template preview */
-  const getExerciseColor = (exerciseId: number): string => {
+  /** Muscle group (name + colour) shown on each exercise in the template preview */
+  const getExerciseGroup = (exerciseId: number): { name: string; color: string } => {
     // getExerciseById resolves both main exercises and variants
     const exercise = workoutData.getExerciseById(exerciseId);
     // Primary muscle group first, then category (cardio exercises use "Kondisjon")
-    const groupName = exercise?.muscleGroups?.[0] || exercise?.category;
+    const groupName = exercise?.muscleGroups?.[0] || exercise?.category || "";
     const group = muscleGroupsData.muscleGroups.find((g) => g.name === groupName);
-    return group?.color || "#64748b";
+    return { name: groupName, color: group?.color || "#64748b" };
   };
 
   // ---------------------------------------------------------------------------
@@ -496,8 +496,9 @@
                 <!-- Exercise Preview — in the order set up in the template -->
                 <ul class="mb-6 flex-grow space-y-1.5">
                   <li v-for="(exercise, index) in template.exercises" :key="`${index}-${exercise.exerciseId}`" class="flex items-center gap-2.5 min-w-0 text-sm text-dark-200">
-                    <span class="w-2 h-2 rounded-full flex-shrink-0" :style="{ backgroundColor: getExerciseColor(exercise.exerciseId) }"></span>
+                    <span class="w-2 h-2 rounded-full flex-shrink-0" :style="{ backgroundColor: getExerciseGroup(exercise.exerciseId).color }"></span>
                     <span class="truncate">{{ exercise.name }}</span>
+                    <span class="ml-auto pl-2 flex-shrink-0 text-xs text-dark-500">{{ getExerciseGroup(exercise.exerciseId).name }}</span>
                   </li>
                 </ul>
 
