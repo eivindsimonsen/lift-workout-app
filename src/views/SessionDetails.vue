@@ -107,7 +107,8 @@
 
     return strengthExercises.value.map((ex) => {
       const sets = countedSets(ex);
-      // Heaviest by weight; on equal weight, more reps wins.
+      // Heaviest by weight; on equal weight, more reps wins. A full tie keeps
+      // the earliest set — the one that got there first.
       const top = sets.reduce((a, b) => {
         const wa = Number(a.weight) || 0;
         const wb = Number(b.weight) || 0;
@@ -115,21 +116,19 @@
       });
       const topWeight = Number(top.weight) || 0;
       const topReps = Number(top.reps) || 0;
-      // Highlight the top set only when it stands alone — among equal sets the
-      // first one isn't special, and marking it would look arbitrary.
-      const topIsUnique = sets.filter((set) => (Number(set.weight) || 0) === topWeight && (Number(set.reps) || 0) === topReps).length === 1;
       const volume = sets.reduce((sum, set) => sum + setVolume(ex, set), 0);
       const previous = previousBest.value.get(Number(ex.exerciseId));
+      // A first-ever lift has nothing to beat, so it isn't a record.
+      const isPR = previous !== undefined && topWeight > previous;
 
       return {
         key: `${ex.exerciseId}`,
         exerciseId: ex.exerciseId,
         name: ex.name,
-        sets: sets.map((set) => ({ id: set.id, weight: formatKg(Number(set.weight) || 0), reps: Number(set.reps) || 0, isTop: topIsUnique && set === top })),
+        sets: sets.map((set) => ({ id: set.id, weight: formatKg(Number(set.weight) || 0), reps: Number(set.reps) || 0, isPR: isPR && set === top })),
         volume,
         share: Math.round((volume / totalVolume) * 100),
-        // A first-ever lift has nothing to beat, so it isn't a record.
-        isPR: previous !== undefined && topWeight > previous,
+        isPR,
         nextHint: topReps >= 5 ? `${formatKg(topWeight + 2.5)} kg` : `${formatKg(topWeight)} kg og +1 rep`,
       };
     });
@@ -349,16 +348,17 @@
 
           <dl class="sd-stats">
             <div class="sd-stat">
+              <dt>Sett</dt>
+              <dd>{{ strengthTotals.sets }}</dd>
+            </div>
+            <div class="sd-stat">
               <dt>Volum</dt>
               <dd>
                 {{ formatNumber(strengthTotals.volume) }}
                 <span class="sd-stat__unit">kg</span>
               </dd>
             </div>
-            <div class="sd-stat">
-              <dt>Sett</dt>
-              <dd>{{ strengthTotals.sets }}</dd>
-            </div>
+            
             <div class="sd-stat">
               <dt>Reps</dt>
               <dd>{{ formatNumber(strengthTotals.reps) }}</dd>
@@ -387,7 +387,7 @@
 
               <!-- One line per set, columns aligned — reads the same at 3 sets or 8 -->
               <ol class="sd-sets">
-                <li v-for="(set, index) in row.sets" :key="set.id" class="sd-set" :class="{ 'sd-set--top': set.isTop }">
+                <li v-for="(set, index) in row.sets" :key="set.id" class="sd-set" :class="{ 'sd-set--pr': set.isPR }">
                   <span class="sd-set__num">{{ index + 1 }}</span>
                   <span class="sd-set__weight">{{ set.weight }} <span class="sd-set__unit">kg</span></span>
                   <span class="sd-set__reps">{{ set.reps }} <span class="sd-set__unit">reps</span></span>
@@ -685,13 +685,13 @@
     color: #64748b;
   }
 
-  /* The set that decided the session's best for this lift. */
-  .sd-set--top .sd-set__weight,
-  .sd-set--top .sd-set__reps {
+  /* The set that beat every earlier session's best for this lift. */
+  .sd-set--pr .sd-set__weight,
+  .sd-set--pr .sd-set__reps {
     color: #fdba74;
   }
 
-  .sd-set--top .sd-set__num {
+  .sd-set--pr .sd-set__num {
     color: #f97316;
   }
 
