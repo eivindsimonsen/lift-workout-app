@@ -2,6 +2,7 @@ import { computed, ref, watch } from "vue";
 import { useSupabase } from "./useSupabase";
 import { useSupabaseData } from "./useSupabaseData";
 import { useErrorHandler } from "./useErrorHandler";
+import { appendGoalHistory, weekKeyOf, type GoalHistoryEntry } from "./goalStreak";
 import muscleGroupsData from "@/data/muscle-groups.json";
 
 // ---------------------------------------------------------------------------
@@ -187,25 +188,35 @@ const normalizeGoals = (raw: unknown): TrainingGoals => {
   };
 };
 
-type StoredPayload = { userId: string | null; goals: TrainingGoals };
+/** Drops malformed entries; every entry's goals go through `normalizeGoals`. */
+const normalizeHistory = (raw: unknown): GoalHistoryEntry[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((e) => e && typeof e === "object" && typeof e.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.from) && e.goals)
+    .map((e) => ({ from: e.from as string, goals: normalizeGoals(e.goals) }))
+    .sort((a, b) => a.from.localeCompare(b.from));
+};
+
+type StoredPayload = { userId: string | null; goals: TrainingGoals; history: GoalHistoryEntry[] };
 
 const readFromStorage = (): StoredPayload => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { userId: null, goals: normalizeGoals(null) };
+    if (!raw) return { userId: null, goals: normalizeGoals(null), history: [] };
     const parsed = JSON.parse(raw) as Partial<StoredPayload>;
     return {
       userId: typeof parsed?.userId === "string" ? parsed.userId : null,
       goals: normalizeGoals(parsed?.goals),
+      history: normalizeHistory(parsed?.history),
     };
   } catch {
-    return { userId: null, goals: normalizeGoals(null) };
+    return { userId: null, goals: normalizeGoals(null), history: [] };
   }
 };
 
-const writeToStorage = (userId: string | null, goals: TrainingGoals) => {
+const writeToStorage = (userId: string | null, goals: TrainingGoals, history: GoalHistoryEntry[]) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ userId, goals }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ userId, goals, history }));
   } catch (e) {
     console.warn("⚠️ Kunne ikke lagre treningsmål lokalt:", e);
   }
@@ -217,6 +228,8 @@ const writeToStorage = (userId: string | null, goals: TrainingGoals) => {
 
 const initial = readFromStorage();
 const _goals = ref<TrainingGoals>(initial.goals);
+/** When the goals changed, so past weeks are judged by the goals they had. */
+const _history = ref<GoalHistoryEntry[]>(initial.history);
 let _storedUserId: string | null = initial.userId;
 let _hydratedForUserId: string | null = null;
 let _watcherStarted = false;
@@ -241,18 +254,21 @@ export const useTrainingGoals = () => {
         if (!userId || _hydratedForUserId === userId) return;
         _hydratedForUserId = userId;
 
-        const remote = userData.currentUser.value?.user_metadata?.trainingGoals;
+        const metadata = userData.currentUser.value?.user_metadata;
+        const remote = metadata?.trainingGoals;
 
         if (remote) {
           _goals.value = normalizeGoals(remote);
+          _history.value = normalizeHistory(metadata?.trainingGoalsHistory);
         } else if (_storedUserId && _storedUserId !== userId) {
           // Different account on this device and nothing stored server-side —
           // don't show the previous user's targets.
           _goals.value = normalizeGoals(null);
+          _history.value = [];
         }
 
         _storedUserId = userId;
-        writeToStorage(userId, _goals.value);
+        writeToStorage(userId, _goals.value, _history.value);
       },
       { immediate: true },
     );
@@ -292,16 +308,19 @@ export const useTrainingGoals = () => {
    */
   const saveGoals = async (next: TrainingGoals): Promise<boolean> => {
     const normalized = normalizeGoals(next);
+    const history = appendGoalHistory(_history.value, _goals.value, normalized, weekKeyOf(new Date()));
     _goals.value = normalized;
+    _history.value = history;
 
     const userId = (userData.currentUser.value?.id as string | undefined) ?? null;
     _storedUserId = userId;
-    writeToStorage(userId, normalized);
+    writeToStorage(userId, normalized, history);
 
     if (!userId) return false;
 
     try {
-      const { data, error } = await supabase.auth.updateUser({ data: { trainingGoals: normalized } });
+      // The whole history goes up every time, so a failed sync catches up on the next save.
+      const { data, error } = await supabase.auth.updateUser({ data: { trainingGoals: normalized, trainingGoalsHistory: history } });
       if (error) throw error;
 
       // Keep the in-memory user in sync so a later hydrate doesn't undo this.
@@ -314,8 +333,11 @@ export const useTrainingGoals = () => {
     }
   };
 
+  const goalHistory = computed(() => _history.value);
+
   return {
     goals,
+    goalHistory,
     hasGoals,
     hasCardioGoal,
     activePlan,

@@ -1,8 +1,11 @@
 <script setup lang="ts">
-  import { ref, computed, onUnmounted } from "vue";
+  import { ref, computed, onUnmounted, watch } from "vue";
   import { useRouter } from "vue-router";
   import { useHybridData } from "@/composables/useHybridData";
   import { useWeekStats, WEEK_DAYS, getTodayIndex } from "@/composables/useWeekStats";
+  import { useTrainingGoals, MUSCLE_GROUP_COLORS } from "@/composables/useTrainingGoals";
+  import { useGoalStreak, type ChainLink } from "@/composables/useGoalStreak";
+  import type { GoalGap, GoalGapKind } from "@/composables/goalStreak";
   import SwipeableCard from "@/components/SwipeableCard.vue";
   import NetworkStatus from "@/components/NetworkStatus.vue";
   import { vibrate } from "@/composables/useHaptics";
@@ -233,6 +236,73 @@
   });
 
   // ---------------------------------------------------------------------------
+  // Weekly goal streak
+  // ---------------------------------------------------------------------------
+
+  const { hasGoals } = useTrainingGoals();
+  const {
+    ready: streakReady,
+    current: streakCurrent,
+    best: streakBest,
+    nextMilestone,
+    chain: streakChain,
+    thisWeek,
+    thisWeekKey,
+  } = useGoalStreak();
+
+  /** Held back until the exercise library is loaded, so a reload never flashes "0". */
+  const showStreak = computed(() => hasGoals.value && streakReady.value);
+
+  const weeksLabel = (n: number): string => (n === 1 ? "uke på rad" : "uker på rad");
+
+  const streakMeta = computed(() => {
+    const parts: string[] = [];
+    if (streakBest.value > streakCurrent.value) parts.push(`Rekord ${streakBest.value}`);
+    if (nextMilestone.value) parts.push(`neste merke ved ${nextMilestone.value}`);
+    return parts.join(" · ");
+  });
+
+  const chainLabel = computed(() => {
+    const met = streakChain.value.filter((link) => link.approved).length;
+    return `${met} av de siste ${streakChain.value.length} ukene nådd`;
+  });
+
+  const GAP_UNIT: Record<GoalGapKind, string> = { strength: "", minutes: " min", km: " km" };
+  const kmFormat = new Intl.NumberFormat("no-NO", { maximumFractionDigits: 1 });
+  const formatGap = (gap: GoalGap, value: number): string => (gap.kind === "km" ? kmFormat.format(value) : String(value));
+  const gapColor = (gap: GoalGap): string => (gap.kind === "strength" ? (MUSCLE_GROUP_COLORS[gap.name] ?? "#64748b") : "#06b6d4");
+
+  // The week's first look after it's secured: show the old number, then pop to
+  // the new one. Once per week per device; skipped for reduced motion.
+  const CELEBRATED_KEY = "lift-streak-celebrated";
+  const celebrationPhase = ref<"idle" | "before" | "pop">("idle");
+  let celebrationTimer: number | null = null;
+
+  watch(
+    () => showStreak.value && thisWeek.value.approved,
+    (approved) => {
+      if (!approved) return;
+      const marker = `${workoutData.currentUser.value?.id ?? ""}:${thisWeekKey.value}`;
+      try {
+        if (localStorage.getItem(CELEBRATED_KEY) === marker) return;
+        localStorage.setItem(CELEBRATED_KEY, marker);
+      } catch {
+        return; // without storage it would replay on every visit
+      }
+      if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+      celebrationPhase.value = "before";
+      celebrationTimer = window.setTimeout(() => {
+        celebrationPhase.value = "pop";
+      }, 400);
+    },
+    { immediate: true },
+  );
+
+  const displayedStreak = computed(() => (celebrationPhase.value === "before" ? streakCurrent.value - 1 : streakCurrent.value));
+
+  const isLinkMet = (link: ChainLink): boolean => link.approved && !(link.isCurrent && celebrationPhase.value === "before");
+
+  // ---------------------------------------------------------------------------
   // Cleanup on component unmount
   // ---------------------------------------------------------------------------
 
@@ -240,6 +310,7 @@
     if (countdownInterval.value) {
       clearInterval(countdownInterval.value);
     }
+    if (celebrationTimer) clearTimeout(celebrationTimer);
   });
 </script>
 
@@ -272,6 +343,33 @@
         </span>
       </div>
 
+      <!-- Weekly goal streak — the chain of recent weeks, current week last -->
+      <div v-if="showStreak" class="week-card__streak">
+        <div class="week-card__streak-head">
+          <svg class="week-card__flame" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+          </svg>
+          <span
+            v-if="streakCurrent > 0"
+            :class="['week-card__streak-num', { 'week-card__streak-num--pop': celebrationPhase === 'pop' }]">
+            {{ displayedStreak }}
+          </span>
+          <span class="week-card__streak-text">
+            <span class="week-card__streak-label">{{ streakCurrent > 0 ? weeksLabel(displayedStreak) : "Start en ny streak" }}</span>
+            <span v-if="streakMeta" class="week-card__streak-meta">{{ streakMeta }}</span>
+          </span>
+        </div>
+        <div class="week-card__chain" role="img" :aria-label="chainLabel">
+          <span
+            v-for="link in streakChain"
+            :key="link.key"
+            :class="['week-card__link', { 'week-card__link--met': isLinkMet(link), 'week-card__link--current': link.isCurrent && !isLinkMet(link) }]">
+            <span v-if="link.isCurrent && !isLinkMet(link)" class="week-card__link-fill" :style="{ width: link.progress * 100 + '%' }"></span>
+          </span>
+        </div>
+      </div>
+
       <!-- Day track -->
       <div class="week-card__days">
         <div v-for="(label, i) in WEEK_DAYS" :key="label" class="week-card__day">
@@ -286,8 +384,42 @@
         </div>
       </div>
 
-      <!-- Progress toward this week's goal — sets, or cardio for a cardio-only plan -->
-      <div v-if="setsGoalProgress.hasTarget" class="week-card__goal">
+      <!-- Week secured: every target met -->
+      <div v-if="showStreak && thisWeek.approved" class="week-card__secured">
+        <span class="week-card__secured-check">
+          <svg viewBox="0 0 10 10" fill="none" aria-hidden="true">
+            <path d="M2 5.5l2.2 2.2 3.8-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <span class="week-card__secured-text">
+          <span class="week-card__secured-title">Uka er i boks — {{ streakCurrent }} {{ weeksLabel(streakCurrent) }}</span>
+          <span class="week-card__secured-sub">Alle mål nådd. Resten av uka er bonus.</span>
+        </span>
+      </div>
+
+      <!-- What's left this week, target by target — the total isn't the rule -->
+      <div v-else-if="showStreak" class="week-card__goal">
+        <div class="week-card__goal-head">
+          <span class="week-card__goal-label">{{ streakCurrent > 0 ? "Igjen for å holde streaken" : "Igjen for å nå ukesmålet" }}</span>
+          <span v-if="thisWeek.remainingSets > 0" class="week-card__goal-count">
+            <strong>{{ thisWeek.remainingSets }}</strong> sett
+          </span>
+        </div>
+        <ul class="week-card__gaps">
+          <li v-for="gap in thisWeek.gaps" :key="gap.kind + gap.name" class="week-card__gap">
+            <span class="week-card__gap-dot" :style="{ background: gapColor(gap) }"></span>
+            <span class="week-card__gap-name">{{ gap.name }}</span>
+            <span class="week-card__gap-value">{{ formatGap(gap, gap.done) }} / {{ formatGap(gap, gap.target) }}{{ GAP_UNIT[gap.kind] }}</span>
+            <span class="week-card__gap-left">{{ formatGap(gap, gap.remaining) }}{{ GAP_UNIT[gap.kind] }} igjen</span>
+          </li>
+        </ul>
+        <span v-if="thisWeek.groupsMet > 0" class="week-card__gaps-met">
+          ✓ {{ thisWeek.groupsMet }} av {{ thisWeek.groupsTotal }} muskelgrupper er nådd
+        </span>
+      </div>
+
+      <!-- Progress toward this week's goal — shown until the streak can be computed -->
+      <div v-else-if="setsGoalProgress.hasTarget" class="week-card__goal">
         <div class="week-card__goal-head">
           <span class="week-card__goal-label">Ukens sett</span>
           <span class="week-card__goal-count">
@@ -725,6 +857,206 @@
   .week-card__goal-pct {
     font-size: 0.6875rem;
     color: #4b5563;
+  }
+
+  /* ── Weekly goal streak ──────────────────────────────────────────────────── */
+
+  .week-card__streak {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .week-card__streak-head {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  .week-card__flame {
+    width: 1.375rem;
+    height: 1.375rem;
+    flex-shrink: 0;
+    color: #f97316;
+  }
+
+  .week-card__streak-num {
+    display: inline-block;
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  .week-card__streak-num--pop {
+    animation: streak-pop 0.45s ease-out;
+  }
+
+  @keyframes streak-pop {
+    40% {
+      transform: scale(1.25);
+    }
+  }
+
+  .week-card__streak-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .week-card__streak-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+
+  .week-card__streak-meta {
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  .week-card__chain {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .week-card__link {
+    position: relative;
+    flex: 1;
+    height: 0.625rem;
+    overflow: hidden;
+    background: #1f2937;
+    border-radius: 3px;
+    transition: background-color 0.35s ease-out;
+  }
+
+  .week-card__link--met {
+    background: #22c55e;
+  }
+
+  .week-card__link--current {
+    background: #0d1117;
+    box-shadow: inset 0 0 0 1px #f9731640;
+  }
+
+  .week-card__link-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: #f97316;
+  }
+
+  /* ── What's left this week ───────────────────────────────────────────────── */
+
+  .week-card__gaps {
+    display: flex;
+    flex-direction: column;
+    margin: 0.25rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .week-card__gap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-top: 1px solid #1f2937;
+  }
+
+  .week-card__gap:first-child {
+    border-top: 0;
+  }
+
+  .week-card__gap-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+  }
+
+  .week-card__gap-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+
+  .week-card__gap-value {
+    margin-left: auto;
+    font-size: 0.8125rem;
+    color: #cbd5e1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .week-card__gap-left {
+    min-width: 4.75rem;
+    font-size: 0.75rem;
+    color: #fdba74;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .week-card__gaps-met {
+    padding-top: 0.5rem;
+    border-top: 1px solid #1f2937;
+    font-size: 0.75rem;
+    color: #4ade80;
+  }
+
+  /* ── Week secured ────────────────────────────────────────────────────────── */
+
+  .week-card__secured {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem;
+    background: #16a34a1a;
+    border: 1px solid #16a34a50;
+    border-radius: 0.75rem;
+  }
+
+  .week-card__secured-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #22c55e;
+    color: #fff;
+  }
+
+  .week-card__secured-check svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .week-card__secured-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .week-card__secured-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .week-card__secured-sub {
+    font-size: 0.75rem;
+    color: #4ade80;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .week-card__streak-num--pop {
+      animation: none;
+    }
+
+    .week-card__link {
+      transition: none;
+    }
   }
 
   /* ── Stats row (fallback when no goals are set) ──────────────────────────── */

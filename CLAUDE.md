@@ -62,7 +62,7 @@ Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` 
 
 ### Weekly view and goals
 
-`useWeekStats` (ISO weeks starting Monday, labels `Man`…`Søn`) and `useTrainingGoals` (plans with weekly set targets per muscle group, plus cardio targets) power `TemplateSessions.vue` (home) and `WeekDetails.vue`. The week is the unit of progress. Rest days are planned, so don't add streaks or "days in a row" mechanics.
+`useWeekStats` (ISO weeks starting Monday, labels `Man`…`Søn`) and `useTrainingGoals` (plans with weekly set targets per muscle group, plus cardio targets) power `TemplateSessions.vue` (home) and `WeekDetails.vue`. The week is the unit of progress. Rest days are planned, so don't add daily streaks or "days in a row" mechanics. The weekly goal streak (`useGoalStreak`: consecutive weeks where every weekly target is met, judged against the goals that applied that week via the goal history in `user_metadata`) is the exception.
 
 ### Active workout (`src/views/WorkoutSession.vue`)
 

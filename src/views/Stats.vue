@@ -6,7 +6,8 @@
   import { useHybridData } from "@/composables/useHybridData";
   import type { WorkoutSession } from "@/types/workout";
   import { isCardioExercise, isSetCounted, setReps, setVolume, formatDuration, formatDistance, formatPace } from "@/composables/useSetMetrics";
-  import { STRENGTH_MUSCLE_GROUP_NAMES, MUSCLE_GROUP_COLORS } from "@/composables/useTrainingGoals";
+  import { STRENGTH_MUSCLE_GROUP_NAMES, MUSCLE_GROUP_COLORS, useTrainingGoals } from "@/composables/useTrainingGoals";
+  import { useGoalStreak } from "@/composables/useGoalStreak";
   import { averageEffort, cardioRecords, cardioWeeks, collectCardioActivities, formatTotalTime, type CardioActivity } from "@/composables/useCardioActivities";
   import CardioWeeklyChart from "@/components/CardioWeeklyChart.vue";
 
@@ -366,6 +367,9 @@
 
   type Achievement = { id: string; icon: string; title: string; description: string; earned: boolean };
 
+  const { hasGoals } = useTrainingGoals();
+  const { best: bestGoalStreak } = useGoalStreak();
+
   const achievements = computed<Achievement[]>(() => {
     const sessions = filteredSessions.value;
     const totalSessions = sessions.length;
@@ -430,6 +434,18 @@
       { id: "months-6", icon: "🗓️", title: "6 aktive måneder", description: "Halvt år med aktivitet!", earned: trainedMonths.size >= 6 },
       { id: "months-12", icon: "🗓️", title: "12 aktive måneder", description: "Et helt år med trening!", earned: trainedMonths.size >= 12 },
     ];
+
+    // Best streak over all history, not the year filter — a streak across New Year stays whole.
+    if (hasGoals.value) {
+      const best = bestGoalStreak.value;
+      all.push(
+        { id: "goal-streak-3", icon: "🔥", title: "3 uker på rad", description: "Ukesmålet nådd tre uker på rad.", earned: best >= 3 },
+        { id: "goal-streak-5", icon: "🔥", title: "5 uker på rad", description: "Fem uker på rad — nå er det en vane.", earned: best >= 5 },
+        { id: "goal-streak-10", icon: "⭐", title: "10 uker på rad", description: "Ti uker på rad uten å slippe.", earned: best >= 10 },
+        { id: "goal-streak-15", icon: "🌟", title: "15 uker på rad", description: "Femten uker på rad. Solid!", earned: best >= 15 },
+        { id: "goal-streak-30", icon: "💎", title: "30 uker på rad", description: "Tretti uker på rad. Respekt.", earned: best >= 30 },
+      );
+    }
 
     // Cardio badges only appear once there's cardio to earn them with — otherwise
     // a pure strength user would stare at a wall of permanently grey running icons.
