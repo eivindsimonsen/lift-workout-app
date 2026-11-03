@@ -80,6 +80,12 @@ export const appendGoalHistory = (history: GoalHistoryEntry[], previous: Trainin
   return [...base.filter((e) => e.from !== key), { from: key, goals: next }].sort((a, b) => a.from.localeCompare(b.from));
 };
 
+// Same rounding as cardioGoalProgress in useWeekStats, so every view agrees.
+const toMinutes = (seconds: number): number => Math.round(seconds / 60);
+const toKm = (metres: number): number => Math.round(metres / 100) / 10;
+
+const CARDIO_ROW_NAMES = { minutes: "Kondisjon", km: "Distanse" } as const;
+
 export const evaluateWeek = (tally: WeekTally, goals: TrainingGoals): WeekEvaluation => {
   const hasGoals = hasAnyTarget(goals);
   const gaps: GoalGap[] = [];
@@ -97,12 +103,9 @@ export const evaluateWeek = (tally: WeekTally, goals: TrainingGoals): WeekEvalua
       else gaps.push({ name, kind: "strength", done, target, remaining: target - done });
     }
 
-    // Same rounding as cardioGoalProgress in useWeekStats, so both views agree.
-    const minutes = Math.round(tally.cardioSeconds / 60);
-    const km = Math.round(tally.cardioMetres / 100) / 10;
     const cardio: [GoalGapKind, string, number, number][] = [
-      ["minutes", "Kondisjon", minutes, goals.cardio.minutesPerWeek],
-      ["km", "Distanse", km, goals.cardio.kilometresPerWeek],
+      ["minutes", CARDIO_ROW_NAMES.minutes, toMinutes(tally.cardioSeconds), goals.cardio.minutesPerWeek],
+      ["km", CARDIO_ROW_NAMES.km, toKm(tally.cardioMetres), goals.cardio.kilometresPerWeek],
     ];
     for (const [kind, name, done, target] of cardio) {
       if (target <= 0) continue;
@@ -120,6 +123,65 @@ export const evaluateWeek = (tally: WeekTally, goals: TrainingGoals): WeekEvalua
     groupsTotal,
     remainingSets: gaps.reduce((sum, gap) => (gap.kind === "strength" ? sum + gap.remaining : sum), 0),
   };
+};
+
+/** One bar in the active session: what the week had before it, and what it adds. */
+export interface SessionGoalRow {
+  name: string;
+  kind: GoalGapKind;
+  before: number;
+  today: number;
+  target: number;
+  met: boolean;
+  /** Parts of the bar, capped so the two never pass the target together. */
+  beforeShare: number;
+  todayShare: number;
+}
+
+/**
+ * Goal rows for the groups a session trains (`groups`, in session order) plus
+ * cardio when the session has any. Whether a row is met comes from
+ * `evaluateWeek` on the combined week, so it matches the home card.
+ */
+export const sessionGoalRows = (before: WeekTally, today: WeekTally, groups: string[], hasCardio: boolean, goals: TrainingGoals): SessionGoalRow[] => {
+  if (!hasAnyTarget(goals)) return [];
+
+  const sum: WeekTally = {
+    setsByGroup: { ...before.setsByGroup },
+    cardioSeconds: before.cardioSeconds + today.cardioSeconds,
+    cardioMetres: before.cardioMetres + today.cardioMetres,
+  };
+  for (const [name, n] of Object.entries(today.setsByGroup)) sum.setsByGroup[name] = (sum.setsByGroup[name] ?? 0) + n;
+  const gaps = evaluateWeek(sum, goals).gaps;
+
+  const row = (name: string, kind: GoalGapKind, done: number, total: number, target: number): SessionGoalRow => {
+    const beforeShare = Math.min(done, target) / target;
+    return {
+      name,
+      kind,
+      before: done,
+      today: Math.round((total - done) * 10) / 10,
+      target,
+      met: !gaps.some((gap) => gap.kind === kind && gap.name === name),
+      beforeShare,
+      todayShare: Math.min(total, target) / target - beforeShare,
+    };
+  };
+
+  const rows = groups
+    .filter((name) => (goals.setsPerMuscleGroup[name] ?? 0) > 0)
+    .map((name) => {
+      const done = before.setsByGroup[name] ?? 0;
+      return row(name, "strength", done, done + (today.setsByGroup[name] ?? 0), goals.setsPerMuscleGroup[name]);
+    });
+
+  if (hasCardio && goals.cardio.minutesPerWeek > 0) {
+    rows.push(row(CARDIO_ROW_NAMES.minutes, "minutes", toMinutes(before.cardioSeconds), toMinutes(sum.cardioSeconds), goals.cardio.minutesPerWeek));
+  }
+  if (hasCardio && goals.cardio.kilometresPerWeek > 0) {
+    rows.push(row(CARDIO_ROW_NAMES.km, "km", toKm(before.cardioMetres), toKm(sum.cardioMetres), goals.cardio.kilometresPerWeek));
+  }
+  return rows;
 };
 
 /**

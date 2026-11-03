@@ -296,6 +296,30 @@
               <p class="text-[12px] text-dark-300">{{ tile.label }}</p>
             </div>
           </div>
+
+          <!-- Weekly goal for the groups this session trains — before the session, plus today on top -->
+          <div v-if="goalRows.length" class="ws-goal mt-4 pt-3 border-t border-dark-700">
+            <p v-if="allGoalsMet" class="ws-goal__done">✓ Ukesmålet er nådd for {{ metGroupNames }}</p>
+            <template v-else>
+              <p class="ws-goal__title">Ukesmålet</p>
+              <!-- One grid for all rows, so every track starts and ends in the same place -->
+              <div class="ws-goal__rows">
+                <div v-for="row in goalRows" :key="row.kind + row.name" class="ws-goal__row">
+                  <span class="ws-goal__name">{{ row.name }}</span>
+                  <span class="ws-goal__track">
+                    <span
+                      :class="['ws-goal__seg', { 'ws-goal__seg--end': row.todayShare === 0 }]"
+                      :style="{ left: '0', width: row.beforeShare * 100 + '%', background: goalRowColor(row) }"></span>
+                    <span
+                      v-if="row.todayShare > 0"
+                      class="ws-goal__seg ws-goal__seg--today ws-goal__seg--end"
+                      :style="{ left: row.beforeShare * 100 + '%', width: row.todayShare * 100 + '%', background: goalRowColor(row) }"></span>
+                  </span>
+                  <span :class="['ws-goal__value', { 'ws-goal__value--met': row.met }]">{{ goalRowValue(row) }}</span>
+                </div>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
 
@@ -615,6 +639,9 @@ import {
   pauseTimer,
 } from '@/composables/useCardioTimer'
 import { summarizeCardioExercise } from '@/composables/useCardioActivities'
+import { useTrainingGoals, MUSCLE_GROUP_COLORS, CARDIO_GROUP_NAME } from '@/composables/useTrainingGoals'
+import { useGoalStreak, addSessionToTally, emptyTally } from '@/composables/useGoalStreak'
+import { sessionGoalRows, weekKeyOf, type SessionGoalRow } from '@/composables/goalStreak'
 
 const route = useRoute()
 const router = useRouter()
@@ -925,6 +952,57 @@ const summaryTiles = computed(() => {
 
   tiles.push({ key: 'duration', value: sessionDuration.value, label: 'Varighet' })
   return tiles
+})
+
+// ---------------------------------------------------------------------------
+// Weekly goal — the groups this session trains, counted live on top of the week
+// ---------------------------------------------------------------------------
+
+const { goals, hasGoals } = useTrainingGoals()
+const { ready: goalsReady, thisWeekTally, thisWeekKey } = useGoalStreak()
+
+/** Muscle groups in the order the session first trains them — not a fixed list per workout type. */
+const sessionGroups = computed(() => {
+  const index = workoutData.exerciseIndex.value
+  const groups: string[] = []
+  ;(session.value?.exercises ?? []).forEach(ex => {
+    if (isCardioExercise(ex)) return
+    const category = index.get(Number(ex.exerciseId))?.category
+    if (category && category !== CARDIO_GROUP_NAME && !groups.includes(category)) groups.push(category)
+  })
+  return groups
+})
+
+const goalRows = computed<SessionGoalRow[]>(() => {
+  const s = session.value
+  // Once the store marks it completed it's already in thisWeekTally — adding it again would double it.
+  if (!s || workoutData.getSessionById(s.id)?.isCompleted) return []
+  // A session started before Monday counts in last week, so this week's numbers would mislead.
+  if (!hasGoals.value || !goalsReady.value || weekKeyOf(new Date(s.date)) !== thisWeekKey.value) return []
+  const today = emptyTally()
+  addSessionToTally(today, s, workoutData.exerciseIndex.value)
+  // Include a running stopwatch, like the Kondisjon tile — banked rounds are already part of it.
+  today.cardioSeconds = sessionCardioSeconds.value
+  return sessionGoalRows(thisWeekTally.value, today, sessionGroups.value, s.exercises.some(ex => isCardioExercise(ex)), goals.value)
+})
+
+const allGoalsMet = computed(() => goalRows.value.length > 0 && goalRows.value.every(row => row.met))
+
+const goalKmFormat = new Intl.NumberFormat('no-NO', { maximumFractionDigits: 1 })
+const GOAL_UNIT = { strength: '', minutes: ' min', km: ' km' } as const
+
+const goalRowValue = (row: SessionGoalRow): string => {
+  const format = (n: number) => (row.kind === 'km' ? goalKmFormat.format(n) : String(n))
+  return `${format(row.before + row.today)} / ${format(row.target)}${GOAL_UNIT[row.kind]}${row.met ? ' ✓' : ''}`
+}
+
+const goalRowColor = (row: SessionGoalRow): string =>
+  row.kind === 'strength' ? (MUSCLE_GROUP_COLORS[row.name] ?? '#64748b') : '#06b6d4'
+
+/** "Bryst", "Bryst og Skuldre", "Bryst, Skuldre og Triceps". */
+const metGroupNames = computed(() => {
+  const names = goalRows.value.map(row => row.name)
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} og ${names[names.length - 1]}` : names.join('')
 })
 
 const anyCardioRunning = computed(() =>
@@ -2451,6 +2529,88 @@ watch(() => route.params.id, async (newId, oldId) => {
   font-size: 0.8125rem;
   color: #9ca3af;
   white-space: nowrap;
+}
+
+/* ── Weekly goal in the summary box ───────────────────────────────────────── */
+
+.ws-goal__title {
+  margin: 0 0 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.ws-goal__rows {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.ws-goal__row {
+  display: contents;
+}
+
+.ws-goal__name {
+  overflow: hidden;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-goal__track {
+  position: relative;
+  height: 0.375rem;
+  overflow: hidden;
+  background: #0d1117;
+  border-radius: 0 4px 4px 0;
+}
+
+.ws-goal__seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transition: width 0.3s ease-out, left 0.3s ease-out;
+}
+
+/* Today's sets: same colour, lighter — no new shades */
+.ws-goal__seg--today {
+  opacity: 0.5;
+}
+
+/* DESIGN.md bars: straight start, 4px rounding on the data end */
+.ws-goal__seg--end {
+  border-radius: 0 4px 4px 0;
+}
+
+.ws-goal__value {
+  /* Room for "15 / 15 ✓", so the column doesn't jump when a row is met */
+  min-width: 4.5rem;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ws-goal__value--met {
+  color: #4ade80;
+}
+
+.ws-goal__done {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #4ade80;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-goal__seg {
+    transition: none;
+  }
 }
 </style>
 

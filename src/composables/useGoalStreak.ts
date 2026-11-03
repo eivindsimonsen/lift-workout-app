@@ -1,5 +1,6 @@
 import { computed } from "vue";
-import { useHybridData } from "./useHybridData";
+import { useHybridData, type ExerciseIndexEntry } from "./useHybridData";
+import type { WorkoutSession } from "@/types/workout";
 import { useTrainingGoals, CARDIO_GROUP_NAME } from "./useTrainingGoals";
 import { startOfIsoWeek } from "./useWeekStats";
 import { isSetCounted, setDuration, setDistance, isCardioExercise } from "./useSetMetrics";
@@ -21,7 +22,21 @@ export interface ChainLink {
   progress: number;
 }
 
-const emptyTally = (): WeekTally => ({ setsByGroup: {}, cardioSeconds: 0, cardioMetres: 0 });
+export const emptyTally = (): WeekTally => ({ setsByGroup: {}, cardioSeconds: 0, cardioMetres: 0 });
+
+/** Adds a session's counted sets to `tally` — the one counting rule the streak and the live session share. */
+export const addSessionToTally = (tally: WeekTally, session: Pick<WorkoutSession, "exercises">, index: Map<number, ExerciseIndexEntry>): void => {
+  session.exercises?.forEach((exercise: any) => {
+    const cardio = isCardioExercise(exercise);
+    const category = cardio ? null : index.get(Number(exercise?.exerciseId))?.category;
+    exercise.sets?.forEach((set: any) => {
+      if (!isSetCounted(exercise, set)) return;
+      tally.cardioSeconds += setDuration(exercise, set);
+      tally.cardioMetres += setDistance(exercise, set);
+      if (category && category !== CARDIO_GROUP_NAME) tally.setsByGroup[category] = (tally.setsByGroup[category] ?? 0) + 1;
+    });
+  });
+};
 
 /**
  * Consecutive weeks where every weekly target was met, each week judged by the
@@ -42,18 +57,7 @@ export const useGoalStreak = () => {
     workoutData.sessions.value.forEach((session) => {
       if (!session.isCompleted) return;
       const key = weekKeyOf(new Date(session.date));
-      const tally = byWeek.get(key) ?? byWeek.set(key, emptyTally()).get(key)!;
-
-      session.exercises?.forEach((exercise: any) => {
-        const cardio = isCardioExercise(exercise);
-        const category = cardio ? null : index.get(Number(exercise?.exerciseId))?.category;
-        exercise.sets?.forEach((set: any) => {
-          if (!isSetCounted(exercise, set)) return;
-          tally.cardioSeconds += setDuration(exercise, set);
-          tally.cardioMetres += setDistance(exercise, set);
-          if (category && category !== CARDIO_GROUP_NAME) tally.setsByGroup[category] = (tally.setsByGroup[category] ?? 0) + 1;
-        });
-      });
+      addSessionToTally(byWeek.get(key) ?? byWeek.set(key, emptyTally()).get(key)!, session, index);
     });
 
     return byWeek;
@@ -97,6 +101,8 @@ export const useGoalStreak = () => {
 
   const thisWeek = computed(() => weeks.value[weeks.value.length - 1].evaluation);
   const thisWeekKey = computed(() => weeks.value[weeks.value.length - 1].key);
+  /** Completed sessions so far this week — the live session adds itself on top. */
+  const thisWeekTally = computed(() => tallies.value.get(thisWeekKey.value) ?? emptyTally());
 
-  return { ready, current, best, nextMilestone, chain, thisWeek, thisWeekKey };
+  return { ready, current, best, nextMilestone, chain, thisWeek, thisWeekKey, thisWeekTally };
 };
