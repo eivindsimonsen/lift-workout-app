@@ -12,7 +12,7 @@
   import ExerciseEditForm from "@/components/ExerciseEditForm.vue";
   import CardioWeeklyChart from "@/components/CardioWeeklyChart.vue";
   import type { ExerciseData, WorkoutSession } from "@/types/workout";
-  import { formatDuration, formatDistance, formatPace, isSetCounted } from "@/composables/useSetMetrics";
+  import { formatDuration, formatDistance, formatPace, isSetCounted, setLoadKg, setProgressKg, setVolume, setWeightParts } from "@/composables/useSetMetrics";
   import { startOfIsoWeek, getIsoWeekNumber } from "@/composables/useWeekStats";
   import { MUSCLE_GROUP_COLORS } from "@/composables/useTrainingGoals";
   import {
@@ -34,7 +34,10 @@
   type Performance = {
     id: string;
     sessionId: string;
+    /** Progress kg: lbs converted, only the extra load on body weight sets. */
     weight: number;
+    /** Everything moved, in kg — what volume and intensity are built on. */
+    load: number;
     reps: number;
     date: Date;
   };
@@ -143,7 +146,14 @@
     sessionsWithExercise.value.forEach(({ session, entry }) => {
       (entry.sets || []).forEach((set: any) => {
         if (!isSetCounted(entry, set)) return;
-        out.push({ id: `${session.id}-${set.id}`, sessionId: session.id, weight: Number(set.weight), reps: Number(set.reps), date: new Date(session.date) });
+        out.push({
+          id: `${session.id}-${set.id}`,
+          sessionId: session.id,
+          weight: setProgressKg(entry, set),
+          load: setLoadKg(entry, set),
+          reps: Number(set.reps),
+          date: new Date(session.date),
+        });
       });
     });
     return out;
@@ -299,7 +309,7 @@
     const byMonth = new Map<string, { date: Date; volume: number }>();
 
     performances.value.forEach((p) => {
-      const volume = p.weight * p.reps;
+      const volume = p.load * p.reps;
       const week = startOfIsoWeek(p.date).getTime();
       byWeek.set(week, (byWeek.get(week) ?? 0) + volume);
       const monthKey = `${p.date.getFullYear()}-${p.date.getMonth()}`;
@@ -340,7 +350,7 @@
     performances.value.forEach((p) => {
       const key = startOfIsoWeek(p.date).getTime();
       const week = byWeek.get(key) ?? { volume: 0, reps: 0 };
-      week.volume += p.weight * p.reps;
+      week.volume += p.load * p.reps;
       week.reps += p.reps;
       byWeek.set(key, week);
     });
@@ -362,20 +372,21 @@
         const sets = (entry.sets || []).filter((set: any) => isSetCounted(entry, set));
         // Heaviest by weight; on equal weight, more reps wins.
         const top = sets.reduce(
-          (best: { weight: number; reps: number }, set: any) => {
-            const weight = Number(set.weight);
+          (best: { weight: number; reps: number; set: any }, set: any) => {
+            const weight = setProgressKg(entry, set);
             const reps = Number(set.reps);
-            return weight > best.weight || (weight === best.weight && reps > best.reps) ? { weight, reps } : best;
+            return weight > best.weight || (weight === best.weight && reps > best.reps) ? { weight, reps, set } : best;
           },
-          { weight: 0, reps: 0 },
+          { weight: 0, reps: 0, set: null },
         );
         return {
           id: session.id,
           name: session.templateName,
           date: new Date(session.date),
-          topWeight: top.weight,
+          // "KV + 10" / "45,4" — as the set list in the session shows it
+          topWeight: top.set ? setWeightParts(top.set) : { value: "0", unit: "kg" },
           topReps: top.reps,
-          volume: sets.reduce((sum: number, set: any) => sum + Number(set.weight) * Number(set.reps), 0),
+          volume: sets.reduce((sum: number, set: any) => sum + setVolume(entry, set), 0),
           count: sets.length,
         };
       })
@@ -652,7 +663,7 @@
           <router-link v-for="s in recentSessions" :key="s.id" :to="`/session/${s.id}`" class="ed-row">
             <div class="ed-row__main">
               <!-- One line on purpose: spacing comes from CSS, not from template whitespace Vue may drop -->
-              <p class="ed-row__name">{{ formatKg(s.topWeight) }}<span class="ed-stat__unit">kg</span><span class="ed-row__times">×</span>{{ s.topReps }}</p>
+              <p class="ed-row__name">{{ s.topWeight.value }}<span v-if="s.topWeight.unit" class="ed-stat__unit">{{ s.topWeight.unit }}</span><span class="ed-row__times">×</span>{{ s.topReps }}</p>
               <p class="ed-row__meta">{{ formatSessionDate(s.date) }} · {{ s.name }} · {{ s.count }} sett</p>
             </div>
             <div class="ed-row__side">

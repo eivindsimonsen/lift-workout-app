@@ -4,7 +4,7 @@ import { useErrorHandler } from "@/composables/useErrorHandler";
 import { useIndexedDB } from "@/composables/useIndexedDB";
 import { useExercises } from "./useExercises";
 import type { WorkoutTemplate, WorkoutSession, ExerciseTrackingType } from "@/types/workout";
-import { isSetCounted, setDuration } from "./useSetMetrics";
+import { isSetCounted, setDuration, setVolume } from "./useSetMetrics";
 
 // ------- tiny logger ----------
 const logSupabaseAccess = (operation: string, details?: any) => {
@@ -305,7 +305,7 @@ const createSupabaseData = () => {
             })) || [];
 
           const total = exercises.reduce((acc: number, ex: any) => {
-            const vol = ex.sets.reduce((sum: number, set: any) => (set.isCompleted && set.weight && set.reps ? sum + set.weight * set.reps : sum), 0);
+            const vol = ex.sets.reduce((sum: number, set: any) => (isSetCounted(ex, set) ? sum + setVolume(ex, set) : sum), 0);
             return acc + vol;
           }, 0);
 
@@ -741,6 +741,9 @@ const createSupabaseData = () => {
           id: set.id,
           reps: Number(set.reps) || 0,
           weight: Number(set.weight) || 0,
+          weightUnit: set.weightUnit,
+          withBodyweight: set.withBodyweight,
+          bodyweight: set.bodyweight,
           duration: set.duration,
           distance: set.distance,
           timerStartedAt: set.timerStartedAt,
@@ -1080,14 +1083,7 @@ const createSupabaseData = () => {
 
       const totalVolume = Math.round(
         session.exercises.reduce((exTotal, ex) => {
-          const vol = ex.sets.reduce((setTot, set) => {
-            if (set.isCompleted && set.weight) {
-              const weight = Number(set.weight) || 0;
-              const reps = Number(set.reps) || 0;
-              return setTot + weight * reps;
-            }
-            return setTot;
-          }, 0);
+          const vol = ex.sets.reduce((setTot, set) => (isSetCounted(ex, set) ? setTot + setVolume(ex, set) : setTot), 0);
           return exTotal + vol;
         }, 0)
       );

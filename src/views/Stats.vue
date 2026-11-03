@@ -5,7 +5,7 @@
   import { computed, ref, watch } from "vue";
   import { useHybridData } from "@/composables/useHybridData";
   import type { WorkoutSession } from "@/types/workout";
-  import { isCardioExercise, isSetCounted, setReps, setVolume, formatDuration, formatDistance, formatPace } from "@/composables/useSetMetrics";
+  import { isCardioExercise, isSetCounted, setReps, setVolume, setProgressKg, formatDuration, formatDistance, formatPace } from "@/composables/useSetMetrics";
   import { STRENGTH_MUSCLE_GROUP_NAMES, MUSCLE_GROUP_COLORS, useTrainingGoals } from "@/composables/useTrainingGoals";
   import { useGoalStreak } from "@/composables/useGoalStreak";
   import { averageEffort, cardioRecords, cardioWeeks, collectCardioActivities, formatTotalTime, type CardioActivity } from "@/composables/useCardioActivities";
@@ -382,7 +382,7 @@
     sessions.forEach((s) =>
       s.exercises.forEach((e) =>
         e.sets.forEach((set) => {
-          if (set.isCompleted && set.weight && set.reps === 1) oneRmExercises.add(e.exerciseId);
+          if (set.isCompleted && set.reps === 1 && setProgressKg(e, set) > 0) oneRmExercises.add(e.exerciseId);
         }),
       ),
     );

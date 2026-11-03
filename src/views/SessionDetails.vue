@@ -8,7 +8,7 @@
   import type { WorkoutExercise, WorkoutSession, WorkoutSet } from "@/types/workout";
   import Breadcrumbs from "@/components/Breadcrumbs.vue";
   import CardioActivitySummary from "@/components/CardioActivitySummary.vue";
-  import { isCardioExercise, isSetCounted, setReps, setVolume } from "@/composables/useSetMetrics";
+  import { isCardioExercise, isSetCounted, setReps, setVolume, setProgressKg, setWeightParts, setWeightText } from "@/composables/useSetMetrics";
   import { formatTotalTime } from "@/composables/useCardioActivities";
   import { MUSCLE_GROUP_COLORS } from "@/composables/useTrainingGoals";
 
@@ -94,7 +94,7 @@
         if (isCardioExercise(ex)) return;
         const id = Number(ex.exerciseId);
         countedSets(ex).forEach((set) => {
-          const weight = Number(set.weight) || 0;
+          const weight = setProgressKg(ex, set);
           if (weight > (best.get(id) ?? 0)) best.set(id, weight);
         });
       });
@@ -110,11 +110,11 @@
       // Heaviest by weight; on equal weight, more reps wins. A full tie keeps
       // the earliest set — the one that got there first.
       const top = sets.reduce((a, b) => {
-        const wa = Number(a.weight) || 0;
-        const wb = Number(b.weight) || 0;
+        const wa = setProgressKg(ex, a);
+        const wb = setProgressKg(ex, b);
         return wb > wa || (wb === wa && (Number(b.reps) || 0) > (Number(a.reps) || 0)) ? b : a;
       });
-      const topWeight = Number(top.weight) || 0;
+      const topWeight = setProgressKg(ex, top);
       const topReps = Number(top.reps) || 0;
       const volume = sets.reduce((sum, set) => sum + setVolume(ex, set), 0);
       const previous = previousBest.value.get(Number(ex.exerciseId));
@@ -125,11 +125,12 @@
         key: `${ex.exerciseId}`,
         exerciseId: ex.exerciseId,
         name: ex.name,
-        sets: sets.map((set) => ({ id: set.id, weight: formatKg(Number(set.weight) || 0), reps: Number(set.reps) || 0, isPR: isPR && set === top })),
+        sets: sets.map((set) => ({ id: set.id, ...setWeightParts(set), reps: Number(set.reps) || 0, isPR: isPR && set === top })),
         volume,
         share: Math.round((volume / totalVolume) * 100),
         isPR,
-        nextHint: topReps >= 5 ? `${formatKg(topWeight + 2.5)} kg` : `${formatKg(topWeight)} kg og +1 rep`,
+        // +2.5 in the set's own unit, so lbs and body weight read right ("KV + 2,5 kg", "46,5 kg").
+        nextHint: topReps >= 5 ? setWeightText({ ...top, weight: (Number(top.weight) || 0) + 2.5 }) : `${setWeightText(top)} og +1 rep`,
       };
     });
   });
@@ -389,7 +390,7 @@
               <ol class="sd-sets">
                 <li v-for="(set, index) in row.sets" :key="set.id" class="sd-set" :class="{ 'sd-set--pr': set.isPR }">
                   <span class="sd-set__num">{{ index + 1 }}</span>
-                  <span class="sd-set__weight">{{ set.weight }} <span class="sd-set__unit">kg</span></span>
+                  <span class="sd-set__weight">{{ set.value }} <span v-if="set.unit" class="sd-set__unit">{{ set.unit }}</span></span>
                   <span class="sd-set__reps">{{ set.reps }} <span class="sd-set__unit">reps</span></span>
                 </li>
               </ol>

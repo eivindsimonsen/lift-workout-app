@@ -223,7 +223,7 @@
                 </div>
                 <div>
                   <div class="text-white font-bold text-lg leading-none">
-                    {{ exerciseQuickViewData.best.weight }} <span class="text-sm font-normal text-yellow-500/80">kg</span>
+                    {{ formatKgShort(exerciseQuickViewData.best.weight) }} <span class="text-sm font-normal text-yellow-500/80">kg</span>
                   </div>
                   <div class="text-xs text-yellow-500/60 mt-0.5">
                     {{ exerciseQuickViewData.best.reps }} reps • {{ formatDate(exerciseQuickViewData.best.date) }}
@@ -264,8 +264,7 @@
                   <div class="flex items-baseline gap-1">
                       <span class="text-white font-semibold">{{ set.reps }}</span>
                       <span class="text-dark-400 text-xs px-0.5">×</span>
-                      <span class="text-white font-semibold">{{ set.weight }}</span>
-                      <span class="text-dark-400 text-xs ml-0.5">kg</span>
+                      <span class="text-white font-semibold">{{ set.text }}</span>
                   </div>
                 </div>
               </div>
@@ -453,7 +452,7 @@
                 </span>
                 <span v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) && getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-sep"> · </span>
                 <span v-if="getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-pb">
-                  PB {{ getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)?.weight }}kg
+                  PB {{ formatKgShort(getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)!.weight) }}kg
                 </span>
               </p>
             </div>
@@ -493,11 +492,36 @@
             />
 
             <template v-else>
+            <!-- Unit for this exercise today — the kg machine may be taken — and body weight on top -->
+            <div class="ex-unit-row">
+              <div class="ex-unit" role="group" aria-label="Enhet">
+                <button
+                  v-for="unit in UNIT_OPTIONS"
+                  :key="unit"
+                  type="button"
+                  class="ex-unit__btn"
+                  :class="{ 'ex-unit__btn--on': activeUnit === unit }"
+                  :aria-pressed="activeUnit === unit"
+                  @click="setExerciseWeighing(activeExerciseIndex!, { unit, withBodyweight: activeWithBodyweight })"
+                >{{ unit }}</button>
+              </div>
+              <button
+                type="button"
+                class="ex-unit__toggle"
+                :class="{ 'ex-unit__toggle--on': activeWithBodyweight }"
+                :aria-pressed="activeWithBodyweight"
+                @click="setExerciseWeighing(activeExerciseIndex!, { unit: activeUnit, withBodyweight: !activeWithBodyweight })"
+              >+ kroppsvekt<span v-if="activeWithBodyweight" class="ex-unit__toggle-x" aria-hidden="true">×</span></button>
+            </div>
+            <p v-if="activeWithBodyweight" class="ex-unit__bw">
+              <template v-if="profileBodyweight">Kroppsvekt <strong>{{ formatKgShort(profileBodyweight) }} kg</strong> · fra profilen</template>
+              <template v-else>Legg inn kroppsvekt under Profil for å få den med i volumet</template>
+            </p>
             <!-- Column headers -->
             <div class="ex-set__headers">
               <span>#</span>
               <span>Reps</span>
-              <span>Vekt (kg)</span>
+              <span>{{ weightHeader }}</span>
               <span class="ex-set__col-right">Volum</span>
             </div>
 
@@ -567,7 +591,7 @@
                   step="0.5"
                   class="ex-set__input"
                   :class="{ 'ex-set__input--done': set.isCompleted }"
-                  :placeholder="getLastPerformance(session.exercises[activeExerciseIndex].exerciseId)?.weight?.toString() || '–'"
+                  :placeholder="weightPlaceholder(session.exercises[activeExerciseIndex].exerciseId)"
                   :id="`sweight-${activeExerciseIndex}-${setIndex}`"
                   :data-exercise-index="activeExerciseIndex"
                   :data-set-index="setIndex"
@@ -578,7 +602,7 @@
                 />
 
                 <span class="ex-set__vol" :class="{ 'ex-set__vol--done': set.isCompleted }">
-                  {{ set.weight && set.reps ? formatNumber(set.weight * set.reps) : '–' }}
+                  {{ isSetLogged(session.exercises[activeExerciseIndex], set) ? formatNumber(setVolume(session.exercises[activeExerciseIndex], set)) : '–' }}
                 </span>
                 </div><!-- /.ex-set__row -->
               </div><!-- /.ex-set__swipe-wrapper -->
@@ -613,7 +637,7 @@ import { ref, computed, onMounted, type Ref, onUnmounted, watch, nextTick } from
 import { useRoute, useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useErrorHandler } from '@/composables/useErrorHandler'
-import type { WorkoutSession } from '@/types/workout'
+import type { WorkoutSession, WeightUnit } from '@/types/workout'
 import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
 import SwipeableCard from '@/components/SwipeableCard.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
@@ -628,6 +652,10 @@ import {
   isSetCounted,
   isSetLogged,
   setVolume,
+  setProgressKg,
+  setWeightText,
+  weightUnitOf,
+  hasBodyweight,
   formatDuration,
   formatDistance,
 } from '@/composables/useSetMetrics'
@@ -676,7 +704,7 @@ const setSwipe = useSwipeToDelete({
 // Quick View state
 const isExerciseQuickViewOpen = ref(false)
 const exerciseQuickViewTitle = ref('Øvelsesdetaljer')
-const exerciseQuickViewData = ref<{ history: { date: Date; sets: { id: string; weight: number; reps: number }[] }[]; best: { weight: number; reps: number; date: Date } | null } | null>(null)
+const exerciseQuickViewData = ref<{ history: { date: Date; sets: { id: string; text: string; reps: number }[] }[]; best: { weight: number; reps: number; date: Date } | null } | null>(null)
 let exerciseQuickViewId: number | null = null
 
 function openExerciseQuickView(exerciseId: number, exerciseName: string) {
@@ -692,7 +720,7 @@ function openExerciseQuickView(exerciseId: number, exerciseName: string) {
     .filter(s => s.isCompleted)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-  const history: { date: Date; sets: { id: string; weight: number; reps: number }[] }[] = []
+  const history: { date: Date; sets: { id: string; text: string; reps: number }[] }[] = []
   let sessionCounter = 0
   const SESSION_LIMIT = 4
 
@@ -702,11 +730,12 @@ function openExerciseQuickView(exerciseId: number, exerciseName: string) {
     const ex = s.exercises.find((e: any) => e.exerciseId === exerciseId)
     if (!ex) continue
 
-    const sessionSets: { id: string; weight: number; reps: number }[] = []
-    
+    const sessionSets: { id: string; text: string; reps: number }[] = []
+
     for (const set of ex.sets) {
-      if (!set.isCompleted || !set.weight || !set.reps) continue
-      sessionSets.push({ id: `${s.id}-${set.id}`, weight: Number(set.weight), reps: Number(set.reps) })
+      // Strength history only — a cardio round would read "0 × 0 kg".
+      if (isCardioExercise(ex) || !isSetCounted(ex, set)) continue
+      sessionSets.push({ id: `${s.id}-${set.id}`, text: setWeightText(set), reps: Number(set.reps) })
     }
 
     if (sessionSets.length > 0) {
@@ -907,7 +936,11 @@ const lastPerformanceLabel = (exerciseId: number): string | null => {
   const last = getLastPerformance(exerciseId)
   if (!last) return null
 
-  if (!last.isCardio) return `Sist ${last.reps}×${last.weight}kg`
+  // As logged, so the number matches the machine you'll stand at.
+  if (!last.isCardio) {
+    const typed = last.weightUnit === 'lbs' ? `${last.weight} lbs` : `${last.weight}kg`
+    return `Sist ${last.reps}×${last.withBodyweight ? (last.weight ? `KV + ${typed}` : 'KV') : typed}`
+  }
 
   const parts: string[] = []
   if (Number(last.duration) > 0) parts.push(formatDuration(Number(last.duration)))
@@ -1198,10 +1231,15 @@ const restoreScrollPosition = () => {
 const addSet = (exerciseIndex: number) => {
   if (!session.value) return
   const exercise = session.value.exercises[exerciseIndex]
+  const previous = exercise.sets[exercise.sets.length - 1]
   const newSet = {
     id: `set-${Date.now()}-${exercise.sets.length}`,
     reps: 0,
     weight: 0,
+    // Same machine as the set above
+    weightUnit: previous?.weightUnit,
+    withBodyweight: previous?.withBodyweight,
+    bodyweight: previous?.bodyweight,
     duration: undefined as number | undefined,
     distance: undefined as number | undefined,
     isCompleted: false
@@ -1339,6 +1377,57 @@ const {
 /** Opens the bottom sheet for a specific exercise index. */
 const openExerciseSheet = (idx: number) => {
   activeExerciseIndex.value = idx
+  const exercise = session.value?.exercises[idx]
+  // First open this session: start where last time ended, so a lbs machine or body weight carries over.
+  // Plain kg is what missing values mean, so only write otherwise — opening a sheet shouldn't dirty the session.
+  if (exercise && !isCardioExercise(exercise) && !exercise.sets.some(set => set.weightUnit || hasBodyweight(set))) {
+    const last = getLastPerformance(exercise.exerciseId)
+    if (last && !last.isCardio && (last.weightUnit !== 'kg' || last.withBodyweight)) {
+      setExerciseWeighing(idx, { unit: last.weightUnit, withBodyweight: last.withBodyweight })
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Weight unit — chosen per exercise, stored on every set
+// ---------------------------------------------------------------------------
+
+const UNIT_OPTIONS: WeightUnit[] = ['kg', 'lbs']
+
+const profileBodyweight = computed<number | null>(() => {
+  const kg = Number(workoutData.currentUser.value?.user_metadata?.bodyweight)
+  return kg > 0 ? kg : null
+})
+
+/** Every set of an exercise shares unit and body weight, so the first set speaks for them. */
+const activeFirstSet = computed(() =>
+  activeExerciseIndex.value === null ? undefined : session.value?.exercises[activeExerciseIndex.value]?.sets[0]
+)
+const activeUnit = computed<WeightUnit>(() => weightUnitOf(activeFirstSet.value))
+const activeWithBodyweight = computed(() => hasBodyweight(activeFirstSet.value))
+const weightHeader = computed(() => `${activeWithBodyweight.value ? 'Ekstra' : 'Vekt'} (${activeUnit.value})`)
+
+// Two decimals like formatKg elsewhere, so an old 61,25 kg PB isn't rounded.
+const formatKgShort = (kg: number): string => kg.toLocaleString('no-NO', { maximumFractionDigits: 2 })
+
+/** Writes unit and body weight to every set — body weight on or off can make a 0 kg set count or stop counting. */
+const setExerciseWeighing = (exerciseIndex: number, { unit, withBodyweight }: { unit: WeightUnit; withBodyweight: boolean }) => {
+  if (!session.value) return
+  session.value.exercises[exerciseIndex].sets.forEach((set, setIndex) => {
+    set.weightUnit = unit
+    set.withBodyweight = withBodyweight
+    if (!withBodyweight) delete set.bodyweight
+    else if (profileBodyweight.value) set.bodyweight = profileBodyweight.value
+    updateSetCompletion(exerciseIndex, setIndex)
+  })
+  persistExercisesToLocal()
+}
+
+/** Last time's weight as a hint, only when it was logged the way it's set up now. */
+const weightPlaceholder = (exerciseId: number): string => {
+  const last = getLastPerformance(exerciseId)
+  const same = last && !last.isCardio && last.weightUnit === activeUnit.value && last.withBodyweight === activeWithBodyweight.value
+  return same && last.weight ? String(last.weight) : '–'
 }
 
 const onRowClick = (index: number) => {
@@ -1352,7 +1441,7 @@ const closeExerciseSheet = () => {
 
 const prevExercise = () => {
   if (activeExerciseIndex.value !== null && activeExerciseIndex.value > 0) {
-    activeExerciseIndex.value--
+    openExerciseSheet(activeExerciseIndex.value - 1)
   }
 }
 
@@ -1362,7 +1451,7 @@ const nextExercise = () => {
     session.value &&
     activeExerciseIndex.value < session.value.exercises.length - 1
   ) {
-    activeExerciseIndex.value++
+    openExerciseSheet(activeExerciseIndex.value + 1)
   }
 }
 
@@ -1415,6 +1504,8 @@ const getLastPerformance = (exerciseId: number) => {
       const activity = summarizeCardioExercise(exercise)
       return {
         weight: 0,
+        weightUnit: 'kg' as WeightUnit,
+        withBodyweight: false,
         reps: 0,
         duration: activity.seconds,
         distance: activity.metres,
@@ -1427,6 +1518,8 @@ const getLastPerformance = (exerciseId: number) => {
     const lastSet = completedSets[completedSets.length - 1]
     return {
       weight: lastSet.weight,
+      weightUnit: weightUnitOf(lastSet),
+      withBodyweight: hasBodyweight(lastSet),
       reps: lastSet.reps,
       duration: lastSet.duration,
       distance: lastSet.distance,
@@ -1454,7 +1547,8 @@ const getHeaviestLift = (exerciseId: number) => {
     for (const set of exercise.sets) {
       if (!set.isCompleted) continue
       
-      const w = Number(set.weight) || 0
+      // Progress kg: lbs converted, only the extra load on body weight sets.
+      const w = setProgressKg(exercise, set)
       const r = Number(set.reps) || 0
 
       if (w <= 0 || r <= 0) continue
@@ -1660,6 +1754,15 @@ const cleanupSessionData = async (sessionData: WorkoutSession): Promise<WorkoutS
   console.log('🧹 Cleaning up session data before completion...')
 
   const cleanedSession = JSON.parse(JSON.stringify(sessionData))
+
+  // Body weight entered in the profile mid-session still counts for this session's sets.
+  cleanedSession.exercises.forEach((exercise: any) =>
+    exercise.sets.forEach((set: any) => {
+      if (hasBodyweight(set) && !(Number(set.bodyweight) > 0) && profileBodyweight.value) {
+        set.bodyweight = profileBodyweight.value
+      }
+    })
+  )
 
   const originalExerciseCount = cleanedSession.exercises.length
   cleanedSession.exercises = cleanedSession.exercises.filter((exercise: any) => {
@@ -2341,6 +2444,79 @@ watch(() => route.params.id, async (newId, oldId) => {
 /* Sheet body scrollable area */
 .ex-sheet__body {
   border-top: 1px solid #2d3a4f;
+}
+
+/* ── Weight unit selector (DESIGN.md: field palette, toned orange when on) ── */
+
+.ex-unit-row {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 1rem;
+}
+
+.ex-unit {
+  display: flex;
+  flex: 1;
+  gap: 0.1875rem;
+  padding: 0.1875rem;
+  background: #243044;
+  border: 1px solid #3d5068;
+  border-radius: 0.625rem;
+}
+
+.ex-unit__btn {
+  flex: 1;
+  min-height: 2.75rem;
+  border-radius: 0.4375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #94a3b8;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.ex-unit__btn--on {
+  background: #f9731618;
+  box-shadow: inset 0 0 0 1px #f9731640;
+  color: #fdba74;
+}
+
+/* DESIGN.md av/på-pille: field palette off, toned orange with × when on */
+.ex-unit__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding: 0 0.875rem;
+  background: #243044;
+  border: 1px solid #3d5068;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.ex-unit__toggle--on {
+  background: #f9731618;
+  border-color: #f9731640;
+  color: #fdba74;
+}
+
+.ex-unit__toggle-x {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.ex-unit__bw {
+  margin: -0.25rem 1rem 0.75rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.ex-unit__bw strong {
+  font-weight: 600;
+  color: #e2e8f0;
 }
 
 /* ── Set table (shared between sheet and any future use) ─────────────────── */

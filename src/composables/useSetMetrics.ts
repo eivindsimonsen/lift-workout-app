@@ -1,4 +1,4 @@
-import type { ExerciseTrackingType } from "@/types/workout";
+import type { ExerciseTrackingType, WeightUnit } from "@/types/workout";
 
 /**
  * Single source of truth for how the two kinds of exercise are measured.
@@ -11,7 +11,10 @@ import type { ExerciseTrackingType } from "@/types/workout";
 
 /** Anything with sets: a session exercise, or a template entry. */
 type ExerciseLike = { trackingType?: ExerciseTrackingType | null } | null | undefined;
-type SetLike = { weight?: unknown; reps?: unknown; duration?: unknown; distance?: unknown } | null | undefined;
+type SetLike =
+  | { weight?: unknown; reps?: unknown; duration?: unknown; distance?: unknown; weightUnit?: unknown; withBodyweight?: unknown; bodyweight?: unknown }
+  | null
+  | undefined;
 
 const num = (value: unknown): number => {
   const n = Number(value);
@@ -28,8 +31,22 @@ export const trackingTypeOf = (exercise: ExerciseLike): ExerciseTrackingType =>
 
 export const isCardioExercise = (exercise: ExerciseLike): boolean => trackingTypeOf(exercise) === "cardio";
 
-/** A strength set is logged once it has both reps and weight. */
-export const isStrengthSetLogged = (set: SetLike): boolean => num(set?.weight) > 0 && num(set?.reps) > 0;
+export const LBS_TO_KG = 0.45359237;
+
+/** Sets logged before units existed have none, and all of those were kg. */
+export const weightUnitOf = (set: SetLike): WeightUnit => (set?.weightUnit === "lbs" ? "lbs" : "kg");
+
+/**
+ * Body weight is part of the load. `weightUnit: "bodyweight"` is how the first
+ * uncommitted build stored "kg + body weight" — still read so test sessions stay right.
+ */
+export const hasBodyweight = (set: SetLike): boolean => set?.withBodyweight === true || set?.weightUnit === "bodyweight";
+
+/**
+ * A strength set is logged once it has reps and a weight — except on body
+ * weight, where pull-ups with no extra load are a full set.
+ */
+export const isStrengthSetLogged = (set: SetLike): boolean => num(set?.reps) > 0 && (hasBodyweight(set) || num(set?.weight) > 0);
 
 /**
  * A cardio set is logged as soon as *either* field is filled in — a 10 minute
@@ -44,9 +61,24 @@ export const isSetLogged = (exercise: ExerciseLike, set: SetLike): boolean =>
 export const isSetCounted = (exercise: ExerciseLike, set: SetLike & { isCompleted?: unknown }): boolean =>
   Boolean(set?.isCompleted) && isSetLogged(exercise, set);
 
+/** The weight on the bar or machine, in kg — body weight not included. */
+const typedKg = (set: SetLike): number => (weightUnitOf(set) === "lbs" ? num(set?.weight) * LBS_TO_KG : num(set?.weight));
+
+/** Everything moved, in kg: lbs converted, body weight added. What volume is built on. */
+export const setLoadKg = (exercise: ExerciseLike, set: SetLike): number => {
+  if (isCardioExercise(exercise)) return 0;
+  return typedKg(set) + (hasBodyweight(set) ? num(set?.bodyweight) : 0);
+};
+
+/**
+ * The kg that progress is measured in — heaviest set, PRs, 1RM, next-time hints.
+ * Body weight sets count only the extra load, so they line up with the sets
+ * logged as "10 kg" before units existed.
+ */
+export const setProgressKg = (exercise: ExerciseLike, set: SetLike): number => (isCardioExercise(exercise) ? 0 : typedKg(set));
+
 /** Lifted volume in kg. Cardio contributes none — it isn't measured in kilos. */
-export const setVolume = (exercise: ExerciseLike, set: SetLike): number =>
-  isCardioExercise(exercise) ? 0 : num(set?.weight) * num(set?.reps);
+export const setVolume = (exercise: ExerciseLike, set: SetLike): number => setLoadKg(exercise, set) * num(set?.reps);
 
 /** Reps, for the metrics that average over them. Cardio has none. */
 export const setReps = (exercise: ExerciseLike, set: SetLike): number =>
@@ -78,6 +110,19 @@ export const formatDistance = (metres: number): string => {
   if (m === 0) return "–";
   if (m < 1000) return `${m} m`;
   return `${new Intl.NumberFormat("no-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(m / 1000)} km`;
+};
+
+/** A strength set's weight in kg, split for layouts that set the unit in smaller type. */
+export const setWeightParts = (set: SetLike): { value: string; unit: string } => {
+  const kg = typedKg(set).toLocaleString("no-NO", { maximumFractionDigits: weightUnitOf(set) === "lbs" ? 1 : 2 });
+  if (!hasBodyweight(set)) return { value: kg, unit: "kg" };
+  return num(set?.weight) > 0 ? { value: `KV + ${kg}`, unit: "kg" } : { value: "KV", unit: "" };
+};
+
+/** A strength set's weight in kg for lists: "77,5 kg", "45,4 kg" (from lbs), "KV + 10 kg", "KV". */
+export const setWeightText = (set: SetLike): string => {
+  const { value, unit } = setWeightParts(set);
+  return unit ? `${value} ${unit}` : value;
 };
 
 /** Pace as "5:30 /km", or null when it can't be derived. */

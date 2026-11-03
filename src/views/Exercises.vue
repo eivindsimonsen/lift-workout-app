@@ -9,6 +9,7 @@ import { useExercises } from '@/composables/useExercises'
 import ExerciseForm from '@/components/ExerciseForm.vue'
 import muscleGroupsData from '@/data/muscle-groups.json'
 import type { ExerciseData } from '@/types/workout'
+import { setProgressKg } from '@/composables/useSetMetrics'
 
 // ---------------------------------------------------------------------------
 // State
@@ -73,8 +74,8 @@ const enrichedExercises = computed(() => {
 
         matched?.forEach((e) => {
           e.sets?.forEach((set) => {
-            if (set.isCompleted && set.weight && set.reps === 1) {
-              if (set.weight > oneRepMax) oneRepMax = set.weight
+            if (set.isCompleted && set.reps === 1) {
+              oneRepMax = Math.max(oneRepMax, setProgressKg(e, set))
             }
           })
         })

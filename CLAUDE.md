@@ -58,6 +58,10 @@ Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` 
 
 - `trackingType: 'strength' | 'cardio'` is set on the library exercise. Variants inherit it from their parent. When a session starts, the value is copied onto each `WorkoutExercise`, so logged history stays correct if the library changes later. A missing value means `strength`, because sessions from before cardio support have none.
 - **`useSetMetrics.ts` is the single source of truth** for when a set counts as logged or counted, and for its volume, reps, duration, distance and the display formatting. Use those helpers instead of computing `weight * reps` inline.
+- **Weight units:** a strength set stores `weight` as typed, in `weightUnit` (`'kg' | 'lbs'`; missing means kg, which is every set from before units existed). `withBodyweight` makes `weight` the extra load on top of a `bodyweight` kg snapshot (from `user_metadata.bodyweight`). Never read `set.weight` as kg directly:
+  - volume and `totalVolume` go through `setLoadKg` (lbs converted, body weight added);
+  - heaviest set, PR, 1RM and next-time hints go through `setProgressKg` (lbs converted, extra load only, so old dips logged as "10 kg" stay comparable);
+  - display outside the active-session sheet goes through `setWeightText` / `setWeightParts` (always kg, «KV + 10 kg»). The sheet itself shows the unit that was typed.
 - Cardio goals are minutes and km per week, not sets (`useTrainingGoals`).
 
 ### Weekly view and goals

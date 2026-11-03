@@ -23,6 +23,8 @@
   const profileName = ref("");
   const profileEmail = ref("");
   const phoneNumber = ref("");
+  /** Typed with a comma; stored in user_metadata.bodyweight as kg. */
+  const bodyweightInput = ref("");
   const currentPassword = ref("");
   const newPassword = ref("");
   const confirmPassword = ref("");
@@ -66,6 +68,8 @@
     profileName.value = user.user_metadata?.name || "";
     profileEmail.value = user.email || ""; // Always the auth e-mail — changing it requires verification.
     phoneNumber.value = user.user_metadata?.phone || "";
+    const bodyweight = Number(user.user_metadata?.bodyweight);
+    bodyweightInput.value = bodyweight > 0 ? bodyweight.toLocaleString("no-NO", { maximumFractionDigits: 1 }) : "";
     subscriptionType.value = "free";
     subscriptionStatus.value = "active";
   };
@@ -81,26 +85,38 @@
       const currentPhone = phoneNumber.value.trim();
       const currentEmail = profileEmail.value.trim();
 
+      // Empty clears it; anything else must be a believable body weight.
+      const rawBodyweight = bodyweightInput.value.trim().replace(",", ".");
+      const parsedBodyweight = Number(rawBodyweight);
+      if (rawBodyweight !== "" && (!Number.isFinite(parsedBodyweight) || parsedBodyweight < 30 || parsedBodyweight > 300)) {
+        showWarning("Kroppsvekt må være mellom 30 og 300 kg");
+        return;
+      }
+      const currentBodyweight = rawBodyweight === "" ? null : Math.round(parsedBodyweight * 10) / 10;
+      const storedBodyweight = Number(user.user_metadata?.bodyweight) > 0 ? Number(user.user_metadata.bodyweight) : null;
+
       const hasNameChange = currentName !== (user.user_metadata?.name || "");
       const hasPhoneChange = currentPhone !== (user.user_metadata?.phone || "");
+      const hasBodyweightChange = currentBodyweight !== storedBodyweight;
       const hasEmailChange = currentEmail !== user.email;
 
-      if (!hasNameChange && !hasPhoneChange && !hasEmailChange) {
+      if (!hasNameChange && !hasPhoneChange && !hasBodyweightChange && !hasEmailChange) {
         showWarning("Ingen endringer å oppdatere");
         return;
       }
 
-      if (hasNameChange || hasPhoneChange) {
-        const { error: authError } = await supabase.auth.updateUser({ data: { name: currentName, phone: currentPhone } });
+      if (hasNameChange || hasPhoneChange || hasBodyweightChange) {
+        const metadata = { name: currentName, phone: currentPhone, bodyweight: currentBodyweight };
+        const { error: authError } = await supabase.auth.updateUser({ data: metadata });
         if (authError) {
           console.error("Error updating auth user metadata:", authError);
-          handleAuthError({ message: "Kunne ikke oppdatere navn/telefon i Supabase Auth" });
+          handleAuthError({ message: "Kunne ikke oppdatere profilen i Supabase Auth" });
           return;
         }
 
         // Reflect the change at once, then refresh from Supabase for the canonical copy.
         if (workoutData.currentUser.value) {
-          workoutData.currentUser.value.user_metadata = { ...workoutData.currentUser.value.user_metadata, name: currentName, phone: currentPhone };
+          workoutData.currentUser.value.user_metadata = { ...workoutData.currentUser.value.user_metadata, ...metadata };
         }
         const {
           data: { user: refreshedUser },
@@ -236,6 +252,11 @@
             <span class="pf-label">Mobilnummer <span class="pf-label__soft">valgfritt</span></span>
             <input v-model="phoneNumber" type="tel" autocomplete="tel" class="input-field w-full" placeholder="+47 123 45 678" />
             <span class="pf-hint">Brukes for gjenoppretting av konto.</span>
+          </label>
+          <label class="pf-field">
+            <span class="pf-label">Kroppsvekt (kg) <span class="pf-label__soft">valgfritt</span></span>
+            <input v-model="bodyweightInput" type="text" inputmode="decimal" class="input-field w-full" placeholder="f.eks. 82,5" />
+            <span class="pf-hint">Legges til i volumet på øvelser du logger med «+ kroppsvekt», som dips og pull-ups.</span>
           </label>
         </div>
 

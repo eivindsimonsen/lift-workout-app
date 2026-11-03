@@ -111,11 +111,20 @@ export interface WorkoutExercise {
   note?: string;
 }
 
+/** The unit `weight` was typed in — the machine's or the plates'. */
+export type WeightUnit = 'kg' | 'lbs';
+
 export interface WorkoutSet {
   id: string;
   reps: number;
+  /** As typed, in `weightUnit` — the extra load when `withBodyweight` is on. */
   weight?: number;
-  weightUnit?: 'kg' | 'lbs' | 'bodyweight'; // Default is 'kg'
+  /** Missing means kg — every set logged before units existed. */
+  weightUnit?: WeightUnit;
+  /** Dips, pull-ups: body weight is part of the load, `weight` is what's added. */
+  withBodyweight?: boolean;
+  /** Body weight in kg when the set was logged; only with `withBodyweight`. */
+  bodyweight?: number;
   /** Seconds. For a cardio round with a running stopwatch, the time banked before the current stint. */
   duration?: number;
   /** Metres. */
