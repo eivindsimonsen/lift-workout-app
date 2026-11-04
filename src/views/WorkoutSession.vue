@@ -1,3 +1,1500 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, type Ref, onUnmounted, watch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useHybridData } from '@/composables/useHybridData'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+import type { WorkoutSession, WeightUnit } from '@/types/workout'
+import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
+import SwipeableCard from '@/components/SwipeableCard.vue'
+import Breadcrumbs from '@/components/Breadcrumbs.vue'
+import * as muscleGroupsData from '@/data/muscle-groups.json'
+import SlideOver from '@/components/SlideOver.vue'
+import CardioActivity from '@/components/CardioActivity.vue'
+import { vibrate } from '@/composables/useHaptics'
+import { useSwipeToDelete } from '@/composables/useSwipeToDelete'
+import { useLongPressReorder } from '@/composables/useLongPressReorder'
+import {
+  isCardioExercise,
+  isSetCounted,
+  isSetLogged,
+  setVolume,
+  setProgressKg,
+  setWeightText,
+  weightUnitOf,
+  hasBodyweight,
+  formatDuration,
+  formatDistance,
+  lastLoggedByExercise,
+  startingSetCount,
+} from '@/composables/useSetMetrics'
+import {
+  formatClock,
+  isExerciseRunning,
+  isSetRunning,
+  liveExerciseSeconds,
+  pauseTimer,
+} from '@/composables/useCardioTimer'
+import { summarizeCardioExercise } from '@/composables/useCardioActivities'
+import { useTrainingGoals, MUSCLE_GROUP_COLORS, CARDIO_GROUP_NAME } from '@/composables/useTrainingGoals'
+import { useGoalStreak, addSessionToTally, emptyTally } from '@/composables/useGoalStreak'
+import { sessionGoalRows, weekKeyOf, type SessionGoalRow } from '@/composables/goalStreak'
+
+const route = useRoute()
+const router = useRouter()
+const workoutData = useHybridData()
+const { handleAuthError } = useErrorHandler()
+
+// State
+const session = ref<WorkoutSession | null>(null)
+const startTime = ref<Date | null>(null)
+const showAddExerciseModal = ref(false)
+const newExerciseId = ref<number | null>(null)
+const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
+const hasUnsavedChanges = ref(false)
+const isSaving = ref(false)
+const isSyncingPendingChanges = ref(false)
+const showResetConfirm = ref(false)
+const activeExerciseIndex = ref<number | null>(null)
+
+// Swipe-to-delete for set rows inside the sheet. The set is looked up by id when
+// the swipe completes, so the index is the current one even if the list changed.
+const setSwipe = useSwipeToDelete({
+  onDelete: (setId) => {
+    if (activeExerciseIndex.value === null || !session.value) return
+    const exerciseIndex = activeExerciseIndex.value
+    const setIndex = session.value.exercises[exerciseIndex].sets.findIndex(set => set.id === setId)
+    if (setIndex < 0) return
+    vibrate(50)
+    removeSet(exerciseIndex, setIndex)
+  },
+})
+
+// Quick View state
+const isExerciseQuickViewOpen = ref(false)
+const exerciseQuickViewTitle = ref('Øvelsesdetaljer')
+const exerciseQuickViewData = ref<{ history: { date: Date; sets: { id: string; text: string; reps: number }[] }[]; best: { weight: number; reps: number; date: Date } | null } | null>(null)
+let exerciseQuickViewId: number | null = null
+
+function openExerciseQuickView(exerciseId: number, exerciseName: string) {
+  closeExerciseSheet()
+  exerciseQuickViewTitle.value = exerciseName
+  exerciseQuickViewId = exerciseId
+
+  // Get best lift (all-time)
+  const best = getHeaviestLift(exerciseId)
+
+  // Build recent history (last 12 sets, grouped by session)
+  const completedSessions = workoutData.sessions.value
+    .filter(s => s.isCompleted)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  const history: { date: Date; sets: { id: string; text: string; reps: number }[] }[] = []
+  let sessionCounter = 0
+  const SESSION_LIMIT = 4
+
+  for (const s of completedSessions) {
+    if (sessionCounter >= SESSION_LIMIT) break
+
+    const ex = s.exercises.find((e: any) => e.exerciseId === exerciseId)
+    if (!ex) continue
+
+    const sessionSets: { id: string; text: string; reps: number }[] = []
+
+    for (const set of ex.sets) {
+      // Strength history only — a cardio round would read "0 × 0 kg".
+      if (isCardioExercise(ex) || !isSetCounted(ex, set)) continue
+      sessionSets.push({ id: `${s.id}-${set.id}`, text: setWeightText(set), reps: Number(set.reps) })
+    }
+
+    if (sessionSets.length > 0) {
+      history.push({
+        date: new Date(s.date),
+        sets: sessionSets // Standard order (1, 2, 3...)
+      })
+      
+      sessionCounter++
+    }
+  }
+
+  exerciseQuickViewData.value = { history, best }
+  isExerciseQuickViewOpen.value = true
+}
+
+function closeExerciseQuickView() {
+  isExerciseQuickViewOpen.value = false
+}
+
+function openQuickViewGoogleSearch() {
+  const name = exerciseQuickViewTitle.value || ''
+  if (!name) return
+  const searchQuery = encodeURIComponent(`${name} strength training exercise`)
+  const url = `https://www.google.com/search?q=${searchQuery}&tbm=isch`
+  window.open(url, '_blank')
+}
+
+// Computed
+const completedSets = computed(() => {
+  if (!session.value) return 0
+  return session.value.exercises.reduce((total, exercise) => {
+    return total + exercise.sets.filter(set => set.isCompleted).length
+  }, 0)
+})
+
+const totalSets = computed(() => {
+  if (!session.value) return 0
+  return session.value.exercises.reduce((total, exercise) => {
+    return total + exercise.sets.length
+  }, 0)
+})
+
+const progressPercentage = computed(() => {
+  if (totalSets.value === 0) return 0
+  return Math.round((completedSets.value / totalSets.value) * 100)
+})
+
+const estimatedVolume = computed(() => {
+  if (!session.value) return 0
+  return session.value.exercises.reduce((exerciseTotal, exercise) => {
+    const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
+      return isSetCounted(exercise, set) ? setTotal + setVolume(exercise, set) : setTotal
+    }, 0)
+    return exerciseTotal + exerciseVolume
+  }, 0)
+})
+
+const sessionDuration = computed(() => {
+  if (!startTime.value) return '0 min'
+  const duration = Math.round((now.value - startTime.value.getTime()) / 60000)
+  return `${duration} min`
+})
+
+// Timer for dynamic duration updates
+const now = ref(Date.now())
+let durationTimer: ReturnType<typeof setInterval> | undefined
+
+onMounted(() => {
+  durationTimer = setInterval(() => {
+    now.value = Date.now()
+  }, 10000) // Update every 10 seconds
+})
+
+onUnmounted(() => {
+  clearInterval(durationTimer)
+})
+
+const availableExercises = computed(() => {
+  if (!session.value) {
+    return []
+  }
+
+  const existingExerciseIds = session.value.exercises.map(e => e.exerciseId)
+  const allExercises = workoutData.getFlattenedExercises.value
+  const available = allExercises.filter(exercise => !existingExerciseIds.includes(exercise.id))
+
+  return available
+})
+
+// Offline changes still queued for Supabase. Owned by the data store — the store
+// keeps the count current, so this view just reads it.
+const pendingChangesCount = workoutData.pendingChangesCount
+
+const syncPendingChanges = async () => {
+  if (!workoutData.isOnline.value) return
+
+  isSyncingPendingChanges.value = true
+  try {
+    await workoutData.syncPendingChanges()
+  } catch (error) {
+    console.error('❌ Error syncing pending changes:', error)
+  } finally {
+    isSyncingPendingChanges.value = false
+  }
+}
+
+// === Input focus helpers ===
+type Field = 'reps' | 'weight'
+const inputRefs = new Map<string, HTMLInputElement>()
+const keyOf = (ex: number, set: number, field: Field) => `${ex}-${set}-${field}`
+
+function registerInputRef(ex: number, set: number, field: Field, el?: HTMLInputElement) {
+  const k = keyOf(ex, set, field)
+  if (el) inputRefs.set(k, el)
+  else inputRefs.delete(k) // cleanup on unmount
+}
+
+let justFocusedAt = 0
+
+function markFocus() {
+  justFocusedAt = Date.now()
+  window.dispatchEvent(new CustomEvent('toggleBottomNav', { detail: { hidden: true } }))
+}
+
+function unhideNavSoon() {
+  // Delay slightly: allows tapping toolbar “Done/Next” without flicker
+  setTimeout(() => {
+    // Only unhide if nothing focusable is active
+    const active = document.activeElement as HTMLElement | null
+    const stillFocused = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
+    if (!stillFocused) {
+      window.dispatchEvent(new CustomEvent('toggleBottomNav', { detail: { hidden: false } }))
+    }
+  }, 120)
+}
+
+// === Utilities for parsing numbers (locale friendly) ===
+const toNumber = (v: string) => parseFloat(v.replace(',', '.')) || 0
+
+// Methods
+const getCompletedSets = (exercise: any): number => {
+  return exercise.sets.filter((set: any) => set.isCompleted).length
+}
+
+const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  const target = event.target as HTMLInputElement
+  const value = target.value
+  const weight = value === '' ? 0 : toNumber(value)
+  session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
+  updateSetCompletion(exerciseIndex, setIndex)
+  persistExercisesToLocal()
+}
+
+const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  const target = event.target as HTMLInputElement
+  const value = target.value
+  const weight = value === '' ? 0 : toNumber(value)
+  session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
+  updateSetCompletion(exerciseIndex, setIndex)
+  persistExercisesToLocal()
+  unhideNavSoon()
+}
+
+const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  const target = event.target as HTMLInputElement
+  const value = target.value
+  const reps = value === '' ? 0 : parseInt(value) || 0
+  session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
+  updateSetCompletion(exerciseIndex, setIndex)
+  persistExercisesToLocal()
+}
+
+const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  const target = event.target as HTMLInputElement
+  const value = target.value
+  const reps = value === '' ? 0 : parseInt(value) || 0
+  session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
+  updateSetCompletion(exerciseIndex, setIndex)
+  persistExercisesToLocal()
+  unhideNavSoon()
+}
+
+/** "Sist 8×60kg" for strength, "Sist 45:00 · 7,20 km · 7/10" for cardio. */
+const lastPerformanceLabel = (exerciseId: number): string | null => {
+  const last = getLastPerformance(exerciseId)
+  if (!last) return null
+
+  // As logged, so the number matches the machine you'll stand at.
+  if (!last.isCardio) {
+    const typed = last.weightUnit === 'lbs' ? `${last.weight} lbs` : `${last.weight}kg`
+    return `Sist ${last.reps}×${last.withBodyweight ? (last.weight ? `KV + ${typed}` : 'KV') : typed}`
+  }
+
+  const parts: string[] = []
+  if (Number(last.duration) > 0) parts.push(formatDuration(Number(last.duration)))
+  if (Number(last.distance) > 0) parts.push(formatDistance(Number(last.distance)))
+  if (last.effort) parts.push(`${last.effort}/10`)
+  return parts.length > 0 ? `Sist ${parts.join(' · ')}` : null
+}
+
+// ===== Cardio =====
+
+/** A session made only of cardio has no sets or kilos worth showing. */
+const isCardioOnly = computed(() => {
+  const exercises = session.value?.exercises ?? []
+  return exercises.length > 0 && exercises.every(ex => isCardioExercise(ex))
+})
+
+const sessionCardioSeconds = computed(() =>
+  (session.value?.exercises ?? [])
+    .filter(ex => isCardioExercise(ex))
+    .reduce((sum, ex) => sum + liveExerciseSeconds(ex, now.value), 0)
+)
+
+/**
+ * The summary card: sets only when the session has strength work, volume only
+ * once a strength set is done, cardio only when there's cardio in the session.
+ */
+const summaryTiles = computed(() => {
+  const exercises = session.value?.exercises ?? []
+  const strength = exercises.filter(ex => !isCardioExercise(ex))
+  const tiles: Array<{ key: string; value: string; label: string; cardio?: boolean }> = []
+
+  if (strength.length > 0) {
+    const done = strength.reduce((sum, ex) => sum + ex.sets.filter(set => isSetCounted(ex, set)).length, 0)
+    const total = strength.reduce((sum, ex) => sum + ex.sets.length, 0)
+    tiles.push({ key: 'sets', value: `${done} / ${total}`, label: 'Sett' })
+    if (done > 0) tiles.push({ key: 'volume', value: formatNumber(estimatedVolume.value), label: 'Volum (kg)' })
+  }
+
+  if (exercises.some(ex => isCardioExercise(ex))) {
+    tiles.push({ key: 'cardio', value: formatClock(sessionCardioSeconds.value), label: 'Kondisjon', cardio: true })
+  }
+
+  tiles.push({ key: 'duration', value: sessionDuration.value, label: 'Varighet' })
+  return tiles
+})
+
+// ---------------------------------------------------------------------------
+// Weekly goal — the groups this session trains, counted live on top of the week
+// ---------------------------------------------------------------------------
+
+const { goals, hasGoals } = useTrainingGoals()
+const { ready: goalsReady, thisWeekTally, thisWeekKey } = useGoalStreak()
+
+/** Muscle groups in the order the session first trains them. */
+const sessionGroups = computed(() => {
+  const index = workoutData.exerciseIndex.value
+  const groups: string[] = []
+  ;(session.value?.exercises ?? []).forEach(ex => {
+    if (isCardioExercise(ex)) return
+    const category = index.get(Number(ex.exerciseId))?.category
+    if (category && category !== CARDIO_GROUP_NAME && !groups.includes(category)) groups.push(category)
+  })
+  return groups
+})
+
+const goalRows = computed<SessionGoalRow[]>(() => {
+  const s = session.value
+  // Once the store marks it completed it's already in thisWeekTally — adding it again would double it.
+  if (!s || workoutData.getSessionById(s.id)?.isCompleted) return []
+  // A session started before Monday counts in last week, so this week's numbers would mislead.
+  if (!hasGoals.value || !goalsReady.value || weekKeyOf(new Date(s.date)) !== thisWeekKey.value) return []
+  const today = emptyTally()
+  addSessionToTally(today, s, workoutData.exerciseIndex.value)
+  // Include a running stopwatch, like the Kondisjon tile — banked rounds are already part of it.
+  today.cardioSeconds = sessionCardioSeconds.value
+  return sessionGoalRows(thisWeekTally.value, today, sessionGroups.value, s.exercises.some(ex => isCardioExercise(ex)), goals.value)
+})
+
+const allGoalsMet = computed(() => goalRows.value.length > 0 && goalRows.value.every(row => row.met))
+
+const goalKmFormat = new Intl.NumberFormat('no-NO', { maximumFractionDigits: 1 })
+const GOAL_UNIT = { strength: '', minutes: ' min', km: ' km' } as const
+
+const goalRowValue = (row: SessionGoalRow): string => {
+  const format = (n: number) => (row.kind === 'km' ? goalKmFormat.format(n) : String(n))
+  return `${format(row.before + row.today)} / ${format(row.target)}${GOAL_UNIT[row.kind]}${row.met ? ' ✓' : ''}`
+}
+
+const goalRowColor = (row: SessionGoalRow): string =>
+  row.kind === 'strength' ? (MUSCLE_GROUP_COLORS[row.name] ?? '#64748b') : '#06b6d4'
+
+/** "Bryst", "Bryst og Skuldre", "Bryst, Skuldre og Triceps". */
+const metGroupNames = computed(() => {
+  const names = goalRows.value.map(row => row.name)
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} og ${names[names.length - 1]}` : names.join('')
+})
+
+const anyCardioRunning = computed(() =>
+  (session.value?.exercises ?? []).some(ex => isCardioExercise(ex) && isExerciseRunning(ex))
+)
+
+/** A second-level tick only while a stopwatch actually runs; otherwise the 10 s one is enough. */
+let clockTicker: ReturnType<typeof setInterval> | undefined
+watch(anyCardioRunning, (running) => {
+  clearInterval(clockTicker)
+  clockTicker = undefined
+  if (!running) return
+  now.value = Date.now()
+  clockTicker = setInterval(() => { now.value = Date.now() }, 500)
+}, { immediate: true })
+onUnmounted(() => clearInterval(clockTicker))
+
+/** A running clock counts: completing the session banks it first. */
+const canComplete = computed(() => completedSets.value > 0 || anyCardioRunning.value)
+
+/** Banks every running stopwatch, so the logged time is final. */
+const stopCardioTimers = () => {
+  if (!session.value) return
+  const stoppedAt = Date.now()
+  session.value.exercises.forEach(ex => {
+    if (isCardioExercise(ex)) pauseTimer(ex, stoppedAt)
+  })
+}
+
+/**
+ * Lands straight in the stopwatch when that's what the session is for: a
+ * running clock, or a session holding a single cardio exercise.
+ */
+const openCardioOnArrival = () => {
+  const exercises = session.value?.exercises ?? []
+  const running = exercises.findIndex(ex => isCardioExercise(ex) && isExerciseRunning(ex))
+  if (running >= 0) openExerciseSheet(running)
+  else if (exercises.length === 1 && isCardioExercise(exercises[0])) openExerciseSheet(0)
+}
+
+/** Whether the exercise currently open in the sheet is a cardio one. */
+const activeExerciseIsCardio = computed(() => {
+  if (activeExerciseIndex.value === null || !session.value) return false
+  return isCardioExercise(session.value.exercises[activeExerciseIndex.value])
+})
+
+const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+  const set = session.value.exercises[exerciseIndex].sets[setIndex]
+  if (typeof set.weight === 'string') {
+    set.weight = parseFloat(set.weight) || 0
+  }
+  if (typeof set.reps === 'string') {
+    set.reps = parseInt(set.reps) || 0
+  }
+  const exercise = session.value.exercises[exerciseIndex]
+  const isCompleted = isSetLogged(exercise, set)
+  if (set.isCompleted !== isCompleted) {
+    set.isCompleted = isCompleted
+  }
+  hasUnsavedChanges.value = true
+}
+
+// === Local persistence helpers ===
+const getLocalStorageKey = (sessionId: string) => `workout-session-${sessionId}`
+
+const isLocalStorageAvailable = () => {
+  try {
+    const test = '__localStorage_test__'
+    localStorage.setItem(test, test)
+    localStorage.removeItem(test)
+    return true
+  } catch {
+    return false
+  }
+}
+
+const persistExercisesToLocal = () => {
+  if (!session.value || !isLocalStorageAvailable()) {
+    hasUnsavedChanges.value = true
+    return
+  }
+  const key = getLocalStorageKey(session.value.id)
+  const payload = {
+    sessionId: session.value.id,
+    lastUpdated: Date.now(),
+    exercises: JSON.parse(JSON.stringify(session.value.exercises)),
+  }
+  try {
+    localStorage.setItem(key, JSON.stringify(payload))
+    hasUnsavedChanges.value = true
+    clearOldWorkoutData()
+  } catch (e) {
+    console.error('❌ Error persisting exercises to localStorage:', e)
+    hasUnsavedChanges.value = true
+  }
+}
+
+const clearOldWorkoutData = () => {
+  try {
+    const keys = Object.keys(localStorage)
+    const workoutKeys = keys.filter(key => key.startsWith('workout-session-'))
+
+    const workoutData = workoutKeys.map(key => {
+      try {
+        const data = JSON.parse(localStorage.getItem(key) || '{}')
+        return { key, lastUpdated: data.lastUpdated || 0 }
+      } catch {
+        return { key, lastUpdated: 0 }
+      }
+    })
+
+    workoutData.sort((a, b) => b.lastUpdated - a.lastUpdated)
+    workoutData.slice(5).forEach(({ key }) => {
+      localStorage.removeItem(key)
+      console.log('🗑️ Removed old workout data:', key)
+    })
+  } catch (error) {
+    console.error('❌ Error clearing old workout data:', error)
+  }
+}
+
+const getLocalChanges = (sessionId: string) => {
+  try {
+    const key = getLocalStorageKey(sessionId)
+    const localData = localStorage.getItem(key)
+    if (localData) return JSON.parse(localData)
+  } catch (error) {
+    console.error('❌ Error reading local changes:', error)
+  }
+  return null
+}
+
+const clearLocalChanges = (sessionId: string) => {
+  try {
+    const key = getLocalStorageKey(sessionId)
+    localStorage.removeItem(key)
+    console.log('🗑️ Cleared local changes for session:', sessionId)
+  } catch (error) {
+    console.error('❌ Error clearing local changes:', error)
+  }
+}
+
+const restoreLocalChanges = async () => {
+  if (!session.value) return
+  try {
+    const key = getLocalStorageKey(session.value.id)
+    const localData = localStorage.getItem(key)
+    if (!localData) return
+
+    const parsed = JSON.parse(localData)
+    if (parsed && Array.isArray(parsed.exercises)) {
+      session.value.exercises = parsed.exercises
+      hasUnsavedChanges.value = true
+      console.log('✅ Restored exercises from local (source of truth)')
+    }
+  } catch (error) {
+    console.error('❌ Error restoring local changes:', error)
+  }
+}
+// === end local helpers ===
+
+// ===== Scroll position persistence (WorkoutSession-only) =====
+const shouldRestoreScroll = () => {
+  if (!session.value) return false
+  return sessionStorage.getItem(`workout-restore-${session.value.id}`) === '1'
+}
+
+const onScrollCapture = () => {
+  if (!session.value) return
+  const y =
+    window.scrollY ||
+    window.pageYOffset ||
+    document.documentElement.scrollTop ||
+    0
+  const id = session.value.id
+  sessionStorage.setItem(`workout-scroll-${id}`, String(y))
+  localStorage.setItem(`workout-scroll-${id}`, String(y))
+}
+
+const restoreScrollPosition = () => {
+  if (!session.value) return
+  const id = session.value.id
+  const saved =
+    sessionStorage.getItem(`workout-scroll-${id}`) ||
+    localStorage.getItem(`workout-scroll-${id}`)
+  if (!saved) return
+  const y = parseInt(saved, 10) || 0
+  requestAnimationFrame(() => window.scrollTo(0, y))
+}
+// ===== end scroll section =====
+
+const addSet = (exerciseIndex: number) => {
+  if (!session.value) return
+  const exercise = session.value.exercises[exerciseIndex]
+  const previous = exercise.sets[exercise.sets.length - 1]
+  const newSet = {
+    id: `set-${Date.now()}-${exercise.sets.length}`,
+    reps: 0,
+    weight: 0,
+    // Same machine as the set above
+    weightUnit: previous?.weightUnit,
+    withBodyweight: previous?.withBodyweight,
+    bodyweight: previous?.bodyweight,
+    duration: undefined as number | undefined,
+    distance: undefined as number | undefined,
+    isCompleted: false
+  }
+  exercise.sets.push(newSet)
+  persistExercisesToLocal()
+}
+
+const addExerciseToSession = () => {
+  if (!session.value || !newExerciseId.value) return
+
+  const exerciseData = workoutData.getFlattenedExercises.value.find(e => e.id === newExerciseId.value)
+  if (!exerciseData) return
+
+  const exerciseExists = session.value.exercises.some(e => e.exerciseId === newExerciseId.value)
+  if (exerciseExists) {
+    alert('Denne øvelsen er allerede lagt til i økten.')
+    return
+  }
+
+  if (availableExercises.value.length === 0) {
+    alert('Det er ingen flere øvelser å legge til.')
+    return
+  }
+
+  const exerciseName = exerciseData.name
+  const exerciseId = exerciseData.id
+  const setSeed = Date.now()
+  const exerciseSlotIndex = session.value.exercises.length
+
+  // Same reasoning as when a session starts: carry the type with the session.
+  const trackingType = workoutData.exerciseIndex.value.get(exerciseId)?.trackingType ?? 'strength'
+  // Cardio is one activity that grows rounds as you go; strength starts with
+  // as many sets as were logged last time (3 if never done).
+  const setCount = trackingType === 'cardio' ? 1 : startingSetCount(workoutData.sessions.value, exerciseId)
+
+  const newExercise = {
+    exerciseId,
+    name: exerciseName,
+    trackingType,
+    sets: Array.from({ length: setCount }, (_, setIndex) => ({
+      id: `set-${setSeed}-${exerciseSlotIndex}-${setIndex}`,
+      reps: 0,
+      weight: 0,
+      duration: undefined as number | undefined,
+      distance: undefined as number | undefined,
+      isCompleted: false
+    }))
+  }
+
+  session.value.exercises.push(newExercise)
+  persistExercisesToLocal()
+
+  newExerciseId.value = null
+  showAddExerciseModal.value = false
+}
+
+const openMobileAddExercise = () => {
+  isMobileExercisePanelOpen.value = true
+}
+
+const closeMobileAddExercise = () => {
+  isMobileExercisePanelOpen.value = false
+}
+
+const handleAddExerciseFromPanel = (exerciseId: number) => {
+  newExerciseId.value = exerciseId
+  addExerciseToSession()
+  isMobileExercisePanelOpen.value = false
+}
+
+const removeExercise = (exerciseIndex: number) => {
+  const confirmDeletion = confirm('Er du sikker på at du vil slette denne øvelsen?');
+  if (!confirmDeletion) return;
+  if (!session.value) return
+  session.value.exercises.splice(exerciseIndex, 1)
+  closeExerciseSheet()
+  persistExercisesToLocal()
+}
+
+const removeSet = (exerciseIndex: number, setIndex: number) => {
+  if (!session.value) return
+
+  const exercise = session.value.exercises[exerciseIndex]
+
+  if (exercise.sets.length <= 1) {
+    // If this is the last set, trigger full exercise removal (with confirmation)
+    removeExercise(exerciseIndex)
+    return
+  }
+
+  // Remove the set
+  exercise.sets.splice(setIndex, 1)
+  persistExercisesToLocal()
+}
+
+// ===== Deferred cleanup =====
+// Vue can only bind lifecycle hooks synchronously during setup. The onMounted
+// below is async, so calling onUnmounted after one of its awaits silently fails
+// to register — leaving every listener it set up attached for the rest of the
+// session. Collect the teardown callbacks instead and run them from a single
+// hook registered here, synchronously.
+const deferredCleanups: Array<() => void> = []
+
+const addCleanup = (fn: () => void) => {
+  deferredCleanups.push(fn)
+}
+
+onUnmounted(() => {
+  while (deferredCleanups.length > 0) {
+    const fn = deferredCleanups.pop()
+    try {
+      fn?.()
+    } catch (error) {
+      console.warn('⚠️ Cleanup failed:', error)
+    }
+  }
+})
+
+// ===== Long-press drag to reorder exercises =====
+// Shared with the template editor; see useLongPressReorder for why a long press
+// is required rather than a plain vertical drag.
+const exListRef = ref<HTMLElement | null>(null)
+
+const {
+  draggingIndex,
+  dragTranslateY,
+  onRowPointerDown,
+  consumeClickSuppression,
+} = useLongPressReorder({
+  getItems: () => session.value?.exercises ?? null,
+  listEl: exListRef,
+  onReordered: () => persistExercisesToLocal(),
+})
+// ===== end drag section =====
+
+/** Opens the bottom sheet for a specific exercise index. */
+const openExerciseSheet = (idx: number) => {
+  activeExerciseIndex.value = idx
+  const exercise = session.value?.exercises[idx]
+  // First open this session: start where last time ended, so a lbs machine or body weight carries over.
+  // Plain kg is what missing values mean, so only write otherwise — opening a sheet shouldn't dirty the session.
+  if (exercise && !isCardioExercise(exercise) && !exercise.sets.some(set => set.weightUnit || hasBodyweight(set))) {
+    const last = getLastPerformance(exercise.exerciseId)
+    if (last && !last.isCardio && (last.weightUnit !== 'kg' || last.withBodyweight)) {
+      setExerciseWeighing(idx, { unit: last.weightUnit, withBodyweight: last.withBodyweight })
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Weight unit — chosen per exercise, stored on every set
+// ---------------------------------------------------------------------------
+
+const UNIT_OPTIONS: WeightUnit[] = ['kg', 'lbs']
+
+const profileBodyweight = computed<number | null>(() => {
+  const kg = Number(workoutData.currentUser.value?.user_metadata?.bodyweight)
+  return kg > 0 ? kg : null
+})
+
+/** Every set of an exercise shares unit and body weight, so the first set speaks for them. */
+const activeFirstSet = computed(() =>
+  activeExerciseIndex.value === null ? undefined : session.value?.exercises[activeExerciseIndex.value]?.sets[0]
+)
+const activeUnit = computed<WeightUnit>(() => weightUnitOf(activeFirstSet.value))
+const activeWithBodyweight = computed(() => hasBodyweight(activeFirstSet.value))
+const weightHeader = computed(() => `${activeWithBodyweight.value ? 'Ekstra' : 'Vekt'} (${activeUnit.value})`)
+
+// Two decimals like formatKg elsewhere, so an old 61,25 kg PB isn't rounded.
+const formatKgShort = (kg: number): string => kg.toLocaleString('no-NO', { maximumFractionDigits: 2 })
+
+/** Writes unit and body weight to every set — body weight on or off can make a 0 kg set count or stop counting. */
+const setExerciseWeighing = (exerciseIndex: number, { unit, withBodyweight }: { unit: WeightUnit; withBodyweight: boolean }) => {
+  if (!session.value) return
+  session.value.exercises[exerciseIndex].sets.forEach((set, setIndex) => {
+    set.weightUnit = unit
+    set.withBodyweight = withBodyweight
+    if (!withBodyweight) delete set.bodyweight
+    else if (profileBodyweight.value) set.bodyweight = profileBodyweight.value
+    updateSetCompletion(exerciseIndex, setIndex)
+  })
+  persistExercisesToLocal()
+}
+
+/** Last time's weight as a hint, only when it was logged the way it's set up now. */
+const weightPlaceholder = (exerciseId: number): string => {
+  const last = getLastPerformance(exerciseId)
+  const same = last && !last.isCardio && last.weightUnit === activeUnit.value && last.withBodyweight === activeWithBodyweight.value
+  return same && last.weight ? String(last.weight) : '–'
+}
+
+const onRowClick = (index: number) => {
+  if (consumeClickSuppression()) return
+  openExerciseSheet(index)
+}
+
+const closeExerciseSheet = () => {
+  activeExerciseIndex.value = null
+}
+
+const prevExercise = () => {
+  if (activeExerciseIndex.value !== null && activeExerciseIndex.value > 0) {
+    openExerciseSheet(activeExerciseIndex.value - 1)
+  }
+}
+
+const nextExercise = () => {
+  if (
+    activeExerciseIndex.value !== null &&
+    session.value &&
+    activeExerciseIndex.value < session.value.exercises.length - 1
+  ) {
+    openExerciseSheet(activeExerciseIndex.value + 1)
+  }
+}
+
+/** Removes all exercises from the current session run so the user can add their own. */
+const resetExercises = () => {
+  if (!session.value) return
+  session.value.exercises = []
+  collapsedExercises.value = []
+  showResetConfirm.value = false
+  persistExercisesToLocal()
+}
+
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('no-NO').format(Math.round(num))
+}
+
+const formatDate = (date: Date): string => {
+  return new Intl.DateTimeFormat('no-NO', {
+    day: 'numeric',
+    month: 'short'
+  }).format(date)
+}
+
+/** Returns the parent exercise group name for a variant ID, or null if it's a standalone exercise. */
+const getParentGroupName = (exerciseId: number): string | null => {
+  for (const exercise of workoutData.exercises.value) {
+    if (exercise.variants?.some(v => v.id === exerciseId)) {
+      return exercise.name
+    }
+  }
+  return null
+}
+
+// Last logging of every exercise, built once. It only reads completed sessions, so
+// logging sets in the active session (or the stopwatch ticking) doesn't rebuild it.
+const lastLoggedIndex = computed(() => lastLoggedByExercise(workoutData.sessions.value))
+
+const getLastPerformance = (exerciseId: number) => {
+  // The most recent completed session with this exercise logged — the same rule the
+  // starting set count uses — then the last completed set in it (not the best by volume).
+  const last = lastLoggedIndex.value.get(Number(exerciseId))
+  if (!last) return null
+  const { session, exercise } = last
+
+  // Cardio compares whole activities — last time's football match, not its last round.
+  if (isCardioExercise(exercise)) {
+    const activity = summarizeCardioExercise(exercise)
+    return {
+      weight: 0,
+      weightUnit: 'kg' as WeightUnit,
+      withBodyweight: false,
+      reps: 0,
+      duration: activity.seconds,
+      distance: activity.metres,
+      effort: exercise.effort,
+      isCardio: true,
+      date: session.date
+    }
+  }
+
+  const completedSets = exercise.sets.filter(set => isSetCounted(exercise, set))
+  const lastSet = completedSets[completedSets.length - 1]
+  return {
+    weight: lastSet.weight,
+    weightUnit: weightUnitOf(lastSet),
+    withBodyweight: hasBodyweight(lastSet),
+    reps: lastSet.reps,
+    duration: lastSet.duration,
+    distance: lastSet.distance,
+    effort: undefined as number | undefined,
+    isCardio: false,
+    date: session.date
+  }
+}
+
+// Heaviest lift across completed sessions for the exercise
+const getHeaviestLift = (exerciseId: number) => {
+  const completedSessions = workoutData.sessions.value
+    .filter(session => session.isCompleted)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  let best: { weight: number; reps: number; date: Date } | null = null
+
+  for (const session of completedSessions) {
+    const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
+    if (!exercise) continue
+
+    for (const set of exercise.sets) {
+      if (!set.isCompleted) continue
+      
+      // Progress kg: lbs converted, only the extra load on body weight sets.
+      const w = setProgressKg(exercise, set)
+      const r = Number(set.reps) || 0
+
+      if (w <= 0 || r <= 0) continue
+
+      if (!best) {
+        best = { weight: w, reps: r, date: new Date(session.date) }
+        continue
+      }
+
+      // Logic: Heaviest weight wins. Tie? More reps wins. Tie? Newer date wins.
+      if (w > best.weight) {
+        best = { weight: w, reps: r, date: new Date(session.date) }
+      } else if (w === best.weight) {
+        if (r > best.reps) {
+          best = { weight: w, reps: r, date: new Date(session.date) }
+        } else if (r === best.reps) {
+          // If weight and reps are equal, prefer the more recent date.
+          // Since we iterate from newest to oldest, the first one we found (current 'best') 
+          // is already the newest, so we don't update.
+          if (new Date(session.date).getTime() > new Date(best.date).getTime()) {
+             best = { weight: w, reps: r, date: new Date(session.date) }
+          }
+        }
+      }
+    }
+  }
+
+  return best
+}
+
+// Calculate total volume for a single exercise (completed sets only)
+const calculateExerciseVolume = (exercise: any): number => {
+  if (!exercise || !Array.isArray(exercise.sets)) return 0
+  return exercise.sets.reduce((sum: number, set: any) => {
+    return isSetCounted(exercise, set) ? sum + setVolume(exercise, set) : sum
+  }, 0)
+}
+
+const getExerciseMuscleGroups = (exerciseId: number): string[] => {
+  const exerciseData = workoutData.getExerciseById(exerciseId)
+  return exerciseData?.muscleGroups || []
+}
+
+const getMuscleGroupColor = (muscleGroupName: string): string => {
+  const muscleGroup = muscleGroupsData.muscleGroups.find(mg =>
+    mg.name.toLowerCase() === muscleGroupName.toLowerCase() ||
+    mg.displayName.toLowerCase() === muscleGroupName.toLowerCase()
+  )
+
+  return muscleGroup?.color || '#6b7280'
+}
+
+// Communicate save state to App.vue
+const updateAppSaveState = () => {
+  const updateEvent = new CustomEvent('updateAppSaveState', {
+    detail: {
+      hasUnsavedChanges: hasUnsavedChanges.value,
+      isSaving: isSaving.value
+    }
+  })
+  window.dispatchEvent(updateEvent)
+}
+
+const handleCompleteWorkout = () => {
+  // A round whose clock is still running is kept: completing banks its time.
+  const incompleteExercises = session.value?.exercises.filter(exercise =>
+    !exercise.sets.some(set => set.isCompleted || isSetRunning(set))
+  ) || []
+
+  const incompleteSets = session.value?.exercises.reduce((total, exercise) =>
+    total + exercise.sets.filter(set => !set.isCompleted && !isSetRunning(set)).length, 0
+  ) || 0
+
+  let message = 'Er du sikker på at du vil fullføre økten?'
+
+  if (incompleteExercises.length > 0 || incompleteSets > 0) {
+    message += `\n\nMerk: ${incompleteExercises.length} ufullførte øvelser og ${incompleteSets} ufullførte sett vil bli fjernet fra økten før den lagres.`
+  }
+
+  if (confirm(message)) {
+    completeWorkout()
+  }
+}
+
+const handleAbandonWorkout = () => {
+  const incompleteExercises = session.value?.exercises.filter(exercise =>
+    !exercise.sets.some(set => set.isCompleted)
+  ) || []
+
+  const incompleteSets = session.value?.exercises.reduce((total, exercise) =>
+    total + exercise.sets.filter(set => !set.isCompleted).length, 0
+  ) || 0
+
+  let message = 'Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent.'
+
+  if (incompleteExercises.length > 0 || incompleteSets > 0) {
+    message += `\n\nMerk: ${incompleteExercises.length} ufullførte øvelser og ${incompleteSets} ufullførte sett vil bli fjernet fra økten før den slettes.`
+  }
+
+  if (confirm(message)) {
+    abandonWorkout()
+  }
+}
+
+const abandonWorkout = async () => {
+  if (!session.value) return
+
+  try {
+    const sessionId = session.value.id
+    const localChanges = getLocalChanges(sessionId)
+
+    const cleanedSession = await cleanupSessionData(session.value)
+
+    // Prefer LOCAL exercises if present (source of truth)
+    let exercisesToPersist = cleanedSession.exercises
+    if (localChanges?.exercises) {
+      exercisesToPersist = localChanges.exercises
+      const tmpSession: WorkoutSession = {
+        ...session.value,
+        exercises: exercisesToPersist
+      }
+      const cleaned = await cleanupSessionData(tmpSession)
+      exercisesToPersist = cleaned.exercises
+    }
+
+    await workoutData.updateWorkoutSessionOffline(sessionId, {
+      exercises: exercisesToPersist
+    })
+
+    await workoutData.abandonWorkoutSession(sessionId)
+
+    clearLocalChanges(sessionId)
+    console.log('✅ Workout abandoned and synced successfully')
+    router.push('/')
+  } catch (error: any) {
+    console.error("❌ Error abandoning workout:", error)
+    if (error.message && (
+      error.message.includes("not authenticated") ||
+      error.message.includes("Session expired") ||
+      error.message.includes("Please log in again")
+    )) {
+      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.")
+      router.push('/login')
+      return
+    }
+    handleAuthError(error)
+  }
+}
+
+const completeWorkout = async () => {
+  if (!session.value) return
+
+  try {
+    const sessionId = session.value.id
+
+    // Bank running stopwatches and write them locally first — the local copy is
+    // what gets saved below.
+    stopCardioTimers()
+    persistExercisesToLocal()
+
+    const localChanges = getLocalChanges(sessionId)
+
+    const cleanedSession = await cleanupSessionData(session.value)
+
+    // Prefer LOCAL exercises if present (source of truth)
+    let exercisesToPersist = cleanedSession.exercises
+    if (localChanges?.exercises) {
+      exercisesToPersist = localChanges.exercises
+      const tmpSession: WorkoutSession = {
+        ...session.value,
+        exercises: exercisesToPersist
+      }
+      const cleaned = await cleanupSessionData(tmpSession)
+      exercisesToPersist = cleaned.exercises
+    }
+
+    await workoutData.updateWorkoutSessionOffline(sessionId, {
+      exercises: exercisesToPersist
+    })
+
+    await workoutData.completeWorkoutSession(sessionId)
+
+    clearLocalChanges(sessionId)
+    console.log('✅ Workout completed and synced successfully')
+    router.push(`/session/${sessionId}`)
+  } catch (error: any) {
+    console.error("❌ Error completing workout:", error)
+    if (error.message && (
+      error.message.includes("not authenticated") ||
+      error.message.includes("Session expired") ||
+      error.message.includes("Please log in again")
+    )) {
+      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.")
+      router.push('/login')
+      return
+    }
+    handleAuthError(error)
+  }
+}
+
+// Helper function to clean up session data before completion
+const cleanupSessionData = async (sessionData: WorkoutSession): Promise<WorkoutSession> => {
+  console.log('🧹 Cleaning up session data before completion...')
+
+  const cleanedSession = JSON.parse(JSON.stringify(sessionData))
+
+  // Body weight entered in the profile mid-session still counts for this session's sets.
+  cleanedSession.exercises.forEach((exercise: any) =>
+    exercise.sets.forEach((set: any) => {
+      if (hasBodyweight(set) && !(Number(set.bodyweight) > 0) && profileBodyweight.value) {
+        set.bodyweight = profileBodyweight.value
+      }
+    })
+  )
+
+  const originalExerciseCount = cleanedSession.exercises.length
+  cleanedSession.exercises = cleanedSession.exercises.filter((exercise: any) => {
+    const hasCompletedSets = exercise.sets.some((set: any) => set.isCompleted)
+    if (!hasCompletedSets) {
+      console.log(`🧹 Removing exercise "${exercise.name}" - no completed sets`)
+    }
+    return hasCompletedSets
+  })
+
+  let totalSetsRemoved = 0
+  cleanedSession.exercises.forEach((exercise: any) => {
+    exercise.sets = exercise.sets.filter((set: any) => {
+      const isComplete = isSetCounted(exercise, set)
+      if (!isComplete) {
+        console.log(`🧹 Removing incomplete set from "${exercise.name}" - weight: ${set.weight}, reps: ${set.reps}`)
+        totalSetsRemoved++
+      }
+      return isComplete
+    })
+  })
+
+  cleanedSession.exercises = cleanedSession.exercises.filter((exercise: any) => exercise.sets.length > 0)
+
+  console.log('🧹 Session cleaned up:', {
+    originalExercises: originalExerciseCount,
+    cleanedExercises: cleanedSession.exercises.length,
+    totalSetsRemoved,
+    exercisesRemoved: originalExerciseCount - cleanedSession.exercises.length
+  })
+
+  return cleanedSession
+}
+
+// Manual sync function for Ctrl+S or manual save
+const syncLocalChangesToSupabase = async () => {
+  if (!session.value || !hasUnsavedChanges.value || isSaving.value) return
+
+  console.log('💾 Manually syncing local changes to Supabase...')
+  isSaving.value = true
+
+  try {
+    const sessionId = session.value.id
+    const local = getLocalChanges(sessionId)
+
+    if (local?.exercises) {
+      await workoutData.updateWorkoutSessionOffline(sessionId, {
+        exercises: local.exercises
+      })
+      clearLocalChanges(sessionId)
+      hasUnsavedChanges.value = false
+      console.log('✅ Local changes synced to Supabase successfully')
+    } else {
+      console.log('ℹ️ No local changes to sync')
+      hasUnsavedChanges.value = false
+    }
+  } catch (error: any) {
+    console.error('❌ Error syncing local changes:', error)
+    if (error.message && (
+      error.message.includes("not authenticated") ||
+      error.message.includes("Session expired") ||
+      error.message.includes("Please log in again")
+    )) {
+      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.")
+      router.push('/login')
+      return
+    }
+  } finally {
+    isSaving.value = false
+    console.log('💾 Manual sync operation completed')
+  }
+}
+
+const isDevelopment = computed(() => import.meta.env.DEV)
+
+// State for collapsible exercises
+const collapsedExercises = ref<boolean[]>([])
+const uiReady = ref(false)
+
+// Methods
+const toggleExercise = (index: number) => {
+  collapsedExercises.value[index] = !collapsedExercises.value[index]
+}
+
+// Smooth expand/collapse animations for exercise content
+function expand(el: Element) {
+  const element = el as HTMLElement
+  const targetHeight = `${element.scrollHeight}px`
+
+  element.style.overflow = 'hidden'
+  element.style.height = '0px'
+  element.style.willChange = 'height'
+  element.style.contain = 'layout paint'
+
+  requestAnimationFrame(() => {
+    element.style.transition = 'height 160ms ease-out'
+    element.style.height = targetHeight
+  })
+}
+
+function afterExpand(el: Element) {
+  const element = el as HTMLElement
+  element.style.transition = ''
+  element.style.height = ''
+  element.style.overflow = ''
+  element.style.willChange = ''
+  element.style.contain = ''
+}
+
+function collapse(el: Element) {
+  const element = el as HTMLElement
+  const startHeight = `${element.scrollHeight}px`
+
+  element.style.overflow = 'hidden'
+  element.style.height = startHeight
+  element.style.willChange = 'height'
+  element.style.contain = 'layout paint'
+
+  requestAnimationFrame(() => {
+    element.style.transition = 'height 130ms ease-in'
+    element.style.height = '0px'
+  })
+}
+
+function afterCollapse(el: Element) {
+  const element = el as HTMLElement
+  element.style.transition = ''
+  element.style.height = ''
+  element.style.overflow = ''
+  element.style.willChange = ''
+  element.style.contain = ''
+}
+
+// Determine when an exercise is fully completed (all sets complete)
+const isExerciseCompleted = (exercise: any): boolean => {
+  if (!exercise || !Array.isArray(exercise.sets) || exercise.sets.length === 0) return false
+  return exercise.sets.every((set: any) => isSetCounted(exercise, set))
+}
+
+// Lifecycle
+onMounted(async () => {
+  const sessionId = route.params.id as string
+
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches
+
+  console.log('📱 WorkoutSession mounted:', {
+    sessionId,
+    isMobile: isMobileUA,
+    isPWA
+  })
+
+  if (workoutData.isLoading.value) {
+    await new Promise<void>((resolve) => {
+      const unwatch = watch(() => workoutData.isLoading.value, (newValue) => {
+        if (!newValue) {
+          unwatch()
+          resolve()
+        }
+      })
+    })
+  }
+
+  const setSessionFromStore = () => {
+    const s = workoutData.getSessionById(sessionId)
+    if (!s) return false
+    session.value = s
+    startTime.value = new Date(s.date)
+    return true
+  }
+
+  if (!setSessionFromStore()) {
+    // If user is not authenticated yet, wait for auth and stay on page
+    const stopAuthWait = watch(
+      () => workoutData.currentUser.value,
+      async (u) => {
+        if (!u) return
+        try {
+          await (workoutData as any).refreshUIData?.()
+          if (!setSessionFromStore()) await workoutData.loadData(0, true)
+          setSessionFromStore()
+        } finally {
+          stopAuthWait()
+        }
+      },
+      { immediate: false }
+    )
+    try {
+      // Paint from cache first if available
+      if ((workoutData as any).refreshUIData) {
+        await (workoutData as any).refreshUIData()
+        if (setSessionFromStore()) return
+      }
+
+      // Force a data load (will no-op if auth not ready yet)
+      await workoutData.loadData(0, true)
+      if (!setSessionFromStore()) {
+        // Defer: wait for auth/data to hydrate, then set session when available
+        const stopSessionsWatch = watch(
+          () => workoutData.sessions.value,
+          () => {
+            if (setSessionFromStore()) {
+              stopSessionsWatch()
+            }
+          }
+        )
+        const stopAuthWatch = watch(
+          () => workoutData.currentUser.value,
+          async (u) => {
+            if (u) {
+              try {
+                await (workoutData as any).refreshUIData?.()
+                if (setSessionFromStore()) {
+                  stopAuthWatch()
+                  return
+                }
+                await workoutData.loadData(0, true)
+                if (setSessionFromStore()) stopAuthWatch()
+              } catch {}
+            }
+          },
+          { immediate: false }
+        )
+        // Ensure we clean these up later
+        addCleanup(() => {
+          try { stopSessionsWatch() } catch {}
+          try { stopAuthWatch() } catch {}
+        })
+      }
+    } catch (error) {
+      console.error('Error ensuring session after refresh:', error)
+      // Do not redirect; keep user on page while data hydrates
+      return
+    }
+  }
+
+  updateAppSaveState()
+
+  // Restore local shape/values first (local wins for in-progress)
+  await restoreLocalChanges()
+
+  // After the restore: a running stopwatch lives in the local copy.
+  openCardioOnArrival()
+
+  // Initialize collapsed state: keep completed collapsed, expand only active/incomplete
+  if (session.value) {
+    collapsedExercises.value = session.value.exercises.map((ex: any) => isExerciseCompleted(ex))
+  }
+  // Defer enabling transitions so initial state paints without animation
+  requestAnimationFrame(() => {
+    uiReady.value = true
+  })
+
+  // Keyboard/Save integrations
+  const handleKeydown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+      event.preventDefault()
+      if (hasUnsavedChanges.value && !isSaving.value) {
+        syncLocalChangesToSupabase()
+      }
+    }
+  }
+
+  const handleSaveEvent = (event: CustomEvent) => {
+    if (event.detail.sessionId === session.value?.id && hasUnsavedChanges.value && !isSaving.value) {
+      syncLocalChangesToSupabase()
+    }
+  }
+
+  watch([hasUnsavedChanges, isSaving], () => {
+    updateAppSaveState()
+  })
+
+  watch(pendingChangesCount, (newCount) => {
+    const updateEvent = new CustomEvent('updatePendingChangesCount', {
+      detail: { pendingChangesCount: newCount }
+    })
+    window.dispatchEvent(updateEvent)
+  })
+
+  // Online auto-sync
+  const handleOnlineSync = async () => {
+    if (!session.value || !workoutData.isOnline.value) return
+    try {
+      const localChanges = getLocalChanges(session.value.id)
+      if (localChanges?.exercises && hasUnsavedChanges.value) {
+        console.log('🌐 Back online - syncing local changes automatically')
+        await syncLocalChangesToSupabase()
+      }
+    } catch (error) {
+      console.error('❌ Error in automatic online sync:', error)
+    }
+  }
+
+  const handleNetworkChange = () => {
+    if (workoutData.isOnline.value && hasUnsavedChanges.value) {
+      console.log('🌐 Network back online - checking for local changes to sync')
+      setTimeout(() => {
+        if (workoutData.isOnline.value) {
+          handleOnlineSync()
+        }
+      }, 2000)
+    }
+  }
+
+  window.addEventListener('online', handleNetworkChange)
+
+  // ===== Scroll wiring (attach once, restore only on resume flag) =====
+  window.addEventListener('scroll', onScrollCapture)
+
+  setTimeout(() => {
+    if (shouldRestoreScroll()) {
+      restoreScrollPosition()
+      // consume flag so we don't keep restoring
+      sessionStorage.removeItem(`workout-restore-${session.value!.id}`)
+    }
+  }, 300)
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      if (shouldRestoreScroll()) {
+        setTimeout(() => {
+          restoreScrollPosition()
+          sessionStorage.removeItem(`workout-restore-${session.value!.id}`)
+        }, 100)
+      }
+    }
+  }
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  // ===== End scroll wiring =====
+
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (hasUnsavedChanges.value) {
+      event.preventDefault()
+      event.returnValue = 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
+      return 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
+    }
+  }
+
+  window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
+  window.addEventListener('beforeunload', handleBeforeUnload)
+
+  addCleanup(() => {
+    window.removeEventListener('keydown', handleKeydown)
+    window.removeEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
+    window.removeEventListener('beforeunload', handleBeforeUnload)
+    window.removeEventListener('scroll', onScrollCapture)
+    window.removeEventListener('online', handleNetworkChange)
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  })
+
+  // initial cleanup of old local entries
+  clearOldWorkoutData()
+})
+
+// Watch for route changes to warn about unsaved changes
+watch(() => route.params.id, async (newId, oldId) => {
+  if (newId && oldId && newId !== oldId) {
+    if (hasUnsavedChanges.value) {
+      const shouldLeave = confirm('Vil du lagre endringene først?')
+      if (shouldLeave) {
+        await syncLocalChangesToSupabase()
+      }
+    }
+    const foundSession = workoutData.getSessionById(newId as string)
+    if (foundSession) {
+      session.value = foundSession
+      startTime.value = new Date(foundSession.date)
+      hasUnsavedChanges.value = false
+    }
+  }
+})
+</script>
+
 <template>
   <div class="space-y-3">
     <!-- Loading state -->
@@ -610,1507 +2107,6 @@
     </Transition>
   </Teleport>
 </template>
-
-
-
-<script setup lang="ts">
-import { ref, computed, onMounted, type Ref, onUnmounted, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useHybridData } from '@/composables/useHybridData'
-import { useErrorHandler } from '@/composables/useErrorHandler'
-import type { WorkoutSession, WeightUnit } from '@/types/workout'
-import ExerciseSearchPanel from '@/components/ExerciseSearchPanel.vue'
-import SwipeableCard from '@/components/SwipeableCard.vue'
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
-import * as muscleGroupsData from '@/data/muscle-groups.json'
-import SlideOver from '@/components/SlideOver.vue'
-import CardioActivity from '@/components/CardioActivity.vue'
-import { vibrate } from '@/composables/useHaptics'
-import { useSwipeToDelete } from '@/composables/useSwipeToDelete'
-import { useLongPressReorder } from '@/composables/useLongPressReorder'
-import {
-  isCardioExercise,
-  isSetCounted,
-  isSetLogged,
-  setVolume,
-  setProgressKg,
-  setWeightText,
-  weightUnitOf,
-  hasBodyweight,
-  formatDuration,
-  formatDistance,
-} from '@/composables/useSetMetrics'
-import {
-  formatClock,
-  isExerciseRunning,
-  isSetRunning,
-  liveExerciseSeconds,
-  pauseTimer,
-} from '@/composables/useCardioTimer'
-import { summarizeCardioExercise } from '@/composables/useCardioActivities'
-import { useTrainingGoals, MUSCLE_GROUP_COLORS, CARDIO_GROUP_NAME } from '@/composables/useTrainingGoals'
-import { useGoalStreak, addSessionToTally, emptyTally } from '@/composables/useGoalStreak'
-import { sessionGoalRows, weekKeyOf, type SessionGoalRow } from '@/composables/goalStreak'
-
-const route = useRoute()
-const router = useRouter()
-const workoutData = useHybridData()
-const { handleAuthError } = useErrorHandler()
-
-// State
-const session = ref<WorkoutSession | null>(null)
-const startTime = ref<Date | null>(null)
-const showAddExerciseModal = ref(false)
-const newExerciseId = ref<number | null>(null)
-const isMobileExercisePanelOpen: Ref<boolean> = ref(false)
-const hasUnsavedChanges = ref(false)
-const isSaving = ref(false)
-const isSyncingPendingChanges = ref(false)
-const showResetConfirm = ref(false)
-const activeExerciseIndex = ref<number | null>(null)
-
-// Swipe-to-delete for set rows inside the sheet. The set is looked up by id when
-// the swipe completes, so the index is the current one even if the list changed.
-const setSwipe = useSwipeToDelete({
-  onDelete: (setId) => {
-    if (activeExerciseIndex.value === null || !session.value) return
-    const exerciseIndex = activeExerciseIndex.value
-    const setIndex = session.value.exercises[exerciseIndex].sets.findIndex(set => set.id === setId)
-    if (setIndex < 0) return
-    vibrate(50)
-    removeSet(exerciseIndex, setIndex)
-  },
-})
-
-// Quick View state
-const isExerciseQuickViewOpen = ref(false)
-const exerciseQuickViewTitle = ref('Øvelsesdetaljer')
-const exerciseQuickViewData = ref<{ history: { date: Date; sets: { id: string; text: string; reps: number }[] }[]; best: { weight: number; reps: number; date: Date } | null } | null>(null)
-let exerciseQuickViewId: number | null = null
-
-function openExerciseQuickView(exerciseId: number, exerciseName: string) {
-  closeExerciseSheet()
-  exerciseQuickViewTitle.value = exerciseName
-  exerciseQuickViewId = exerciseId
-
-  // Get best lift (all-time)
-  const best = getHeaviestLift(exerciseId)
-
-  // Build recent history (last 12 sets, grouped by session)
-  const completedSessions = workoutData.sessions.value
-    .filter(s => s.isCompleted)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-  const history: { date: Date; sets: { id: string; text: string; reps: number }[] }[] = []
-  let sessionCounter = 0
-  const SESSION_LIMIT = 4
-
-  for (const s of completedSessions) {
-    if (sessionCounter >= SESSION_LIMIT) break
-
-    const ex = s.exercises.find((e: any) => e.exerciseId === exerciseId)
-    if (!ex) continue
-
-    const sessionSets: { id: string; text: string; reps: number }[] = []
-
-    for (const set of ex.sets) {
-      // Strength history only — a cardio round would read "0 × 0 kg".
-      if (isCardioExercise(ex) || !isSetCounted(ex, set)) continue
-      sessionSets.push({ id: `${s.id}-${set.id}`, text: setWeightText(set), reps: Number(set.reps) })
-    }
-
-    if (sessionSets.length > 0) {
-      history.push({
-        date: new Date(s.date),
-        sets: sessionSets // Standard order (1, 2, 3...)
-      })
-      
-      sessionCounter++
-    }
-  }
-
-  exerciseQuickViewData.value = { history, best }
-  isExerciseQuickViewOpen.value = true
-}
-
-function closeExerciseQuickView() {
-  isExerciseQuickViewOpen.value = false
-}
-
-function openQuickViewGoogleSearch() {
-  const name = exerciseQuickViewTitle.value || ''
-  if (!name) return
-  const searchQuery = encodeURIComponent(`${name} strength training exercise`)
-  const url = `https://www.google.com/search?q=${searchQuery}&tbm=isch`
-  window.open(url, '_blank')
-}
-
-// Computed
-const completedSets = computed(() => {
-  if (!session.value) return 0
-  return session.value.exercises.reduce((total, exercise) => {
-    return total + exercise.sets.filter(set => set.isCompleted).length
-  }, 0)
-})
-
-const totalSets = computed(() => {
-  if (!session.value) return 0
-  return session.value.exercises.reduce((total, exercise) => {
-    return total + exercise.sets.length
-  }, 0)
-})
-
-const progressPercentage = computed(() => {
-  if (totalSets.value === 0) return 0
-  return Math.round((completedSets.value / totalSets.value) * 100)
-})
-
-const estimatedVolume = computed(() => {
-  if (!session.value) return 0
-  return session.value.exercises.reduce((exerciseTotal, exercise) => {
-    const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
-      return isSetCounted(exercise, set) ? setTotal + setVolume(exercise, set) : setTotal
-    }, 0)
-    return exerciseTotal + exerciseVolume
-  }, 0)
-})
-
-const sessionDuration = computed(() => {
-  if (!startTime.value) return '0 min'
-  const duration = Math.round((now.value - startTime.value.getTime()) / 60000)
-  return `${duration} min`
-})
-
-// Timer for dynamic duration updates
-const now = ref(Date.now())
-let durationTimer: ReturnType<typeof setInterval> | undefined
-
-onMounted(() => {
-  durationTimer = setInterval(() => {
-    now.value = Date.now()
-  }, 10000) // Update every 10 seconds
-})
-
-onUnmounted(() => {
-  clearInterval(durationTimer)
-})
-
-const availableExercises = computed(() => {
-  if (!session.value) {
-    return []
-  }
-
-  const existingExerciseIds = session.value.exercises.map(e => e.exerciseId)
-  const allExercises = workoutData.getFlattenedExercises.value
-  const available = allExercises.filter(exercise => !existingExerciseIds.includes(exercise.id))
-
-  return available
-})
-
-// Offline changes still queued for Supabase. Owned by the data store — the store
-// keeps the count current, so this view just reads it.
-const pendingChangesCount = workoutData.pendingChangesCount
-
-const syncPendingChanges = async () => {
-  if (!workoutData.isOnline.value) return
-
-  isSyncingPendingChanges.value = true
-  try {
-    await workoutData.syncPendingChanges()
-  } catch (error) {
-    console.error('❌ Error syncing pending changes:', error)
-  } finally {
-    isSyncingPendingChanges.value = false
-  }
-}
-
-// === Input focus helpers ===
-type Field = 'reps' | 'weight'
-const inputRefs = new Map<string, HTMLInputElement>()
-const keyOf = (ex: number, set: number, field: Field) => `${ex}-${set}-${field}`
-
-function registerInputRef(ex: number, set: number, field: Field, el?: HTMLInputElement) {
-  const k = keyOf(ex, set, field)
-  if (el) inputRefs.set(k, el)
-  else inputRefs.delete(k) // cleanup on unmount
-}
-
-let justFocusedAt = 0
-
-function markFocus() {
-  justFocusedAt = Date.now()
-  window.dispatchEvent(new CustomEvent('toggleBottomNav', { detail: { hidden: true } }))
-}
-
-function unhideNavSoon() {
-  // Delay slightly: allows tapping toolbar “Done/Next” without flicker
-  setTimeout(() => {
-    // Only unhide if nothing focusable is active
-    const active = document.activeElement as HTMLElement | null
-    const stillFocused = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
-    if (!stillFocused) {
-      window.dispatchEvent(new CustomEvent('toggleBottomNav', { detail: { hidden: false } }))
-    }
-  }, 120)
-}
-
-// === Utilities for parsing numbers (locale friendly) ===
-const toNumber = (v: string) => parseFloat(v.replace(',', '.')) || 0
-
-// Methods
-const getCompletedSets = (exercise: any): number => {
-  return exercise.sets.filter((set: any) => set.isCompleted).length
-}
-
-const handleWeightInput = (event: Event, exerciseIndex: number, setIndex: number) => {
-  if (!session.value) return
-  const target = event.target as HTMLInputElement
-  const value = target.value
-  const weight = value === '' ? 0 : toNumber(value)
-  session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
-  updateSetCompletion(exerciseIndex, setIndex)
-  persistExercisesToLocal()
-}
-
-const handleWeightBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
-  if (!session.value) return
-  const target = event.target as HTMLInputElement
-  const value = target.value
-  const weight = value === '' ? 0 : toNumber(value)
-  session.value.exercises[exerciseIndex].sets[setIndex].weight = weight
-  updateSetCompletion(exerciseIndex, setIndex)
-  persistExercisesToLocal()
-  unhideNavSoon()
-}
-
-const handleRepsInput = (event: Event, exerciseIndex: number, setIndex: number) => {
-  if (!session.value) return
-  const target = event.target as HTMLInputElement
-  const value = target.value
-  const reps = value === '' ? 0 : parseInt(value) || 0
-  session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
-  updateSetCompletion(exerciseIndex, setIndex)
-  persistExercisesToLocal()
-}
-
-const handleRepsBlur = (event: Event, exerciseIndex: number, setIndex: number) => {
-  if (!session.value) return
-  const target = event.target as HTMLInputElement
-  const value = target.value
-  const reps = value === '' ? 0 : parseInt(value) || 0
-  session.value.exercises[exerciseIndex].sets[setIndex].reps = reps
-  updateSetCompletion(exerciseIndex, setIndex)
-  persistExercisesToLocal()
-  unhideNavSoon()
-}
-
-/** "Sist 8×60kg" for strength, "Sist 45:00 · 7,20 km · 7/10" for cardio. */
-const lastPerformanceLabel = (exerciseId: number): string | null => {
-  const last = getLastPerformance(exerciseId)
-  if (!last) return null
-
-  // As logged, so the number matches the machine you'll stand at.
-  if (!last.isCardio) {
-    const typed = last.weightUnit === 'lbs' ? `${last.weight} lbs` : `${last.weight}kg`
-    return `Sist ${last.reps}×${last.withBodyweight ? (last.weight ? `KV + ${typed}` : 'KV') : typed}`
-  }
-
-  const parts: string[] = []
-  if (Number(last.duration) > 0) parts.push(formatDuration(Number(last.duration)))
-  if (Number(last.distance) > 0) parts.push(formatDistance(Number(last.distance)))
-  if (last.effort) parts.push(`${last.effort}/10`)
-  return parts.length > 0 ? `Sist ${parts.join(' · ')}` : null
-}
-
-// ===== Cardio =====
-
-/** A session made only of cardio has no sets or kilos worth showing. */
-const isCardioOnly = computed(() => {
-  const exercises = session.value?.exercises ?? []
-  return exercises.length > 0 && exercises.every(ex => isCardioExercise(ex))
-})
-
-const sessionCardioSeconds = computed(() =>
-  (session.value?.exercises ?? [])
-    .filter(ex => isCardioExercise(ex))
-    .reduce((sum, ex) => sum + liveExerciseSeconds(ex, now.value), 0)
-)
-
-/**
- * The summary card: sets only when the session has strength work, volume only
- * once a strength set is done, cardio only when there's cardio in the session.
- */
-const summaryTiles = computed(() => {
-  const exercises = session.value?.exercises ?? []
-  const strength = exercises.filter(ex => !isCardioExercise(ex))
-  const tiles: Array<{ key: string; value: string; label: string; cardio?: boolean }> = []
-
-  if (strength.length > 0) {
-    const done = strength.reduce((sum, ex) => sum + ex.sets.filter(set => isSetCounted(ex, set)).length, 0)
-    const total = strength.reduce((sum, ex) => sum + ex.sets.length, 0)
-    tiles.push({ key: 'sets', value: `${done} / ${total}`, label: 'Sett' })
-    if (done > 0) tiles.push({ key: 'volume', value: formatNumber(estimatedVolume.value), label: 'Volum (kg)' })
-  }
-
-  if (exercises.some(ex => isCardioExercise(ex))) {
-    tiles.push({ key: 'cardio', value: formatClock(sessionCardioSeconds.value), label: 'Kondisjon', cardio: true })
-  }
-
-  tiles.push({ key: 'duration', value: sessionDuration.value, label: 'Varighet' })
-  return tiles
-})
-
-// ---------------------------------------------------------------------------
-// Weekly goal — the groups this session trains, counted live on top of the week
-// ---------------------------------------------------------------------------
-
-const { goals, hasGoals } = useTrainingGoals()
-const { ready: goalsReady, thisWeekTally, thisWeekKey } = useGoalStreak()
-
-/** Muscle groups in the order the session first trains them. */
-const sessionGroups = computed(() => {
-  const index = workoutData.exerciseIndex.value
-  const groups: string[] = []
-  ;(session.value?.exercises ?? []).forEach(ex => {
-    if (isCardioExercise(ex)) return
-    const category = index.get(Number(ex.exerciseId))?.category
-    if (category && category !== CARDIO_GROUP_NAME && !groups.includes(category)) groups.push(category)
-  })
-  return groups
-})
-
-const goalRows = computed<SessionGoalRow[]>(() => {
-  const s = session.value
-  // Once the store marks it completed it's already in thisWeekTally — adding it again would double it.
-  if (!s || workoutData.getSessionById(s.id)?.isCompleted) return []
-  // A session started before Monday counts in last week, so this week's numbers would mislead.
-  if (!hasGoals.value || !goalsReady.value || weekKeyOf(new Date(s.date)) !== thisWeekKey.value) return []
-  const today = emptyTally()
-  addSessionToTally(today, s, workoutData.exerciseIndex.value)
-  // Include a running stopwatch, like the Kondisjon tile — banked rounds are already part of it.
-  today.cardioSeconds = sessionCardioSeconds.value
-  return sessionGoalRows(thisWeekTally.value, today, sessionGroups.value, s.exercises.some(ex => isCardioExercise(ex)), goals.value)
-})
-
-const allGoalsMet = computed(() => goalRows.value.length > 0 && goalRows.value.every(row => row.met))
-
-const goalKmFormat = new Intl.NumberFormat('no-NO', { maximumFractionDigits: 1 })
-const GOAL_UNIT = { strength: '', minutes: ' min', km: ' km' } as const
-
-const goalRowValue = (row: SessionGoalRow): string => {
-  const format = (n: number) => (row.kind === 'km' ? goalKmFormat.format(n) : String(n))
-  return `${format(row.before + row.today)} / ${format(row.target)}${GOAL_UNIT[row.kind]}${row.met ? ' ✓' : ''}`
-}
-
-const goalRowColor = (row: SessionGoalRow): string =>
-  row.kind === 'strength' ? (MUSCLE_GROUP_COLORS[row.name] ?? '#64748b') : '#06b6d4'
-
-/** "Bryst", "Bryst og Skuldre", "Bryst, Skuldre og Triceps". */
-const metGroupNames = computed(() => {
-  const names = goalRows.value.map(row => row.name)
-  return names.length > 1 ? `${names.slice(0, -1).join(', ')} og ${names[names.length - 1]}` : names.join('')
-})
-
-const anyCardioRunning = computed(() =>
-  (session.value?.exercises ?? []).some(ex => isCardioExercise(ex) && isExerciseRunning(ex))
-)
-
-/** A second-level tick only while a stopwatch actually runs; otherwise the 10 s one is enough. */
-let clockTicker: ReturnType<typeof setInterval> | undefined
-watch(anyCardioRunning, (running) => {
-  clearInterval(clockTicker)
-  clockTicker = undefined
-  if (!running) return
-  now.value = Date.now()
-  clockTicker = setInterval(() => { now.value = Date.now() }, 500)
-}, { immediate: true })
-onUnmounted(() => clearInterval(clockTicker))
-
-/** A running clock counts: completing the session banks it first. */
-const canComplete = computed(() => completedSets.value > 0 || anyCardioRunning.value)
-
-/** Banks every running stopwatch, so the logged time is final. */
-const stopCardioTimers = () => {
-  if (!session.value) return
-  const stoppedAt = Date.now()
-  session.value.exercises.forEach(ex => {
-    if (isCardioExercise(ex)) pauseTimer(ex, stoppedAt)
-  })
-}
-
-/**
- * Lands straight in the stopwatch when that's what the session is for: a
- * running clock, or a session holding a single cardio exercise.
- */
-const openCardioOnArrival = () => {
-  const exercises = session.value?.exercises ?? []
-  const running = exercises.findIndex(ex => isCardioExercise(ex) && isExerciseRunning(ex))
-  if (running >= 0) openExerciseSheet(running)
-  else if (exercises.length === 1 && isCardioExercise(exercises[0])) openExerciseSheet(0)
-}
-
-/** Whether the exercise currently open in the sheet is a cardio one. */
-const activeExerciseIsCardio = computed(() => {
-  if (activeExerciseIndex.value === null || !session.value) return false
-  return isCardioExercise(session.value.exercises[activeExerciseIndex.value])
-})
-
-const updateSetCompletion = (exerciseIndex: number, setIndex: number) => {
-  if (!session.value) return
-  const set = session.value.exercises[exerciseIndex].sets[setIndex]
-  if (typeof set.weight === 'string') {
-    set.weight = parseFloat(set.weight) || 0
-  }
-  if (typeof set.reps === 'string') {
-    set.reps = parseInt(set.reps) || 0
-  }
-  const exercise = session.value.exercises[exerciseIndex]
-  const isCompleted = isSetLogged(exercise, set)
-  if (set.isCompleted !== isCompleted) {
-    set.isCompleted = isCompleted
-  }
-  hasUnsavedChanges.value = true
-}
-
-// === Local persistence helpers ===
-const getLocalStorageKey = (sessionId: string) => `workout-session-${sessionId}`
-
-const isLocalStorageAvailable = () => {
-  try {
-    const test = '__localStorage_test__'
-    localStorage.setItem(test, test)
-    localStorage.removeItem(test)
-    return true
-  } catch {
-    return false
-  }
-}
-
-const persistExercisesToLocal = () => {
-  if (!session.value || !isLocalStorageAvailable()) {
-    hasUnsavedChanges.value = true
-    return
-  }
-  const key = getLocalStorageKey(session.value.id)
-  const payload = {
-    sessionId: session.value.id,
-    lastUpdated: Date.now(),
-    exercises: JSON.parse(JSON.stringify(session.value.exercises)),
-  }
-  try {
-    localStorage.setItem(key, JSON.stringify(payload))
-    hasUnsavedChanges.value = true
-    clearOldWorkoutData()
-  } catch (e) {
-    console.error('❌ Error persisting exercises to localStorage:', e)
-    hasUnsavedChanges.value = true
-  }
-}
-
-const clearOldWorkoutData = () => {
-  try {
-    const keys = Object.keys(localStorage)
-    const workoutKeys = keys.filter(key => key.startsWith('workout-session-'))
-
-    const workoutData = workoutKeys.map(key => {
-      try {
-        const data = JSON.parse(localStorage.getItem(key) || '{}')
-        return { key, lastUpdated: data.lastUpdated || 0 }
-      } catch {
-        return { key, lastUpdated: 0 }
-      }
-    })
-
-    workoutData.sort((a, b) => b.lastUpdated - a.lastUpdated)
-    workoutData.slice(5).forEach(({ key }) => {
-      localStorage.removeItem(key)
-      console.log('🗑️ Removed old workout data:', key)
-    })
-  } catch (error) {
-    console.error('❌ Error clearing old workout data:', error)
-  }
-}
-
-const getLocalChanges = (sessionId: string) => {
-  try {
-    const key = getLocalStorageKey(sessionId)
-    const localData = localStorage.getItem(key)
-    if (localData) return JSON.parse(localData)
-  } catch (error) {
-    console.error('❌ Error reading local changes:', error)
-  }
-  return null
-}
-
-const clearLocalChanges = (sessionId: string) => {
-  try {
-    const key = getLocalStorageKey(sessionId)
-    localStorage.removeItem(key)
-    console.log('🗑️ Cleared local changes for session:', sessionId)
-  } catch (error) {
-    console.error('❌ Error clearing local changes:', error)
-  }
-}
-
-const restoreLocalChanges = async () => {
-  if (!session.value) return
-  try {
-    const key = getLocalStorageKey(session.value.id)
-    const localData = localStorage.getItem(key)
-    if (!localData) return
-
-    const parsed = JSON.parse(localData)
-    if (parsed && Array.isArray(parsed.exercises)) {
-      session.value.exercises = parsed.exercises
-      hasUnsavedChanges.value = true
-      console.log('✅ Restored exercises from local (source of truth)')
-    }
-  } catch (error) {
-    console.error('❌ Error restoring local changes:', error)
-  }
-}
-// === end local helpers ===
-
-// ===== Scroll position persistence (WorkoutSession-only) =====
-const shouldRestoreScroll = () => {
-  if (!session.value) return false
-  return sessionStorage.getItem(`workout-restore-${session.value.id}`) === '1'
-}
-
-const onScrollCapture = () => {
-  if (!session.value) return
-  const y =
-    window.scrollY ||
-    window.pageYOffset ||
-    document.documentElement.scrollTop ||
-    0
-  const id = session.value.id
-  sessionStorage.setItem(`workout-scroll-${id}`, String(y))
-  localStorage.setItem(`workout-scroll-${id}`, String(y))
-}
-
-const restoreScrollPosition = () => {
-  if (!session.value) return
-  const id = session.value.id
-  const saved =
-    sessionStorage.getItem(`workout-scroll-${id}`) ||
-    localStorage.getItem(`workout-scroll-${id}`)
-  if (!saved) return
-  const y = parseInt(saved, 10) || 0
-  requestAnimationFrame(() => window.scrollTo(0, y))
-}
-// ===== end scroll section =====
-
-const addSet = (exerciseIndex: number) => {
-  if (!session.value) return
-  const exercise = session.value.exercises[exerciseIndex]
-  const previous = exercise.sets[exercise.sets.length - 1]
-  const newSet = {
-    id: `set-${Date.now()}-${exercise.sets.length}`,
-    reps: 0,
-    weight: 0,
-    // Same machine as the set above
-    weightUnit: previous?.weightUnit,
-    withBodyweight: previous?.withBodyweight,
-    bodyweight: previous?.bodyweight,
-    duration: undefined as number | undefined,
-    distance: undefined as number | undefined,
-    isCompleted: false
-  }
-  exercise.sets.push(newSet)
-  persistExercisesToLocal()
-}
-
-const addExerciseToSession = () => {
-  if (!session.value || !newExerciseId.value) return
-
-  const exerciseData = workoutData.getFlattenedExercises.value.find(e => e.id === newExerciseId.value)
-  if (!exerciseData) return
-
-  const exerciseExists = session.value.exercises.some(e => e.exerciseId === newExerciseId.value)
-  if (exerciseExists) {
-    alert('Denne øvelsen er allerede lagt til i økten.')
-    return
-  }
-
-  if (availableExercises.value.length === 0) {
-    alert('Det er ingen flere øvelser å legge til.')
-    return
-  }
-
-  const exerciseName = exerciseData.name
-  const exerciseId = exerciseData.id
-  const setSeed = Date.now()
-  const exerciseSlotIndex = session.value.exercises.length
-
-  // Same reasoning as when a session starts: carry the type with the session.
-  const trackingType = workoutData.exerciseIndex.value.get(exerciseId)?.trackingType ?? 'strength'
-
-  const newExercise = {
-    exerciseId,
-    name: exerciseName,
-    trackingType,
-    // Cardio is one activity that grows rounds as you go, not three blank sets.
-    sets: (trackingType === 'cardio' ? [0] : [0, 1, 2]).map((setIndex) => ({
-      id: `set-${setSeed}-${exerciseSlotIndex}-${setIndex}`,
-      reps: 0,
-      weight: 0,
-      duration: undefined as number | undefined,
-      distance: undefined as number | undefined,
-      isCompleted: false
-    }))
-  }
-
-  session.value.exercises.push(newExercise)
-  persistExercisesToLocal()
-
-  newExerciseId.value = null
-  showAddExerciseModal.value = false
-}
-
-const openMobileAddExercise = () => {
-  isMobileExercisePanelOpen.value = true
-}
-
-const closeMobileAddExercise = () => {
-  isMobileExercisePanelOpen.value = false
-}
-
-const handleAddExerciseFromPanel = (exerciseId: number) => {
-  newExerciseId.value = exerciseId
-  addExerciseToSession()
-  isMobileExercisePanelOpen.value = false
-}
-
-const removeExercise = (exerciseIndex: number) => {
-  const confirmDeletion = confirm('Er du sikker på at du vil slette denne øvelsen?');
-  if (!confirmDeletion) return;
-  if (!session.value) return
-  session.value.exercises.splice(exerciseIndex, 1)
-  closeExerciseSheet()
-  persistExercisesToLocal()
-}
-
-const removeSet = (exerciseIndex: number, setIndex: number) => {
-  if (!session.value) return
-
-  const exercise = session.value.exercises[exerciseIndex]
-
-  if (exercise.sets.length <= 1) {
-    // If this is the last set, trigger full exercise removal (with confirmation)
-    removeExercise(exerciseIndex)
-    return
-  }
-
-  // Remove the set
-  exercise.sets.splice(setIndex, 1)
-  persistExercisesToLocal()
-}
-
-// ===== Deferred cleanup =====
-// Vue can only bind lifecycle hooks synchronously during setup. The onMounted
-// below is async, so calling onUnmounted after one of its awaits silently fails
-// to register — leaving every listener it set up attached for the rest of the
-// session. Collect the teardown callbacks instead and run them from a single
-// hook registered here, synchronously.
-const deferredCleanups: Array<() => void> = []
-
-const addCleanup = (fn: () => void) => {
-  deferredCleanups.push(fn)
-}
-
-onUnmounted(() => {
-  while (deferredCleanups.length > 0) {
-    const fn = deferredCleanups.pop()
-    try {
-      fn?.()
-    } catch (error) {
-      console.warn('⚠️ Cleanup failed:', error)
-    }
-  }
-})
-
-// ===== Long-press drag to reorder exercises =====
-// Shared with the template editor; see useLongPressReorder for why a long press
-// is required rather than a plain vertical drag.
-const exListRef = ref<HTMLElement | null>(null)
-
-const {
-  draggingIndex,
-  dragTranslateY,
-  onRowPointerDown,
-  consumeClickSuppression,
-} = useLongPressReorder({
-  getItems: () => session.value?.exercises ?? null,
-  listEl: exListRef,
-  onReordered: () => persistExercisesToLocal(),
-})
-// ===== end drag section =====
-
-/** Opens the bottom sheet for a specific exercise index. */
-const openExerciseSheet = (idx: number) => {
-  activeExerciseIndex.value = idx
-  const exercise = session.value?.exercises[idx]
-  // First open this session: start where last time ended, so a lbs machine or body weight carries over.
-  // Plain kg is what missing values mean, so only write otherwise — opening a sheet shouldn't dirty the session.
-  if (exercise && !isCardioExercise(exercise) && !exercise.sets.some(set => set.weightUnit || hasBodyweight(set))) {
-    const last = getLastPerformance(exercise.exerciseId)
-    if (last && !last.isCardio && (last.weightUnit !== 'kg' || last.withBodyweight)) {
-      setExerciseWeighing(idx, { unit: last.weightUnit, withBodyweight: last.withBodyweight })
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Weight unit — chosen per exercise, stored on every set
-// ---------------------------------------------------------------------------
-
-const UNIT_OPTIONS: WeightUnit[] = ['kg', 'lbs']
-
-const profileBodyweight = computed<number | null>(() => {
-  const kg = Number(workoutData.currentUser.value?.user_metadata?.bodyweight)
-  return kg > 0 ? kg : null
-})
-
-/** Every set of an exercise shares unit and body weight, so the first set speaks for them. */
-const activeFirstSet = computed(() =>
-  activeExerciseIndex.value === null ? undefined : session.value?.exercises[activeExerciseIndex.value]?.sets[0]
-)
-const activeUnit = computed<WeightUnit>(() => weightUnitOf(activeFirstSet.value))
-const activeWithBodyweight = computed(() => hasBodyweight(activeFirstSet.value))
-const weightHeader = computed(() => `${activeWithBodyweight.value ? 'Ekstra' : 'Vekt'} (${activeUnit.value})`)
-
-// Two decimals like formatKg elsewhere, so an old 61,25 kg PB isn't rounded.
-const formatKgShort = (kg: number): string => kg.toLocaleString('no-NO', { maximumFractionDigits: 2 })
-
-/** Writes unit and body weight to every set — body weight on or off can make a 0 kg set count or stop counting. */
-const setExerciseWeighing = (exerciseIndex: number, { unit, withBodyweight }: { unit: WeightUnit; withBodyweight: boolean }) => {
-  if (!session.value) return
-  session.value.exercises[exerciseIndex].sets.forEach((set, setIndex) => {
-    set.weightUnit = unit
-    set.withBodyweight = withBodyweight
-    if (!withBodyweight) delete set.bodyweight
-    else if (profileBodyweight.value) set.bodyweight = profileBodyweight.value
-    updateSetCompletion(exerciseIndex, setIndex)
-  })
-  persistExercisesToLocal()
-}
-
-/** Last time's weight as a hint, only when it was logged the way it's set up now. */
-const weightPlaceholder = (exerciseId: number): string => {
-  const last = getLastPerformance(exerciseId)
-  const same = last && !last.isCardio && last.weightUnit === activeUnit.value && last.withBodyweight === activeWithBodyweight.value
-  return same && last.weight ? String(last.weight) : '–'
-}
-
-const onRowClick = (index: number) => {
-  if (consumeClickSuppression()) return
-  openExerciseSheet(index)
-}
-
-const closeExerciseSheet = () => {
-  activeExerciseIndex.value = null
-}
-
-const prevExercise = () => {
-  if (activeExerciseIndex.value !== null && activeExerciseIndex.value > 0) {
-    openExerciseSheet(activeExerciseIndex.value - 1)
-  }
-}
-
-const nextExercise = () => {
-  if (
-    activeExerciseIndex.value !== null &&
-    session.value &&
-    activeExerciseIndex.value < session.value.exercises.length - 1
-  ) {
-    openExerciseSheet(activeExerciseIndex.value + 1)
-  }
-}
-
-/** Removes all exercises from the current session run so the user can add their own. */
-const resetExercises = () => {
-  if (!session.value) return
-  session.value.exercises = []
-  collapsedExercises.value = []
-  showResetConfirm.value = false
-  persistExercisesToLocal()
-}
-
-const formatNumber = (num: number): string => {
-  return new Intl.NumberFormat('no-NO').format(Math.round(num))
-}
-
-const formatDate = (date: Date): string => {
-  return new Intl.DateTimeFormat('no-NO', {
-    day: 'numeric',
-    month: 'short'
-  }).format(date)
-}
-
-/** Returns the parent exercise group name for a variant ID, or null if it's a standalone exercise. */
-const getParentGroupName = (exerciseId: number): string | null => {
-  for (const exercise of workoutData.exercises.value) {
-    if (exercise.variants?.some(v => v.id === exerciseId)) {
-      return exercise.name
-    }
-  }
-  return null
-}
-
-const getLastPerformance = (exerciseId: number) => {
-  // We want the most recent completed session containing this exercise,
-  // then the last completed set within that session (not the best by volume).
-  const completedSessions = workoutData.sessions.value
-    .filter(session => session.isCompleted)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-  for (const session of completedSessions) {
-    const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
-    if (!exercise) continue
-
-    const completedSets = exercise.sets.filter(set => isSetCounted(exercise, set))
-    if (completedSets.length === 0) continue
-
-    // Cardio compares whole activities — last time's football match, not its last round.
-    if (isCardioExercise(exercise)) {
-      const activity = summarizeCardioExercise(exercise)
-      return {
-        weight: 0,
-        weightUnit: 'kg' as WeightUnit,
-        withBodyweight: false,
-        reps: 0,
-        duration: activity.seconds,
-        distance: activity.metres,
-        effort: exercise.effort,
-        isCardio: true,
-        date: session.date
-      }
-    }
-
-    const lastSet = completedSets[completedSets.length - 1]
-    return {
-      weight: lastSet.weight,
-      weightUnit: weightUnitOf(lastSet),
-      withBodyweight: hasBodyweight(lastSet),
-      reps: lastSet.reps,
-      duration: lastSet.duration,
-      distance: lastSet.distance,
-      effort: undefined as number | undefined,
-      isCardio: false,
-      date: session.date
-    }
-  }
-
-  return null
-}
-
-// Heaviest lift across completed sessions for the exercise
-const getHeaviestLift = (exerciseId: number) => {
-  const completedSessions = workoutData.sessions.value
-    .filter(session => session.isCompleted)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-  let best: { weight: number; reps: number; date: Date } | null = null
-
-  for (const session of completedSessions) {
-    const exercise = session.exercises.find(e => e.exerciseId === exerciseId)
-    if (!exercise) continue
-
-    for (const set of exercise.sets) {
-      if (!set.isCompleted) continue
-      
-      // Progress kg: lbs converted, only the extra load on body weight sets.
-      const w = setProgressKg(exercise, set)
-      const r = Number(set.reps) || 0
-
-      if (w <= 0 || r <= 0) continue
-
-      if (!best) {
-        best = { weight: w, reps: r, date: new Date(session.date) }
-        continue
-      }
-
-      // Logic: Heaviest weight wins. Tie? More reps wins. Tie? Newer date wins.
-      if (w > best.weight) {
-        best = { weight: w, reps: r, date: new Date(session.date) }
-      } else if (w === best.weight) {
-        if (r > best.reps) {
-          best = { weight: w, reps: r, date: new Date(session.date) }
-        } else if (r === best.reps) {
-          // If weight and reps are equal, prefer the more recent date.
-          // Since we iterate from newest to oldest, the first one we found (current 'best') 
-          // is already the newest, so we don't update.
-          if (new Date(session.date).getTime() > new Date(best.date).getTime()) {
-             best = { weight: w, reps: r, date: new Date(session.date) }
-          }
-        }
-      }
-    }
-  }
-
-  return best
-}
-
-// Calculate total volume for a single exercise (completed sets only)
-const calculateExerciseVolume = (exercise: any): number => {
-  if (!exercise || !Array.isArray(exercise.sets)) return 0
-  return exercise.sets.reduce((sum: number, set: any) => {
-    return isSetCounted(exercise, set) ? sum + setVolume(exercise, set) : sum
-  }, 0)
-}
-
-const getExerciseMuscleGroups = (exerciseId: number): string[] => {
-  const exerciseData = workoutData.getExerciseById(exerciseId)
-  return exerciseData?.muscleGroups || []
-}
-
-const getMuscleGroupColor = (muscleGroupName: string): string => {
-  const muscleGroup = muscleGroupsData.muscleGroups.find(mg =>
-    mg.name.toLowerCase() === muscleGroupName.toLowerCase() ||
-    mg.displayName.toLowerCase() === muscleGroupName.toLowerCase()
-  )
-
-  return muscleGroup?.color || '#6b7280'
-}
-
-// Communicate save state to App.vue
-const updateAppSaveState = () => {
-  const updateEvent = new CustomEvent('updateAppSaveState', {
-    detail: {
-      hasUnsavedChanges: hasUnsavedChanges.value,
-      isSaving: isSaving.value
-    }
-  })
-  window.dispatchEvent(updateEvent)
-}
-
-const handleCompleteWorkout = () => {
-  // A round whose clock is still running is kept: completing banks its time.
-  const incompleteExercises = session.value?.exercises.filter(exercise =>
-    !exercise.sets.some(set => set.isCompleted || isSetRunning(set))
-  ) || []
-
-  const incompleteSets = session.value?.exercises.reduce((total, exercise) =>
-    total + exercise.sets.filter(set => !set.isCompleted && !isSetRunning(set)).length, 0
-  ) || 0
-
-  let message = 'Er du sikker på at du vil fullføre økten?'
-
-  if (incompleteExercises.length > 0 || incompleteSets > 0) {
-    message += `\n\nMerk: ${incompleteExercises.length} ufullførte øvelser og ${incompleteSets} ufullførte sett vil bli fjernet fra økten før den lagres.`
-  }
-
-  if (confirm(message)) {
-    completeWorkout()
-  }
-}
-
-const handleAbandonWorkout = () => {
-  const incompleteExercises = session.value?.exercises.filter(exercise =>
-    !exercise.sets.some(set => set.isCompleted)
-  ) || []
-
-  const incompleteSets = session.value?.exercises.reduce((total, exercise) =>
-    total + exercise.sets.filter(set => !set.isCompleted).length, 0
-  ) || 0
-
-  let message = 'Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent.'
-
-  if (incompleteExercises.length > 0 || incompleteSets > 0) {
-    message += `\n\nMerk: ${incompleteExercises.length} ufullførte øvelser og ${incompleteSets} ufullførte sett vil bli fjernet fra økten før den slettes.`
-  }
-
-  if (confirm(message)) {
-    abandonWorkout()
-  }
-}
-
-const abandonWorkout = async () => {
-  if (!session.value) return
-
-  try {
-    const sessionId = session.value.id
-    const localChanges = getLocalChanges(sessionId)
-
-    const cleanedSession = await cleanupSessionData(session.value)
-
-    // Prefer LOCAL exercises if present (source of truth)
-    let exercisesToPersist = cleanedSession.exercises
-    if (localChanges?.exercises) {
-      exercisesToPersist = localChanges.exercises
-      const tmpSession: WorkoutSession = {
-        ...session.value,
-        exercises: exercisesToPersist
-      }
-      const cleaned = await cleanupSessionData(tmpSession)
-      exercisesToPersist = cleaned.exercises
-    }
-
-    await workoutData.updateWorkoutSessionOffline(sessionId, {
-      exercises: exercisesToPersist
-    })
-
-    await workoutData.abandonWorkoutSession(sessionId)
-
-    clearLocalChanges(sessionId)
-    console.log('✅ Workout abandoned and synced successfully')
-    router.push('/')
-  } catch (error: any) {
-    console.error("❌ Error abandoning workout:", error)
-    if (error.message && (
-      error.message.includes("not authenticated") ||
-      error.message.includes("Session expired") ||
-      error.message.includes("Please log in again")
-    )) {
-      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.")
-      router.push('/login')
-      return
-    }
-    handleAuthError(error)
-  }
-}
-
-const completeWorkout = async () => {
-  if (!session.value) return
-
-  try {
-    const sessionId = session.value.id
-
-    // Bank running stopwatches and write them locally first — the local copy is
-    // what gets saved below.
-    stopCardioTimers()
-    persistExercisesToLocal()
-
-    const localChanges = getLocalChanges(sessionId)
-
-    const cleanedSession = await cleanupSessionData(session.value)
-
-    // Prefer LOCAL exercises if present (source of truth)
-    let exercisesToPersist = cleanedSession.exercises
-    if (localChanges?.exercises) {
-      exercisesToPersist = localChanges.exercises
-      const tmpSession: WorkoutSession = {
-        ...session.value,
-        exercises: exercisesToPersist
-      }
-      const cleaned = await cleanupSessionData(tmpSession)
-      exercisesToPersist = cleaned.exercises
-    }
-
-    await workoutData.updateWorkoutSessionOffline(sessionId, {
-      exercises: exercisesToPersist
-    })
-
-    await workoutData.completeWorkoutSession(sessionId)
-
-    clearLocalChanges(sessionId)
-    console.log('✅ Workout completed and synced successfully')
-    router.push(`/session/${sessionId}`)
-  } catch (error: any) {
-    console.error("❌ Error completing workout:", error)
-    if (error.message && (
-      error.message.includes("not authenticated") ||
-      error.message.includes("Session expired") ||
-      error.message.includes("Please log in again")
-    )) {
-      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.")
-      router.push('/login')
-      return
-    }
-    handleAuthError(error)
-  }
-}
-
-// Helper function to clean up session data before completion
-const cleanupSessionData = async (sessionData: WorkoutSession): Promise<WorkoutSession> => {
-  console.log('🧹 Cleaning up session data before completion...')
-
-  const cleanedSession = JSON.parse(JSON.stringify(sessionData))
-
-  // Body weight entered in the profile mid-session still counts for this session's sets.
-  cleanedSession.exercises.forEach((exercise: any) =>
-    exercise.sets.forEach((set: any) => {
-      if (hasBodyweight(set) && !(Number(set.bodyweight) > 0) && profileBodyweight.value) {
-        set.bodyweight = profileBodyweight.value
-      }
-    })
-  )
-
-  const originalExerciseCount = cleanedSession.exercises.length
-  cleanedSession.exercises = cleanedSession.exercises.filter((exercise: any) => {
-    const hasCompletedSets = exercise.sets.some((set: any) => set.isCompleted)
-    if (!hasCompletedSets) {
-      console.log(`🧹 Removing exercise "${exercise.name}" - no completed sets`)
-    }
-    return hasCompletedSets
-  })
-
-  let totalSetsRemoved = 0
-  cleanedSession.exercises.forEach((exercise: any) => {
-    exercise.sets = exercise.sets.filter((set: any) => {
-      const isComplete = isSetCounted(exercise, set)
-      if (!isComplete) {
-        console.log(`🧹 Removing incomplete set from "${exercise.name}" - weight: ${set.weight}, reps: ${set.reps}`)
-        totalSetsRemoved++
-      }
-      return isComplete
-    })
-  })
-
-  cleanedSession.exercises = cleanedSession.exercises.filter((exercise: any) => exercise.sets.length > 0)
-
-  console.log('🧹 Session cleaned up:', {
-    originalExercises: originalExerciseCount,
-    cleanedExercises: cleanedSession.exercises.length,
-    totalSetsRemoved,
-    exercisesRemoved: originalExerciseCount - cleanedSession.exercises.length
-  })
-
-  return cleanedSession
-}
-
-// Manual sync function for Ctrl+S or manual save
-const syncLocalChangesToSupabase = async () => {
-  if (!session.value || !hasUnsavedChanges.value || isSaving.value) return
-
-  console.log('💾 Manually syncing local changes to Supabase...')
-  isSaving.value = true
-
-  try {
-    const sessionId = session.value.id
-    const local = getLocalChanges(sessionId)
-
-    if (local?.exercises) {
-      await workoutData.updateWorkoutSessionOffline(sessionId, {
-        exercises: local.exercises
-      })
-      clearLocalChanges(sessionId)
-      hasUnsavedChanges.value = false
-      console.log('✅ Local changes synced to Supabase successfully')
-    } else {
-      console.log('ℹ️ No local changes to sync')
-      hasUnsavedChanges.value = false
-    }
-  } catch (error: any) {
-    console.error('❌ Error syncing local changes:', error)
-    if (error.message && (
-      error.message.includes("not authenticated") ||
-      error.message.includes("Session expired") ||
-      error.message.includes("Please log in again")
-    )) {
-      alert("Din sesjon har utløpt. Du vil bli sendt til innloggingssiden.")
-      router.push('/login')
-      return
-    }
-  } finally {
-    isSaving.value = false
-    console.log('💾 Manual sync operation completed')
-  }
-}
-
-const isDevelopment = computed(() => import.meta.env.DEV)
-
-// State for collapsible exercises
-const collapsedExercises = ref<boolean[]>([])
-const uiReady = ref(false)
-
-// Methods
-const toggleExercise = (index: number) => {
-  collapsedExercises.value[index] = !collapsedExercises.value[index]
-}
-
-// Smooth expand/collapse animations for exercise content
-function expand(el: Element) {
-  const element = el as HTMLElement
-  const targetHeight = `${element.scrollHeight}px`
-
-  element.style.overflow = 'hidden'
-  element.style.height = '0px'
-  element.style.willChange = 'height'
-  element.style.contain = 'layout paint'
-
-  requestAnimationFrame(() => {
-    element.style.transition = 'height 160ms ease-out'
-    element.style.height = targetHeight
-  })
-}
-
-function afterExpand(el: Element) {
-  const element = el as HTMLElement
-  element.style.transition = ''
-  element.style.height = ''
-  element.style.overflow = ''
-  element.style.willChange = ''
-  element.style.contain = ''
-}
-
-function collapse(el: Element) {
-  const element = el as HTMLElement
-  const startHeight = `${element.scrollHeight}px`
-
-  element.style.overflow = 'hidden'
-  element.style.height = startHeight
-  element.style.willChange = 'height'
-  element.style.contain = 'layout paint'
-
-  requestAnimationFrame(() => {
-    element.style.transition = 'height 130ms ease-in'
-    element.style.height = '0px'
-  })
-}
-
-function afterCollapse(el: Element) {
-  const element = el as HTMLElement
-  element.style.transition = ''
-  element.style.height = ''
-  element.style.overflow = ''
-  element.style.willChange = ''
-  element.style.contain = ''
-}
-
-// Determine when an exercise is fully completed (all sets complete)
-const isExerciseCompleted = (exercise: any): boolean => {
-  if (!exercise || !Array.isArray(exercise.sets) || exercise.sets.length === 0) return false
-  return exercise.sets.every((set: any) => isSetCounted(exercise, set))
-}
-
-// Lifecycle
-onMounted(async () => {
-  const sessionId = route.params.id as string
-
-  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  const isPWA = window.matchMedia('(display-mode: standalone)').matches
-
-  console.log('📱 WorkoutSession mounted:', {
-    sessionId,
-    isMobile: isMobileUA,
-    isPWA
-  })
-
-  if (workoutData.isLoading.value) {
-    await new Promise<void>((resolve) => {
-      const unwatch = watch(() => workoutData.isLoading.value, (newValue) => {
-        if (!newValue) {
-          unwatch()
-          resolve()
-        }
-      })
-    })
-  }
-
-  const setSessionFromStore = () => {
-    const s = workoutData.getSessionById(sessionId)
-    if (!s) return false
-    session.value = s
-    startTime.value = new Date(s.date)
-    return true
-  }
-
-  if (!setSessionFromStore()) {
-    // If user is not authenticated yet, wait for auth and stay on page
-    const stopAuthWait = watch(
-      () => workoutData.currentUser.value,
-      async (u) => {
-        if (!u) return
-        try {
-          await (workoutData as any).refreshUIData?.()
-          if (!setSessionFromStore()) await workoutData.loadData(0, true)
-          setSessionFromStore()
-        } finally {
-          stopAuthWait()
-        }
-      },
-      { immediate: false }
-    )
-    try {
-      // Paint from cache first if available
-      if ((workoutData as any).refreshUIData) {
-        await (workoutData as any).refreshUIData()
-        if (setSessionFromStore()) return
-      }
-
-      // Force a data load (will no-op if auth not ready yet)
-      await workoutData.loadData(0, true)
-      if (!setSessionFromStore()) {
-        // Defer: wait for auth/data to hydrate, then set session when available
-        const stopSessionsWatch = watch(
-          () => workoutData.sessions.value,
-          () => {
-            if (setSessionFromStore()) {
-              stopSessionsWatch()
-            }
-          }
-        )
-        const stopAuthWatch = watch(
-          () => workoutData.currentUser.value,
-          async (u) => {
-            if (u) {
-              try {
-                await (workoutData as any).refreshUIData?.()
-                if (setSessionFromStore()) {
-                  stopAuthWatch()
-                  return
-                }
-                await workoutData.loadData(0, true)
-                if (setSessionFromStore()) stopAuthWatch()
-              } catch {}
-            }
-          },
-          { immediate: false }
-        )
-        // Ensure we clean these up later
-        addCleanup(() => {
-          try { stopSessionsWatch() } catch {}
-          try { stopAuthWatch() } catch {}
-        })
-      }
-    } catch (error) {
-      console.error('Error ensuring session after refresh:', error)
-      // Do not redirect; keep user on page while data hydrates
-      return
-    }
-  }
-
-  updateAppSaveState()
-
-  // Restore local shape/values first (local wins for in-progress)
-  await restoreLocalChanges()
-
-  // After the restore: a running stopwatch lives in the local copy.
-  openCardioOnArrival()
-
-  // Initialize collapsed state: keep completed collapsed, expand only active/incomplete
-  if (session.value) {
-    collapsedExercises.value = session.value.exercises.map((ex: any) => isExerciseCompleted(ex))
-  }
-  // Defer enabling transitions so initial state paints without animation
-  requestAnimationFrame(() => {
-    uiReady.value = true
-  })
-
-  // Keyboard/Save integrations
-  const handleKeydown = (event: KeyboardEvent) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-      event.preventDefault()
-      if (hasUnsavedChanges.value && !isSaving.value) {
-        syncLocalChangesToSupabase()
-      }
-    }
-  }
-
-  const handleSaveEvent = (event: CustomEvent) => {
-    if (event.detail.sessionId === session.value?.id && hasUnsavedChanges.value && !isSaving.value) {
-      syncLocalChangesToSupabase()
-    }
-  }
-
-  watch([hasUnsavedChanges, isSaving], () => {
-    updateAppSaveState()
-  })
-
-  watch(pendingChangesCount, (newCount) => {
-    const updateEvent = new CustomEvent('updatePendingChangesCount', {
-      detail: { pendingChangesCount: newCount }
-    })
-    window.dispatchEvent(updateEvent)
-  })
-
-  // Online auto-sync
-  const handleOnlineSync = async () => {
-    if (!session.value || !workoutData.isOnline.value) return
-    try {
-      const localChanges = getLocalChanges(session.value.id)
-      if (localChanges?.exercises && hasUnsavedChanges.value) {
-        console.log('🌐 Back online - syncing local changes automatically')
-        await syncLocalChangesToSupabase()
-      }
-    } catch (error) {
-      console.error('❌ Error in automatic online sync:', error)
-    }
-  }
-
-  const handleNetworkChange = () => {
-    if (workoutData.isOnline.value && hasUnsavedChanges.value) {
-      console.log('🌐 Network back online - checking for local changes to sync')
-      setTimeout(() => {
-        if (workoutData.isOnline.value) {
-          handleOnlineSync()
-        }
-      }, 2000)
-    }
-  }
-
-  window.addEventListener('online', handleNetworkChange)
-
-  // ===== Scroll wiring (attach once, restore only on resume flag) =====
-  window.addEventListener('scroll', onScrollCapture)
-
-  setTimeout(() => {
-    if (shouldRestoreScroll()) {
-      restoreScrollPosition()
-      // consume flag so we don't keep restoring
-      sessionStorage.removeItem(`workout-restore-${session.value!.id}`)
-    }
-  }, 300)
-
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === 'visible') {
-      if (shouldRestoreScroll()) {
-        setTimeout(() => {
-          restoreScrollPosition()
-          sessionStorage.removeItem(`workout-restore-${session.value!.id}`)
-        }, 100)
-      }
-    }
-  }
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-  // ===== End scroll wiring =====
-
-  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-    if (hasUnsavedChanges.value) {
-      event.preventDefault()
-      event.returnValue = 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
-      return 'Du har ulagrede endringer. Er du sikker på at du vil forlate siden?'
-    }
-  }
-
-  window.addEventListener('keydown', handleKeydown)
-  window.addEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
-  window.addEventListener('beforeunload', handleBeforeUnload)
-
-  addCleanup(() => {
-    window.removeEventListener('keydown', handleKeydown)
-    window.removeEventListener('saveWorkoutSession', handleSaveEvent as EventListener)
-    window.removeEventListener('beforeunload', handleBeforeUnload)
-    window.removeEventListener('scroll', onScrollCapture)
-    window.removeEventListener('online', handleNetworkChange)
-    document.removeEventListener('visibilitychange', handleVisibilityChange)
-  })
-
-  // initial cleanup of old local entries
-  clearOldWorkoutData()
-})
-
-// Watch for route changes to warn about unsaved changes
-watch(() => route.params.id, async (newId, oldId) => {
-  if (newId && oldId && newId !== oldId) {
-    if (hasUnsavedChanges.value) {
-      const shouldLeave = confirm('Vil du lagre endringene først?')
-      if (shouldLeave) {
-        await syncLocalChangesToSupabase()
-      }
-    }
-    const foundSession = workoutData.getSessionById(newId as string)
-    if (foundSession) {
-      session.value = foundSession
-      startTime.value = new Date(foundSession.date)
-      hasUnsavedChanges.value = false
-    }
-  }
-})
-</script>
-
 
 <style scoped>
 /* TransitionGroup fade for set rows */

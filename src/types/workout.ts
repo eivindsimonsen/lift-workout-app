@@ -68,9 +68,6 @@ export interface WorkoutTemplate {
 export interface ExerciseTemplate {
   exerciseId: number;
   name: string;
-  sets: number;
-  reps: number;
-  weight?: number;
 }
 
 // Session management

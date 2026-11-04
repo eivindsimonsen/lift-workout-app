@@ -1,4 +1,4 @@
-import type { ExerciseTrackingType, WeightUnit } from "@/types/workout";
+import type { ExerciseTrackingType, WeightUnit, WorkoutExercise, WorkoutSession } from "@/types/workout";
 
 /**
  * Single source of truth for how the two kinds of exercise are measured.
@@ -131,4 +131,55 @@ export const formatPace = (seconds: number, metres: number): string | null => {
   const m = num(metres);
   if (s <= 0 || m <= 0) return null;
   return `${formatDuration((s / m) * 1000)} /km`;
+};
+
+// ---------------------------------------------------------------------------
+// Last time — what "forrige gang" means for an exercise
+// ---------------------------------------------------------------------------
+
+/** Empty sets a strength exercise starts with when it has never been logged. */
+export const DEFAULT_STRENGTH_SETS = 3;
+
+export type LastLogged = { session: WorkoutSession; exercise: WorkoutExercise };
+
+/** Completed sessions, newest first — filtered into a new array, so the caller's order is untouched. */
+const completedNewestFirst = (sessions: WorkoutSession[]): WorkoutSession[] =>
+  sessions.filter((session) => session.isCompleted).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+const hasCountedSet = (exercise: WorkoutExercise): boolean => exercise.sets.some((set) => isSetCounted(exercise, set));
+
+/**
+ * Most recent completed session in which the exercise has at least one counted
+ * set. The "Sist …" hint and the starting set count both read this, so they
+ * always point at the same session.
+ */
+export const findLastLogged = (sessions: WorkoutSession[], exerciseId: number): LastLogged | null => {
+  const id = Number(exerciseId);
+  for (const session of completedNewestFirst(sessions)) {
+    const exercise = session.exercises.find((e) => Number(e.exerciseId) === id && hasCountedSet(e));
+    if (exercise) return { session, exercise };
+  }
+  return null;
+};
+
+/**
+ * `findLastLogged` for every exercise in one pass, keyed by exercise id — for views
+ * that look up many exercises on every render (the active session).
+ */
+export const lastLoggedByExercise = (sessions: WorkoutSession[]): Map<number, LastLogged> => {
+  const index = new Map<number, LastLogged>();
+  for (const session of completedNewestFirst(sessions)) {
+    for (const exercise of session.exercises) {
+      const id = Number(exercise.exerciseId);
+      if (!index.has(id) && hasCountedSet(exercise)) index.set(id, { session, exercise });
+    }
+  }
+  return index;
+};
+
+/** Empty sets a strength exercise starts with: as many as were counted last time, else DEFAULT_STRENGTH_SETS. */
+export const startingSetCount = (sessions: WorkoutSession[], exerciseId: number): number => {
+  const last = findLastLogged(sessions, exerciseId);
+  if (!last) return DEFAULT_STRENGTH_SETS;
+  return last.exercise.sets.filter((set) => isSetCounted(last.exercise, set)).length;
 };

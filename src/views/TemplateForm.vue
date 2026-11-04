@@ -34,9 +34,7 @@ const openExercisePicker = (index: number) => {
   if (index === templateForm.value.exercises.length) {
     templateForm.value.exercises.push({
       exerciseId: 0,
-      name: '',
-      sets: 0,
-      reps: 0
+      name: ''
     })
   }
   activeExerciseIndex.value = index
@@ -58,8 +56,6 @@ const handleSelectExercise = (exerciseId: number) => {
     templateForm.value.exercises.push({
       exerciseId,
       name: exerciseData.name,
-      sets: 0,
-      reps: 0,
     })
   } else {
     const idx = activeExerciseIndex.value
@@ -167,8 +163,10 @@ const saveTemplate = async () => {
     .filter((exercise) => exercise.exerciseId)
     .map(exercise => {
       const exerciseData = workoutData.getExerciseById(exercise.exerciseId)
+      // Only id and name: old templates still carry the phased-out sets/reps/weight
+      // in their JSON, and re-saving shouldn't write them back.
       return {
-        ...exercise,
+        exerciseId: exercise.exerciseId,
         name: exerciseData?.name || exercise.name
       }
     })
@@ -236,9 +234,7 @@ onMounted(async () => {
         name: sourceSession.templateName,
         exercises: sourceSession.exercises.map(ex => ({
           exerciseId: ex.exerciseId,
-          name: ex.name,
-          sets: 3, // Defaulting to 3 sets as a reasonable starting point for a template
-          reps: 10 // Defaulting to 10 reps
+          name: ex.name
         }))
       }
     }

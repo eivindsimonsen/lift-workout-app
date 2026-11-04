@@ -4,7 +4,7 @@ import { useErrorHandler } from "@/composables/useErrorHandler";
 import { useIndexedDB } from "@/composables/useIndexedDB";
 import { useExercises } from "./useExercises";
 import type { WorkoutTemplate, WorkoutSession, ExerciseTrackingType } from "@/types/workout";
-import { isSetCounted, setDuration, setVolume } from "./useSetMetrics";
+import { isSetCounted, setDuration, setVolume, startingSetCount } from "./useSetMetrics";
 
 // ------- tiny logger ----------
 const logSupabaseAccess = (operation: string, details?: any) => {
@@ -995,12 +995,14 @@ const createSupabaseData = () => {
           // Stamped now so the session stays readable even if the exercise is
           // later retyped or deleted.
           const trackingType = resolveTrackingType(ex.exerciseId);
+          // Cardio is one activity that grows rounds as you go; strength starts with
+          // as many sets as were logged last time (3 if never done).
+          const setCount = trackingType === "cardio" ? 1 : startingSetCount(sessions.value, ex.exerciseId);
           return {
             exerciseId: ex.exerciseId,
             name: ex.name,
             trackingType,
-            // Cardio is one activity that grows rounds as you go, not three blank sets.
-            sets: (trackingType === "cardio" ? [0] : [0, 1, 2]).map((setIndex) => ({
+            sets: Array.from({ length: setCount }, (_, setIndex) => ({
               id: `set-${sessionSeed}-${exerciseIndex}-${setIndex}`,
               reps: 0,
               weight: 0,
