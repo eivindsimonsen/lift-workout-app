@@ -8,6 +8,7 @@
   import type { WorkoutSession } from "@/types/workout";
   import { formatDistance, formatDuration, isCardioExercise, isSetCounted, setDistance, setDuration } from "@/composables/useSetMetrics";
   import { formatTotalTime } from "@/composables/useCardioActivities";
+  import * as muscleGroupsData from "@/data/muscle-groups.json";
 
   // ---------------------------------------------------------------------------
   // State
@@ -18,7 +19,8 @@
   const isLoading = computed(() => workoutData.isLoading.value);
 
   const searchQuery = ref("");
-  const selectedTypes = ref<string[]>([]);
+  /** Muscle group names ("Bryst", "Kondisjon", …); a session must have all of them. */
+  const selectedGroups = ref<string[]>([]);
   const sortBy = ref("date");
   const showFilterModal = ref(false);
 
@@ -32,6 +34,34 @@
 
   const getTotalSets = (session: WorkoutSession): number => session.exercises.reduce((total, ex) => total + ex.sets.length, 0);
 
+  const muscleGroups = muscleGroupsData.muscleGroups;
+
+  /**
+   * Muscle groups each completed session trained, keyed by session id. An exercise
+   * counts only with at least one counted set, and is resolved by id through the
+   * exercise library — ids that can't be resolved add no group.
+   */
+  const sessionGroups = computed(() => {
+    const index = workoutData.exerciseIndex.value;
+    const result = new Map<string, Set<string>>();
+    workoutData.completedSessions.value.forEach((session) => {
+      const groups = new Set<string>();
+      session.exercises.forEach((ex) => {
+        if (!ex.sets.some((set) => isSetCounted(ex, set))) return;
+        const category = index.get(Number(ex.exerciseId))?.category;
+        if (category) groups.add(category);
+      });
+      result.set(session.id, groups);
+    });
+    return result;
+  });
+
+  /**
+   * The group filter needs the exercise library. Without it (e.g. offline before
+   * it has loaded once) every session would drop out, so the empty state says why.
+   */
+  const groupFilterUnavailable = computed(() => selectedGroups.value.length > 0 && workoutData.exerciseIndex.value.size === 0);
+
   const filteredSessions = computed(() => {
     let sessions = workoutData.completedSessions.value;
 
@@ -40,8 +70,10 @@
       sessions = sessions.filter((s) => s.templateName.toLowerCase().includes(query));
     }
 
-    if (selectedTypes.value.length > 0) {
-      sessions = sessions.filter((s) => selectedTypes.value.includes(s.workoutType));
+    // Only read when a group is selected, so the lazy map isn't built otherwise.
+    if (selectedGroups.value.length > 0) {
+      const groupsBySession = sessionGroups.value;
+      sessions = sessions.filter((s) => selectedGroups.value.every((g) => groupsBySession.get(s.id)?.has(g)));
     }
 
     return [...sessions].sort((a, b) => {
@@ -76,24 +108,24 @@
     visibleCount.value += PAGE_SIZE;
   };
 
-  const hasActiveFilters = computed(() => Boolean(searchQuery.value) || selectedTypes.value.length > 0);
+  const hasActiveFilters = computed(() => Boolean(searchQuery.value) || selectedGroups.value.length > 0);
 
-  const addType = (typeId: string) => {
-    if (!selectedTypes.value.includes(typeId)) selectedTypes.value = [...selectedTypes.value, typeId];
+  const addGroup = (name: string) => {
+    if (!selectedGroups.value.includes(name)) selectedGroups.value = [...selectedGroups.value, name];
   };
 
-  const removeType = (typeId: string) => {
-    selectedTypes.value = selectedTypes.value.filter((id) => id !== typeId);
+  const removeGroup = (name: string) => {
+    selectedGroups.value = selectedGroups.value.filter((g) => g !== name);
   };
 
-  const onTypeToggle = (event: Event, typeId: string) => {
-    if ((event.target as HTMLInputElement).checked) addType(typeId);
-    else removeType(typeId);
+  const onGroupToggle = (event: Event, name: string) => {
+    if ((event.target as HTMLInputElement).checked) addGroup(name);
+    else removeGroup(name);
   };
 
   const clearAllFilters = () => {
     searchQuery.value = "";
-    selectedTypes.value = [];
+    selectedGroups.value = [];
     sortBy.value = "date";
     showFilterModal.value = false;
   };
@@ -183,9 +215,6 @@
     });
     return result.map(({ sessions, ...group }) => ({ ...group, items: withRows(sessions) }));
   });
-
-  const getWorkoutTypeName = (typeId: string): string => workoutData.getWorkoutType(typeId);
-  const getWorkoutTypeColor = (typeId: string): string => workoutData.getWorkoutTypeColor(typeId);
 </script>
 
 <template>
@@ -216,8 +245,8 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
-      <button v-for="typeId in selectedTypes" :key="typeId" type="button" class="hx-pill" @click="removeType(typeId)">
-        {{ getWorkoutTypeName(typeId) }}
+      <button v-for="name in selectedGroups" :key="name" type="button" class="hx-pill" @click="removeGroup(name)">
+        {{ name }}
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -238,7 +267,8 @@
 
     <!-- Empty -->
     <div v-else-if="filteredSessions.length === 0" class="hx-panel hx-empty">
-      <p class="text-dark-300 text-sm">{{ hasActiveFilters ? "Ingen økter passer filtrene." : "Ingen fullførte økter ennå." }}</p>
+      <p v-if="groupFilterUnavailable" class="text-dark-300 text-sm">Øvelsene er ikke lastet ennå, så muskelgruppefilteret virker ikke. Prøv igjen når du er på nett.</p>
+      <p v-else class="text-dark-300 text-sm">{{ hasActiveFilters ? "Ingen økter passer filtrene." : "Ingen fullførte økter ennå." }}</p>
       <button v-if="hasActiveFilters" type="button" class="btn-secondary btn-sm mt-3" @click="clearAllFilters">Nullstill filtre</button>
       <router-link v-else to="/" class="btn-primary btn-sm mt-3">Start din første økt</router-link>
     </div>
@@ -255,7 +285,6 @@
           <router-link v-for="{ session, row } in group.items" :key="session.id" :to="`/session/${session.id}`" class="hx-row">
             <div class="hx-row__main">
               <p class="hx-row__name">
-                <span class="hx-row__dot" :style="{ backgroundColor: getWorkoutTypeColor(session.workoutType) }"></span>
                 <span class="truncate">{{ session.templateName }}</span>
               </p>
               <p class="hx-row__meta">{{ row.meta.join(" · ") }}</p>
@@ -299,18 +328,19 @@
         </div>
       </div>
 
-      <!-- Workout types -->
+      <!-- Muscle groups -->
       <div>
-        <label class="block text-sm font-medium text-white mb-2">Økt Typer</label>
+        <label class="block text-sm font-medium text-white mb-2">Muskelgrupper</label>
         <div class="space-y-2">
-          <div v-for="type in workoutData.workoutTypes.value" :key="type.id" class="flex items-center gap-2">
+          <div v-for="group in muscleGroups" :key="group.id" class="flex items-center gap-2">
             <label class="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                :checked="selectedTypes.includes(type.id)"
+                :checked="selectedGroups.includes(group.name)"
                 class="form-checkbox h-4 w-4 text-primary-500 rounded bg-dark-600 border-dark-500"
-                @change="(event) => onTypeToggle(event, type.id)" />
-              <span class="text-dark-200">{{ type.name }}</span>
+                @change="(event) => onGroupToggle(event, group.name)" />
+              <span class="h-2 w-2 flex-shrink-0 rounded-full" :style="{ backgroundColor: group.color }"></span>
+              <span class="text-dark-200">{{ group.name }}</span>
             </label>
           </div>
         </div>
@@ -487,16 +517,8 @@
     color: #f1f5f9;
   }
 
-  .hx-row__dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
   .hx-row__meta {
     margin-top: 0.1875rem;
-    padding-left: 1rem;
     font-size: 0.75rem;
     color: #64748b;
     overflow: hidden;

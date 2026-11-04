@@ -25,36 +25,6 @@
     return workoutData.templates.value;
   });
 
-  const templatesByType = computed(() => {
-    const groups: Array<{ id: string; name: string; color: string; templates: any[] }> = [];
-    const seen = new Set<string>();
-
-    // Known workout types in configured order
-    workoutData.workoutTypes.value.forEach((wt: any) => {
-      const items = workoutData.templates.value.filter((t: any) => t.workoutType === wt.id);
-      if (items.length > 0) {
-        groups.push({ id: wt.id, name: wt.name, color: wt.color, templates: items });
-        seen.add(wt.id);
-      }
-    });
-
-    // Any templates with unknown/legacy types
-    workoutData.templates.value.forEach((tpl: any) => {
-      if (!seen.has(tpl.workoutType)) {
-        const items = workoutData.templates.value.filter((t: any) => t.workoutType === tpl.workoutType);
-        groups.push({
-          id: tpl.workoutType,
-          name: getWorkoutTypeName(tpl.workoutType),
-          color: getWorkoutTypeColor(tpl.workoutType),
-          templates: items,
-        });
-        seen.add(tpl.workoutType);
-      }
-    });
-
-    return groups;
-  });
-
   const activeSessions = computed(() => {
     return workoutData.sessions.value.filter((session) => !session.isCompleted);
   });
@@ -73,14 +43,6 @@
       month: "short",
       year: "numeric",
     }).format(date);
-  };
-
-  const getWorkoutTypeName = (typeId: string): string => {
-    return workoutData.getWorkoutType(typeId);
-  };
-
-  const getWorkoutTypeColor = (typeId: string): string => {
-    return workoutData.getWorkoutTypeColor(typeId);
   };
 
   const getMotivationalText = (): string => {
@@ -482,13 +444,10 @@
         <div class="h-7 bg-dark-600 rounded w-32 mb-4 animate-pulse"></div>
         <div class="space-y-4">
           <div class="bg-dark-700 rounded-lg p-4 border border-dark-600 animate-pulse">
-            <div class="flex items-center justify-between">
-              <div class="flex-1 space-y-2">
-                <div class="h-5 bg-dark-600 rounded w-40"></div>
-                <div class="h-4 bg-dark-600 rounded w-32"></div>
-                <div class="h-3 bg-dark-600 rounded w-48"></div>
-              </div>
-              <div class="h-8 bg-dark-600 rounded-full w-20"></div>
+            <div class="space-y-2">
+              <div class="h-5 bg-dark-600 rounded w-40"></div>
+              <div class="h-4 bg-dark-600 rounded w-32"></div>
+              <div class="h-3 bg-dark-600 rounded w-48"></div>
             </div>
           </div>
         </div>
@@ -505,16 +464,6 @@
                 <h3 class="font-medium text-white">{{ session.templateName }}</h3>
                 <p class="text-sm text-dark-300">Startet {{ formatDate(session.date) }}</p>
                 <p class="text-xs text-dark-400">{{ session.exercises.length }} øvelser • Fortsett økt</p>
-              </div>
-              <div class="flex items-center gap-2">
-                <span
-                  class="px-3 py-2 rounded-full text-sm font-medium"
-                  :style="{
-                    backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
-                    color: getWorkoutTypeColor(session.workoutType),
-                  }">
-                  {{ getWorkoutTypeName(session.workoutType) }}
-                </span>
               </div>
             </div>
           </SwipeableCard>
@@ -552,10 +501,9 @@
       <div v-if="isLoading" class="mt-4">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div v-for="i in 6" :key="i" class="bg-dark-700 rounded-lg p-6 border border-dark-600 animate-pulse">
-            <!-- Template Title and Workout Type Skeleton -->
-            <div class="flex items-center justify-between mb-4">
+            <!-- Template Title Skeleton -->
+            <div class="mb-4">
               <div class="h-6 bg-dark-600 rounded w-32"></div>
-              <div class="h-6 bg-dark-600 rounded w-20"></div>
             </div>
 
             <!-- Exercise Count Skeleton -->
@@ -588,59 +536,26 @@
         <router-link to="/template/create" class="btn-primary"> Opprett din første økt </router-link>
       </div>
 
-      <!-- Templates grouped by Workout Type -->
-      <div v-else class="mt-4 space-y-8">
-        <div v-for="group in templatesByType" :key="group.id" class="rounded-xl overflow-hidden">
-          <div class="px-4 pt-4 pb-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: group.color }"></span>
-                <h3 class="text-lg md:text-xl font-bold tracking-wide" :style="{ color: group.color }">{{ group.name }}</h3>
-              </div>
-              <span class="min-w-[1.75rem] h-6 px-2 inline-flex items-center justify-center rounded-full text-xs font-semibold tracking-wider bg-dark-700 text-white/90 ring-1 ring-dark-500" :style="{ boxShadow: `0 0 0 2px ${group.color}20 inset`, color: group.color }">
-                {{ group.templates.length }}
-              </span>
-            </div>
-            <div class="h-px w-full mt-2 rounded" :style="{ background: `linear-gradient(90deg, transparent, ${group.color}33, transparent)` }"></div>
-          </div>
+      <!-- Templates -->
+      <div v-else class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-for="template in filteredTemplates" :key="template.id" :class="['bg-dark-800', 'rounded-lg', 'p-6', 'transition-all', 'flex', 'flex-col', 'h-full', 'ring-1', 'ring-dark-700/40', 'hover:ring-dark-500/50', 'hover:-translate-y-0.5']">
+          <h3 class="mb-4 text-lg font-semibold text-white truncate">{{ template.name }}</h3>
 
-          <div class="pb-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div v-for="template in group.templates" :key="template.id" :class="['relative', 'overflow-hidden', 'bg-dark-800', 'rounded-lg', 'p-6', 'transition-all', 'flex', 'flex-col', 'h-full', 'ring-1', 'ring-dark-700/40', 'hover:ring-dark-500/50', 'hover:-translate-y-0.5']" :style="{ boxShadow: `0 10px 24px -18px ${getWorkoutTypeColor(template.workoutType)}55` }">
-                <!-- Template Title and Workout Type -->
-                <div class="flex items-center justify-between mb-4">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <h3 class="text-lg font-semibold text-white truncate">{{ template.name }}</h3>
-                  </div>
-                  <span
-                    class="px-3 py-1 rounded-full text-sm font-semibold tracking-wider"
-                    :style="{
-                      backgroundColor: getWorkoutTypeColor(template.workoutType) + '20',
-                      color: getWorkoutTypeColor(template.workoutType),
-                    }">
-                    {{ getWorkoutTypeName(template.workoutType) }}
-                  </span>
-                </div>
-                <div class="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full blur-2xl opacity-10" :style="{ background: getWorkoutTypeColor(template.workoutType) }"></div>
+          <p class="text-sm text-dark-300 mb-4">{{ template.exercises.length }} øvelser</p>
 
-                <p class="text-sm text-dark-300 mb-4">{{ template.exercises.length }} øvelser</p>
+          <!-- Exercise Preview — in the order set up in the template -->
+          <ul class="mb-6 flex-grow space-y-1.5">
+            <li v-for="(exercise, index) in template.exercises" :key="`${index}-${exercise.exerciseId}`" class="flex items-center gap-2.5 min-w-0 text-sm text-dark-200">
+              <span class="w-2 h-2 rounded-full flex-shrink-0" :style="{ backgroundColor: getExerciseGroup(exercise.exerciseId).color }"></span>
+              <span class="truncate">{{ exercise.name }}</span>
+              <span class="ml-auto pl-2 flex-shrink-0 text-xs text-dark-500">{{ getExerciseGroup(exercise.exerciseId).name }}</span>
+            </li>
+          </ul>
 
-                <!-- Exercise Preview — in the order set up in the template -->
-                <ul class="mb-6 flex-grow space-y-1.5">
-                  <li v-for="(exercise, index) in template.exercises" :key="`${index}-${exercise.exerciseId}`" class="flex items-center gap-2.5 min-w-0 text-sm text-dark-200">
-                    <span class="w-2 h-2 rounded-full flex-shrink-0" :style="{ backgroundColor: getExerciseGroup(exercise.exerciseId).color }"></span>
-                    <span class="truncate">{{ exercise.name }}</span>
-                    <span class="ml-auto pl-2 flex-shrink-0 text-xs text-dark-500">{{ getExerciseGroup(exercise.exerciseId).name }}</span>
-                  </li>
-                </ul>
-
-                <!-- Action Buttons -->
-                <div class="flex gap-2 mt-auto">
-                  <router-link :to="`/template/edit/${template.id}`" class="flex-1 bg-dark-600 hover:bg-dark-500 text-white rounded-lg transition-colors text-sm py-2 flex items-center justify-center"> Rediger </router-link>
-                  <button @click.stop="startWorkout(template.id)" :disabled="activeSessions.length > 0" :class="['flex-1', 'text-sm', 'py-2', 'disabled:opacity-50', 'disabled:cursor-not-allowed', 'rounded-lg']" :style="{ backgroundColor: getWorkoutTypeColor(template.workoutType), color: '#fff' }" :title="activeSessions.length > 0 ? 'Du har allerede en aktiv økt. Fullfør den først.' : 'Start ny økt'">Start Økt</button>
-                </div>
-              </div>
-            </div>
+          <!-- Action Buttons -->
+          <div class="flex gap-2 mt-auto">
+            <router-link :to="`/template/edit/${template.id}`" class="flex-1 bg-dark-600 hover:bg-dark-500 text-white rounded-lg transition-colors text-sm py-2 flex items-center justify-center"> Rediger </router-link>
+            <button @click.stop="startWorkout(template.id)" :disabled="activeSessions.length > 0" :class="['flex-1', 'text-sm', 'py-2', 'disabled:opacity-50', 'disabled:cursor-not-allowed', 'rounded-lg', 'bg-primary-500', 'hover:bg-primary-600', 'text-white', 'transition-colors']" :title="activeSessions.length > 0 ? 'Du har allerede en aktiv økt. Fullfør den først.' : 'Start ny økt'">Start Økt</button>
           </div>
         </div>
       </div>

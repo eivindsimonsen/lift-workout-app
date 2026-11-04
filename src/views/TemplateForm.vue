@@ -8,7 +8,6 @@ import SwipeableCard from '@/components/SwipeableCard.vue'
 import { useLongPressReorder } from '@/composables/useLongPressReorder'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
-import * as workoutTypeData from '@/data/workout-types.json'
 
 const router = useRouter()
 const route = useRoute()
@@ -20,17 +19,12 @@ const isLoading = computed(() => workoutData.isLoading.value)
 const template = ref<WorkoutTemplate | null>(null)
 const templateForm = ref({
   name: '',
-  workoutType: '',
   exercises: [] as ExerciseTemplate[]
 })
 
 // Computed
 const isEditing = computed(() => {
   return route.name === 'EditTemplate'
-})
-
-const workoutTypes = computed(() => {
-  return workoutData.workoutTypes.value
 })
 
 const isExercisePanelOpen: Ref<boolean> = ref(false)
@@ -99,10 +93,6 @@ const getMuscleGroupColor = (muscleGroup: string): string => {
   const group = (muscleGroupsData as any).muscleGroups.find((g: any) => g.name === muscleGroup)
   return group?.color || '#6b7280'
 }
-const getWorkoutTypeColor = (workoutTypeId: string): string => {
-  const wt = (workoutTypeData as any).workoutTypes.find((w: any) => w.id === workoutTypeId)
-  return wt?.color || '#6b7280'
-}
 const getExerciseAccentColor = (exerciseId: number): string => {
   const exercise = workoutData.getExerciseById(exerciseId)
   if (exercise?.muscleGroups && exercise.muscleGroups.length > 0) {
@@ -110,9 +100,6 @@ const getExerciseAccentColor = (exerciseId: number): string => {
   }
   if (exercise?.category) {
     return getMuscleGroupColor(exercise.category)
-  }
-  if (templateForm.value.workoutType) {
-    return getWorkoutTypeColor(templateForm.value.workoutType)
   }
   return '#64748b'
 }
@@ -191,7 +178,6 @@ const saveTemplate = async () => {
       // Update existing template
       await workoutData.updateTemplate(template.value.id, {
         name: templateForm.value.name,
-        workoutType: templateForm.value.workoutType,
         exercises: exercisesWithNames
       })
     } else {
@@ -199,7 +185,6 @@ const saveTemplate = async () => {
       const templateData = {
         id: `template-${Date.now()}`,
         name: templateForm.value.name,
-        workoutType: templateForm.value.workoutType,
         exercises: exercisesWithNames
       }
       await workoutData.addTemplate(templateData)
@@ -225,7 +210,6 @@ onMounted(async () => {
       template.value = foundTemplate
       templateForm.value = {
         name: foundTemplate.name,
-        workoutType: foundTemplate.workoutType,
         exercises: foundTemplate.exercises.map(exercise => {
           // Find the correct exerciseId based on the exercise name
           const matchingExercise = workoutData.exercises.value.find(e => e.name === exercise.name)
@@ -250,7 +234,6 @@ onMounted(async () => {
     if (sourceSession) {
       templateForm.value = {
         name: sourceSession.templateName,
-        workoutType: sourceSession.workoutType,
         exercises: sourceSession.exercises.map(ex => ({
           exerciseId: ex.exerciseId,
           name: ex.name,
@@ -297,7 +280,7 @@ onMounted(async () => {
       <div class="template-form__section">
         <div class="h-4 bg-dark-700 rounded w-32 mb-4 animate-pulse"></div>
         <div class="template-form__fields">
-          <div v-for="i in 2" :key="i" class="space-y-2">
+          <div class="space-y-2">
             <div class="h-3 bg-dark-700 rounded w-20 animate-pulse"></div>
             <div class="h-10 bg-dark-700 rounded w-full animate-pulse"></div>
           </div>
@@ -328,25 +311,6 @@ onMounted(async () => {
               placeholder="F.eks. Push Økt"
             />
             <p class="template-form__hint">Gi økten et tydelig og motiverende navn.</p>
-          </div>
-          <div class="template-form__field">
-            <label class="template-form__label" for="template-type">Økt type</label>
-            <select
-              id="template-type"
-              v-model="templateForm.workoutType"
-              required
-              class="input-field w-full"
-            >
-              <option value="">Velg type</option>
-              <option
-                v-for="type in workoutTypes"
-                :key="type.id"
-                :value="type.id"
-              >
-                {{ type.name }}
-              </option>
-            </select>
-            <p class="template-form__hint">Bruk type for å filtrere relevante øvelser.</p>
           </div>
         </div>
       </section>
@@ -453,7 +417,6 @@ onMounted(async () => {
     <!-- Exercise variant picker (all devices) -->
     <ExerciseSearchPanel
       :is-open="isExercisePanelOpen"
-      :workout-type="templateForm.workoutType"
       title="Velg variant"
       @close="closeExercisePicker"
       @select="handleSelectExercise"
@@ -503,12 +466,6 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;
-}
-
-@media (min-width: 768px) {
-  .template-form__fields {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 .template-form__field {

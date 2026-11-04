@@ -46,9 +46,6 @@
     }).format(d);
   };
 
-  const typeName = computed(() => (session.value ? workoutData.getWorkoutType(session.value.workoutType) : ""));
-  const typeColor = computed(() => (session.value ? workoutData.getWorkoutTypeColor(session.value.workoutType) : "#6b7280"));
-
   // ---------------------------------------------------------------------------
   // Strength
   // ---------------------------------------------------------------------------
@@ -316,10 +313,6 @@
       <div class="min-w-0">
         <h1 class="sd-title">{{ session?.templateName ?? "Økt Detaljer" }}</h1>
         <p v-if="session" class="sd-meta">
-          <span class="sd-meta__type">
-            <span class="sd-meta__dot" :style="{ backgroundColor: typeColor }"></span>
-            {{ typeName }}
-          </span>
           <span>{{ formatDate(session.date) }}</span>
           <span>{{ formatTotalTime(session.duration * 60) }}</span>
         </p>
@@ -477,20 +470,6 @@
     content: "·";
     margin-right: 0.625rem;
     color: #475569;
-  }
-
-  .sd-meta__type {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-weight: 600;
-    color: #e2e8f0;
-  }
-
-  .sd-meta__dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
   }
 
   /* ── Panels ──────────────────────────────────────────────────────────────── */

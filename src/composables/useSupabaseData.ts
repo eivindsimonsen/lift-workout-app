@@ -313,7 +313,6 @@ const createSupabaseData = () => {
             id: s.id,
             templateId: s.template_id,
             templateName: s.template_name,
-            workoutType: s.workout_type,
             date: new Date(s.date),
             duration: s.duration || 0,
             exercises,
@@ -366,7 +365,7 @@ const createSupabaseData = () => {
       if (templatesError) throw templatesError;
       if (sessionsError) throw sessionsError;
 
-      const formattedTemplates: WorkoutTemplate[] = (templatesData || []).map((t: any) => ({ id: t.id, name: t.name, workoutType: t.workout_type, exercises: t.exercises }));
+      const formattedTemplates: WorkoutTemplate[] = (templatesData || []).map((t: any) => ({ id: t.id, name: t.name, exercises: t.exercises }));
       const firstBatchSessions: WorkoutSession[] = formatSessions(sessionsData || []);
 
       // state update
@@ -726,7 +725,6 @@ const createSupabaseData = () => {
       id: existing.id,
       templateId: existing.templateId,
       templateName: existing.templateName,
-      workoutType: existing.workoutType,
       date: existing.date,
       isCompleted: existing.isCompleted,
       duration: existing.duration,
@@ -801,7 +799,6 @@ const createSupabaseData = () => {
   });
 
   const getSessionById = computed(() => (id: string) => sessions.value.find((s) => s.id === id));
-  const getTemplatesByType = computed(() => (workoutType: string) => templates.value.filter((t) => t.workoutType === workoutType));
 
   // ---- CRUD with Supabase (unchanged logic) ----
   const { showError } = useErrorHandler();
@@ -819,7 +816,6 @@ const createSupabaseData = () => {
         .insert({
           user_id: currentUser.value.id,
           name: template.name,
-          workout_type: template.workoutType,
           exercises: template.exercises,
         })
         .select()
@@ -833,7 +829,6 @@ const createSupabaseData = () => {
       templates.value.push({
         id: data.id,
         name: data.name,
-        workoutType: data.workout_type,
         exercises: data.exercises,
       });
       // Update cache immediately so subsequent screens read fresh data
@@ -866,7 +861,6 @@ const createSupabaseData = () => {
       .from("workout_templates")
       .update({
         name: updates.name,
-        workout_type: updates.workoutType,
         exercises: updates.exercises,
         updated_at: new Date().toISOString(),
       })
@@ -957,7 +951,6 @@ const createSupabaseData = () => {
         id: `session-${sessionSeed}`,
         templateId: template.id,
         templateName: template.name,
-        workoutType: template.workoutType,
         date: new Date(),
         duration: 0,
         exercises: template.exercises.map((ex, exerciseIndex) => {
@@ -988,7 +981,6 @@ const createSupabaseData = () => {
           user_id: currentUser.value.id,
           template_id: template.id,
           template_name: template.name,
-          workout_type: template.workoutType,
           date: session.date.toISOString(),
           duration: session.duration,
           exercises: session.exercises,
@@ -1046,7 +1038,6 @@ const createSupabaseData = () => {
     try {
       const updateData: any = {
         template_name: updates.templateName,
-        workout_type: updates.workoutType,
         exercises: updates.exercises,
         is_completed: updates.isCompleted,
         updated_at: new Date().toISOString(),
@@ -1267,7 +1258,6 @@ const createSupabaseData = () => {
     recentSessions,
     workoutStats,
     getSessionById,
-    getTemplatesByType,
 
     pendingChangesCount,
 

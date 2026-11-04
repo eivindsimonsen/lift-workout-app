@@ -97,12 +97,6 @@ export interface DayVolume {
   cardioSeconds: number;
 }
 
-export interface TemplateUsage {
-  name: string;
-  workoutType: string;
-  count: number;
-}
-
 // ---------------------------------------------------------------------------
 // Set counting
 // ---------------------------------------------------------------------------
@@ -394,17 +388,6 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
     };
   });
 
-  const templateUsage = computed<TemplateUsage[]>(() => {
-    const usage = new Map<string, TemplateUsage>();
-    sessions.value.forEach((s) => {
-      if (!s.templateName) return;
-      const existing = usage.get(s.templateName);
-      if (existing) existing.count += 1;
-      else usage.set(s.templateName, { name: s.templateName, workoutType: s.workoutType, count: 1 });
-    });
-    return [...usage.values()];
-  });
-
   return {
     // Period
     weekStart,
@@ -422,7 +405,6 @@ export const useWeekStats = (weekOffset: Ref<number> | number = 0) => {
     setsGoalProgress,
     dailyVolume,
     repRanges,
-    templateUsage,
     unresolvedSets,
     exercisesReady,
     cardioGoalProgress,

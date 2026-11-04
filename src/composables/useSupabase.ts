@@ -12,7 +12,6 @@ export interface Database {
           id: string;
           user_id: string;
           name: string;
-          workout_type: string;
           exercises: any;
           created_at: string;
           updated_at: string;
@@ -21,7 +20,6 @@ export interface Database {
           id?: string;
           user_id: string;
           name: string;
-          workout_type: string;
           exercises: any;
           created_at?: string;
           updated_at?: string;
@@ -30,7 +28,6 @@ export interface Database {
           id?: string;
           user_id?: string;
           name?: string;
-          workout_type?: string;
           exercises?: any;
           created_at?: string;
           updated_at?: string;
@@ -42,7 +39,6 @@ export interface Database {
           user_id: string;
           template_id: string | null;
           template_name: string;
-          workout_type: string;
           date: string;
           duration: number;
           total_volume: number;
@@ -56,7 +52,6 @@ export interface Database {
           user_id: string;
           template_id?: string | null;
           template_name: string;
-          workout_type: string;
           date: string;
           duration?: number;
           total_volume?: number;
@@ -70,7 +65,6 @@ export interface Database {
           user_id?: string;
           template_id?: string | null;
           template_name?: string;
-          workout_type?: string;
           date?: string;
           duration?: number;
           total_volume?: number;

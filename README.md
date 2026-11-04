@@ -33,7 +33,7 @@ A modern training log built with Vue 3 (Composition API) and TypeScript. LIFT ma
 
 ### Viktige composables
 
-- `useHybridData`: samler og eksponerer applikasjonsdata (øvelser, økter, maler, typer, statistikksummer) og domeneoperasjoner (les/skriv).
+- `useHybridData`: samler og eksponerer applikasjonsdata (øvelser, økter, maler, statistikksummer) og domeneoperasjoner (les/skriv).
 - `useSupabase`: initialisering av Supabase‑klient.
 - `useSupabaseData` (hvis tilstede): spesifikke spørringer/transformasjoner mot Supabase.
 
@@ -68,7 +68,7 @@ RLS: Alle tabeller er sikret slik at brukeren kun ser/opererer på egne rader (`
   - Oversikt: Total Sets, Total Reps, antall fullførte økter, snitt varighet
   - Fremgang over tid: PR‑kort og One‑Rep‑Max progresjon (top 5)
   - Treningsvaner: kalender (måned), streaks, økter/uke
-  - Fordeling/balanse: muskelgrupper og typestatistikk
+  - Fordeling/balanse: muskelgrupper
   - Prestasjoner: synlige badges (grå til oppnådd), inkl. «1 000 000 kg totalvolum», ukevaner (3+), m.m.
   - Volum: én progressbar mot neste milepæl (5k → 10k → 25k → 50k → 100k → 250k → 500k → 1M)
 - `Profil` (`src/views/Profile.vue`): skjema for profilinfo (eget «Oppdater profil»), og eget kort for passord (eget «Oppdater passord»). Abonnement/Plus som visuell seksjon.

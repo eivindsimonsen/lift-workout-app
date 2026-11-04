@@ -87,9 +87,6 @@
   const formatSessionDate = (date: Date): string =>
     new Intl.DateTimeFormat("no-NO", { weekday: "short", day: "numeric", month: "short" }).format(new Date(date));
 
-  const getWorkoutTypeName = (typeId: string): string => workoutData.getWorkoutType(typeId);
-  const getWorkoutTypeColor = (typeId: string): string => workoutData.getWorkoutTypeColor(typeId);
-
   const formatChange = (pct: number): string => `${pct > 0 ? "+" : ""}${pct} %`;
 
   type StatComparison = { text: string; tone: "up" | "down" | "muted" } | null;
@@ -299,20 +296,6 @@
             </div>
             <span class="wk-day__label">{{ label }}</span>
           </div>
-        </div>
-
-        <div v-if="week.templateUsage.value.length > 0" class="wk-chips">
-          <span
-            v-for="t in week.templateUsage.value"
-            :key="t.name"
-            class="wk-chip"
-            :style="{
-              backgroundColor: getWorkoutTypeColor(t.workoutType) + '18',
-              color: getWorkoutTypeColor(t.workoutType),
-              borderColor: getWorkoutTypeColor(t.workoutType) + '40',
-            }">
-            {{ t.count }}× {{ t.name }}
-          </span>
         </div>
       </div>
 
@@ -533,14 +516,6 @@
                 <span class="wk-session__name">{{ session.templateName }}</span>
                 <span class="wk-session__meta">{{ sessionMeta(session) }}</span>
               </span>
-              <span
-                class="wk-session__type"
-                :style="{
-                  backgroundColor: getWorkoutTypeColor(session.workoutType) + '20',
-                  color: getWorkoutTypeColor(session.workoutType),
-                }">
-                {{ getWorkoutTypeName(session.workoutType) }}
-              </span>
             </router-link>
           </div>
         </section>
@@ -731,22 +706,6 @@
     color: #4b5563;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-  }
-
-  .wk-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-    margin-top: 0.875rem;
-  }
-
-  .wk-chip {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    padding: 0.1875rem 0.625rem;
-    border-radius: 999px;
-    border: 1px solid;
-    white-space: nowrap;
   }
 
   /* ── Key figures ─────────────────────────────────────────────────────────── */
@@ -1128,14 +1087,6 @@
   .wk-session__meta {
     font-size: 0.6875rem;
     color: #4b5563;
-  }
-
-  .wk-session__type {
-    flex-shrink: 0;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    padding: 0.1875rem 0.625rem;
-    border-radius: 999px;
   }
 
   /* ── Empty state ─────────────────────────────────────────────────────────── */

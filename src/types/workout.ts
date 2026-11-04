@@ -53,24 +53,15 @@ export interface ExerciseData {
   name: string;
   /** Primary muscle group, e.g. "Bryst", "Rygg", "Ben" — "Kondisjon" for cardio */
   category: string;
-  workoutTypes: string[];
   /** Defaults to "strength"; variants inherit it from their parent. */
   trackingType: ExerciseTrackingType;
   variants?: ExerciseVariant[];
-}
-
-export interface WorkoutType {
-  id: string;
-  name: string;
-  description: string;
-  color: string;
 }
 
 // Template system
 export interface WorkoutTemplate {
   id: string;
   name: string;
-  workoutType: string;
   exercises: ExerciseTemplate[];
 }
 
@@ -87,7 +78,6 @@ export interface WorkoutSession {
   id: string;
   templateId: string;
   templateName: string;
-  workoutType: string;
   date: Date;
   duration: number; // in minutes
   exercises: WorkoutExercise[];

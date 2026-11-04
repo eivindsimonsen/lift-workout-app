@@ -1,8 +1,7 @@
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { useSupabaseData } from "./useSupabaseData";
 import { useExercises } from "./useExercises";
-import * as workoutTypesData from "@/data/workout-types.json";
-import type { WorkoutType, ExerciseData, ExerciseTrackingType } from "@/types/workout";
+import type { ExerciseData, ExerciseTrackingType } from "@/types/workout";
 
 const logHybridAccess = (_operation: string, _details?: unknown) => {};
 
@@ -22,20 +21,6 @@ export type ExerciseIndexEntry = {
 export const useHybridData = () => {
   const userData = useSupabaseData();
   const exercisesStore = useExercises();
-
-  // Load workout types from JSON (unchanged)
-  const workoutTypes = ref<WorkoutType[]>(workoutTypesData.workoutTypes);
-
-  // ---- Workout type helpers ----
-  const getWorkoutTypeColor = (id: string): string => {
-    const workoutType = workoutTypes.value.find((wt: WorkoutType) => wt.id === id);
-    return workoutType?.color || "#6b7280";
-  };
-
-  const getWorkoutType = (id: string): string => {
-    const workoutType = workoutTypes.value.find((wt: WorkoutType) => wt.id === id);
-    return workoutType?.name || id;
-  };
 
   // ---- Exercise helpers ----
 
@@ -114,7 +99,6 @@ export const useHybridData = () => {
       id: number;
       name: string;
       category?: string;
-      workoutTypes?: string[];
       muscleGroups?: string[];
       equipment?: string;
     }> = [];
@@ -126,7 +110,6 @@ export const useHybridData = () => {
             id: variant.id,
             name: variant.name,
             category: exercise.category,
-            workoutTypes: exercise.workoutTypes,
             muscleGroups: [exercise.category],
             equipment: variant.equipment,
           });
@@ -136,7 +119,6 @@ export const useHybridData = () => {
           id: exercise.id,
           name: exercise.name,
           category: exercise.category,
-          workoutTypes: exercise.workoutTypes,
           muscleGroups: [exercise.category],
         });
       }
@@ -146,11 +128,6 @@ export const useHybridData = () => {
   });
 
   // ---- Pass-through helpers to userData ----
-  const getTemplatesByType = (workoutType: string) => {
-    logHybridAccess("Get templates by type", workoutType);
-    return userData.getTemplatesByType.value(workoutType);
-  };
-
   const getSessionById = (id: string) => {
     logHybridAccess("Get session by id", id);
     return userData.getSessionById.value(id);
@@ -168,11 +145,6 @@ export const useHybridData = () => {
   };
 
   return {
-    // Workout types
-    workoutTypes,
-    getWorkoutType,
-    getWorkoutTypeColor,
-
     // User data from Supabase
     templates: userData.templates,
     sessions: userData.sessions,
@@ -195,7 +167,6 @@ export const useHybridData = () => {
     recentSessions: userData.recentSessions,
     workoutStats: userData.workoutStats,
     getSessionById,
-    getTemplatesByType,
     getExerciseById,
     getMainExerciseByVariantId,
     getFlattenedExercises,

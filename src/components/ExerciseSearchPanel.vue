@@ -5,7 +5,6 @@
 import { computed, ref, watch } from 'vue'
 import SlideOver from '@/components/SlideOver.vue'
 import { useHybridData } from '@/composables/useHybridData'
-import * as workoutTypesData from '@/data/workout-types.json'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
 import type { ExerciseData } from '@/types/workout'
 
@@ -16,7 +15,6 @@ import type { ExerciseData } from '@/types/workout'
 const props = defineProps<{
   isOpen: boolean
   title?: string
-  workoutType?: string
 }>()
 
 const emit = defineEmits<{
@@ -87,32 +85,6 @@ const groupedResults = computed<ExerciseData[]>(() => {
   return results
 })
 
-/** Returns the default category filters for a given workout type. */
-const getDefaultCategories = (workoutType: string): string[] => {
-  const map: Record<string, string[]> = {
-    push:        ['Bryst', 'Skuldre', 'Triceps'],
-    pull:        ['Rygg', 'Skuldre','Biceps'],
-    legs:        ['Ben', 'Kjerne'],
-    upper:       ['Bryst', 'Rygg', 'Skuldre', 'Biceps', 'Triceps'],
-    lower:       ['Ben', 'Kjerne'],
-    'full-body': ['Bryst', 'Rygg', 'Ben', 'Skuldre', 'Biceps', 'Triceps', 'Kjerne'],
-    cardio:      ['Kondisjon'],
-    bryst:       ['Bryst'],
-    rygg:        ['Rygg'],
-    ben:         ['Ben'],
-    skuldre:     ['Skuldre'],
-    biceps:      ['Biceps'],
-    triceps:     ['Triceps'],
-    kjerne:      ['Kjerne'],
-  }
-  const key = workoutType.toLowerCase()
-  // Kondisjon er kun forhåndsvalgt for kondisjonsøkter; på styrkeøkter er den
-  // fortsatt tilgjengelig som filter, bare avslått i utgangspunktet.
-  return map[key] ?? []
-}
-
-const workoutTypes = computed(() => workoutTypesData.workoutTypes)
-
 // Derived from muscle-groups.json; "Annet" catches anything unrecognised.
 const CATEGORY_ORDER = [...muscleGroupsData.muscleGroups.map((g) => g.name), 'Annet']
 
@@ -163,16 +135,14 @@ watch(
   }
 )
 
-// Reset state when panel opens
+// Reset state when panel opens: no muscle group pre-selected, so every exercise shows
 watch(
   () => props.isOpen,
   (open) => {
     if (!open) return
     query.value = ''
     expandedIds.value = new Set()
-    selectedCategories.value = props.workoutType
-      ? getDefaultCategories(props.workoutType)
-      : []
+    selectedCategories.value = []
   }
 )
 </script>
@@ -198,12 +168,7 @@ watch(
 
       <!-- Category filters -->
       <div class="ep-panel__filters">
-        <p class="ep-panel__filters-label">
-          Muskelgruppe
-          <span v-if="props.workoutType" class="ep-panel__filters-hint">
-            (filtrert for {{ workoutTypes.find((t) => t.id === props.workoutType)?.name || props.workoutType }})
-          </span>
-        </p>
+        <p class="ep-panel__filters-label">Muskelgruppe</p>
         <div class="ep-panel__filter-chips">
           <label
             v-for="cat in availableCategories"
@@ -352,12 +317,6 @@ watch(
   color: #9ca3af;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-.ep-panel__filters-hint {
-  font-weight: 400;
-  text-transform: none;
-  color: #f97316;
 }
 
 .ep-panel__filter-chips {

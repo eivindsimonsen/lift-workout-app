@@ -10,14 +10,12 @@ import type { ExerciseData, ExerciseVariant, ExerciseTrackingType } from "@/type
 export interface CreateExercisePayload {
   name: string;
   category: string;
-  workoutTypes: string[];
   trackingType?: ExerciseTrackingType;
 }
 
 export interface UpdateExercisePayload {
   name?: string;
   category?: string;
-  workoutTypes?: string[];
   trackingType?: ExerciseTrackingType;
 }
 
@@ -65,7 +63,6 @@ export const useExercises = () => {
           user_id,
           name,
           category,
-          workout_types,
           tracking_type,
           exercise_variants (
             id,
@@ -84,7 +81,6 @@ export const useExercises = () => {
         userId: row.user_id as string | null,
         name: row.name as string,
         category: row.category as string,
-        workoutTypes: (row.workout_types ?? []) as string[],
         trackingType: (row.tracking_type ?? "strength") as ExerciseTrackingType,
         variants: ((row.exercise_variants ?? []) as any[])
           .map((v) => ({
@@ -122,10 +118,9 @@ export const useExercises = () => {
           user_id: userId,
           name: payload.name.trim(),
           category: payload.category,
-          workout_types: payload.workoutTypes,
           tracking_type: payload.trackingType ?? "strength",
         })
-        .select(`id, user_id, name, category, workout_types, tracking_type`)
+        .select(`id, user_id, name, category, tracking_type`)
         .single();
 
       if (error) throw error;
@@ -135,7 +130,6 @@ export const useExercises = () => {
         userId: data.user_id,
         name: data.name,
         category: data.category,
-        workoutTypes: data.workout_types ?? [],
         trackingType: (data.tracking_type ?? "strength") as ExerciseTrackingType,
         variants: [],
       };
@@ -163,8 +157,6 @@ export const useExercises = () => {
       };
       if (payload.name !== undefined) updates.name = payload.name.trim();
       if (payload.category !== undefined) updates.category = payload.category;
-      if (payload.workoutTypes !== undefined)
-        updates.workout_types = payload.workoutTypes;
       if (payload.trackingType !== undefined)
         updates.tracking_type = payload.trackingType;
 

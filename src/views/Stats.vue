@@ -71,16 +71,6 @@
     ];
   });
 
-  /** Share of sessions per workout type. */
-  const workoutTypeShares = computed(() => {
-    const counts = new Map<string, number>();
-    filteredSessions.value.forEach((s) => counts.set(s.workoutType, (counts.get(s.workoutType) ?? 0) + 1));
-    const total = filteredSessions.value.length || 1;
-    return [...counts.entries()]
-      .map(([id, count]) => ({ id, name: workoutData.getWorkoutType(id), color: workoutData.getWorkoutTypeColor(id), count, pct: Math.round((count / total) * 100) }))
-      .sort((a, b) => b.count - a.count);
-  });
-
   // ---------------------------------------------------------------------------
   // Calendar
   // ---------------------------------------------------------------------------
@@ -525,20 +515,6 @@
         </dl>
 
         <p v-if="filteredSessions.length === 0" class="st-empty">Ingen fullførte økter i perioden.</p>
-
-        <div v-if="workoutTypeShares.length > 0" class="st-divider">
-          <h3 class="st-sub-title">Økttyper</h3>
-          <div class="st-rows">
-            <div v-for="type in workoutTypeShares" :key="type.id" class="st-share">
-              <div class="st-share__top">
-                <span class="st-dot" :style="{ backgroundColor: type.color }"></span>
-                <span class="st-share__name">{{ type.name }}</span>
-                <span class="st-share__value">{{ type.count }} <span class="st-share__soft">· {{ type.pct }} %</span></span>
-              </div>
-              <div class="st-track"><div class="st-fill" :style="{ width: type.pct + '%', backgroundColor: type.color }"></div></div>
-            </div>
-          </div>
-        </div>
 
         <!-- Calendar -->
         <div class="st-divider">

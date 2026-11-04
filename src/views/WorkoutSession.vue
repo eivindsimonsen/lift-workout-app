@@ -32,15 +32,6 @@
             <div class="min-w-0">
               <div class="flex items-center gap-2">
                 <h1 class="text-lg md:text-xl font-semibold text-white truncate">{{ session?.templateName }}</h1>
-                <span 
-                  class="inline-block px-2.5 py-0.5 text-xs font-medium rounded-full hidden sm:inline"
-                  :style="{ 
-                    backgroundColor: getWorkoutTypeColor(session?.workoutType || '') + '20',
-                    color: getWorkoutTypeColor(session?.workoutType || '')
-                  }"
-                >
-                  {{ getWorkoutTypeName(session?.workoutType || '') }}
-                </span>
               </div>
               <div class="mt-1 flex items-center gap-3 text-xs text-dark-300">
                 <template v-if="isCardioOnly">
@@ -57,16 +48,7 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <span 
-              class="inline-block px-2.5 py-0.5 text-xs font-medium rounded-full sm:hidden"
-              :style="{ 
-                backgroundColor: getWorkoutTypeColor(session?.workoutType || '') + '20',
-                color: getWorkoutTypeColor(session?.workoutType || '')
-              }"
-            >
-              {{ getWorkoutTypeName(session?.workoutType || '') }}
-            </span>
-            <button 
+            <button
               @click="handleAbandonWorkout"
               class="hidden md:inline-flex px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs font-medium"
               title="Avbryt økt"
@@ -198,7 +180,6 @@
       <!-- No :exercises binding: the panel reads the exercise store itself. -->
       <ExerciseSearchPanel
         :is-open="isMobileExercisePanelOpen"
-        :workout-type="session?.workoutType"
         title="Velg øvelse"
         @close="closeMobileAddExercise"
         @select="handleAddExerciseFromPanel"
@@ -877,14 +858,6 @@ function unhideNavSoon() {
 const toNumber = (v: string) => parseFloat(v.replace(',', '.')) || 0
 
 // Methods
-const getWorkoutTypeName = (typeId: string): string => {
-  return workoutData.getWorkoutType(typeId)
-}
-
-const getWorkoutTypeColor = (typeId: string): string => {
-  return workoutData.getWorkoutTypeColor(typeId)
-}
-
 const getCompletedSets = (exercise: any): number => {
   return exercise.sets.filter((set: any) => set.isCompleted).length
 }
@@ -994,7 +967,7 @@ const summaryTiles = computed(() => {
 const { goals, hasGoals } = useTrainingGoals()
 const { ready: goalsReady, thisWeekTally, thisWeekKey } = useGoalStreak()
 
-/** Muscle groups in the order the session first trains them — not a fixed list per workout type. */
+/** Muscle groups in the order the session first trains them. */
 const sessionGroups = computed(() => {
   const index = workoutData.exerciseIndex.value
   const groups: string[] = []

@@ -34,7 +34,7 @@ Three layers. Views and components should use the top layer.
 
 1. **`useSupabase`**: a module-level singleton Supabase client. All fetches have a 10s timeout. The session is stored in `localStorage` or `sessionStorage` depending on the `rememberMe` choice from Login (storage key `lift-auth`). `main.ts` calls `initSupabase()` before anything else.
 2. **`useSupabaseData`**: a module-level singleton that owns `templates`, `sessions` and the current user, together with offline caching and sync. **`useExercises`**: separate module-level state for the exercise library, loaded straight from Supabase and *not* cached offline.
-3. **`useHybridData`**: the facade that views call. It isn't a singleton itself, but it wraps the singletons, so it's cheap to call in any component. It adds exercise lookups (`getExerciseById`, `exerciseIndex`, `getFlattenedExercises`) and workout-type helpers from `src/data/workout-types.json`.
+3. **`useHybridData`**: the facade that views call. It isn't a singleton itself, but it wraps the singletons, so it's cheap to call in any component. It adds exercise lookups (`getExerciseById`, `exerciseIndex`, `getFlattenedExercises`).
 
 Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` (fire-and-forget: auth, IndexedDB, cached data, then exercises) → mount. `App.vue` shows a loader until initialisation finishes. The router guard in `src/router/index.ts` checks the Supabase session on every route unless `meta.requiresAuth === false`.
 
@@ -48,6 +48,7 @@ Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` 
 ### Data model
 
 - `workout_templates` and `workout_sessions` have snake_case columns, with `exercises` stored as camelCase JSONB. The column-to-TypeScript mapping lives in `useSupabaseData` (`formatSessions` and the CRUD functions). Types are in `src/types/workout.ts`.
+- A template is a name plus exercises. There is no workout type (Push/Pull/…) any more: what a template or session trains follows from its exercises' muscle groups. The old `workout_type` columns are still in the database (nullable since `13_`) but the app neither reads nor writes them.
 - `exercises` and `exercise_variants` hold the shared library. `user_id IS NULL` marks a global exercise. RLS on these two tables is deliberately open to every authenticated user (`09_`, `10_` SQL), so editing or deleting a library exercise affects both users.
 - Profile data and training goals live in Supabase Auth `user_metadata`; there are no profile tables. Goals are also mirrored in `localStorage` (`useTrainingGoals`).
 - Muscle groups and their colours come from `src/data/muscle-groups.json`. Category names are Norwegian (`Bryst`, `Rygg`, `Ben`, …), and cardio exercises use the category `Kondisjon`.
@@ -82,7 +83,7 @@ Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` 
 
 ## Database changes (`supabase-setup/`)
 
-There is no migration tooling. The SQL files are numbered and run by hand in the Supabase SQL editor; a new change gets the next number (`13_…`). Some existing files are destructive: `04_` truncates all workouts and `11_` wipes the exercise library. Never run or suggest running them without explicit confirmation.
+There is no migration tooling. The SQL files are numbered and run by hand in the Supabase SQL editor; a new change gets the next number (`14_…`). Some existing files are destructive: `04_` truncates all workouts and `11_` wipes the exercise library. Never run or suggest running them without explicit confirmation.
 
 The Node scripts there (`node supabase-setup/<name>.mjs`) read `.env.local` and prompt for a login. `migrate-exercise-ids.mjs` is a dry run unless you pass `--apply`.
 

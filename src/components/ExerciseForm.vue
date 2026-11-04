@@ -144,7 +144,7 @@ const saveExercise = async () => {
     } else {
       const userId = workoutData.currentUser.value?.id
       if (!userId) return
-      const created = await exercisesStore.createExercise(userId, { ...payload, workoutTypes: [] })
+      const created = await exercisesStore.createExercise(userId, payload)
       if (created) {
         // Persist all pending variants in one pass
         for (const pv of pendingVariants.value) {

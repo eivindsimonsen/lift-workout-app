@@ -46,8 +46,8 @@ Fargene er i dag hex-verdier i scoped CSS, ikke variabler. Bruk verdiene under, 
 | Sletting og nedgang | `#ef4444` / `#f87171` | trykket `#7f1d1d40` |
 | Pause | `#f59e0b` | Bare som tilstand på klokka |
 
-- **Muskelgrupper** har faste farger i [muscle-groups.json](src/data/muscle-groups.json), og **treningstyper** i [workout-types.json](src/data/workout-types.json). Hent fargene derfra, ikke hardkod dem.
-- Bryst og Push bruker samme oransje som styrkeaksenten. Det er greit, siden de alltid står med navn ved siden av.
+- **Muskelgrupper** har faste farger i [muscle-groups.json](src/data/muscle-groups.json). Hent fargene derfra, ikke hardkod dem.
+- Bryst bruker samme oransje som styrkeaksenten. Det er greit, siden gruppen alltid står med navn ved siden av.
 - Grønt og rødt betyr status (fullført og opp, slett og ned). Bruk dem aldri til å vise størrelse, for eksempel anstrengelse.
 
 ## Typografi
@@ -96,7 +96,7 @@ Fonten er Inter (Google Fonts, se `index.html`) og brukes overalt. Tallene forma
 
 ### Header
 
-Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så én metalinje med det viktigste konteksten (type, dato, varighet). Tilbakeknappen ser lik ut på alle sider og peker til forelderen i brødsmulene:
+Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så én metalinje med det viktigste konteksten (dato, varighet). Tilbakeknappen ser lik ut på alle sider og peker til forelderen i brødsmulene:
 
 ```html
 <router-link
