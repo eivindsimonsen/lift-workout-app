@@ -1,24 +1,8 @@
 <template>
   <ErrorBoundary>
     <div class="min-h-screen bg-dark-900">
-      <!-- Loading state while checking authentication -->
-      <div v-if="isLoading" class="flex min-h-screen items-center justify-center">
-        <div class="text-center">
-          <div
-            class="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary-500"
-          ></div>
-          <p class="text-dark-300">Laster...</p>
-          <p class="mt-2 text-sm text-dark-400">
-            {{ hasInitialized ? 'Laster data...' : 'Starter app...' }}
-          </p>
-          <p v-if="workoutData.lastSyncTime?.value" class="mt-1 text-xs text-dark-500">
-            Sist synkronisert: {{ formatLastSyncTime(workoutData.lastSyncTime.value) }}
-          </p>
-        </div>
-      </div>
-
-      <!-- App content when loaded -->
-      <div v-else>
+      <!-- App content. main.ts mounts once the session is known; pages show their own placeholders. -->
+      <div>
         <!-- Mobile Browser Blocker - Wraps entire app content -->
         <MobileBrowserBanner>
           <!-- Desktop Top Header (hidden on mobile) -->
@@ -266,7 +250,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import ErrorToast from '@/components/ErrorToast.vue'
@@ -277,7 +261,6 @@ import MobileBrowserBanner from '@/components/MobileBrowserBanner.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const route = useRoute()
-const router = useRouter()
 const workoutData = useHybridData()
 const { handleAuthError } = useErrorHandler()
 
@@ -285,7 +268,6 @@ const { handleAuthError } = useErrorHandler()
 const mainContent = ref<HTMLElement>()
 
 // State
-const hasInitialized = ref(false)
 const hasUnsavedChanges = ref(false)
 const isSaving = ref(false)
 const networkStatus = ref<'online' | 'offline'>('online')
@@ -303,17 +285,6 @@ const updateNetworkStatus = () => {
   }
 }
 
-// Format last sync time (kept if you display this somewhere)
-const formatLastSyncTime = (timestamp: number) => {
-  const now = Date.now()
-  const diff = now - timestamp
-
-  if (diff < 60000) return 'Nettopp'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} minutter siden`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)} timer siden`
-  return `${Math.floor(diff / 86400000)} dager siden`
-}
-
 // Keep network status in sync with store
 watch(
   () => workoutData.isOnline.value,
@@ -329,7 +300,6 @@ watch(
 // --- Computed ---
 const isAuthenticated = computed(() => workoutData.isAuthenticated.value)
 const currentUser = computed(() => workoutData.currentUser.value)
-const isLoading = computed(() => !hasInitialized.value) // initial app loading only
 
 const isWorkoutSession = computed(() => route.path.startsWith('/workout/'))
 
@@ -363,12 +333,6 @@ let vvResizeHandler: ((this: VisualViewport, ev: Event) => any) | null = null
 
 // --- Lifecycle ---
 onMounted(async () => {
-  // ✅ Restore last route on cold start if authenticated & currently at "/"
-  const lastRoute = sessionStorage.getItem('lastRoute')
-  if (workoutData.isAuthenticated.value && route.path === '/' && lastRoute && lastRoute !== '/') {
-    router.replace(lastRoute)
-  }
-
   // Disable Ctrl+S (WorkoutSession handles auto-save)
   const handleKeydown = (event: KeyboardEvent) => {
     if ((event.ctrlKey || event.metaKey) && event.key === 's') {
@@ -463,33 +427,4 @@ onMounted(async () => {
 onUnmounted(() => {
   workoutData.cleanup()
 })
-
-// --- Watchers ---
-// Auth watcher: finalize init; redirect unauth’d to login WITH redirect back to the page they wanted
-watch(
-  isAuthenticated,
-  (newValue) => {
-    if (newValue || !workoutData.isLoading.value) {
-      hasInitialized.value = true
-    }
-
-    if (!newValue && route.path !== '/login' && route.path !== '/reset-password') {
-      // Do NOT redirect away if the user landed directly on a protected route; router guard will handle it.
-      // This prevents bouncing away during auth hydration when refreshing a protected page.
-      // router.push({ path: '/login', query: { redirect: route.fullPath } })
-    }
-  },
-  { immediate: true }
-)
-
-// Also end initial loading when the store loading completes
-watch(
-  () => workoutData.isLoading.value,
-  (newValue) => {
-    if (!newValue) {
-      hasInitialized.value = true
-    }
-  },
-  { immediate: true }
-)
 </script>

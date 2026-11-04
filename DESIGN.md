@@ -146,6 +146,14 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 - Høyde 0.3125–0.5rem. **Rett i starten, 4 px avrunding i enden.**
 - Etikett og verdi står i tekstfarger ved siden av søylen, aldri i søylens farge.
 
+### Plassholdere ved lasting
+
+- Siden tegnes med en gang. Faste tekster (titler, ukedager, knapper) står fra start; bare det som venter på data, er plassholdere.
+- En plassholder står **på samme plass og i samme størrelse** som innholdet den holder av: strek for tekst (`.skeleton`), sirkel for prikker (`.skeleton .skeleton--circle`). Når høyden er ukjent, reserveres det største, så innholdet aldri dytter noe nedover.
+- `.skeleton` er flate `#1f2937` med en glans i `#334155` som glir over. `.fade-in` toner inn innhold som erstatter en plassholder — bare da, ikke ved hvert besøk.
+- Ingen tidsgrense: plassholderen glinser til dataene kommer. Under `prefers-reduced-motion: reduce` står den stille.
+- Fasit: forsiden ([TemplateSessions.vue](src/views/TemplateSessions.vue)).
+
 ### Knapper
 
 - `btn-primary`: én hovedhandling per visning.

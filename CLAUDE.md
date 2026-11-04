@@ -33,10 +33,10 @@ The service worker is enabled in dev (`devOptions.enabled` in `vite.config.ts`, 
 Three layers. Views and components should use the top layer.
 
 1. **`useSupabase`**: a module-level singleton Supabase client. All fetches have a 10s timeout. The session is stored in `localStorage` or `sessionStorage` depending on the `rememberMe` choice from Login (storage key `lift-auth`). `main.ts` calls `initSupabase()` before anything else.
-2. **`useSupabaseData`**: a module-level singleton that owns `templates`, `sessions` and the current user, together with offline caching and sync. **`useExercises`**: separate module-level state for the exercise library, loaded straight from Supabase and *not* cached offline.
+2. **`useSupabaseData`**: a module-level singleton that owns `templates`, `sessions` and the current user, together with offline caching and sync. **`useExercises`**: separate module-level state for the exercise library, loaded straight from Supabase and *not* cached offline. It loads once per signed-in user as soon as the user is known (`ensureExercisesLoaded`, wired in `useHybridData`), in parallel with the cache read and sync, and a failed load is retried on `online` and when the app comes back into view.
 3. **`useHybridData`**: the facade that views call. It isn't a singleton itself, but it wraps the singletons, so it's cheap to call in any component. It adds exercise lookups (`getExerciseById`, `exerciseIndex`, `getFlattenedExercises`).
 
-Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` (fire-and-forget: auth, IndexedDB, cached data, then exercises) → mount. `App.vue` shows a loader until initialisation finishes. The router guard in `src/router/index.ts` checks the Supabase session on every route unless `meta.requiresAuth === false`.
+Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` (fire-and-forget: session check and IndexedDB open together, then the user is published and cached data is read; exercises start as soon as the user is known) → `router.isReady()` → `whenAuthResolved()` → mount. There is no app-level loader: pages render at once and show placeholders (`.skeleton` in `style.css`) until their data is there — `localDataReady` (templates/sessions read from cache) and a non-empty `exerciseIndex` are the two startup signals. The router guard in `src/router/index.ts` checks the Supabase session on every route unless `meta.requiresAuth === false`.
 
 ### Offline-first sync (`useSupabaseData` + `useIndexedDB`)
 

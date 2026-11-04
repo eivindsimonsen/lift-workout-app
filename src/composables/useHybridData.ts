@@ -1,9 +1,39 @@
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { useSupabaseData } from "./useSupabaseData";
 import { useExercises } from "./useExercises";
 import type { ExerciseData, ExerciseTrackingType } from "@/types/workout";
 
 const logHybridAccess = (_operation: string, _details?: unknown) => {};
+
+let exerciseLoadingWired = false;
+
+/**
+ * Loads the exercise library as soon as a signed-in user is known — at startup,
+ * in parallel with the cache read and sync, and after signing in — and retries
+ * a failed load when the network returns or the app comes back into view.
+ * Wired once per app.
+ */
+const wireExerciseLoading = (
+  userData: ReturnType<typeof useSupabaseData>,
+  exercisesStore: ReturnType<typeof useExercises>
+) => {
+  if (exerciseLoadingWired) return;
+  exerciseLoadingWired = true;
+
+  watch(
+    () => userData.currentUser.value?.id as string | undefined,
+    (id) => {
+      if (id) void exercisesStore.ensureExercisesLoaded(id);
+    },
+    { immediate: true }
+  );
+
+  const retry = () => void exercisesStore.retryExercisesIfFailed(userData.currentUser.value?.id);
+  window.addEventListener("online", retry);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") retry();
+  });
+};
 
 /** Resolved lookup entry for any exercise or variant id. */
 export type ExerciseIndexEntry = {
@@ -154,6 +184,9 @@ export const useHybridData = () => {
     isOnline: userData.isOnline,
     lastSyncTime: userData.lastSyncTime,
     pendingChangesCount: userData.pendingChangesCount,
+    authResolved: userData.authResolved,
+    whenAuthResolved: userData.whenAuthResolved,
+    localDataReady: userData.localDataReady,
 
     // Exercise data from Supabase (via useExercises)
     exercises: exercisesStore.exercises,
@@ -174,10 +207,10 @@ export const useHybridData = () => {
 
     // Actions (all from Supabase)
     loadData: userData.loadData,
-    /** Initialises auth then loads exercises so both are ready together. */
+    /** Initialises auth; the exercise library loads alongside as soon as the user is known. */
     initializeAuth: async () => {
+      wireExerciseLoading(userData, exercisesStore);
       await userData.initializeAuth();
-      await exercisesStore.loadExercises(true);
     },
     addTemplate: userData.addTemplate,
     updateTemplate: userData.updateTemplate,

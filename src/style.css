@@ -661,4 +661,52 @@
       color: #f97316 !important;
     }
   }
+
+  /* Loading placeholders: same place and size as the content they stand in for
+     (see DESIGN.md → «Plassholdere ved lasting»). A soft sheen glides across. */
+  .skeleton {
+    display: block;
+    border-radius: 0.3125rem;
+    background: linear-gradient(90deg, #1f2937 0%, #334155 50%, #1f2937 100%);
+    background-size: 250% 100%;
+    animation: skeleton-sheen 1.5s linear infinite;
+  }
+
+  .skeleton--circle {
+    border-radius: 9999px;
+  }
+
+  /* Content that replaces a placeholder fades in once. */
+  .fade-in {
+    animation: fade-in 0.25s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton {
+      background: #1f2937;
+      animation: none;
+    }
+
+    .fade-in {
+      animation: none;
+    }
+  }
+}
+
+@keyframes skeleton-sheen {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

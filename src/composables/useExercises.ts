@@ -39,6 +39,14 @@ const _exercises = ref<ExerciseData[]>([]);
 const _isLoading = ref(false);
 let _loaded = false;
 
+// Startup loading: once per signed-in user, one request at a time, retried after a failure.
+let _inflight: Promise<void> | null = null;
+let _inflightFor: string | null = null;
+let _loadedFor: string | null = null;
+let _failedFor: string | null = null;
+/** The error toast is shown once per run of failures, not on every retry. */
+let _errorShown = false;
+
 // ---------------------------------------------------------------------------
 // Composable
 // ---------------------------------------------------------------------------
@@ -51,9 +59,11 @@ export const useExercises = () => {
   // Load
   // --------------------------------------------------------------------------
 
-  /** Fetches all exercises (global + current user's own) with their variants. */
-  const loadExercises = async (force = false) => {
-    if (_loaded && !force) return;
+  /**
+   * Fetches all exercises (global + current user's own) with their variants.
+   * Returns whether it succeeded; `quiet` skips the error toast.
+   */
+  const fetchExercises = async (quiet = false): Promise<boolean> => {
     _isLoading.value = true;
     try {
       const { data, error } = await supabase
@@ -94,13 +104,56 @@ export const useExercises = () => {
       }));
 
       _loaded = true;
+      return true;
     } catch (err: any) {
-      showError("Kunne ikke laste øvelser.");
+      if (!quiet) showError("Kunne ikke laste øvelser.");
       console.error(err);
+      return false;
     } finally {
       _isLoading.value = false;
     }
   };
+
+  const loadExercises = async (force = false) => {
+    if (_loaded && !force) return;
+    await fetchExercises();
+  };
+
+  /** Loads the library once per signed-in user; concurrent calls share one request. */
+  const ensureExercisesLoaded = (userId: string): Promise<void> => {
+    if (_loadedFor === userId) return Promise.resolve();
+    if (_inflight && _inflightFor === userId) return _inflight;
+    // A load for another user is running: wait for it, then load for this one.
+    if (_inflight) return _inflight.then(() => ensureExercisesLoaded(userId));
+
+    _inflightFor = userId;
+    _inflight = fetchExercises(_errorShown)
+      .then((ok) => {
+        if (ok) {
+          _loadedFor = userId;
+          _failedFor = null;
+          _errorShown = false;
+        } else {
+          _failedFor = userId;
+          _errorShown = true;
+        }
+      })
+      .finally(() => {
+        _inflight = null;
+        _inflightFor = null;
+      });
+    return _inflight;
+  };
+
+  /**
+   * Retries a failed load, but only for the user who is signed in now — a retry
+   * after signing out would run anonymously, get an empty list from RLS and mark
+   * it as loaded. No-op if nothing failed for that user.
+   */
+  const retryExercisesIfFailed = (currentUserId: string | undefined): Promise<void> =>
+    currentUserId && _failedFor === currentUserId && !_inflight
+      ? ensureExercisesLoaded(currentUserId)
+      : Promise.resolve();
 
   // --------------------------------------------------------------------------
   // Exercise CRUD
@@ -360,6 +413,8 @@ export const useExercises = () => {
     exercises: _exercises,
     isLoadingExercises: _isLoading,
     loadExercises,
+    ensureExercisesLoaded,
+    retryExercisesIfFailed,
     createExercise,
     updateExercise,
     deleteExercise,

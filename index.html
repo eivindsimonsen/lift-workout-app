@@ -40,6 +40,13 @@
       content="/browserconfig.xml" />
 
     <title>LIFT - Training log</title>
+    <!-- Page colour before the app's CSS has loaded, so startup never flashes white -->
+    <style>
+      html,
+      body {
+        background: #0f172a;
+      }
+    </style>
     <link
       rel="preconnect"
       href="https://fonts.googleapis.com" />

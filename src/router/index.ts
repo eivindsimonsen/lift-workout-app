@@ -218,18 +218,6 @@ router.afterEach((to: any, from: any) => {
       }
     }
 
-    // remember last route (unchanged)
-    try {
-      const { supabase } = useSupabase();
-      supabase.auth.getSession().then(({ data }: { data: { session: any } }) => {
-        if (data?.session) {
-          sessionStorage.setItem("lastRoute", to.fullPath);
-        }
-      });
-    } catch (err) {
-      console.warn("Could not store last route", err);
-    }
-
     setTimeout(() => {
       document.body.classList.remove("route-transitioning");
     }, 150);

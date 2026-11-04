@@ -15,16 +15,18 @@ async function bootstrap() {
   const app = createApp(App);
   app.use(router);
 
-  // Mount first so the in-app loader is visible during initialization
   const workoutData = useHybridData();
   try {
-    // Fire-and-forget auth init; App.vue shows loader until store signals ready
+    // Fire-and-forget: data and the exercise library keep loading after mount;
+    // pages show placeholders until their data is there.
     void workoutData.initializeAuth();
   } catch (err) {
     console.error("[bootstrap] initializeAuth failed:", err);
   }
 
   await router.isReady();
+  // Mount once the session is known, so a protected page is never drawn signed out first.
+  await workoutData.whenAuthResolved();
   app.mount("#app");
 }
 

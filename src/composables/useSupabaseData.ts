@@ -145,6 +145,26 @@ const createSupabaseData = () => {
   const lastSyncTime = ref<number | null>(null);
   const nextAllowedSync = ref<number>(0);
 
+  // Startup signals. The app mounts once the initial session check is done, so a
+  // protected page is never drawn as signed out first.
+  const authResolved = ref(false);
+  let resolveAuthReady: () => void = () => {};
+  const authReadyPromise = new Promise<void>((resolve) => {
+    resolveAuthReady = resolve;
+  });
+  const markAuthResolved = () => {
+    if (authResolved.value) return;
+    authResolved.value = true;
+    resolveAuthReady();
+  };
+  /** Resolves once the initial session check has finished, signed in or not. Never rejects. */
+  const whenAuthResolved = (): Promise<void> => authReadyPromise;
+  /**
+   * Wave 1 of startup: templates and sessions are painted from the local cache, or —
+   * when there is no cache — the first load attempt has finished.
+   */
+  const localDataReady = ref(false);
+
   const pendingChangesCount = ref(0);
   const refreshPendingChangesCount = async () => {
     if (!indexedDB.isSupported.value || !currentUser.value) {
@@ -243,6 +263,7 @@ const createSupabaseData = () => {
             templates.value = cachedData.templates || [];
             sessions.value = sanitizeSessionData(cachedData.sessions || []);
             lastSyncTime.value = cachedData.lastSync ?? null;
+            localDataReady.value = true;
           }
         } catch (e) {
           console.warn("⚠️ Cache load failed:", e);
@@ -279,6 +300,8 @@ const createSupabaseData = () => {
       }
     } finally {
       if (shouldShowLoading) isLoading.value = false;
+      // No cache: wave 1 ends when the first load attempt is over, whatever the outcome.
+      localDataReady.value = true;
       await refreshPendingChangesCount();
     }
   };
@@ -442,19 +465,28 @@ const createSupabaseData = () => {
     isInitialized.value = true;
 
     try {
-      await initIndexedDB();
-      await new Promise((r) => setTimeout(r, 100));
-
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      // Settle auth and open IndexedDB together, before the user is published:
+      // mounting waits on this, views read the cache as soon as a user is set
+      // (WorkoutSession's refresh after a reload), and the exercise library
+      // starts loading as soon as the user is known (see useHybridData).
+      // initIndexedDB handles its own errors, so it never rejects here.
+      const [
+        {
+          data: { session },
+          error: sessionError,
+        },
+      ] = await Promise.all([supabase.auth.getSession(), initIndexedDB()]);
       if (sessionError) console.error("Error getting initial session:", sessionError);
 
       if (session?.user) {
         currentUser.value = session.user;
         isAuthenticated.value = true;
+      }
+      markAuthResolved();
 
+      await new Promise((r) => setTimeout(r, 100));
+
+      if (session?.user) {
         // Startup: paint from cache and (throttled) sync once
         try {
           await loadData(false as any, true);
@@ -475,6 +507,7 @@ const createSupabaseData = () => {
           isAuthenticated.value = false;
           templates.value = [];
           sessions.value = [];
+          localDataReady.value = false;
           pendingChangesCount.value = 0;
           if (indexedDB.isSupported.value) {
             try {
@@ -540,6 +573,8 @@ const createSupabaseData = () => {
       console.error("❌ Error initializing auth:", e);
       isInitialized.value = false;
     } finally {
+      // Never leave the app unmounted, even when initialisation failed.
+      markAuthResolved();
       isInitializing = false;
       await refreshPendingChangesCount();
     }
@@ -554,6 +589,7 @@ const createSupabaseData = () => {
       isAuthenticated.value = false;
       templates.value = [];
       sessions.value = [];
+      localDataReady.value = false;
       isLoading.value = false;
       pendingChangesCount.value = 0;
     } catch (e) {
@@ -562,6 +598,7 @@ const createSupabaseData = () => {
       isAuthenticated.value = false;
       templates.value = [];
       sessions.value = [];
+      localDataReady.value = false;
       isLoading.value = false;
       pendingChangesCount.value = 0;
     }
@@ -574,6 +611,7 @@ const createSupabaseData = () => {
     isAuthenticated.value = false;
     templates.value = [];
     sessions.value = [];
+    localDataReady.value = false;
     pendingChangesCount.value = 0;
   };
 
@@ -1250,6 +1288,9 @@ const createSupabaseData = () => {
     isInitialized,
     isOnline,
     lastSyncTime,
+    authResolved,
+    whenAuthResolved,
+    localDataReady,
 
     // computed
     completedSessions,

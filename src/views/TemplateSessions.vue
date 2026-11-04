@@ -5,7 +5,7 @@
   import { useWeekStats, WEEK_DAYS, getTodayIndex } from "@/composables/useWeekStats";
   import { useTrainingGoals, MUSCLE_GROUP_COLORS } from "@/composables/useTrainingGoals";
   import { useGoalStreak, type ChainLink } from "@/composables/useGoalStreak";
-  import type { GoalGap, GoalGapKind } from "@/composables/goalStreak";
+  import { CHAIN_LENGTH, type GoalGap, type GoalGapKind } from "@/composables/goalStreak";
   import SwipeableCard from "@/components/SwipeableCard.vue";
   import NetworkStatus from "@/components/NetworkStatus.vue";
   import { vibrate } from "@/composables/useHaptics";
@@ -29,8 +29,20 @@
     return workoutData.sessions.value.filter((session) => !session.isCompleted);
   });
 
-  // Loading state
-  const isLoading = computed(() => workoutData.isLoading.value);
+  // ---------------------------------------------------------------------------
+  // Startup placeholders — the page is drawn at once and fills in two waves:
+  // templates/sessions read from the phone, then the exercise library.
+  // ---------------------------------------------------------------------------
+
+  const localReady = computed(() => workoutData.localDataReady.value);
+  const exercisesReady = computed(() => workoutData.exerciseIndex.value.size > 0);
+
+  // Captured once: content fades in only where it replaces a placeholder, not on every visit.
+  const fadeLocal = !localReady.value;
+  const fadeExercises = !exercisesReady.value;
+
+  /** Varied widths for the exercise rows of a placeholder template card. */
+  const PLACEHOLDER_ROW_WIDTHS = ["w-32", "w-24", "w-28", "w-20"];
 
   // Methods
   const formatNumber = (num: number): string => {
@@ -201,7 +213,7 @@
   // Weekly goal streak
   // ---------------------------------------------------------------------------
 
-  const { hasGoals } = useTrainingGoals();
+  const { hasGoals, goals } = useTrainingGoals();
   const {
     ready: streakReady,
     current: streakCurrent,
@@ -212,8 +224,20 @@
     thisWeekKey,
   } = useGoalStreak();
 
-  /** Held back until the exercise library is loaded, so a reload never flashes "0". */
-  const showStreak = computed(() => hasGoals.value && streakReady.value);
+  /**
+   * The streak needs both the sessions and the exercise library; until then it's a
+   * placeholder, so a reload never flashes "0" or a half-counted week.
+   */
+  const streakDataReady = computed(() => localReady.value && streakReady.value);
+  const showStreak = computed(() => hasGoals.value && streakDataReady.value);
+  const fadeStreak = !streakDataReady.value;
+
+  /** Rows the goal list can need at most: one per target in the plan (strength groups, cardio minutes, cardio km). */
+  const reservedGoalRows = computed(() => {
+    const g = goals.value;
+    const strengthTargets = Object.values(g.setsPerMuscleGroup).filter((sets) => sets > 0).length;
+    return strengthTargets + (g.cardio.minutesPerWeek > 0 ? 1 : 0) + (g.cardio.kilometresPerWeek > 0 ? 1 : 0);
+  });
 
   const weeksLabel = (n: number): string => (n === 1 ? "uke på rad" : "uker på rad");
 
@@ -293,7 +317,7 @@
     </div>
 
     <!-- ── Weekly summary → full breakdown on /week ────────────────────────── -->
-    <router-link v-if="!isLoading" to="/week" class="week-card">
+    <router-link to="/week" class="week-card">
       <!-- Header row -->
       <div class="week-card__header">
         <span class="week-card__title">Denne uken</span>
@@ -305,8 +329,23 @@
         </span>
       </div>
 
+      <!-- Streak placeholder until both the sessions and the exercise library are in -->
+      <div v-if="hasGoals && !streakDataReady" class="week-card__streak" aria-hidden="true">
+        <div class="week-card__streak-head">
+          <span class="week-card__flame skeleton skeleton--circle"></span>
+          <span class="week-card__streak-num"><span class="week-card__ph-bar skeleton w-5"></span></span>
+          <span class="week-card__streak-text">
+            <span class="week-card__streak-label"><span class="week-card__ph-bar skeleton w-28"></span></span>
+            <span class="week-card__streak-meta"><span class="week-card__ph-bar skeleton w-40"></span></span>
+          </span>
+        </div>
+        <div class="week-card__chain">
+          <span v-for="i in CHAIN_LENGTH" :key="i" class="week-card__ph-link skeleton"></span>
+        </div>
+      </div>
+
       <!-- Weekly goal streak — the chain of recent weeks, current week last -->
-      <div v-if="showStreak" class="week-card__streak">
+      <div v-else-if="showStreak" :class="['week-card__streak', { 'fade-in': fadeStreak }]">
         <div class="week-card__streak-head">
           <svg class="week-card__flame" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
@@ -335,7 +374,8 @@
       <!-- Day track -->
       <div class="week-card__days">
         <div v-for="(label, i) in WEEK_DAYS" :key="label" class="week-card__day">
-          <div :class="['week-card__dot', `week-card__dot--${getDayState(i)}`]">
+          <div v-if="!localReady" class="week-card__dot skeleton skeleton--circle"></div>
+          <div v-else :class="['week-card__dot', `week-card__dot--${getDayState(i)}`, { 'fade-in': fadeLocal }]">
             <svg v-if="getDayState(i) === 'done'" class="week-card__dot-check" viewBox="0 0 10 10" fill="none">
               <path d="M2 5.5l2.2 2.2 3.8-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
@@ -346,8 +386,24 @@
         </div>
       </div>
 
+      <!-- Goal placeholder: room for one row per target, the most the list can need -->
+      <div v-if="hasGoals && !streakDataReady" class="week-card__goal" aria-hidden="true">
+        <div class="week-card__goal-head">
+          <span class="week-card__goal-label"><span class="week-card__ph-bar skeleton w-36"></span></span>
+          <span class="week-card__goal-count"><strong><span class="week-card__ph-bar skeleton w-6"></span></strong></span>
+        </div>
+        <ul class="week-card__gaps">
+          <li v-for="i in reservedGoalRows" :key="i" class="week-card__gap">
+            <span class="week-card__gap-dot skeleton skeleton--circle"></span>
+            <span class="week-card__gap-name"><span class="week-card__ph-bar skeleton w-14"></span></span>
+            <span class="week-card__gap-value"><span class="week-card__ph-bar skeleton w-10"></span></span>
+            <span class="week-card__gap-left"><span class="week-card__ph-bar skeleton w-12"></span></span>
+          </li>
+        </ul>
+      </div>
+
       <!-- Week secured: every target met -->
-      <div v-if="showStreak && thisWeek.approved" class="week-card__secured">
+      <div v-else-if="showStreak && thisWeek.approved" :class="['week-card__secured', { 'fade-in': fadeStreak }]">
         <span class="week-card__secured-check">
           <svg viewBox="0 0 10 10" fill="none" aria-hidden="true">
             <path d="M2 5.5l2.2 2.2 3.8-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
@@ -360,7 +416,7 @@
       </div>
 
       <!-- What's left this week, target by target — the total isn't the rule -->
-      <div v-else-if="showStreak" class="week-card__goal">
+      <div v-else-if="showStreak" :class="['week-card__goal', { 'fade-in': fadeStreak }]">
         <div class="week-card__goal-head">
           <span class="week-card__goal-label">{{ streakCurrent > 0 ? "Igjen for å holde streaken" : "Igjen for å nå ukesmålet" }}</span>
           <span v-if="thisWeek.remainingSets > 0" class="week-card__goal-count">
@@ -380,7 +436,25 @@
         </span>
       </div>
 
-      <!-- Progress toward this week's goal — shown until the streak can be computed -->
+      <!-- Without goals: placeholder for the plain totals until the sessions are read -->
+      <div v-else-if="!hasGoals && !localReady" class="week-card__stats" aria-hidden="true">
+        <div class="week-card__stat">
+          <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-6"></span></span>
+          <span class="week-card__stat-label">Økter</span>
+        </div>
+        <div class="week-card__stat-divider"></div>
+        <div class="week-card__stat">
+          <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-12"></span></span>
+          <span class="week-card__stat-label">Volum (kg)</span>
+        </div>
+        <div class="week-card__stat-divider"></div>
+        <div class="week-card__stat">
+          <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-6"></span></span>
+          <span class="week-card__stat-label">Sett</span>
+        </div>
+      </div>
+
+      <!-- Progress toward this week's goal (only without a goal plan; with one the streak covers it) -->
       <div v-else-if="setsGoalProgress.hasTarget" class="week-card__goal">
         <div class="week-card__goal-head">
           <span class="week-card__goal-label">Ukens sett</span>
@@ -417,7 +491,7 @@
       </div>
 
       <!-- No goals set yet — plain totals instead -->
-      <div v-else class="week-card__stats">
+      <div v-else :class="['week-card__stats', { 'fade-in': fadeLocal }]">
         <div class="week-card__stat">
           <span class="week-card__stat-value">{{ weekTotals.workouts }}</span>
           <span class="week-card__stat-label">Økter</span>
@@ -434,27 +508,16 @@
         </div>
       </div>
 
-      <p class="week-card__motivation">{{ weekMotivation }}</p>
+      <p class="week-card__motivation">
+        <span v-if="!localReady" class="week-card__ph-bar skeleton w-40" aria-hidden="true"></span>
+        <span v-else :class="{ 'fade-in': fadeLocal }">{{ weekMotivation }}</span>
+      </p>
     </router-link>
 
     <!-- Active Workout Sessions -->
     <div class="mt-8">
-      <!-- Loading State for Active Sessions -->
-      <div v-if="isLoading" class="mb-4">
-        <div class="h-7 bg-dark-600 rounded w-32 mb-4 animate-pulse"></div>
-        <div class="space-y-4">
-          <div class="bg-dark-700 rounded-lg p-4 border border-dark-600 animate-pulse">
-            <div class="space-y-2">
-              <div class="h-5 bg-dark-600 rounded w-40"></div>
-              <div class="h-4 bg-dark-600 rounded w-32"></div>
-              <div class="h-3 bg-dark-600 rounded w-48"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Active Sessions Content -->
-      <div v-else-if="activeSessions.length > 0">
+      <!-- Active Sessions Content — known once the sessions are read from the phone -->
+      <div v-if="localReady && activeSessions.length > 0">
         <h2 class="text-xl font-semibold text-white mb-4">Aktiv Økt</h2>
 
         <div class="space-y-2">
@@ -497,35 +560,26 @@
         </div>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="isLoading" class="mt-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="i in 6" :key="i" class="bg-dark-700 rounded-lg p-6 border border-dark-600 animate-pulse">
-            <!-- Template Title Skeleton -->
-            <div class="mb-4">
-              <div class="h-6 bg-dark-600 rounded w-32"></div>
-            </div>
-
-            <!-- Exercise Count Skeleton -->
-            <div class="h-4 bg-dark-600 rounded w-24 mb-6"></div>
-
-            <!-- Exercise Preview Skeleton -->
-            <div class="mb-6 space-y-2">
-              <div class="h-3 bg-dark-600 rounded w-full"></div>
-              <div class="h-3 bg-dark-600 rounded w-3/4"></div>
-              <div class="h-3 bg-dark-600 rounded w-1/2"></div>
-            </div>
-
-            <!-- Action Buttons Skeleton -->
-            <div class="flex gap-2 mt-auto">
-              <div class="flex-1 h-8 bg-dark-600 rounded-lg"></div>
-              <div class="flex-1 h-8 bg-dark-600 rounded-lg"></div>
-            </div>
+      <!-- Placeholder cards until the templates are read from the phone (same shape as a real card) -->
+      <div v-if="!localReady" class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-hidden="true">
+        <div v-for="i in 2" :key="i" class="bg-dark-800 rounded-lg p-6 flex flex-col h-full ring-1 ring-dark-700/40">
+          <div class="mb-4 h-7 flex items-center"><span class="skeleton h-4 w-28"></span></div>
+          <div class="mb-4 h-5 flex items-center"><span class="skeleton h-3 w-16"></span></div>
+          <ul class="mb-6 flex-grow space-y-1.5">
+            <li v-for="(width, j) in PLACEHOLDER_ROW_WIDTHS" :key="j" class="flex items-center gap-2.5 h-5">
+              <span class="skeleton skeleton--circle w-2 h-2 flex-shrink-0"></span>
+              <span :class="['skeleton', 'h-3', width]"></span>
+              <span class="skeleton h-2.5 w-10 ml-auto flex-shrink-0"></span>
+            </li>
+          </ul>
+          <div class="flex gap-2 mt-auto pointer-events-none">
+            <span class="flex-1 bg-dark-600 text-white rounded-lg text-sm py-2 text-center">Rediger</span>
+            <span class="flex-1 bg-primary-500 text-white rounded-lg text-sm py-2 text-center">Start Økt</span>
           </div>
         </div>
       </div>
 
-      <!-- Empty State -->
+      <!-- Empty State — only once the templates are read, so it never flashes by -->
       <div v-else-if="filteredTemplates.length === 0" class="mt-4 text-center py-12">
         <div class="w-16 h-16 bg-dark-700 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg class="w-8 h-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -546,9 +600,12 @@
           <!-- Exercise Preview — in the order set up in the template -->
           <ul class="mb-6 flex-grow space-y-1.5">
             <li v-for="(exercise, index) in template.exercises" :key="`${index}-${exercise.exerciseId}`" class="flex items-center gap-2.5 min-w-0 text-sm text-dark-200">
-              <span class="w-2 h-2 rounded-full flex-shrink-0" :style="{ backgroundColor: getExerciseGroup(exercise.exerciseId).color }"></span>
+              <!-- Muscle group needs the exercise library (wave 2) -->
+              <span v-if="!exercisesReady" class="skeleton skeleton--circle w-2 h-2 flex-shrink-0"></span>
+              <span v-else :class="['w-2 h-2 rounded-full flex-shrink-0', { 'fade-in': fadeExercises }]" :style="{ backgroundColor: getExerciseGroup(exercise.exerciseId).color }"></span>
               <span class="truncate">{{ exercise.name }}</span>
-              <span class="ml-auto pl-2 flex-shrink-0 text-xs text-dark-500">{{ getExerciseGroup(exercise.exerciseId).name }}</span>
+              <span v-if="!exercisesReady" class="skeleton h-2.5 w-10 ml-auto flex-shrink-0"></span>
+              <span v-else :class="['ml-auto pl-2 flex-shrink-0 text-xs text-dark-500', { 'fade-in': fadeExercises }]">{{ getExerciseGroup(exercise.exerciseId).name }}</span>
             </li>
           </ul>
 
@@ -1027,5 +1084,20 @@
     margin: 0;
     width: 100%;
     text-align: center;
+  }
+
+  /* ── Placeholders while loading ──────────────────────────────────────────── */
+  /* Sit inside the real text elements, so each line keeps the content's height. */
+
+  .week-card__ph-bar {
+    display: inline-block;
+    height: 0.7em;
+    vertical-align: middle;
+  }
+
+  .week-card__ph-link {
+    flex: 1;
+    height: 0.625rem;
+    border-radius: 3px;
   }
 </style>
