@@ -66,7 +66,9 @@
           <span class="tpl-card__name">{{ template.name }}</span>
           <span class="tpl-card__meta">
             <span>{{ exerciseCountLabel }}</span>
-            <span v-if="!exercisesReady" class="tpl-card__dots-ph skeleton" aria-hidden="true"></span>
+            <span v-if="!exercisesReady" class="tpl-card__dots" aria-hidden="true">
+              <span v-for="i in 3" :key="i" class="tpl-card__dot skeleton skeleton--circle"></span>
+            </span>
             <span v-else-if="groupDots.length > 0" class="tpl-card__dots" aria-hidden="true">
               <span v-for="(dot, i) in groupDots" :key="i" class="tpl-card__dot" :style="{ background: dot }"></span>
             </span>
@@ -91,10 +93,12 @@
     </div>
 
     <div v-if="open" class="tpl-card__exp">
-      <!-- Grouping needs the exercise library; until then, one placeholder line per exercise -->
-      <div v-if="!exercisesReady" class="tpl-card__ph-list" aria-hidden="true">
-        <span v-for="i in exerciseCount" :key="i" class="tpl-card__ph-line skeleton"></span>
-      </div>
+      <!-- Grouping needs the exercise library; until it's loaded, the stored names in template order -->
+      <ul v-if="!exercisesReady" class="tpl-card__list">
+        <li v-for="(exercise, i) in template.exercises" :key="`${exercise.exerciseId}-${i}`" class="tpl-card__ex tpl-card__ex--plain">
+          <span class="tpl-card__ex-name">{{ exercise.name }}</span>
+        </li>
+      </ul>
 
       <template v-else>
         <section v-for="group in groups" :key="group.group" class="tpl-card__group">
@@ -179,12 +183,6 @@
     height: 0.375rem;
     border-radius: 50%;
     flex-shrink: 0;
-  }
-
-  .tpl-card__dots-ph {
-    display: inline-block;
-    width: 2.25rem;
-    height: 0.375rem;
   }
 
   .tpl-card__chevron {
@@ -286,21 +284,17 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .tpl-card__ph-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
-    padding: 0.375rem 0 0.25rem 0.75rem;
+  /* Before the library loads there are no group titles, so no indent under them */
+  .tpl-card__ex--plain {
+    padding-left: 0;
   }
 
-  .tpl-card__ph-line {
-    width: 55%;
-    height: 0.625rem;
-  }
-
+  /* 44px tall to tap, like every other control */
   .tpl-card__edit {
-    display: inline-block;
-    margin-top: 0.625rem;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    margin-top: 0.125rem;
     font-size: 0.8125rem;
     font-weight: 500;
     color: #94a3b8;

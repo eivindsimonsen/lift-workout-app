@@ -999,11 +999,7 @@ const handleAbandonWorkout = () => {
     total + exercise.sets.filter(set => !set.isCompleted).length, 0
   ) || 0
 
-  let message = 'Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent.'
-
-  if (incompleteExercises.length > 0 || incompleteSets > 0) {
-    message += `\n\nMerk: ${incompleteExercises.length} ufullførte øvelser og ${incompleteSets} ufullførte sett vil bli fjernet fra økten før den slettes.`
-  }
+  let message = 'Er du sikker på at du vil avbryte denne økten?'
 
   if (confirm(message)) {
     abandonWorkout()
@@ -2003,7 +1999,8 @@ watch(() => route.params.id, async (newId, oldId) => {
               <span>#</span>
               <span>Reps</span>
               <span>{{ weightHeader }}</span>
-              <span class="ex-set__col-right">Volum</span>
+              <!-- Volume is always kg, whatever unit the weight is typed in -->
+              <span class="ex-set__col-right ex-set__head-volume">Volum (kg)</span>
             </div>
 
             <!-- Keyed wrapper: switching exercises remounts the list so TransitionGroup -->
@@ -2511,6 +2508,12 @@ watch(() => route.params.id, async (newId, oldId) => {
 }
 
 .ex-set__col-right { text-align: right; }
+
+/* Wider than its column: keep it on one line and let it reach left into the weight column */
+.ex-set__head-volume {
+  justify-self: end;
+  white-space: nowrap;
+}
 
 .ex-set__row {
   display: grid;

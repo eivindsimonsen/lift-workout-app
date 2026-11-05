@@ -31,20 +31,25 @@ const templateForm = ref({
 
 const isPaletteOpen = ref(false)
 const colorPickerRef = ref<HTMLElement | null>(null)
+const swatchRef = ref<HTMLButtonElement | null>(null)
 
 const pickColor = (color: string) => {
   templateForm.value.color = color
   isPaletteOpen.value = false
 }
 
-// Close on a tap outside the picker, or on Escape
+// Close on a tap outside the swatch and palette (the name field counts as outside), or on Escape
 const onDocumentPointerDown = (event: PointerEvent) => {
   if (isPaletteOpen.value && colorPickerRef.value && !colorPickerRef.value.contains(event.target as Node)) {
     isPaletteOpen.value = false
   }
 }
 const onDocumentKeydown = (event: KeyboardEvent) => {
-  if (event.key === 'Escape') isPaletteOpen.value = false
+  if (event.key !== 'Escape' || !isPaletteOpen.value) return
+  // The focused colour disappears with the palette, so hand focus back to the swatch
+  const focusWasInPalette = colorPickerRef.value?.contains(document.activeElement) ?? false
+  isPaletteOpen.value = false
+  if (focusWasInPalette) swatchRef.value?.focus()
 }
 onMounted(() => {
   document.addEventListener('pointerdown', onDocumentPointerDown)
@@ -336,7 +341,7 @@ onMounted(async () => {
         <div class="template-form__fields">
           <div class="template-form__field">
             <label class="template-form__label" for="template-name">Navn og farge</label>
-            <div ref="colorPickerRef" class="name-color">
+            <div class="name-color">
               <input
                 id="template-name"
                 v-model="templateForm.name"
@@ -345,33 +350,37 @@ onMounted(async () => {
                 class="input-field w-full name-color__input"
                 placeholder="F.eks. Push Økt"
               />
-              <!-- The colour lives in the name field; tapping it opens the palette -->
-              <button
-                type="button"
-                class="name-color__swatch"
-                :aria-expanded="isPaletteOpen"
-                aria-haspopup="true"
-                aria-label="Velg farge"
-                @click="isPaletteOpen = !isPaletteOpen"
-              >
-                <span class="name-color__chip" :style="{ background: templateColorOf(templateForm) }"></span>
-              </button>
-              <div v-if="isPaletteOpen" class="name-color__palette" role="group" aria-label="Farger">
+              <!-- The colour lives in the name field; tapping it opens the palette. Only the swatch and
+                   the palette count as "inside", so tapping the name field closes the palette. -->
+              <div ref="colorPickerRef" class="name-color__picker">
                 <button
-                  v-for="(color, i) in TEMPLATE_COLORS"
-                  :key="color"
+                  ref="swatchRef"
                   type="button"
-                  class="name-color__option"
-                  :aria-label="`Farge ${i + 1}`"
-                  :aria-pressed="templateForm.color === color"
-                  @click="pickColor(color)"
+                  class="name-color__swatch"
+                  :aria-expanded="isPaletteOpen"
+                  aria-controls="template-color-palette"
+                  aria-label="Velg farge"
+                  @click="isPaletteOpen = !isPaletteOpen"
                 >
-                  <span class="name-color__dot" :class="{ 'name-color__dot--selected': templateForm.color === color }" :style="{ background: color }">
-                    <svg v-if="templateForm.color === color" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                      <path d="M2 5.5l2.2 2.2 3.8-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                  </span>
+                  <span class="name-color__chip" :style="{ background: templateColorOf(templateForm) }"></span>
                 </button>
+                <div v-if="isPaletteOpen" id="template-color-palette" class="name-color__palette" role="group" aria-label="Farger">
+                  <button
+                    v-for="(color, i) in TEMPLATE_COLORS"
+                    :key="color"
+                    type="button"
+                    class="name-color__option"
+                    :aria-label="`Farge ${i + 1}`"
+                    :aria-pressed="templateForm.color === color"
+                    @click="pickColor(color)"
+                  >
+                    <span class="name-color__dot" :class="{ 'name-color__dot--selected': templateForm.color === color }" :style="{ background: color }">
+                      <svg v-if="templateForm.color === color" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                        <path d="M2 5.5l2.2 2.2 3.8-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
             <p class="template-form__hint">Gi økten et tydelig navn, og en farge den kjennes igjen på.</p>
@@ -560,13 +569,18 @@ onMounted(async () => {
   padding-left: 3rem;
 }
 
-/* 44px tap target over the left edge of the field */
-.name-color__swatch {
+/* Swatch and palette: a 44px column over the left edge of the field */
+.name-color__picker {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
   width: 2.75rem;
+}
+
+.name-color__swatch {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;

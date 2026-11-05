@@ -78,7 +78,9 @@
 </template>
 
 <style scoped>
-  /* Above the bottom navigation on phones (≈4.25rem of links + 1.25rem PWA padding + safe area). */
+  /* Clears the bottom navigation on phones. The nav is ≈4.25rem of links; style.css adds up to
+     1.25rem padding in the installed app (0 on Android standalone, 1.25rem on iOS), so 6.25rem
+     plus the safe area leaves room in every mode. */
   .active-tile {
     position: fixed;
     right: 1rem;

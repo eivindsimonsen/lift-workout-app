@@ -47,7 +47,7 @@ Fargene er i dag hex-verdier i scoped CSS, ikke variabler. Bruk verdiene under, 
 | Pause | `#f59e0b` | Bare som tilstand på klokka |
 
 - **Muskelgrupper** har faste farger i [muscle-groups.json](src/data/muscle-groups.json). Hent fargene derfra, ikke hardkod dem.
-- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). En mal uten farge, og en økt fra en slettet mal, er grå `#475569`. Malfargen brukes bare på malkortet og som prikk i Historikk.
+- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). Malfargen brukes på malkortet, som prikk i Historikk og i kalenderen i Statistikk. En mal uten farge, og en økt fra en slettet mal, er grå `#475569` — unntatt i kalenderen, der de blir oransje så en treningsdag aldri ser utrent ut.
 - Bryst bruker samme oransje som styrkeaksenten. Det er greit, siden gruppen alltid står med navn ved siden av.
 - Grønt og rødt betyr status (fullført og opp, slett og ned). Bruk dem aldri til å vise størrelse, for eksempel anstrengelse.
 
@@ -159,7 +159,8 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 - Et smalt kort per mal ([TemplateCard.vue](src/components/TemplateCard.vue)): panelflate med en 4px venstrekant i malens farge. Lukket: radnavn, metalinje «N øvelser» med én prikk per muskelgruppe, chevron, og en rund startknapp fylt med malfargen (44px trykkflate).
 - Trykk på kortet åpner det: øvelsene gruppert per muskelgruppe (undertittel i panel med gruppens prikk), «N sett» fra forrige gang til høyre for styrke, ingenting for kondisjon, og «Rediger mal» nederst. Grupperingen er bare visning; økta følger rekkefølgen i malen.
-- Én kolonne på mobil, to fra 768px (`align-items: start`).
+- Hold inne og dra et kort for å endre rekkefølgen (samme `useLongPressReorder` som øvelsesradene; kortet løftes med skygge og svak forstørrelse). Rekkefølgen lagres på telefonen per bruker (`templateOrder.ts`); nye maler havner nederst.
+- Én kolonne på alle skjermer, siden dra virker nedover én kolonne.
 
 ### Flis for aktiv økt (forsiden)
 
@@ -176,7 +177,7 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 ### Kalender (Statistikk)
 
 - Dagene er avrundede ruter (radius 0.5rem) på innfelt bakgrunn.
-- Styrkedager er fylt oransje og rene kondisjonsdager cyan. En dag med både styrke og kondisjon regnes som styrke.
+- En treningsdag er fylt med fargen til malen økta ble startet fra (slik malen er nå). Har malen ingen farge eller er slettet, brukes oransje, så dagen aldri ser utrent ut. Flere økter samme dag fra ulike maler deler ruta i like loddrette striper, første økt til venstre. Ingen forklaring under kalenderen.
 - Dagens dato får en hvit ring. Dager utenfor måneden er nesten usynlige.
 - Måneden har pilknapper i samme stil som ikonknappene. Over rutenettet står antall treningsdager og hviledager i måneden, fram til i dag. Hviledager vises som et nøytralt tall, ikke som et brudd.
 

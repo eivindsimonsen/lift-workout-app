@@ -10,6 +10,7 @@
   import { useGoalStreak } from "@/composables/useGoalStreak";
   import { averageEffort, cardioRecords, cardioWeeks, collectCardioActivities, formatTotalTime, type CardioActivity } from "@/composables/useCardioActivities";
   import CardioWeeklyChart from "@/components/CardioWeeklyChart.vue";
+  import { DEFAULT_TEMPLATE_COLOR, templateColorOf } from "@/composables/templateColors";
 
   // ---------------------------------------------------------------------------
   // Period
@@ -101,25 +102,39 @@
 
   const WEEKDAY_LABELS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
 
-  const hasStrengthWork = (session: WorkoutSession): boolean =>
-    session.exercises.some((ex) => !isCardioExercise(ex) && ex.sets.some((set) => isSetCounted(ex, set)));
+  const templatesById = computed(() => new Map(workoutData.templates.value.map((t) => [t.id, t])));
 
   /**
-   * What each day held. A day with any strength work counts as a strength day;
-   * a day with only cardio gets the cardio colour.
+   * The colours of each day's sessions, in the order they were done: each session
+   * shows its template's colour as it is now. A deleted template, or one without
+   * a colour, falls back to orange so a trained day never looks untrained.
+   * Two sessions from the same template give one colour.
    */
-  const dayKinds = computed(() => {
-    const kinds = new Map<number, "strength" | "cardio">();
-    workoutData.completedSessions.value.forEach((session) => {
-      const d = new Date(session.date);
-      const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-      const kind = hasStrengthWork(session) ? "strength" : "cardio";
-      if (kinds.get(key) !== "strength") kinds.set(key, kind);
-    });
-    return kinds;
+  const dayColors = computed(() => {
+    const colors = new Map<number, string[]>();
+    [...workoutData.completedSessions.value]
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .forEach((session) => {
+        const d = new Date(session.date);
+        const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        const template = session.templateId ? templatesById.value.get(session.templateId) : null;
+        const color = templateColorOf(template, DEFAULT_TEMPLATE_COLOR);
+        const day = colors.get(key) ?? [];
+        if (!day.includes(color)) day.push(color);
+        colors.set(key, day);
+      });
+    return colors;
   });
 
-  type CalendarDay = { key: string; date: Date; inMonth: boolean; kind: "strength" | "cardio" | null; isToday: boolean };
+  /** One colour fills the day; several split it into equal vertical stripes, first session on the left. */
+  const dayBackground = (colors: string[]): string => {
+    if (colors.length === 1) return colors[0];
+    const step = 100 / colors.length;
+    const stops = colors.map((color, i) => `${color} ${i * step}% ${(i + 1) * step}%`);
+    return `linear-gradient(90deg, ${stops.join(", ")})`;
+  };
+
+  type CalendarDay = { key: string; date: Date; inMonth: boolean; colors: string[]; isToday: boolean };
 
   const calendarWeeks = computed(() => {
     const first = new Date(currentMonth.value.getFullYear(), currentMonth.value.getMonth(), 1);
@@ -142,7 +157,7 @@
           key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
           date,
           inMonth: date.getMonth() === currentMonth.value.getMonth(),
-          kind: dayKinds.value.get(date.getTime()) ?? null,
+          colors: dayColors.value.get(date.getTime()) ?? [],
           isToday: date.getTime() === todayKey,
         });
         cursor.setDate(cursor.getDate() + 1);
@@ -159,7 +174,7 @@
     let rest = 0;
     calendarWeeks.value.flat().forEach((day) => {
       if (!day.inMonth || day.date > today) return;
-      if (day.kind) training += 1;
+      if (day.colors.length > 0) training += 1;
       else rest += 1;
     });
     return { training, rest };
@@ -546,18 +561,13 @@
                 class="st-day"
                 :class="{
                   'st-day--out': !day.inMonth,
-                  'st-day--strength': day.inMonth && day.kind === 'strength',
-                  'st-day--cardio': day.inMonth && day.kind === 'cardio',
+                  'st-day--trained': day.inMonth && day.colors.length > 0,
                   'st-day--today': day.isToday,
-                }">
+                }"
+                :style="day.inMonth && day.colors.length > 0 ? { background: dayBackground(day.colors) } : undefined">
                 {{ day.date.getDate() }}
               </span>
             </template>
-          </div>
-
-          <div class="st-legend">
-            <span><span class="st-legend__swatch st-day--strength"></span>Styrke</span>
-            <span><span class="st-legend__swatch st-day--cardio"></span>Kondisjon</span>
           </div>
         </div>
       </section>
@@ -1072,40 +1082,14 @@
     color: #334155;
   }
 
-  .st-day--strength {
+  /* A trained day: background is the session's template colour (split when there were several) */
+  .st-day--trained {
     color: #fff;
     font-weight: 700;
-    background: #f97316;
-  }
-
-  .st-day--cardio {
-    color: #fff;
-    font-weight: 700;
-    background: #06b6d4;
   }
 
   .st-day--today {
     box-shadow: inset 0 0 0 2px #f1f5f9;
-  }
-
-  .st-legend {
-    display: flex;
-    gap: 1rem;
-    margin-top: 0.75rem;
-    font-size: 0.75rem;
-    color: #94a3b8;
-  }
-
-  .st-legend > span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-  }
-
-  .st-legend__swatch {
-    width: 0.75rem;
-    height: 0.75rem;
-    border-radius: 0.25rem;
   }
 
   /* ── Achievements ────────────────────────────────────────────────────────── */

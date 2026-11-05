@@ -10,6 +10,9 @@
   import TemplateCard from "@/components/TemplateCard.vue";
   import ActiveSessionButton from "@/components/ActiveSessionButton.vue";
   import { vibrate } from "@/composables/useHaptics";
+  import { useLongPressReorder } from "@/composables/useLongPressReorder";
+  import { loadTemplateOrder, orderTemplates, saveTemplateOrder } from "@/composables/templateOrder";
+  import type { WorkoutTemplate } from "@/types/workout";
 
   const router = useRouter();
   const workoutData = useHybridData();
@@ -33,6 +36,48 @@
   const activeSession = computed(
     () => [...activeSessions.value].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] ?? null
   );
+
+  // ---------------------------------------------------------------------------
+  // Template order — chosen by long-press dragging, kept on the phone per user
+  // ---------------------------------------------------------------------------
+
+  const userId = computed(() => workoutData.currentUser.value?.id as string | undefined);
+
+  /**
+   * Template ids in the order shown; the drag reorders this list in place. Ids rather
+   * than templates, so a card always shows the template as it is now (name, colour).
+   * Rebuilt when templates are added or removed, or the user changes.
+   */
+  const templateOrderIds = ref<string[]>([]);
+  watch(
+    [() => workoutData.templates.value.map((t) => t.id).join("|"), userId],
+    () => {
+      const saved = userId.value ? loadTemplateOrder(userId.value) : [];
+      templateOrderIds.value = orderTemplates(workoutData.templates.value, saved).map((t) => t.id);
+    },
+    { immediate: true },
+  );
+
+  const templatesById = computed(() => new Map(workoutData.templates.value.map((t) => [t.id, t])));
+  const orderedTemplates = computed(() =>
+    templateOrderIds.value.map((id) => templatesById.value.get(id)).filter((t): t is WorkoutTemplate => Boolean(t)),
+  );
+
+  const templateListRef = ref<HTMLElement | null>(null);
+  const { draggingIndex, dragTranslateY, onRowPointerDown, consumeClickSuppression } = useLongPressReorder({
+    getItems: () => templateOrderIds.value,
+    listEl: templateListRef,
+    onReordered: () => {
+      if (userId.value) saveTemplateOrder(userId.value, [...templateOrderIds.value]);
+    },
+  });
+
+  /** The click that ends a drag must neither open the card nor start a session. */
+  const onTemplateClickCapture = (event: MouseEvent) => {
+    if (!consumeClickSuppression()) return;
+    event.stopPropagation();
+    event.preventDefault();
+  };
 
   // ---------------------------------------------------------------------------
   // Startup placeholders — the page is drawn at once and fills in two waves:
@@ -507,14 +552,17 @@
         <router-link to="/template/create" class="btn-primary"> Opprett din første økt </router-link>
       </div>
 
-      <!-- Templates -->
-      <div v-else :class="['tpl-list', { 'fade-in': fadeLocal }]">
-        <TemplateCard
-          v-for="template in filteredTemplates"
+      <!-- Templates — hold and drag a card to change the order -->
+      <div v-else ref="templateListRef" :class="['tpl-list', { 'fade-in': fadeLocal }]">
+        <div
+          v-for="(template, index) in orderedTemplates"
           :key="template.id"
-          :template="template"
-          :start-disabled="!!activeSession"
-          @start="startWorkout" />
+          :class="['tpl-item', { 'tpl-item--dragging': draggingIndex === index }]"
+          :style="draggingIndex === index ? { transform: `translateY(${dragTranslateY}px)` } : undefined"
+          @pointerdown="onRowPointerDown($event, index)"
+          @click.capture="onTemplateClickCapture">
+          <TemplateCard :template="template" :start-disabled="!!activeSession" @start="startWorkout" />
+        </div>
       </div>
     </div>
 
@@ -1003,17 +1051,30 @@
 
   /* ── Templates ───────────────────────────────────────────────────────────── */
 
+  /* One column at every width: dragging to reorder works down a single column */
   .tpl-list {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 0.5rem;
   }
 
-  @media (min-width: 768px) {
-    .tpl-list {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      align-items: start; /* an open card doesn't stretch its neighbour */
-    }
+  /* A long press drags, so it mustn't select text or open the iOS callout */
+  .tpl-item {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Lifted while dragged, like an exercise row in the template form */
+  .tpl-item--dragging {
+    position: relative;
+    z-index: 20;
+  }
+
+  .tpl-item--dragging > * {
+    transform: scale(1.02);
+    box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.7);
+    cursor: grabbing;
   }
 
   /* Placeholder card: same box and line heights as a closed TemplateCard */

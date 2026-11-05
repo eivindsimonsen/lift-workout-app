@@ -12,6 +12,12 @@ export const DEFAULT_TEMPLATE_COLOR = "#f97316";
 /** Grey for a template without a colour — and for sessions whose template was deleted. */
 export const NO_TEMPLATE_COLOR = "#475569";
 
-/** The template's colour, or grey when it has none or doesn't exist (deleted). */
-export const templateColorOf = (template: { color?: string | null } | null | undefined): string =>
-  template?.color || NO_TEMPLATE_COLOR;
+/**
+ * The template's colour, or `fallback` when it has none or doesn't exist (deleted).
+ * Grey by default, as in History; the Stats calendar falls back to orange so a
+ * trained day never looks untrained.
+ */
+export const templateColorOf = (
+  template: { color?: string | null } | null | undefined,
+  fallback: string = NO_TEMPLATE_COLOR
+): string => template?.color || fallback;
