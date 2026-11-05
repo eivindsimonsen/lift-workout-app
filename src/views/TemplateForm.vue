@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, type Ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import type { WorkoutTemplate, ExerciseTemplate } from '@/types/workout'
@@ -8,6 +8,7 @@ import SwipeableCard from '@/components/SwipeableCard.vue'
 import { useLongPressReorder } from '@/composables/useLongPressReorder'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
+import { TEMPLATE_COLORS, DEFAULT_TEMPLATE_COLOR, templateColorOf } from '@/composables/templateColors'
 
 const router = useRouter()
 const route = useRoute()
@@ -19,7 +20,39 @@ const isLoading = computed(() => workoutData.isLoading.value)
 const template = ref<WorkoutTemplate | null>(null)
 const templateForm = ref({
   name: '',
+  // New templates start orange; an existing one without a colour stays null (grey) until one is picked.
+  color: DEFAULT_TEMPLATE_COLOR as string | null,
   exercises: [] as ExerciseTemplate[]
+})
+
+// ---------------------------------------------------------------------------
+// Colour — a swatch inside the name field opens a palette of the muscle-group colours
+// ---------------------------------------------------------------------------
+
+const isPaletteOpen = ref(false)
+const colorPickerRef = ref<HTMLElement | null>(null)
+
+const pickColor = (color: string) => {
+  templateForm.value.color = color
+  isPaletteOpen.value = false
+}
+
+// Close on a tap outside the picker, or on Escape
+const onDocumentPointerDown = (event: PointerEvent) => {
+  if (isPaletteOpen.value && colorPickerRef.value && !colorPickerRef.value.contains(event.target as Node)) {
+    isPaletteOpen.value = false
+  }
+}
+const onDocumentKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') isPaletteOpen.value = false
+}
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocumentPointerDown)
+  document.addEventListener('keydown', onDocumentKeydown)
+})
+onUnmounted(() => {
+  document.removeEventListener('pointerdown', onDocumentPointerDown)
+  document.removeEventListener('keydown', onDocumentKeydown)
 })
 
 // Computed
@@ -174,8 +207,10 @@ const saveTemplate = async () => {
   try {
     if (isEditing.value && template.value) {
       // Update existing template
-      await workoutData.updateTemplate(template.value.id, {
+      // Offline-first: saved locally at once and queued when there's no network
+      await workoutData.updateTemplateOffline(template.value.id, {
         name: templateForm.value.name,
+        color: templateForm.value.color,
         exercises: exercisesWithNames
       })
     } else {
@@ -183,6 +218,7 @@ const saveTemplate = async () => {
       const templateData = {
         id: `template-${Date.now()}`,
         name: templateForm.value.name,
+        color: templateForm.value.color,
         exercises: exercisesWithNames
       }
       await workoutData.addTemplate(templateData)
@@ -208,6 +244,7 @@ onMounted(async () => {
       template.value = foundTemplate
       templateForm.value = {
         name: foundTemplate.name,
+        color: foundTemplate.color ?? null,
         exercises: foundTemplate.exercises.map(exercise => {
           // Find the correct exerciseId based on the exercise name
           const matchingExercise = workoutData.exercises.value.find(e => e.name === exercise.name)
@@ -232,6 +269,7 @@ onMounted(async () => {
     if (sourceSession) {
       templateForm.value = {
         name: sourceSession.templateName,
+        color: DEFAULT_TEMPLATE_COLOR,
         exercises: sourceSession.exercises.map(ex => ({
           exerciseId: ex.exerciseId,
           name: ex.name
@@ -297,16 +335,46 @@ onMounted(async () => {
         <h2 class="template-form__section-title">Grunnleggende</h2>
         <div class="template-form__fields">
           <div class="template-form__field">
-            <label class="template-form__label" for="template-name">Navn på økt</label>
-            <input
-              id="template-name"
-              v-model="templateForm.name"
-              type="text"
-              required
-              class="input-field w-full"
-              placeholder="F.eks. Push Økt"
-            />
-            <p class="template-form__hint">Gi økten et tydelig og motiverende navn.</p>
+            <label class="template-form__label" for="template-name">Navn og farge</label>
+            <div ref="colorPickerRef" class="name-color">
+              <input
+                id="template-name"
+                v-model="templateForm.name"
+                type="text"
+                required
+                class="input-field w-full name-color__input"
+                placeholder="F.eks. Push Økt"
+              />
+              <!-- The colour lives in the name field; tapping it opens the palette -->
+              <button
+                type="button"
+                class="name-color__swatch"
+                :aria-expanded="isPaletteOpen"
+                aria-haspopup="true"
+                aria-label="Velg farge"
+                @click="isPaletteOpen = !isPaletteOpen"
+              >
+                <span class="name-color__chip" :style="{ background: templateColorOf(templateForm) }"></span>
+              </button>
+              <div v-if="isPaletteOpen" class="name-color__palette" role="group" aria-label="Farger">
+                <button
+                  v-for="(color, i) in TEMPLATE_COLORS"
+                  :key="color"
+                  type="button"
+                  class="name-color__option"
+                  :aria-label="`Farge ${i + 1}`"
+                  :aria-pressed="templateForm.color === color"
+                  @click="pickColor(color)"
+                >
+                  <span class="name-color__dot" :class="{ 'name-color__dot--selected': templateForm.color === color }" :style="{ background: color }">
+                    <svg v-if="templateForm.color === color" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                      <path d="M2 5.5l2.2 2.2 3.8-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            </div>
+            <p class="template-form__hint">Gi økten et tydelig navn, og en farge den kjennes igjen på.</p>
           </div>
         </div>
       </section>
@@ -480,6 +548,83 @@ onMounted(async () => {
   margin: 0;
   font-size: 0.75rem;
   color: #6b7280;
+}
+
+/* ── Name and colour ─────────────────────────────────────────────────────── */
+
+.name-color {
+  position: relative;
+}
+
+.name-color__input {
+  padding-left: 3rem;
+}
+
+/* 44px tap target over the left edge of the field */
+.name-color__swatch {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.name-color__chip {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.375rem;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.name-color__palette {
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  left: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(4, 2.75rem);
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: #1a2233;
+  border: 1px solid #2d3a4f;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 24px -10px rgb(0 0 0 / 0.8);
+}
+
+.name-color__option {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.name-color__dot {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.name-color__dot svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.name-color__dot--selected {
+  box-shadow: 0 0 0 2px #1a2233, 0 0 0 4px #f1f5f9;
 }
 
 .template-form__actions {

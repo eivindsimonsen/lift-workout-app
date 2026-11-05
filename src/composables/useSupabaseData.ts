@@ -388,7 +388,7 @@ const createSupabaseData = () => {
       if (templatesError) throw templatesError;
       if (sessionsError) throw sessionsError;
 
-      const formattedTemplates: WorkoutTemplate[] = (templatesData || []).map((t: any) => ({ id: t.id, name: t.name, exercises: t.exercises }));
+      const formattedTemplates: WorkoutTemplate[] = (templatesData || []).map((t: any) => ({ id: t.id, name: t.name, color: t.color ?? null, exercises: t.exercises }));
       const firstBatchSessions: WorkoutSession[] = formatSessions(sessionsData || []);
 
       // state update
@@ -854,19 +854,19 @@ const createSupabaseData = () => {
         .insert({
           user_id: currentUser.value.id,
           name: template.name,
+          color: template.color ?? null,
           exercises: template.exercises,
         })
         .select()
         .single();
 
-      if (error) {
-        console.error("Error adding template:", error);
-        return;
-      }
+      // Thrown so the form can say saving failed and keep what was typed.
+      if (error) throw error;
 
       templates.value.push({
         id: data.id,
         name: data.name,
+        color: data.color ?? null,
         exercises: data.exercises,
       });
       // Update cache immediately so subsequent screens read fresh data
@@ -886,8 +886,9 @@ const createSupabaseData = () => {
         }
       }
     } catch (e) {
+      // The caller (TemplateForm) tells the user; rethrow so it doesn't navigate away as if saved.
       console.error("Error in addTemplate:", e);
-      showError("Kunne ikke opprette økt. Prøv igjen.");
+      throw e;
     } finally {
       await refreshPendingChangesCount();
     }
@@ -899,14 +900,17 @@ const createSupabaseData = () => {
       .from("workout_templates")
       .update({
         name: updates.name,
+        // Left out when undefined (supabase-js drops it), so an older queued change can't clear a colour.
+        color: updates.color,
         exercises: updates.exercises,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
 
     if (error) {
+      // Thrown like updateWorkoutSession: the form reports it, and a queued change is retried instead of dropped.
       console.error("Error updating template:", error);
-      return;
+      throw error;
     }
 
     const idx = templates.value.findIndex((t) => t.id === id);

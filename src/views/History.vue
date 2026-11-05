@@ -8,6 +8,7 @@
   import type { WorkoutSession } from "@/types/workout";
   import { formatDistance, formatDuration, isCardioExercise, isSetCounted, setDistance, setDuration } from "@/composables/useSetMetrics";
   import { formatTotalTime } from "@/composables/useCardioActivities";
+  import { templateColorOf } from "@/composables/templateColors";
   import * as muscleGroupsData from "@/data/muscle-groups.json";
 
   // ---------------------------------------------------------------------------
@@ -33,6 +34,12 @@
   // ---------------------------------------------------------------------------
 
   const getTotalSets = (session: WorkoutSession): number => session.exercises.reduce((total, ex) => total + ex.sets.length, 0);
+
+  // The dot before each session shows its template's colour as it is now; grey when
+  // the template has none or was deleted.
+  const templatesById = computed(() => new Map(workoutData.templates.value.map((t) => [t.id, t])));
+  const sessionColor = (session: WorkoutSession): string =>
+    templateColorOf(session.templateId ? templatesById.value.get(session.templateId) : null);
 
   const muscleGroups = muscleGroupsData.muscleGroups;
 
@@ -285,6 +292,7 @@
           <router-link v-for="{ session, row } in group.items" :key="session.id" :to="`/session/${session.id}`" class="hx-row">
             <div class="hx-row__main">
               <p class="hx-row__name">
+                <span class="hx-row__dot" :style="{ backgroundColor: sessionColor(session) }"></span>
                 <span class="truncate">{{ session.templateName }}</span>
               </p>
               <p class="hx-row__meta">{{ row.meta.join(" · ") }}</p>
@@ -517,8 +525,16 @@
     color: #f1f5f9;
   }
 
+  .hx-row__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
   .hx-row__meta {
     margin-top: 0.1875rem;
+    padding-left: 1rem; /* lines up under the name, past the dot */
     font-size: 0.75rem;
     color: #64748b;
     overflow: hidden;

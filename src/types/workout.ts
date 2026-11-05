@@ -62,6 +62,8 @@ export interface ExerciseData {
 export interface WorkoutTemplate {
   id: string;
   name: string;
+  /** One of the muscle-group colours (see templateColors.ts); null/missing = none, shown grey. */
+  color?: string | null;
   exercises: ExerciseTemplate[];
 }
 

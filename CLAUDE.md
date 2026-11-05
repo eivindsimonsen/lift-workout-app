@@ -48,6 +48,7 @@ Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` 
 ### Data model
 
 - `workout_templates` and `workout_sessions` have snake_case columns, with `exercises` stored as camelCase JSONB. The column-to-TypeScript mapping lives in `useSupabaseData` (`formatSessions` and the CRUD functions). Types are in `src/types/workout.ts`.
+- A template has an optional `color` (column since `14_`): one of the muscle-group colours, picked by the user; `NULL` means none and shows grey (`templateColors.ts`). It colours the template card on the home page and the dot in History, nothing else.
 - A template is a name plus exercises. There is no workout type (Push/Pull/…) any more: what a template or session trains follows from its exercises' muscle groups. The old `workout_type` columns are still in the database (nullable since `13_`) but the app neither reads nor writes them.
 - `exercises` and `exercise_variants` hold the shared library. `user_id IS NULL` marks a global exercise. RLS on these two tables is deliberately open to every authenticated user (`09_`, `10_` SQL), so editing or deleting a library exercise affects both users.
 - Profile data and training goals live in Supabase Auth `user_metadata`; there are no profile tables. Goals are also mirrored in `localStorage` (`useTrainingGoals`).
@@ -83,7 +84,7 @@ Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` 
 
 ## Database changes (`supabase-setup/`)
 
-There is no migration tooling. The SQL files are numbered and run by hand in the Supabase SQL editor; a new change gets the next number (`14_…`). Some existing files are destructive: `04_` truncates all workouts and `11_` wipes the exercise library. Never run or suggest running them without explicit confirmation.
+There is no migration tooling. The SQL files are numbered and run by hand in the Supabase SQL editor; a new change gets the next number (`15_…`). Some existing files are destructive: `04_` truncates all workouts and `11_` wipes the exercise library. Never run or suggest running them without explicit confirmation.
 
 The Node scripts there (`node supabase-setup/<name>.mjs`) read `.env.local` and prompt for a login. `migrate-exercise-ids.mjs` is a dry run unless you pass `--apply`.
 

@@ -1545,9 +1545,12 @@ watch(() => route.params.id, async (newId, oldId) => {
             </div>
           </div>
           <div class="flex items-center gap-2">
+            <!-- The only way to cancel a session on a phone since the home page's swipe-to-cancel card is gone.
+                 Deleting is a red text button (DESIGN.md → Knapper), with a 44px tap target. -->
             <button
+              type="button"
               @click="handleAbandonWorkout"
-              class="hidden md:inline-flex px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs font-medium"
+              class="inline-flex items-center justify-center min-h-[2.75rem] px-3 rounded-lg text-sm font-medium text-[#f87171] hover:text-red-300 active:bg-[#7f1d1d40] transition-colors"
               title="Avbryt økt"
             >
               Avbryt

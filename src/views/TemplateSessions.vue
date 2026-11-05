@@ -6,10 +6,10 @@
   import { useTrainingGoals, MUSCLE_GROUP_COLORS } from "@/composables/useTrainingGoals";
   import { useGoalStreak, type ChainLink } from "@/composables/useGoalStreak";
   import { CHAIN_LENGTH, type GoalGap, type GoalGapKind } from "@/composables/goalStreak";
-  import SwipeableCard from "@/components/SwipeableCard.vue";
   import NetworkStatus from "@/components/NetworkStatus.vue";
+  import TemplateCard from "@/components/TemplateCard.vue";
+  import ActiveSessionButton from "@/components/ActiveSessionButton.vue";
   import { vibrate } from "@/composables/useHaptics";
-  import muscleGroupsData from "@/data/muscle-groups.json";
 
   const router = useRouter();
   const workoutData = useHybridData();
@@ -29,32 +29,27 @@
     return workoutData.sessions.value.filter((session) => !session.isCompleted);
   });
 
+  /** Only one session runs at a time; should there ever be more, the newest wins. */
+  const activeSession = computed(
+    () => [...activeSessions.value].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] ?? null
+  );
+
   // ---------------------------------------------------------------------------
   // Startup placeholders — the page is drawn at once and fills in two waves:
   // templates/sessions read from the phone, then the exercise library.
   // ---------------------------------------------------------------------------
 
   const localReady = computed(() => workoutData.localDataReady.value);
-  const exercisesReady = computed(() => workoutData.exerciseIndex.value.size > 0);
 
   // Captured once: content fades in only where it replaces a placeholder, not on every visit.
   const fadeLocal = !localReady.value;
-  const fadeExercises = !exercisesReady.value;
 
-  /** Varied widths for the exercise rows of a placeholder template card. */
-  const PLACEHOLDER_ROW_WIDTHS = ["w-32", "w-24", "w-28", "w-20"];
+  /** Name widths for the placeholder template cards (one card each). */
+  const PLACEHOLDER_NAME_WIDTHS = ["w-20", "w-16", "w-24"];
 
   // Methods
   const formatNumber = (num: number): string => {
     return new Intl.NumberFormat("no-NO").format(Math.round(num));
-  };
-
-  const formatDate = (date: Date): string => {
-    return new Intl.DateTimeFormat("no-NO", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(date);
   };
 
   const getMotivationalText = (): string => {
@@ -140,45 +135,6 @@
 
     // 3) Proceed with UX
     startCountdown(session.id);
-  };
-
-  const continueWorkout = (sessionId: string) => {
-    router.push(`/workout/${sessionId}`);
-  };
-
-  const abandonWorkout = async (sessionId: string) => {
-    if (!confirm("Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent.")) {
-      return;
-    }
-
-    // Haptic feedback on mobile
-    vibrate(100);
-
-    // 1) Do ONLY the primary action in a guarded try/catch
-    try {
-      await workoutData.abandonWorkoutSession(sessionId);
-    } catch (error) {
-      console.error("Error abandoning workout:", error);
-      vibrate([200, 100, 200]);
-      alert("Kunne ikke avbryte økt. Prøv igjen.");
-      return;
-    }
-
-    // 2) Best-effort refresh that won't trigger alerts on failure
-    workoutData.refreshUIData?.().catch((e: unknown) => console.warn("refreshUIData failed (non-fatal):", e));
-
-    // Success feedback
-    vibrate([50, 100, 50]);
-  };
-
-  /** Muscle group (name + colour) shown on each exercise in the template preview */
-  const getExerciseGroup = (exerciseId: number): { name: string; color: string } => {
-    // getExerciseById resolves both main exercises and variants
-    const exercise = workoutData.getExerciseById(exerciseId);
-    // Primary muscle group first, then category (cardio exercises use "Kondisjon")
-    const groupName = exercise?.muscleGroups?.[0] || exercise?.category || "";
-    const group = muscleGroupsData.muscleGroups.find((g) => g.name === groupName);
-    return { name: groupName, color: group?.color || "#64748b" };
   };
 
   // ---------------------------------------------------------------------------
@@ -514,29 +470,11 @@
       </p>
     </router-link>
 
-    <!-- Active Workout Sessions -->
-    <div class="mt-8">
-      <!-- Active Sessions Content — known once the sessions are read from the phone -->
-      <div v-if="localReady && activeSessions.length > 0">
-        <h2 class="text-xl font-semibold text-white mb-4">Aktiv Økt</h2>
+    <!-- Active session: a tile fixed to the bottom right, known once the sessions are read -->
+    <ActiveSessionButton v-if="localReady && activeSession" :session="activeSession" />
 
-        <div class="space-y-2">
-          <SwipeableCard v-for="session in activeSessions" :key="session.id" @delete="abandonWorkout(session.id)">
-            <div @click="continueWorkout(session.id)" class="flex items-center justify-between p-4 bg-dark-800 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors border-l-4 border-primary-500">
-              <div class="flex-1">
-                <h3 class="font-medium text-white">{{ session.templateName }}</h3>
-                <p class="text-sm text-dark-300">Startet {{ formatDate(session.date) }}</p>
-                <p class="text-xs text-dark-400">{{ session.exercises.length }} øvelser • Fortsett økt</p>
-              </div>
-            </div>
-          </SwipeableCard>
-          <p class="text-xs text-dark-400 text-center md:hidden">Swipe for å avbryte økt</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Workout Templates Section -->
-    <div class="mt-8 pb-24 md:pb-0">
+    <!-- Workout Templates Section — extra room at the bottom on desktop so the tile never covers the last card -->
+    <div :class="['mt-8 pb-24', activeSession ? 'md:pb-20' : 'md:pb-0']">
       <div class="mb-4 flex items-center justify-between">
         <h2 class="text-xl font-semibold text-white">Treningsøkter</h2>
         <router-link to="/template/create" class="btn-primary btn-sm inline-flex items-center gap-1.5" title="Opprett ny treningsøkt">
@@ -547,35 +485,14 @@
         </router-link>
       </div>
 
-      <!-- Info message when there's an active session -->
-      <div v-if="activeSessions.length > 0" class="mb-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-        <div class="flex items-center gap-3">
-          <svg class="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div>
-            <p class="text-blue-300 text-sm font-medium">Du har en aktiv økt</p>
-            <p class="text-blue-400/80 text-xs">Fullfør den aktive økten først for å starte en ny økt.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Placeholder cards until the templates are read from the phone (same shape as a real card) -->
-      <div v-if="!localReady" class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-hidden="true">
-        <div v-for="i in 2" :key="i" class="bg-dark-800 rounded-lg p-6 flex flex-col h-full ring-1 ring-dark-700/40">
-          <div class="mb-4 h-7 flex items-center"><span class="skeleton h-4 w-28"></span></div>
-          <div class="mb-4 h-5 flex items-center"><span class="skeleton h-3 w-16"></span></div>
-          <ul class="mb-6 flex-grow space-y-1.5">
-            <li v-for="(width, j) in PLACEHOLDER_ROW_WIDTHS" :key="j" class="flex items-center gap-2.5 h-5">
-              <span class="skeleton skeleton--circle w-2 h-2 flex-shrink-0"></span>
-              <span :class="['skeleton', 'h-3', width]"></span>
-              <span class="skeleton h-2.5 w-10 ml-auto flex-shrink-0"></span>
-            </li>
-          </ul>
-          <div class="flex gap-2 mt-auto pointer-events-none">
-            <span class="flex-1 bg-dark-600 text-white rounded-lg text-sm py-2 text-center">Rediger</span>
-            <span class="flex-1 bg-primary-500 text-white rounded-lg text-sm py-2 text-center">Start Økt</span>
-          </div>
+      <!-- Placeholder cards until the templates are read from the phone (same shape as a closed TemplateCard) -->
+      <div v-if="!localReady" class="tpl-list" aria-hidden="true">
+        <div v-for="(width, i) in PLACEHOLDER_NAME_WIDTHS" :key="i" class="tpl-ph">
+          <span class="tpl-ph__body">
+            <span class="tpl-ph__name"><span :class="['tpl-ph__bar', 'skeleton', width]"></span></span>
+            <span class="tpl-ph__meta"><span class="tpl-ph__bar skeleton w-16"></span></span>
+          </span>
+          <span class="tpl-ph__start"><span class="tpl-ph__circle skeleton skeleton--circle"></span></span>
         </div>
       </div>
 
@@ -591,30 +508,13 @@
       </div>
 
       <!-- Templates -->
-      <div v-else class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="template in filteredTemplates" :key="template.id" :class="['bg-dark-800', 'rounded-lg', 'p-6', 'transition-all', 'flex', 'flex-col', 'h-full', 'ring-1', 'ring-dark-700/40', 'hover:ring-dark-500/50', 'hover:-translate-y-0.5']">
-          <h3 class="mb-4 text-lg font-semibold text-white truncate">{{ template.name }}</h3>
-
-          <p class="text-sm text-dark-300 mb-4">{{ template.exercises.length }} øvelser</p>
-
-          <!-- Exercise Preview — in the order set up in the template -->
-          <ul class="mb-6 flex-grow space-y-1.5">
-            <li v-for="(exercise, index) in template.exercises" :key="`${index}-${exercise.exerciseId}`" class="flex items-center gap-2.5 min-w-0 text-sm text-dark-200">
-              <!-- Muscle group needs the exercise library (wave 2) -->
-              <span v-if="!exercisesReady" class="skeleton skeleton--circle w-2 h-2 flex-shrink-0"></span>
-              <span v-else :class="['w-2 h-2 rounded-full flex-shrink-0', { 'fade-in': fadeExercises }]" :style="{ backgroundColor: getExerciseGroup(exercise.exerciseId).color }"></span>
-              <span class="truncate">{{ exercise.name }}</span>
-              <span v-if="!exercisesReady" class="skeleton h-2.5 w-10 ml-auto flex-shrink-0"></span>
-              <span v-else :class="['ml-auto pl-2 flex-shrink-0 text-xs text-dark-500', { 'fade-in': fadeExercises }]">{{ getExerciseGroup(exercise.exerciseId).name }}</span>
-            </li>
-          </ul>
-
-          <!-- Action Buttons -->
-          <div class="flex gap-2 mt-auto">
-            <router-link :to="`/template/edit/${template.id}`" class="flex-1 bg-dark-600 hover:bg-dark-500 text-white rounded-lg transition-colors text-sm py-2 flex items-center justify-center"> Rediger </router-link>
-            <button @click.stop="startWorkout(template.id)" :disabled="activeSessions.length > 0" :class="['flex-1', 'text-sm', 'py-2', 'disabled:opacity-50', 'disabled:cursor-not-allowed', 'rounded-lg', 'bg-primary-500', 'hover:bg-primary-600', 'text-white', 'transition-colors']" :title="activeSessions.length > 0 ? 'Du har allerede en aktiv økt. Fullfør den først.' : 'Start ny økt'">Start Økt</button>
-          </div>
-        </div>
+      <div v-else :class="['tpl-list', { 'fade-in': fadeLocal }]">
+        <TemplateCard
+          v-for="template in filteredTemplates"
+          :key="template.id"
+          :template="template"
+          :start-disabled="!!activeSession"
+          @start="startWorkout" />
       </div>
     </div>
 
@@ -1099,5 +999,68 @@
     flex: 1;
     height: 0.625rem;
     border-radius: 3px;
+  }
+
+  /* ── Templates ───────────────────────────────────────────────────────────── */
+
+  .tpl-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .tpl-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start; /* an open card doesn't stretch its neighbour */
+    }
+  }
+
+  /* Placeholder card: same box and line heights as a closed TemplateCard */
+  .tpl-ph {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding-right: 0.5rem;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-left: 4px solid #1f2937;
+    border-radius: 0.75rem;
+  }
+
+  .tpl-ph__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.625rem 0.25rem 0.625rem 0.875rem;
+  }
+
+  .tpl-ph__name {
+    font-size: 0.9375rem;
+  }
+
+  .tpl-ph__meta {
+    font-size: 0.75rem;
+  }
+
+  .tpl-ph__bar {
+    display: inline-block;
+    height: 0.7em;
+    vertical-align: middle;
+  }
+
+  .tpl-ph__start {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tpl-ph__circle {
+    width: 2.5rem;
+    height: 2.5rem;
   }
 </style>

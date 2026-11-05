@@ -47,6 +47,7 @@ Fargene er i dag hex-verdier i scoped CSS, ikke variabler. Bruk verdiene under, 
 | Pause | `#f59e0b` | Bare som tilstand på klokka |
 
 - **Muskelgrupper** har faste farger i [muscle-groups.json](src/data/muscle-groups.json). Hent fargene derfra, ikke hardkod dem.
+- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). En mal uten farge, og en økt fra en slettet mal, er grå `#475569`. Malfargen brukes bare på malkortet og som prikk i Historikk.
 - Bryst bruker samme oransje som styrkeaksenten. Det er greit, siden gruppen alltid står med navn ved siden av.
 - Grønt og rødt betyr status (fullført og opp, slett og ned). Bruk dem aldri til å vise størrelse, for eksempel anstrengelse.
 
@@ -153,6 +154,17 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 - `.skeleton` er flate `#1f2937` med en glans i `#334155` som glir over. `.fade-in` toner inn innhold som erstatter en plassholder — bare da, ikke ved hvert besøk.
 - Ingen tidsgrense: plassholderen glinser til dataene kommer. Under `prefers-reduced-motion: reduce` står den stille.
 - Fasit: forsiden ([TemplateSessions.vue](src/views/TemplateSessions.vue)).
+
+### Malkort (forsiden)
+
+- Et smalt kort per mal ([TemplateCard.vue](src/components/TemplateCard.vue)): panelflate med en 4px venstrekant i malens farge. Lukket: radnavn, metalinje «N øvelser» med én prikk per muskelgruppe, chevron, og en rund startknapp fylt med malfargen (44px trykkflate).
+- Trykk på kortet åpner det: øvelsene gruppert per muskelgruppe (undertittel i panel med gruppens prikk), «N sett» fra forrige gang til høyre for styrke, ingenting for kondisjon, og «Rediger mal» nederst. Grupperingen er bare visning; økta følger rekkefølgen i malen.
+- Én kolonne på mobil, to fra 768px (`align-items: start`).
+
+### Flis for aktiv økt (forsiden)
+
+- [ActiveSessionButton.vue](src/components/ActiveSessionButton.vue): fast nederst til høyre, over bunnmenyen, i arkets farger (`#1a2233`, kant `#2d3a4f`). En ring fylles oransje etter fullførte sett; navn, tid som klokke og «N av M sett». Bare kondisjon: hel cyan ring og «Aktiv tid».
+- Bare på forsiden.
 
 ### Knapper
 
