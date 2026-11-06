@@ -1,6 +1,15 @@
 <template>
   <ErrorBoundary>
     <div class="min-h-screen bg-dark-900">
+      <!-- The installed app is drawn under the iPhone status bar (black-translucent), so this strip
+           in the page colour keeps scrolled content from showing behind the clock. Above sticky page
+           headers (z-30), below sheets and modals (z-50+); 0px tall where there's no safe area. -->
+      <div
+        class="fixed inset-x-0 top-0 z-40 bg-dark-900"
+        style="height: env(safe-area-inset-top, 0px)"
+        aria-hidden="true"
+      ></div>
+
       <!-- App content. main.ts mounts once the session is known; pages show their own placeholders. -->
       <div>
         <!-- Mobile Browser Blocker - Wraps entire app content -->
