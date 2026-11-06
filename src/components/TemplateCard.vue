@@ -8,9 +8,9 @@
   import type { WorkoutTemplate } from "@/types/workout";
 
   /**
-   * A template on the home page: a slim card in the template's colour that opens
-   * to show its exercises grouped by muscle group (display only — the session
-   * keeps the order set in the form).
+   * A template on the home page: a slim card with the template's colour as a dot
+   * before the name, that opens to show its exercises grouped by muscle group
+   * (display only — the session keeps the order set in the form).
    */
   const props = defineProps<{
     template: WorkoutTemplate;
@@ -62,6 +62,7 @@
   <article class="tpl-card" :style="{ '--tpl-color': color }">
     <div class="tpl-card__head">
       <button type="button" class="tpl-card__toggle" :aria-expanded="open" @click="open = !open">
+        <span class="tpl-card__color" aria-hidden="true"></span>
         <span class="tpl-card__body">
           <span class="tpl-card__name">{{ template.name }}</span>
           <span class="tpl-card__meta">
@@ -124,7 +125,6 @@
   .tpl-card {
     background: #111827;
     border: 1px solid #1f2937;
-    border-left: 4px solid var(--tpl-color);
     border-radius: 0.75rem;
   }
 
@@ -140,12 +140,21 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 0.25rem 0.625rem 0.875rem;
+    gap: 0.75rem;
+    padding: 0.625rem 0.25rem 0.625rem 1rem;
     text-align: left;
     background: none;
     border: 0;
     color: inherit;
+  }
+
+  /* The template's colour: one dot before the name */
+  .tpl-card__color {
+    width: 0.625rem;
+    height: 0.625rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--tpl-color);
   }
 
   .tpl-card__body {
@@ -197,7 +206,7 @@
     transform: rotate(90deg);
   }
 
-  /* 44px tap target around a 40px circle in the template's colour */
+  /* 44px tap target around a 40px circle, toned in the template's colour */
   .tpl-card__start {
     width: 2.75rem;
     height: 2.75rem;
@@ -214,8 +223,8 @@
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
-    background: var(--tpl-color);
-    color: #fff;
+    background: color-mix(in srgb, var(--tpl-color) 12.5%, transparent);
+    color: var(--tpl-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -232,8 +241,9 @@
     opacity: 0.4;
   }
 
+  /* Lines up under the name: 1rem padding + 0.625rem dot + 0.75rem gap */
   .tpl-card__exp {
-    margin: 0 0.875rem;
+    margin: 0 1rem 0 2.375rem;
     padding: 0.5rem 0 0.75rem;
     border-top: 1px solid #1f2937;
   }

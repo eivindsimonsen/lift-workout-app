@@ -47,7 +47,7 @@ Fargene er i dag hex-verdier i scoped CSS, ikke variabler. Bruk verdiene under, 
 | Pause | `#f59e0b` | Bare som tilstand på klokka |
 
 - **Muskelgrupper** har faste farger i [muscle-groups.json](src/data/muscle-groups.json). Hent fargene derfra, ikke hardkod dem.
-- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). Malfargen brukes på malkortet, som prikk i Historikk og i kalenderen i Statistikk. En mal uten farge, og en økt fra en slettet mal, er grå `#475569` — unntatt i kalenderen, der de blir oransje så en treningsdag aldri ser utrent ut.
+- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). Malfargen brukes på malkortet, som prikk i Historikk og under «Økter denne uken» i Ukesoversikt, og i kalenderen i Statistikk. En mal uten farge, og en økt fra en slettet mal, er grå `#475569` — unntatt i kalenderen, der de blir oransje så en treningsdag aldri ser utrent ut.
 - Bryst bruker samme oransje som styrkeaksenten. Det er greit, siden gruppen alltid står med navn ved siden av.
 - Grønt og rødt betyr status (fullført og opp, slett og ned). Bruk dem aldri til å vise størrelse, for eksempel anstrengelse.
 
@@ -157,7 +157,7 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 ### Malkort (forsiden)
 
-- Et smalt kort per mal ([TemplateCard.vue](src/components/TemplateCard.vue)): panelflate med en 4px venstrekant i malens farge. Lukket: radnavn, metalinje «N øvelser» med én prikk per muskelgruppe, chevron, og en rund startknapp fylt med malfargen (44px trykkflate).
+- Et smalt kort per mal ([TemplateCard.vue](src/components/TemplateCard.vue)): panelflate uten fargekant. Malens farge står som en prikk (0.625rem) foran navnet. Lukket: prikk og radnavn, metalinje «N øvelser» med én prikk per muskelgruppe, chevron, og en rund startknapp tonet i malfargen (svak bakgrunn, play-ikon i fargen; 44px trykkflate). Kortet skal være rolig; malfargen er en markør, ikke en flate.
 - Trykk på kortet åpner det: øvelsene gruppert per muskelgruppe (undertittel i panel med gruppens prikk), «N sett» fra forrige gang til høyre for styrke, ingenting for kondisjon, og «Rediger mal» nederst. Grupperingen er bare visning; økta følger rekkefølgen i malen.
 - Hold inne og dra et kort for å endre rekkefølgen (samme `useLongPressReorder` som øvelsesradene; kortet løftes med skygge og svak forstørrelse). Rekkefølgen lagres på telefonen per bruker (`templateOrder.ts`); nye maler havner nederst.
 - Én kolonne på alle skjermer, siden dra virker nedover én kolonne.

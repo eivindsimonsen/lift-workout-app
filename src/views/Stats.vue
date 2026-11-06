@@ -494,10 +494,19 @@
 <template>
   <div class="space-y-5 pb-24 md:pb-8">
     <!-- Header -->
-    <header class="flex items-center justify-between gap-3">
-      <div class="min-w-0">
-        <h1 class="st-title">Statistikk</h1>
-        <p v-if="!isLoading" class="st-meta">{{ periodLabel }} · {{ filteredSessions.length }} {{ filteredSessions.length === 1 ? "økt" : "økter" }}</p>
+    <!-- Wraps on the narrowest phones (320px), where icon, title and «Hele perioden» don't fit on one line -->
+    <header class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <!-- Same icon as the bottom navigation, like the other main pages -->
+        <div class="w-10 h-10 flex-shrink-0 bg-primary-500/20 rounded-lg flex items-center justify-center" aria-hidden="true">
+          <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="st-title">Statistikk</h1>
+          <p v-if="!isLoading" class="st-meta">{{ periodLabel }} · {{ filteredSessions.length }} {{ filteredSessions.length === 1 ? "økt" : "økter" }}</p>
+        </div>
       </div>
 
       <label class="st-select">

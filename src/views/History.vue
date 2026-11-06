@@ -228,11 +228,19 @@
   <div class="space-y-5 pb-24 md:pb-8">
     <!-- Header -->
     <header class="flex items-center justify-between gap-3">
-      <div class="min-w-0">
-        <h1 class="hx-title">Historikk</h1>
-        <p v-if="!isLoading" class="hx-meta">
-          {{ filteredSessions.length }} {{ filteredSessions.length === 1 ? "økt" : "økter" }}<template v-if="hasActiveFilters"> · filtrert</template>
-        </p>
+      <div class="flex items-center gap-3 min-w-0">
+        <!-- Same icon as the bottom navigation, like the other main pages -->
+        <div class="w-10 h-10 flex-shrink-0 bg-primary-500/20 rounded-lg flex items-center justify-center" aria-hidden="true">
+          <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="hx-title">Historikk</h1>
+          <p v-if="!isLoading" class="hx-meta">
+            {{ filteredSessions.length }} {{ filteredSessions.length === 1 ? "økt" : "økter" }}<template v-if="hasActiveFilters"> · filtrert</template>
+          </p>
+        </div>
       </div>
 
       <button type="button" class="hx-filter-btn" :class="{ 'hx-filter-btn--active': hasActiveFilters }" @click="showFilterModal = true">

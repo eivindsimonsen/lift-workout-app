@@ -508,6 +508,7 @@
       <!-- Placeholder cards until the templates are read from the phone (same shape as a closed TemplateCard) -->
       <div v-if="!localReady" class="tpl-list" aria-hidden="true">
         <div v-for="(width, i) in PLACEHOLDER_NAME_WIDTHS" :key="i" class="tpl-ph">
+          <span class="tpl-ph__dot skeleton skeleton--circle"></span>
           <span class="tpl-ph__body">
             <span class="tpl-ph__name"><span :class="['tpl-ph__bar', 'skeleton', width]"></span></span>
             <span class="tpl-ph__meta"><span class="tpl-ph__bar skeleton w-16"></span></span>
@@ -1008,12 +1009,18 @@
   .tpl-ph {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    padding-right: 0.5rem;
+    gap: 0.75rem;
+    padding: 0 0.5rem 0 1rem;
     background: #111827;
     border: 1px solid #1f2937;
-    border-left: 4px solid #1f2937;
     border-radius: 0.75rem;
+  }
+
+  /* Stands in for the template's colour dot */
+  .tpl-ph__dot {
+    width: 0.625rem;
+    height: 0.625rem;
+    flex-shrink: 0;
   }
 
   .tpl-ph__body {
@@ -1021,7 +1028,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
-    padding: 0.625rem 0.25rem 0.625rem 0.875rem;
+    padding: 0.625rem 0;
   }
 
   .tpl-ph__name {
