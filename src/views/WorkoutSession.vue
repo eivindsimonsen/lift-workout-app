@@ -1980,7 +1980,7 @@ watch(() => route.params.id, async (newId, oldId) => {
                   :class="{ 'ex-unit__btn--on': activeUnit === unit }"
                   :aria-pressed="activeUnit === unit"
                   @click="setExerciseWeighing(activeExerciseIndex!, { unit, withBodyweight: activeWithBodyweight })"
-                >{{ unit }}</button>
+                ><span class="ex-unit__label">{{ unit }}</span></button>
               </div>
               <button
                 type="button"
@@ -1988,7 +1988,7 @@ watch(() => route.params.id, async (newId, oldId) => {
                 :class="{ 'ex-unit__toggle--on': activeWithBodyweight }"
                 :aria-pressed="activeWithBodyweight"
                 @click="setExerciseWeighing(activeExerciseIndex!, { unit: activeUnit, withBodyweight: !activeWithBodyweight })"
-              >+ kroppsvekt<span v-if="activeWithBodyweight" class="ex-unit__toggle-x" aria-hidden="true">×</span></button>
+              >+ kroppsvekt</button>
             </div>
             <p v-if="activeWithBodyweight" class="ex-unit__bw">
               <template v-if="profileBodyweight">Kroppsvekt <strong>{{ formatKgShort(profileBodyweight) }} kg</strong> · fra profilen</template>
@@ -2415,66 +2415,69 @@ watch(() => route.params.id, async (newId, oldId) => {
   border-top: 1px solid #2d3a4f;
 }
 
-/* ── Weight unit selector (DESIGN.md: field palette, toned orange when on) ── */
+/* ── Weight unit selector: plain text, so it stays quieter than the set fields ── */
+/* Every button keeps the 44px tap area from style.css; only the look is small. */
 
 .ex-unit-row {
   display: flex;
-  gap: 0.5rem;
-  margin: 0.75rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  /* Lines «kg» up over the set numbers and «+ kroppsvekt» over the volume column */
+  margin: 0.25rem 0.5rem 0.25rem 0.75rem;
 }
 
 .ex-unit {
   display: flex;
-  flex: 1;
-  gap: 0.1875rem;
-  padding: 0.1875rem;
-  background: #243044;
-  border: 1px solid #3d5068;
-  border-radius: 0.625rem;
 }
 
 .ex-unit__btn {
-  flex: 1;
-  min-height: 2.75rem;
-  border-radius: 0.4375rem;
+  position: relative;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #94a3b8;
-  transition: background-color 0.15s, color 0.15s;
+  color: #64748b;
+  transition: color 0.15s;
+}
+
+/* The dot between kg and lbs sits on the seam, so it takes no room of its own */
+.ex-unit__btn + .ex-unit__btn::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: #3d5068;
+  pointer-events: none;
 }
 
 .ex-unit__btn--on {
-  background: #f9731618;
-  box-shadow: inset 0 0 0 1px #f9731640;
-  color: #fdba74;
+  color: #f1f5f9;
 }
 
-/* DESIGN.md av/på-pille: field palette off, toned orange with × when on */
+/* The underline is always there, just transparent when off, so the text never shifts */
+.ex-unit__label {
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.ex-unit__btn--on .ex-unit__label {
+  border-bottom-color: #f97316;
+}
+
+/* On/off as text: dim when off, toned orange when on; tap again to turn it off */
 .ex-unit__toggle {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  min-height: 2.75rem;
-  padding: 0 0.875rem;
-  background: #243044;
-  border: 1px solid #3d5068;
-  border-radius: 999px;
+  padding: 0 0.5rem;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: #64748b;
   white-space: nowrap;
-  transition: background-color 0.15s, color 0.15s;
+  transition: color 0.15s;
 }
 
 .ex-unit__toggle--on {
-  background: #f9731618;
-  border-color: #f9731640;
   color: #fdba74;
-}
-
-.ex-unit__toggle-x {
-  font-size: 1rem;
-  line-height: 1;
 }
 
 .ex-unit__bw {

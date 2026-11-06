@@ -11,6 +11,7 @@
   import WeekGoalsSettings from "@/components/WeekGoalsSettings.vue";
   // Aliased: the local formatDuration takes minutes, this one takes seconds.
   import { formatDuration as formatSeconds, formatDistance, formatPace, isSetCounted, setDistance } from "@/composables/useSetMetrics";
+  import { templateColorOf } from "@/composables/templateColors";
   import type { WorkoutSession } from "@/types/workout";
 
   // ---------------------------------------------------------------------------
@@ -185,6 +186,12 @@
     if (metres > 0) parts.push(formatDistance(metres));
     return parts.join(" · ");
   };
+
+  // The dot before each session shows its template's colour as it is now; grey when
+  // the template has none or was deleted (same as History).
+  const templatesById = computed(() => new Map(workoutData.templates.value.map((t) => [t.id, t])));
+  const sessionColor = (session: WorkoutSession): string =>
+    templateColorOf(session.templateId ? templatesById.value.get(session.templateId) : null);
 
   const hasSessions = computed(() => week.sessions.value.length > 0);
 
@@ -513,7 +520,10 @@
               :to="`/session/${session.id}`"
               class="wk-session">
               <span class="wk-session__body">
-                <span class="wk-session__name">{{ session.templateName }}</span>
+                <span class="wk-session__name">
+                  <span class="wk-session__dot" :style="{ backgroundColor: sessionColor(session) }"></span>
+                  <span class="truncate">{{ session.templateName }}</span>
+                </span>
                 <span class="wk-session__meta">{{ sessionMeta(session) }}</span>
               </span>
             </router-link>
@@ -1076,15 +1086,23 @@
   }
 
   .wk-session__name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 0.875rem;
     font-weight: 500;
     color: #fff;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  }
+
+  .wk-session__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 
   .wk-session__meta {
+    padding-left: 1rem; /* lines up under the name, past the dot */
     font-size: 0.6875rem;
     color: #4b5563;
   }

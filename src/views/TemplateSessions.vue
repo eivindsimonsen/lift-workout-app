@@ -198,18 +198,6 @@
     return "future";
   };
 
-  /** Motivational label based on how active this week has been */
-  const weekMotivation = computed(() => {
-    const n = weekTotals.value.workouts;
-    if (n === 0 && todayIdx.value <= 1) return "Ny uke, nye muligheter!";
-    if (n === 0) return "Kroppen venter – gi den litt kjærlighet!";
-    if (n === 1) return "Bra startet – hold momentum!";
-    if (n === 2) return "Du er i rute!";
-    if (n === 3) return "Halvveis og kjempesterkt!";
-    if (n === 4) return "Solid uke – press på!";
-    return "Beist-modus aktivert 🔥";
-  });
-
   // ---------------------------------------------------------------------------
   // Weekly goal streak
   // ---------------------------------------------------------------------------
@@ -404,17 +392,9 @@
       </div>
 
       <!-- Week secured: every target met -->
-      <div v-else-if="showStreak && thisWeek.approved" :class="['week-card__secured', { 'fade-in': fadeStreak }]">
-        <span class="week-card__secured-check">
-          <svg viewBox="0 0 10 10" fill="none" aria-hidden="true">
-            <path d="M2 5.5l2.2 2.2 3.8-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </span>
-        <span class="week-card__secured-text">
-          <span class="week-card__secured-title">Uka er i boks — {{ streakCurrent }} {{ weeksLabel(streakCurrent) }}</span>
-          <span class="week-card__secured-sub">Alle mål nådd. Resten av uka er bonus.</span>
-        </span>
-      </div>
+      <p v-else-if="showStreak && thisWeek.approved" :class="['week-card__secured', { 'fade-in': fadeStreak }]">
+        Alle mål nådd. Resten av uken er bonus.
+      </p>
 
       <!-- What's left this week, target by target — the total isn't the rule -->
       <div v-else-if="showStreak" :class="['week-card__goal', { 'fade-in': fadeStreak }]">
@@ -508,11 +488,6 @@
           <span class="week-card__stat-label">Sett</span>
         </div>
       </div>
-
-      <p class="week-card__motivation">
-        <span v-if="!localReady" class="week-card__ph-bar skeleton w-40" aria-hidden="true"></span>
-        <span v-else :class="{ 'fade-in': fadeLocal }">{{ weekMotivation }}</span>
-      </p>
     </router-link>
 
     <!-- Active session: a tile fixed to the bottom right, known once the sessions are read -->
@@ -926,47 +901,10 @@
   /* ── Week secured ────────────────────────────────────────────────────────── */
 
   .week-card__secured {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem;
-    background: #16a34a1a;
-    border: 1px solid #16a34a50;
-    border-radius: 0.75rem;
-  }
-
-  .week-card__secured-check {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.75rem;
-    height: 1.75rem;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: #22c55e;
-    color: #fff;
-  }
-
-  .week-card__secured-check svg {
-    width: 0.875rem;
-    height: 0.875rem;
-  }
-
-  .week-card__secured-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-  }
-
-  .week-card__secured-title {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: #fff;
-  }
-
-  .week-card__secured-sub {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
     color: #4ade80;
+    text-align: center;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1020,17 +958,6 @@
     color: #4b5563;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    text-align: center;
-  }
-
-  /* ── Footer ──────────────────────────────────────────────────────────────── */
-
-  .week-card__motivation {
-    font-size: 0.8125rem;
-    color: #6b7280;
-    font-style: italic;
-    margin: 0;
-    width: 100%;
     text-align: center;
   }
 
