@@ -1,6 +1,7 @@
 <script setup lang="ts">
-  import { computed, onMounted, onUnmounted } from "vue";
+  import { computed, onMounted, onUnmounted, ref } from "vue";
   import { useHybridData } from "@/composables/useHybridData";
+  import { useSheetDrag } from "@/composables/useSheetDrag";
   import { isCardioExercise, isSetCounted, lastLoggedByExercise } from "@/composables/useSetMetrics";
   import { templateColorOf } from "@/composables/templateColors";
   import { groupTemplateExercises } from "@/composables/templateGroups";
@@ -99,6 +100,14 @@
     return `${sets} sett`;
   };
 
+  // Pull down by the handle or the header to close
+  const panelEl = ref<HTMLElement | null>(null);
+  const { panelStyle, backdropStyle, onGrabPointerDown, onGrabClickCapture } = useSheetDrag({
+    panelEl,
+    isOpen: () => props.template !== null,
+    onClose: () => emit("close"),
+  });
+
   const onKeydown = (event: KeyboardEvent) => {
     if (event.key === "Escape" && props.template) emit("close");
   };
@@ -111,30 +120,33 @@
   <Teleport to="body">
     <Transition name="tpl-sheet">
       <div v-if="template" class="tpl-sheet" role="dialog" aria-modal="true" :aria-label="template.name">
-        <div class="tpl-sheet__backdrop" @click="emit('close')"></div>
+        <div class="tpl-sheet__backdrop" :style="backdropStyle" @click="emit('close')"></div>
 
-        <div class="tpl-sheet__panel" :style="{ '--tpl-color': color }">
-          <!-- The visible bar is 4px; the whole width of the top closes the sheet -->
-          <div class="tpl-sheet__handle" role="button" tabindex="0" aria-label="Lukk" @click="emit('close')" @keydown.enter="emit('close')"></div>
+        <div ref="panelEl" class="tpl-sheet__panel" :style="[{ '--tpl-color': color }, panelStyle]">
+          <!-- The top (handle and header) pulls the sheet down; the click that ends a pull is stopped here -->
+          <div class="tpl-sheet__grab" @pointerdown="onGrabPointerDown" @click.capture="onGrabClickCapture">
+            <!-- The visible bar is 4px; the whole width of the top closes the sheet -->
+            <div class="tpl-sheet__handle" role="button" tabindex="0" aria-label="Lukk" @click="emit('close')" @keydown.enter="emit('close')"></div>
 
-          <header class="tpl-sheet__head">
-            <div class="tpl-sheet__heading">
-              <h2 class="tpl-sheet__title">
-                <span class="tpl-sheet__color" aria-hidden="true"></span>
-                <span class="tpl-sheet__name">{{ template.name }}</span>
-              </h2>
-              <p class="tpl-sheet__meta">{{ meta }}</p>
-            </div>
-            <router-link :to="`/template/edit/${template.id}`" class="tpl-sheet__edit" title="Rediger mal" aria-label="Rediger mal">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </router-link>
-          </header>
+            <header class="tpl-sheet__head">
+              <div class="tpl-sheet__heading">
+                <h2 class="tpl-sheet__title">
+                  <span class="tpl-sheet__color" aria-hidden="true"></span>
+                  <span class="tpl-sheet__name">{{ template.name }}</span>
+                </h2>
+                <p class="tpl-sheet__meta">{{ meta }}</p>
+              </div>
+              <router-link :to="`/template/edit/${template.id}`" class="tpl-sheet__edit" title="Rediger mal" aria-label="Rediger mal">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </router-link>
+            </header>
+          </div>
 
           <dl class="tpl-sheet__facts">
             <div v-for="fact in facts" :key="fact.label">
@@ -246,6 +258,11 @@
     background: #1a2233;
     border-top: 1px solid #2d3a4f;
     border-radius: 1.25rem 1.25rem 0 0;
+  }
+
+  /* The top pulls the sheet down: the browser mustn't claim the gesture for scrolling */
+  .tpl-sheet__grab {
+    touch-action: none;
   }
 
   .tpl-sheet__handle {

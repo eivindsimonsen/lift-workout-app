@@ -216,6 +216,10 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 - Brukes til redigering underveis i økta. Arket kan være opptil 88dvh høyt, men innholdet holdes kompakt.
 - Håndtaket øverst er en tynn strek, men hele toppen av arket er trykkflate for å lukke.
+- **Dra ned for å lukke** ([useSheetDrag.ts](src/composables/useSheetDrag.ts)) gjelder både dette arket og malarket på forsiden:
+  - Bare toppen kan gripes: streken og headeren. Den har `touch-action: none`, og resten av arket ruller og virker som før.
+  - Arket følger fingeren, og bakgrunnen tones ut.
+  - Det lukkes etter en fjerdedel av høyden eller ved et raskt sveip, og spretter ellers tilbake.
 - Hold arket kompakt, men skjul ikke felt som brukeren vil fylle ut underveis. Kondisjonsarket viser anstrengelse og notat i alle tilstander.
 - Arket har ingen egen knapp for å fullføre. Økta fullføres med «Fullfør Økt» på selve øktsiden, så det finnes bare én måte å avslutte på.
 - **Sett og runder virker likt:**

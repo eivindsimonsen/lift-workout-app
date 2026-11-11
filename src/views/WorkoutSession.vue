@@ -13,6 +13,7 @@ import CardioActivity from '@/components/CardioActivity.vue'
 import { vibrate } from '@/composables/useHaptics'
 import { useSwipeToDelete } from '@/composables/useSwipeToDelete'
 import { useLongPressReorder } from '@/composables/useLongPressReorder'
+import { useSheetDrag } from '@/composables/useSheetDrag'
 import {
   isCardioExercise,
   isSetCounted,
@@ -800,6 +801,19 @@ const onRowClick = (index: number) => {
 const closeExerciseSheet = () => {
   activeExerciseIndex.value = null
 }
+
+// Pull the sheet down by its handle or header to close it
+const exSheetPanel = ref<HTMLElement | null>(null)
+const {
+  panelStyle: exSheetPanelStyle,
+  backdropStyle: exSheetBackdropStyle,
+  onGrabPointerDown: onExSheetGrabDown,
+  onGrabClickCapture: onExSheetGrabClick,
+} = useSheetDrag({
+  panelEl: exSheetPanel,
+  isOpen: () => activeExerciseIndex.value !== null,
+  onClose: closeExerciseSheet,
+})
 
 const prevExercise = () => {
   if (activeExerciseIndex.value !== null && activeExerciseIndex.value > 0) {
@@ -1883,67 +1897,70 @@ watch(() => route.params.id, async (newId, oldId) => {
         @click.self="closeExerciseSheet"
       >
         <!-- Backdrop -->
-        <div class="ex-sheet__backdrop" @click="closeExerciseSheet"></div>
+        <div class="ex-sheet__backdrop" :style="exSheetBackdropStyle" @click="closeExerciseSheet"></div>
 
         <!-- Panel -->
-        <div class="ex-sheet__panel">
+        <div ref="exSheetPanel" class="ex-sheet__panel" :style="exSheetPanelStyle">
 
-          <!-- Drag handle -->
-          <div class="ex-sheet__handle" role="button" tabindex="0" aria-label="Lukk" @click="closeExerciseSheet" @keydown.enter="closeExerciseSheet"></div>
+          <!-- The top (handle and header) pulls the sheet down; the click that ends a pull is stopped here -->
+          <div class="ex-sheet__grab" @pointerdown="onExSheetGrabDown" @click.capture="onExSheetGrabClick">
+            <!-- Drag handle -->
+            <div class="ex-sheet__handle" role="button" tabindex="0" aria-label="Lukk" @click="closeExerciseSheet" @keydown.enter="closeExerciseSheet"></div>
 
-          <!-- Header: prev / name+ref / next -->
-          <div class="ex-sheet__header">
-            <button
-              class="ex-sheet__nav-btn"
-              :disabled="activeExerciseIndex === 0"
-              aria-label="Forrige øvelse"
-              @click="prevExercise"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-              </svg>
-            </button>
-
-            <div class="ex-sheet__header-info">
-              <p
-                v-if="getParentGroupName(session.exercises[activeExerciseIndex].exerciseId)"
-                class="ex-sheet__group"
-              >
-                {{ getParentGroupName(session.exercises[activeExerciseIndex].exerciseId) }}
-              </p>
+            <!-- Header: prev / name+ref / next -->
+            <div class="ex-sheet__header">
               <button
-                class="ex-sheet__title-btn"
-                @click="openExerciseQuickView(session.exercises[activeExerciseIndex].exerciseId, session.exercises[activeExerciseIndex].name)"
+                class="ex-sheet__nav-btn"
+                :disabled="activeExerciseIndex === 0"
+                aria-label="Forrige øvelse"
+                @click="prevExercise"
               >
-                {{ session.exercises[activeExerciseIndex].name }}
-                <svg class="w-3.5 h-3.5 text-dark-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
               </button>
-              <p
-                v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) || getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)"
-                class="ex-sheet__ref"
-              >
-                <span v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId)">
-                  {{ lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) }}
-                </span>
-                <span v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) && getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-sep"> · </span>
-                <span v-if="getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-pb">
-                  PB {{ formatKgShort(getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)!.weight) }}kg
-                </span>
-              </p>
-            </div>
 
-            <button
-              class="ex-sheet__nav-btn"
-              :disabled="activeExerciseIndex === session.exercises.length - 1"
-              aria-label="Neste øvelse"
-              @click="nextExercise"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-              </svg>
-            </button>
+              <div class="ex-sheet__header-info">
+                <p
+                  v-if="getParentGroupName(session.exercises[activeExerciseIndex].exerciseId)"
+                  class="ex-sheet__group"
+                >
+                  {{ getParentGroupName(session.exercises[activeExerciseIndex].exerciseId) }}
+                </p>
+                <button
+                  class="ex-sheet__title-btn"
+                  @click="openExerciseQuickView(session.exercises[activeExerciseIndex].exerciseId, session.exercises[activeExerciseIndex].name)"
+                >
+                  {{ session.exercises[activeExerciseIndex].name }}
+                  <svg class="w-3.5 h-3.5 text-dark-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                  </svg>
+                </button>
+                <p
+                  v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) || getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)"
+                  class="ex-sheet__ref"
+                >
+                  <span v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId)">
+                    {{ lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) }}
+                  </span>
+                  <span v-if="lastPerformanceLabel(session.exercises[activeExerciseIndex].exerciseId) && getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-sep"> · </span>
+                  <span v-if="getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)" class="ex-sheet__ref-pb">
+                    PB {{ formatKgShort(getHeaviestLift(session.exercises[activeExerciseIndex].exerciseId)!.weight) }}kg
+                  </span>
+                </p>
+              </div>
+
+              <button
+                class="ex-sheet__nav-btn"
+                :disabled="activeExerciseIndex === session.exercises.length - 1"
+                aria-label="Neste øvelse"
+                @click="nextExercise"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
           <!-- Position dots (only when multiple exercises) -->
@@ -2259,6 +2276,11 @@ watch(() => route.params.id, async (newId, oldId) => {
 }
 
 /* ── Bottom sheet ────────────────────────────────────────────────────────── */
+
+/* The top pulls the sheet down: the browser mustn't claim the gesture for scrolling */
+.ex-sheet__grab {
+  touch-action: none;
+}
 
 .ex-sheet {
   position: fixed;
