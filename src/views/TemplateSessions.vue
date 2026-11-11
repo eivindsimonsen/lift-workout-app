@@ -3,14 +3,16 @@
   import { useRouter } from "vue-router";
   import { useHybridData } from "@/composables/useHybridData";
   import { useWeekStats, WEEK_DAYS, getTodayIndex } from "@/composables/useWeekStats";
-  import { useTrainingGoals, MUSCLE_GROUP_COLORS } from "@/composables/useTrainingGoals";
+  import { useTrainingGoals } from "@/composables/useTrainingGoals";
   import { useGoalStreak, type ChainLink } from "@/composables/useGoalStreak";
-  import { CHAIN_LENGTH, type GoalGap, type GoalGapKind } from "@/composables/goalStreak";
+  import { CHAIN_LENGTH } from "@/composables/goalStreak";
   import NetworkStatus from "@/components/NetworkStatus.vue";
   import TemplateCard from "@/components/TemplateCard.vue";
+  import TemplateSheet from "@/components/TemplateSheet.vue";
   import ActiveSessionButton from "@/components/ActiveSessionButton.vue";
   import { vibrate } from "@/composables/useHaptics";
-  import { useLongPressReorder } from "@/composables/useLongPressReorder";
+  import { useGridReorder } from "@/composables/useGridReorder";
+  import { useTemplateStats } from "@/composables/useTemplateStats";
   import { loadTemplateOrder, orderTemplates, saveTemplateOrder } from "@/composables/templateOrder";
   import type { WorkoutTemplate } from "@/types/workout";
 
@@ -64,15 +66,15 @@
   );
 
   const templateListRef = ref<HTMLElement | null>(null);
-  const { draggingIndex, dragTranslateY, onRowPointerDown, consumeClickSuppression } = useLongPressReorder({
+  const { draggingIndex, dragX, dragY, onItemPointerDown, consumeClickSuppression } = useGridReorder({
     getItems: () => templateOrderIds.value,
-    listEl: templateListRef,
+    gridEl: templateListRef,
     onReordered: () => {
       if (userId.value) saveTemplateOrder(userId.value, [...templateOrderIds.value]);
     },
   });
 
-  /** The click that ends a drag must neither open the card nor start a session. */
+  /** The click that ends a drag must neither open the sheet nor start a session. */
   const onTemplateClickCapture = (event: MouseEvent) => {
     if (!consumeClickSuppression()) return;
     event.stopPropagation();
@@ -89,8 +91,8 @@
   // Captured once: content fades in only where it replaces a placeholder, not on every visit.
   const fadeLocal = !localReady.value;
 
-  /** Name widths for the placeholder template cards (one card each). */
-  const PLACEHOLDER_NAME_WIDTHS = ["w-20", "w-16", "w-24"];
+  /** Name widths for the placeholder template tiles (one tile each). */
+  const PLACEHOLDER_NAME_WIDTHS = ["w-20", "w-16", "w-24", "w-14"];
 
   // Methods
   const formatNumber = (num: number): string => {
@@ -202,15 +204,15 @@
   // Weekly goal streak
   // ---------------------------------------------------------------------------
 
-  const { hasGoals, goals } = useTrainingGoals();
+  const { hasGoals } = useTrainingGoals();
   const {
     ready: streakReady,
     current: streakCurrent,
     best: streakBest,
-    nextMilestone,
     chain: streakChain,
     thisWeek,
     thisWeekKey,
+    thisWeekTally,
   } = useGoalStreak();
 
   /**
@@ -221,31 +223,15 @@
   const showStreak = computed(() => hasGoals.value && streakDataReady.value);
   const fadeStreak = !streakDataReady.value;
 
-  /** Rows the goal list can need at most: one per target in the plan (strength groups, cardio minutes, cardio km). */
-  const reservedGoalRows = computed(() => {
-    const g = goals.value;
-    const strengthTargets = Object.values(g.setsPerMuscleGroup).filter((sets) => sets > 0).length;
-    return strengthTargets + (g.cardio.minutesPerWeek > 0 ? 1 : 0) + (g.cardio.kilometresPerWeek > 0 ? 1 : 0);
-  });
-
   const weeksLabel = (n: number): string => (n === 1 ? "uke på rad" : "uker på rad");
 
-  const streakMeta = computed(() => {
-    const parts: string[] = [];
-    if (streakBest.value > streakCurrent.value) parts.push(`Rekord ${streakBest.value}`);
-    if (nextMilestone.value) parts.push(`neste merke ved ${nextMilestone.value}`);
-    return parts.join(" · ");
-  });
+  /** Only the record, when it's higher; how to keep the streak is explained in Ukesoversikt. */
+  const streakMeta = computed(() => (streakBest.value > streakCurrent.value ? `Rekord ${streakBest.value}` : ""));
 
   const chainLabel = computed(() => {
     const met = streakChain.value.filter((link) => link.approved).length;
     return `${met} av de siste ${streakChain.value.length} ukene nådd`;
   });
-
-  const GAP_UNIT: Record<GoalGapKind, string> = { strength: "", minutes: " min", km: " km" };
-  const kmFormat = new Intl.NumberFormat("no-NO", { maximumFractionDigits: 1 });
-  const formatGap = (gap: GoalGap, value: number): string => (gap.kind === "km" ? kmFormat.format(value) : String(value));
-  const gapColor = (gap: GoalGap): string => (gap.kind === "strength" ? (MUSCLE_GROUP_COLORS[gap.name] ?? "#64748b") : "#06b6d4");
 
   // The week's first look after it's secured: show the old number, then pop to
   // the new one. Once per week per device; skipped for reduced motion.
@@ -276,6 +262,23 @@
   const displayedStreak = computed(() => (celebrationPhase.value === "before" ? streakCurrent.value - 1 : streakCurrent.value));
 
   const isLinkMet = (link: ChainLink): boolean => link.approved && !(link.isCurrent && celebrationPhase.value === "before");
+
+  // ---------------------------------------------------------------------------
+  // Template tiles and their sheet
+  // ---------------------------------------------------------------------------
+
+  /** Numbers for every tile, built once for the page; this week's tally is the streak's. */
+  const { statsById } = useTemplateStats(thisWeekTally);
+
+  /** The template whose sheet is open; a template deleted meanwhile closes it. */
+  const openTemplateId = ref<string | null>(null);
+  const openTemplate = computed(() => (openTemplateId.value ? (templatesById.value.get(openTemplateId.value) ?? null) : null));
+
+  /** Start from the sheet: close it first so the countdown isn't behind it. */
+  const startFromSheet = (templateId: string) => {
+    openTemplateId.value = null;
+    startWorkout(templateId);
+  };
 
   // ---------------------------------------------------------------------------
   // Cleanup on component unmount
@@ -375,119 +378,84 @@
         </div>
       </div>
 
-      <!-- Goal placeholder: room for one row per target, the most the list can need -->
-      <div v-if="hasGoals && !streakDataReady" class="week-card__goal" aria-hidden="true">
-        <div class="week-card__goal-head">
-          <span class="week-card__goal-label"><span class="week-card__ph-bar skeleton w-36"></span></span>
-          <span class="week-card__goal-count"><strong><span class="week-card__ph-bar skeleton w-6"></span></strong></span>
+      <!--
+        With goals the card ends at the day track: what's left this week lives in
+        Ukesoversikt, and each template tile shows what it adds. setsGoalProgress
+        also has a target when goals exist, so the fallbacks are fenced off here.
+      -->
+      <template v-if="!hasGoals">
+        <!-- Without goals: placeholder for the plain totals until the sessions are read -->
+        <div v-if="!localReady" class="week-card__stats" aria-hidden="true">
+          <div class="week-card__stat">
+            <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-6"></span></span>
+            <span class="week-card__stat-label">Økter</span>
+          </div>
+          <div class="week-card__stat-divider"></div>
+          <div class="week-card__stat">
+            <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-12"></span></span>
+            <span class="week-card__stat-label">Volum (kg)</span>
+          </div>
+          <div class="week-card__stat-divider"></div>
+          <div class="week-card__stat">
+            <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-6"></span></span>
+            <span class="week-card__stat-label">Sett</span>
+          </div>
         </div>
-        <ul class="week-card__gaps">
-          <li v-for="i in reservedGoalRows" :key="i" class="week-card__gap">
-            <span class="week-card__gap-dot skeleton skeleton--circle"></span>
-            <span class="week-card__gap-name"><span class="week-card__ph-bar skeleton w-14"></span></span>
-            <span class="week-card__gap-value"><span class="week-card__ph-bar skeleton w-10"></span></span>
-            <span class="week-card__gap-left"><span class="week-card__ph-bar skeleton w-12"></span></span>
-          </li>
-        </ul>
-      </div>
 
-      <!-- Week secured: every target met -->
-      <p v-else-if="showStreak && thisWeek.approved" :class="['week-card__secured', { 'fade-in': fadeStreak }]">
-        Alle mål nådd. Resten av uken er bonus.
-      </p>
+        <!-- Progress toward this week's goal (only without a goal plan; with one the streak covers it) -->
+        <div v-else-if="setsGoalProgress.hasTarget" class="week-card__goal">
+          <div class="week-card__goal-head">
+            <span class="week-card__goal-label">Ukens sett</span>
+            <span class="week-card__goal-count">
+              <strong>{{ setsGoalProgress.done }}</strong> / {{ setsGoalProgress.target }}
+            </span>
+          </div>
+          <div class="week-card__goal-bar">
+            <div class="week-card__goal-fill" :style="{ width: setsGoalProgress.percentage + '%' }"></div>
+          </div>
+          <span class="week-card__goal-pct">{{ setsGoalProgress.percentage }} % av målet</span>
+        </div>
 
-      <!-- What's left this week, target by target — the total isn't the rule -->
-      <div v-else-if="showStreak" :class="['week-card__goal', { 'fade-in': fadeStreak }]">
-        <div class="week-card__goal-head">
-          <span class="week-card__goal-label">{{ streakCurrent > 0 ? "Igjen for å holde streaken" : "Igjen for å nå ukesmålet" }}</span>
-          <span v-if="thisWeek.remainingSets > 0" class="week-card__goal-count">
-            <strong>{{ thisWeek.remainingSets }}</strong> sett
+        <div v-else-if="cardioGoalProgress.hasTarget" class="week-card__goal">
+          <div class="week-card__goal-head">
+            <span class="week-card__goal-label">{{ cardioGoalProgress.minutesTarget > 0 ? 'Ukens kondisjon' : 'Ukens distanse' }}</span>
+            <span class="week-card__goal-count">
+              <template v-if="cardioGoalProgress.minutesTarget > 0">
+                <strong>{{ cardioGoalProgress.minutesDone }}</strong> / {{ cardioGoalProgress.minutesTarget }} min
+              </template>
+              <template v-else>
+                <strong>{{ cardioGoalProgress.kmDone }}</strong> / {{ cardioGoalProgress.kmTarget }} km
+              </template>
+            </span>
+          </div>
+          <div class="week-card__goal-bar">
+            <div
+              class="week-card__goal-fill week-card__goal-fill--cardio"
+              :style="{ width: (cardioGoalProgress.minutesTarget > 0 ? cardioGoalProgress.minutesPct : cardioGoalProgress.kmPct) + '%' }"></div>
+          </div>
+          <span class="week-card__goal-pct">
+            {{ cardioGoalProgress.minutesTarget > 0 ? cardioGoalProgress.minutesPct : cardioGoalProgress.kmPct }} % av målet
           </span>
         </div>
-        <ul class="week-card__gaps">
-          <li v-for="gap in thisWeek.gaps" :key="gap.kind + gap.name" class="week-card__gap">
-            <span class="week-card__gap-dot" :style="{ background: gapColor(gap) }"></span>
-            <span class="week-card__gap-name">{{ gap.name }}</span>
-            <span class="week-card__gap-value">{{ formatGap(gap, gap.done) }} / {{ formatGap(gap, gap.target) }}{{ GAP_UNIT[gap.kind] }}</span>
-            <span class="week-card__gap-left">{{ formatGap(gap, gap.remaining) }}{{ GAP_UNIT[gap.kind] }} igjen</span>
-          </li>
-        </ul>
-        <span v-if="thisWeek.groupsMet > 0" class="week-card__gaps-met">
-          ✓ {{ thisWeek.groupsMet }} av {{ thisWeek.groupsTotal }} muskelgrupper er nådd
-        </span>
-      </div>
 
-      <!-- Without goals: placeholder for the plain totals until the sessions are read -->
-      <div v-else-if="!hasGoals && !localReady" class="week-card__stats" aria-hidden="true">
-        <div class="week-card__stat">
-          <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-6"></span></span>
-          <span class="week-card__stat-label">Økter</span>
+        <!-- No goals set yet — plain totals instead -->
+        <div v-else :class="['week-card__stats', { 'fade-in': fadeLocal }]">
+          <div class="week-card__stat">
+            <span class="week-card__stat-value">{{ weekTotals.workouts }}</span>
+            <span class="week-card__stat-label">Økter</span>
+          </div>
+          <div class="week-card__stat-divider"></div>
+          <div class="week-card__stat">
+            <span class="week-card__stat-value">{{ formatNumber(weekTotals.volume) }}</span>
+            <span class="week-card__stat-label">Volum (kg)</span>
+          </div>
+          <div class="week-card__stat-divider"></div>
+          <div class="week-card__stat">
+            <span class="week-card__stat-value">{{ weekTotals.sets }}</span>
+            <span class="week-card__stat-label">Sett</span>
+          </div>
         </div>
-        <div class="week-card__stat-divider"></div>
-        <div class="week-card__stat">
-          <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-12"></span></span>
-          <span class="week-card__stat-label">Volum (kg)</span>
-        </div>
-        <div class="week-card__stat-divider"></div>
-        <div class="week-card__stat">
-          <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-6"></span></span>
-          <span class="week-card__stat-label">Sett</span>
-        </div>
-      </div>
-
-      <!-- Progress toward this week's goal (only without a goal plan; with one the streak covers it) -->
-      <div v-else-if="setsGoalProgress.hasTarget" class="week-card__goal">
-        <div class="week-card__goal-head">
-          <span class="week-card__goal-label">Ukens sett</span>
-          <span class="week-card__goal-count">
-            <strong>{{ setsGoalProgress.done }}</strong> / {{ setsGoalProgress.target }}
-          </span>
-        </div>
-        <div class="week-card__goal-bar">
-          <div class="week-card__goal-fill" :style="{ width: setsGoalProgress.percentage + '%' }"></div>
-        </div>
-        <span class="week-card__goal-pct">{{ setsGoalProgress.percentage }} % av målet</span>
-      </div>
-
-      <div v-else-if="cardioGoalProgress.hasTarget" class="week-card__goal">
-        <div class="week-card__goal-head">
-          <span class="week-card__goal-label">{{ cardioGoalProgress.minutesTarget > 0 ? 'Ukens kondisjon' : 'Ukens distanse' }}</span>
-          <span class="week-card__goal-count">
-            <template v-if="cardioGoalProgress.minutesTarget > 0">
-              <strong>{{ cardioGoalProgress.minutesDone }}</strong> / {{ cardioGoalProgress.minutesTarget }} min
-            </template>
-            <template v-else>
-              <strong>{{ cardioGoalProgress.kmDone }}</strong> / {{ cardioGoalProgress.kmTarget }} km
-            </template>
-          </span>
-        </div>
-        <div class="week-card__goal-bar">
-          <div
-            class="week-card__goal-fill week-card__goal-fill--cardio"
-            :style="{ width: (cardioGoalProgress.minutesTarget > 0 ? cardioGoalProgress.minutesPct : cardioGoalProgress.kmPct) + '%' }"></div>
-        </div>
-        <span class="week-card__goal-pct">
-          {{ cardioGoalProgress.minutesTarget > 0 ? cardioGoalProgress.minutesPct : cardioGoalProgress.kmPct }} % av målet
-        </span>
-      </div>
-
-      <!-- No goals set yet — plain totals instead -->
-      <div v-else :class="['week-card__stats', { 'fade-in': fadeLocal }]">
-        <div class="week-card__stat">
-          <span class="week-card__stat-value">{{ weekTotals.workouts }}</span>
-          <span class="week-card__stat-label">Økter</span>
-        </div>
-        <div class="week-card__stat-divider"></div>
-        <div class="week-card__stat">
-          <span class="week-card__stat-value">{{ formatNumber(weekTotals.volume) }}</span>
-          <span class="week-card__stat-label">Volum (kg)</span>
-        </div>
-        <div class="week-card__stat-divider"></div>
-        <div class="week-card__stat">
-          <span class="week-card__stat-value">{{ weekTotals.sets }}</span>
-          <span class="week-card__stat-label">Sett</span>
-        </div>
-      </div>
+      </template>
     </router-link>
 
     <!-- Active session: a tile fixed to the bottom right, known once the sessions are read -->
@@ -505,15 +473,18 @@
         </router-link>
       </div>
 
-      <!-- Placeholder cards until the templates are read from the phone (same shape as a closed TemplateCard) -->
+      <!-- Placeholder tiles until the templates are read from the phone (same shape as a tile without its goal part) -->
       <div v-if="!localReady" class="tpl-list" aria-hidden="true">
         <div v-for="(width, i) in PLACEHOLDER_NAME_WIDTHS" :key="i" class="tpl-ph">
-          <span class="tpl-ph__dot skeleton skeleton--circle"></span>
-          <span class="tpl-ph__body">
-            <span class="tpl-ph__name"><span :class="['tpl-ph__bar', 'skeleton', width]"></span></span>
-            <span class="tpl-ph__meta"><span class="tpl-ph__bar skeleton w-16"></span></span>
+          <span class="tpl-ph__top">
+            <span class="tpl-ph__dot skeleton skeleton--circle"></span>
+            <span class="tpl-ph__id">
+              <span class="tpl-ph__name"><span :class="['tpl-ph__bar', 'skeleton', width]"></span></span>
+              <span class="tpl-ph__meta"><span class="tpl-ph__bar skeleton w-20"></span></span>
+            </span>
           </span>
-          <span class="tpl-ph__start"><span class="tpl-ph__circle skeleton skeleton--circle"></span></span>
+          <span class="tpl-ph__big"><span class="tpl-ph__bar skeleton w-20"></span></span>
+          <span class="tpl-ph__label"><span class="tpl-ph__bar skeleton w-16"></span></span>
         </div>
       </div>
 
@@ -528,19 +499,26 @@
         <router-link to="/template/create" class="btn-primary"> Opprett din første økt </router-link>
       </div>
 
-      <!-- Templates — hold and drag a card to change the order -->
+      <!-- Templates — hold and drag a tile to change the order -->
       <div v-else ref="templateListRef" :class="['tpl-list', { 'fade-in': fadeLocal }]">
         <div
           v-for="(template, index) in orderedTemplates"
           :key="template.id"
           :class="['tpl-item', { 'tpl-item--dragging': draggingIndex === index }]"
-          :style="draggingIndex === index ? { transform: `translateY(${dragTranslateY}px)` } : undefined"
-          @pointerdown="onRowPointerDown($event, index)"
+          :style="draggingIndex === index ? { transform: `translate(${dragX}px, ${dragY}px)` } : undefined"
+          @pointerdown="onItemPointerDown($event, index)"
           @click.capture="onTemplateClickCapture">
-          <TemplateCard :template="template" :start-disabled="!!activeSession" @start="startWorkout" />
+          <TemplateCard :template="template" :stats="statsById.get(template.id)" @open="openTemplateId = $event" />
         </div>
       </div>
     </div>
+
+    <TemplateSheet
+      :template="openTemplate"
+      :stats="openTemplate ? statsById.get(openTemplate.id) : undefined"
+      :start-disabled="!!activeSession"
+      @close="openTemplateId = null"
+      @start="startFromSheet" />
 
     <!-- Countdown Modal -->
     <div v-if="showCountdown" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50" @click="cancelCountdown">
@@ -842,72 +820,6 @@
     background: #f97316;
   }
 
-  /* ── What's left this week ───────────────────────────────────────────────── */
-
-  .week-card__gaps {
-    display: flex;
-    flex-direction: column;
-    margin: 0.25rem 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .week-card__gap {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0;
-    border-top: 1px solid #1f2937;
-  }
-
-  .week-card__gap:first-child {
-    border-top: 0;
-  }
-
-  .week-card__gap-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    flex-shrink: 0;
-    border-radius: 50%;
-  }
-
-  .week-card__gap-name {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #f1f5f9;
-  }
-
-  .week-card__gap-value {
-    margin-left: auto;
-    font-size: 0.8125rem;
-    color: #cbd5e1;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .week-card__gap-left {
-    min-width: 4.75rem;
-    font-size: 0.75rem;
-    color: #fdba74;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .week-card__gaps-met {
-    padding-top: 0.5rem;
-    border-top: 1px solid #1f2937;
-    font-size: 0.75rem;
-    color: #4ade80;
-  }
-
-  /* ── Week secured ────────────────────────────────────────────────────────── */
-
-  .week-card__secured {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: #4ade80;
-    text-align: center;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .week-card__streak-num--pop {
       animation: none;
@@ -979,11 +891,19 @@
 
   /* ── Templates ───────────────────────────────────────────────────────────── */
 
-  /* One column at every width: dragging to reorder works down a single column */
+  /*
+   * Two columns on a phone (also at 320px), more on wide screens. Tiles in a row
+   * share its height. Positioned, so the drag measures the tiles from its corner.
+   */
   .tpl-list {
+    position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
     gap: 0.5rem;
+  }
+
+  .tpl-item > * {
+    height: 100%;
   }
 
   /* A long press drags, so it mustn't select text or open the iOS callout */
@@ -1005,15 +925,20 @@
     cursor: grabbing;
   }
 
-  /* Placeholder card: same box and line heights as a closed TemplateCard */
+  /* Placeholder tile: same box and line heights as a tile without its goal part */
   .tpl-ph {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0 0.5rem 0 1rem;
+    flex-direction: column;
+    padding: 0.875rem 0.875rem 0.75rem;
     background: #111827;
     border: 1px solid #1f2937;
-    border-radius: 0.75rem;
+    border-radius: 0.875rem;
+  }
+
+  .tpl-ph__top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 
   /* Stands in for the template's colour dot */
@@ -1021,14 +946,13 @@
     width: 0.625rem;
     height: 0.625rem;
     flex-shrink: 0;
+    margin-top: 0.375rem;
   }
 
-  .tpl-ph__body {
-    flex: 1;
+  .tpl-ph__id {
     display: flex;
     flex-direction: column;
-    gap: 0.125rem;
-    padding: 0.625rem 0;
+    gap: 0.0625rem;
   }
 
   .tpl-ph__name {
@@ -1039,23 +963,20 @@
     font-size: 0.75rem;
   }
 
+  .tpl-ph__big {
+    margin-top: 0.875rem;
+    font-size: 1.5rem;
+    line-height: 1.1;
+  }
+
+  .tpl-ph__label {
+    margin-top: 0.1875rem;
+    font-size: 0.6875rem;
+  }
+
   .tpl-ph__bar {
     display: inline-block;
     height: 0.7em;
     vertical-align: middle;
-  }
-
-  .tpl-ph__start {
-    width: 2.75rem;
-    height: 2.75rem;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .tpl-ph__circle {
-    width: 2.5rem;
-    height: 2.5rem;
   }
 </style>

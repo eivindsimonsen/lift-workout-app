@@ -47,7 +47,7 @@ Fargene er i dag hex-verdier i scoped CSS, ikke variabler. Bruk verdiene under, 
 | Pause | `#f59e0b` | Bare som tilstand på klokka |
 
 - **Muskelgrupper** har faste farger i [muscle-groups.json](src/data/muscle-groups.json). Hent fargene derfra, ikke hardkod dem.
-- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). Malfargen brukes på malkortet, som prikk i Historikk og under «Økter denne uken» i Ukesoversikt, og i kalenderen i Statistikk. En mal uten farge, og en økt fra en slettet mal, er grå `#475569` — unntatt i kalenderen, der de blir oransje så en treningsdag aldri ser utrent ut.
+- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). Malfargen brukes på malflisa og i arket for malen, som prikk i Historikk og under «Økter denne uken» i Ukesoversikt, og i kalenderen i Statistikk. En mal uten farge, og en økt fra en slettet mal, er grå `#475569` — unntatt i kalenderen, der de blir oransje så en treningsdag aldri ser utrent ut.
 - Bryst bruker samme oransje som styrkeaksenten. Det er greit, siden gruppen alltid står med navn ved siden av.
 - Grønt og rødt betyr status (fullført og opp, slett og ned). Bruk dem aldri til å vise størrelse, for eksempel anstrengelse.
 
@@ -155,12 +155,30 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 - Ingen tidsgrense: plassholderen glinser til dataene kommer. Under `prefers-reduced-motion: reduce` står den stille.
 - Fasit: forsiden ([TemplateSessions.vue](src/views/TemplateSessions.vue)).
 
-### Malkort (forsiden)
+### Malfliser (forsiden)
 
-- Et smalt kort per mal ([TemplateCard.vue](src/components/TemplateCard.vue)): panelflate uten fargekant. Malens farge står som en prikk (0.625rem) foran navnet. Lukket: prikk og radnavn, metalinje «N øvelser» med én prikk per muskelgruppe, chevron, og en rund startknapp tonet i malfargen (svak bakgrunn, play-ikon i fargen; 44px trykkflate). Kortet skal være rolig; malfargen er en markør, ikke en flate.
-- Trykk på kortet åpner det: øvelsene gruppert per muskelgruppe (undertittel i panel med gruppens prikk), «N sett» fra forrige gang til høyre for styrke, ingenting for kondisjon, og «Rediger mal» nederst. Grupperingen er bare visning; økta følger rekkefølgen i malen.
-- Hold inne og dra et kort for å endre rekkefølgen (samme `useLongPressReorder` som øvelsesradene; kortet løftes med skygge og svak forstørrelse). Rekkefølgen lagres på telefonen per bruker (`templateOrder.ts`); nye maler havner nederst.
-- Én kolonne på alle skjermer, siden dra virker nedover én kolonne.
+- **Fliser i rutenett** ([TemplateCard.vue](src/components/TemplateCard.vue)): to kolonner på telefon, også ved 320px, og flere på brede skjermer (`repeat(auto-fill, minmax(8.5rem, 1fr))`). Flisene på samme rad er like høye. Flisa er en panelflate med radius 0.875rem og uten fargekant. Malfargen står som en prikk foran navnet. Den er en markør, ikke en flate. Flisa har ingen startknapp: økta startes fra arket.
+- **Innhold, ovenfra:**
+  - navn med metalinja «5 øvelser · i går», alltid på én linje så flisene står likt;
+  - snittet av de siste 8 øktene som stort tall: kilo for styrke, minutter for kondisjon og kilo med «+ kondisjon» for blandede maler, aldri kilo og minutter i ett tall. En mal som aldri er kjørt, viser «–» med «ikke trent ennå» under;
+  - mål-delen, når det finnes ukesmål. Øverst står hva økta gir mot det som mangler («+9 sett mot målet» i tonet oransje, eller «✓ Nådd denne uken» i grønt). Under det står én rad per muskelgruppe i malen som har mål, med «6/15» sett hittil denne uken. En gruppe som allerede er nådd, får grønn ✓.
+- **Tallene** kommer fra [templateStats.ts](src/composables/templateStats.ts), som regner med samme regel (`sessionGoalRows`) som «Ukesmålet» i aktiv økt. Da er flisa, Ukesoversikt og aktiv økt enige.
+- **Arket:** et trykk på flisa åpner et bunnark ([TemplateSheet.vue](src/components/TemplateSheet.vue)) i arkets farger. Det har:
+  - en blyant øverst til høyre (ikonknapp i feltfargene) som åpner malskjemaet;
+  - fire nøkkeltall;
+  - «Denne uken» med «+N» per gruppe;
+  - øvelsene gruppert per muskelgruppe med «N sett» fra forrige gang;
+  - «Start økt» (`btn-primary`) nederst.
+
+  Grupperingen er bare visning, og økta følger rekkefølgen i malen.
+- **Rekkefølge:** hold inne og dra en flis for å endre den. [useGridReorder.ts](src/composables/useGridReorder.ts) setter flisa inn der fingeren er, og flisene imellom flytter seg ett hakk, som på en hjemskjerm. Flisa løftes med skygge og svak forstørrelse. Rekkefølgen lagres på telefonen per bruker (`templateOrder.ts`), og nye maler havner nederst.
+
+### Streak i Ukesoversikt
+
+- **Plassering:** en kompakt rad i et eget panel rett under dagsporet. Den vises bare for inneværende uke, og bare med ukesmål.
+- **Innhold:** flamme og «3 uker på rad» (eller «Start en ny streak»). Hva som gjenstår, står i målpanelene under.
+- **Reglene** ligger bak «Slik fungerer det ›»: alle ukesmålene innen søndag, hvert mål for seg (er du langt over på ett, veier det ikke opp for et annet), og ett mål som mangler når uka er over, starter streaken på nytt. De er lukket når siden åpnes.
+- **Forsiden** viser bare tallet, kjeden og «Rekord N». Streaken forklares bare i Ukesoversikt.
 
 ### Flis for aktiv økt (forsiden)
 

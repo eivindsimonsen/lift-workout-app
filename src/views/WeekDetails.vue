@@ -7,6 +7,7 @@
   import { useHybridData } from "@/composables/useHybridData";
   import { useWeekStats, WEEK_DAYS, getIsoWeekNumber, startOfIsoWeek, getTodayIndex } from "@/composables/useWeekStats";
   import { useTrainingGoals } from "@/composables/useTrainingGoals";
+  import { useGoalStreak } from "@/composables/useGoalStreak";
   import Breadcrumbs from "@/components/Breadcrumbs.vue";
   import WeekGoalsSettings from "@/components/WeekGoalsSettings.vue";
   // Aliased: the local formatDuration takes minutes, this one takes seconds.
@@ -35,6 +36,28 @@
   // (which is shallow, top-level only) does not apply — `.value` is required
   // both here and in the template.
   const week = useWeekStats(weekOffset);
+
+  // ---------------------------------------------------------------------------
+  // Weekly goal streak — the current week only, with the rules behind a tap.
+  // The home page shows just the number and the chain; this is where it's explained.
+  // ---------------------------------------------------------------------------
+
+  const { ready: libraryReady, current: streakCurrent } = useGoalStreak();
+
+  /**
+   * Needs both the sessions and the exercise library, as on the home page, so a
+   * cold start never flashes "Start en ny streak" before the real number.
+   */
+  const streakReady = computed(() => workoutData.localDataReady.value && libraryReady.value);
+  // Captured once: the row fades in only when it replaces its placeholder.
+  const fadeStreak = !streakReady.value;
+
+  const showStreakRow = computed(() => week.isCurrentWeek.value && hasGoals.value);
+  const showStreakRules = ref(false);
+
+  const streakLabel = computed(() =>
+    streakCurrent.value > 0 ? `${streakCurrent.value} ${streakCurrent.value === 1 ? "uke" : "uker"} på rad` : "Start en ny streak",
+  );
 
   // ---------------------------------------------------------------------------
   // Week navigation
@@ -305,6 +328,37 @@
           </div>
         </div>
       </div>
+
+      <!-- Weekly goal streak: the current week only, the rules behind a tap -->
+      <section v-if="showStreakRow" class="wk-card wk-streak">
+        <div class="wk-streak__row">
+          <svg class="wk-streak__flame" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+          </svg>
+
+          <!-- The streak needs the sessions and the exercise library; until then a placeholder, so no wrong number flashes by -->
+          <span v-if="streakReady" :class="['wk-streak__text', { 'fade-in': fadeStreak }]">
+            <span class="wk-streak__label">{{ streakLabel }}</span>
+          </span>
+          <span v-else class="wk-streak__text" aria-hidden="true">
+            <span class="wk-streak__label"><span class="wk-streak__ph skeleton w-24"></span></span>
+          </span>
+
+          <button type="button" class="wk-streak__how" :aria-expanded="showStreakRules" @click="showStreakRules = !showStreakRules">
+            Slik fungerer det
+            <svg class="wk-streak__chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        <ul v-if="showStreakRules" class="wk-streak__rules">
+          <li><span>Nå <strong>alle ukesmålene innen søndag</strong>, så øker streaken med én.</span></li>
+          <li><span>Hvert mål teller for seg. Er du langt over på ett, veier det ikke opp for et annet.</span></li>
+          <li><span>Mangler ett mål når uka er over, starter streaken på nytt.</span></li>
+        </ul>
+      </section>
 
       <!-- Empty week -->
       <div v-if="!hasSessions" class="wk-card wk-empty">
@@ -794,6 +848,110 @@
   }
 
   /* ── Goals CTA ───────────────────────────────────────────────────────────── */
+
+  /* ── Weekly goal streak ──────────────────────────────────────────────────── */
+
+  /* Less padding on top and bottom: the 44px button sets the row's height */
+  .wk-streak {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .wk-streak__row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .wk-streak__flame {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    color: #f97316;
+  }
+
+  /* Wraps rather than squeezing the button on a narrow phone */
+  .wk-streak__text {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.35;
+  }
+
+  .wk-streak__label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+
+  .wk-streak__how {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: 2.75rem;
+    padding: 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #94a3b8;
+    white-space: nowrap;
+    background: none;
+    border: 0;
+  }
+
+  .wk-streak__chevron {
+    width: 0.875rem;
+    height: 0.875rem;
+    transition: transform 0.2s;
+  }
+
+  .wk-streak__how[aria-expanded="true"] .wk-streak__chevron {
+    transform: rotate(90deg);
+  }
+
+  .wk-streak__rules {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin: 0.25rem 0 0.75rem;
+    padding: 0.75rem 0 0;
+    list-style: none;
+    border-top: 1px solid #1f2937;
+  }
+
+  .wk-streak__rules li {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: #94a3b8;
+  }
+
+  .wk-streak__rules li::before {
+    content: "";
+    width: 0.25rem;
+    height: 0.25rem;
+    margin-top: 0.45rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #475569;
+  }
+
+  .wk-streak__rules strong {
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  .wk-streak__ph {
+    display: inline-block;
+    height: 0.7em;
+    vertical-align: middle;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wk-streak__chevron {
+      transition: none;
+    }
+  }
 
   .wk-cta {
     width: 100%;
