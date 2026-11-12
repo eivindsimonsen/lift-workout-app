@@ -159,8 +159,13 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 - **Fliser i rutenett** ([TemplateCard.vue](src/components/TemplateCard.vue)): to kolonner på telefon, også ved 320px, og flere på brede skjermer (`repeat(auto-fill, minmax(8.5rem, 1fr))`). Flisene på samme rad er like høye. Flisa er en panelflate med radius 0.875rem og uten fargekant. Malfargen står som en prikk foran navnet. Den er en markør, ikke en flate. Flisa har ingen startknapp: økta startes fra arket.
 - **Innhold, ovenfra:**
-  - navn med metalinja «5 øvelser · i går», alltid på én linje så flisene står likt;
-  - siste økt som stort tall med «siste økt» under: kilo når økta hadde styrke, minutter når den bare var kondisjon, aldri kilo og minutter i ett tall. Hadde økta begge deler, står det «siste økt · + kondisjon» under kiloene. En mal som aldri er kjørt, viser «–» med «ikke trent ennå» under.
+  - navnet, på én linje;
+  - tre tall under hverandre i samme format, stort tall med liten etikett under, så flisene står likt:
+    - antall øvelser;
+    - sist trent: «i dag», «i går», ukedagen eller datoen;
+    - siste økt: kilo når økta hadde styrke, minutter når den bare var kondisjon, aldri kilo og minutter i ett tall. Hadde økta begge deler, står det «siste økt · + kondisjon» under kiloene.
+
+    En mal som aldri er kjørt, viser «–» for siste økt og sist trent.
 
   Flisa viser ikke ukesmålet. Det står i arket.
 - **Tallene** kommer fra [templateStats.ts](src/composables/templateStats.ts). Mål-delen i arket regner med samme regel (`sessionGoalRows`) som «Ukesmålet» i aktiv økt. Da er arket, Ukesoversikt og aktiv økt enige.

@@ -1,13 +1,15 @@
 <script setup lang="ts">
   import { computed } from "vue";
   import { templateColorOf } from "@/composables/templateColors";
+  import type { TemplateHistory } from "@/composables/templateStats";
   import type { TemplateTileStats } from "@/composables/useTemplateStats";
   import type { WorkoutTemplate } from "@/types/workout";
 
   /**
-   * A template on the home page: a tile with what its last session held. A tap
-   * opens the sheet with the details — averages and what the next session adds
-   * toward this week's goal — which is also where a session is started.
+   * A template on the home page: a tile with three figures — what its last
+   * session held, when that was, and how many exercises it has. A tap opens the
+   * sheet with the details — averages and what the next session adds toward
+   * this week's goal — which is also where a session is started.
    */
   const props = defineProps<{
     template: WorkoutTemplate;
@@ -24,39 +26,44 @@
 
   const color = computed(() => templateColorOf(props.template));
 
-  /** «5 øvelser · i går» — one line on every tile; a template never run has no day. */
-  const meta = computed(() => {
-    const count = props.template.exercises.length;
-    const last = props.stats?.lastLabel;
-    return `${count} ${count === 1 ? "øvelse" : "øvelser"}${last ? ` · ${last}` : ""}`;
-  });
+  type Figure = { key: string; value: string; unit: string; label: string };
 
   /**
-   * The big number and its label, from the last session: kilos when it held
-   * strength (cardio alongside is flagged, not added in), minutes when it was
-   * only cardio. Needs only the sessions, so it never waits on the library.
+   * What the last session held: kilos when it held strength (cardio alongside
+   * is flagged, not added in), minutes when it was only cardio. Needs only the
+   * sessions, so it never waits on the library.
    */
-  const headline = computed<{ value: string; unit: string; label: string }>(() => {
-    const history = props.stats?.history ?? null;
-    if (history === null) return { value: "–", unit: "", label: "ikke trent ennå" };
+  const lastSessionFigure = (history: TemplateHistory | null): Figure => {
+    const figure = { key: "last", value: "–", unit: "", label: "siste økt" };
+    // Never run, or the last session held no counted set: nothing to show from it.
+    if (history === null || history.last.kind === null) return figure;
 
     const last = history.last;
     if (last.kind === "cardio") {
       const km = last.cardioMetres / 1000;
       return {
+        ...figure,
         value: String(Math.round(last.cardioSeconds / 60)),
         unit: "min",
         label: km > 0 ? `siste økt · ${kmFormat.format(km)} km` : "siste økt",
       };
     }
-    // The last session held no counted set: nothing to show from it.
-    if (last.kind === null) return { value: "–", unit: "", label: "siste økt" };
-
     return {
+      ...figure,
       value: kgFormat.format(Math.round(last.volumeKg)),
       unit: "kg",
       label: last.kind === "mixed" ? "siste økt · + kondisjon" : "siste økt",
     };
+  };
+
+  /** Three figures in one format, one under the other; every tile has all three, so the tiles line up. */
+  const figures = computed<Figure[]>(() => {
+    const count = props.template.exercises.length;
+    return [
+      { key: "exercises", value: String(count), unit: "", label: count === 1 ? "øvelse" : "øvelser" },
+      { key: "when", value: props.stats?.lastLabel ?? "–", unit: "", label: "sist trent" },
+      lastSessionFigure(props.stats?.history ?? null),
+    ];
   });
 </script>
 
@@ -71,16 +78,17 @@
     @keydown.space.self.prevent="emit('open', template.id)">
     <div class="tpl-tile__top">
       <span class="tpl-tile__color" aria-hidden="true"></span>
-      <span class="tpl-tile__id">
-        <span class="tpl-tile__name">{{ template.name }}</span>
-        <span class="tpl-tile__meta">{{ meta }}</span>
-      </span>
+      <span class="tpl-tile__name">{{ template.name }}</span>
     </div>
 
-    <span class="tpl-tile__big">
-      {{ headline.value }}<span v-if="headline.unit" class="tpl-tile__unit">{{ headline.unit }}</span>
-    </span>
-    <span class="tpl-tile__label">{{ headline.label }}</span>
+    <div class="tpl-tile__figures">
+      <div v-for="figure in figures" :key="figure.key" class="tpl-tile__figure">
+        <span class="tpl-tile__big">
+          {{ figure.value }}<span v-if="figure.unit" class="tpl-tile__unit">{{ figure.unit }}</span>
+        </span>
+        <span class="tpl-tile__label">{{ figure.label }}</span>
+      </div>
+    </div>
   </article>
 </template>
 
@@ -124,14 +132,8 @@
     background: var(--tpl-color);
   }
 
-  .tpl-tile__id {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.0625rem;
-  }
-
   .tpl-tile__name {
+    min-width: 0;
     font-size: 0.9375rem;
     font-weight: 600;
     color: #f1f5f9;
@@ -140,27 +142,34 @@
     white-space: nowrap;
   }
 
-  /* One line on every tile, so the tiles line up; a narrow screen cuts the end rather than wrapping */
-  .tpl-tile__meta {
-    font-size: 0.75rem;
-    color: #64748b;
+  .tpl-tile__figures {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-top: 0.75rem;
+  }
+
+  .tpl-tile__figure {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* One line each, so the tiles line up; a narrow screen cuts the end rather than wrapping */
+  .tpl-tile__big {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #fff;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .tpl-tile__big {
-    margin-top: 0.875rem;
-    font-size: 1.5rem;
-    font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    color: #fff;
-  }
-
   .tpl-tile__unit {
     margin-left: 0.1875rem;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0;
     color: #94a3b8;
