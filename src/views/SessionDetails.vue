@@ -591,8 +591,10 @@
     cursor: pointer;
   }
 
-  .sd-ex__name:hover {
-    color: #fdba74;
+  @media (hover: hover) and (pointer: fine) {
+    .sd-ex__name:hover {
+      color: #fdba74;
+    }
   }
 
   .sd-ex__pr {

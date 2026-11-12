@@ -341,7 +341,9 @@ watch(
   user-select: none;
 }
 
-.ep-panel__chip:hover { border-color: #4b5563; color: #e5e7eb; }
+@media (hover: hover) and (pointer: fine) {
+  .ep-panel__chip:hover { border-color: #4b5563; color: #e5e7eb; }
+}
 .ep-panel__chip--active { background: #1f2937; border-color: #6b7280; color: #fff; }
 
 .ep-panel__chip-dot {
@@ -426,8 +428,10 @@ watch(
   transition: background 0.12s;
 }
 
-.ep-panel__group-header:hover {
-  background: #1a2232;
+@media (hover: hover) and (pointer: fine) {
+  .ep-panel__group-header:hover {
+    background: #1a2232;
+  }
 }
 
 .ep-panel__group-header--open {
@@ -435,8 +439,10 @@ watch(
   border-bottom: 1px solid #374151;
 }
 
-.ep-panel__group-header--solo:hover {
-  background: #1f2937;
+@media (hover: hover) and (pointer: fine) {
+  .ep-panel__group-header--solo:hover {
+    background: #1f2937;
+  }
 }
 
 .ep-panel__group-dot {
@@ -510,8 +516,10 @@ watch(
   border-top: none;
 }
 
-.ep-panel__variant-btn:hover {
-  background: #172032;
+@media (hover: hover) and (pointer: fine) {
+  .ep-panel__variant-btn:hover {
+    background: #172032;
+  }
 }
 
 .ep-panel__variant-name {

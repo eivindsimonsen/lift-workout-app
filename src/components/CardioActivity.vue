@@ -673,8 +673,10 @@
     transition: background 0.15s;
   }
 
-  .cardio__add-round:hover {
-    background: #f9731622;
+  @media (hover: hover) and (pointer: fine) {
+    .cardio__add-round:hover {
+      background: #f9731622;
+    }
   }
 
   .cardio__add-round:disabled {

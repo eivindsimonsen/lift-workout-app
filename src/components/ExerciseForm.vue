@@ -632,11 +632,15 @@ const deleteVariant = async (variant: ExerciseVariant) => {
   flex-shrink: 0;
 }
 
-.exercise-form__icon-btn:hover { background: #374151; color: #fff; }
-.exercise-form__icon-btn--edit:hover { color: #60a5fa; border-color: #60a5fa; }
-.exercise-form__icon-btn--delete:hover { color: #f87171; border-color: #f87171; }
+@media (hover: hover) and (pointer: fine) {
+  .exercise-form__icon-btn:hover { background: #374151; color: #fff; }
+  .exercise-form__icon-btn--edit:hover { color: #60a5fa; border-color: #60a5fa; }
+  .exercise-form__icon-btn--delete:hover { color: #f87171; border-color: #f87171; }
+}
 .exercise-form__icon-btn--confirm { color: #f87171; border-color: #f87171; font-weight: 600; }
-.exercise-form__icon-btn--save:hover { color: #34d399; border-color: #34d399; }
+@media (hover: hover) and (pointer: fine) {
+  .exercise-form__icon-btn--save:hover { color: #34d399; border-color: #34d399; }
+}
 
 .exercise-form__empty-variants {
   font-size: 0.875rem;

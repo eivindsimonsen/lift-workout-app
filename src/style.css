@@ -540,8 +540,10 @@
     -webkit-user-select: none;
   }
 
-  .btn-danger-outline:hover {
-    @apply bg-red-950 border-red-500;
+  @media (hover: hover) and (pointer: fine) {
+    .btn-danger-outline:hover {
+      @apply bg-red-950 border-red-500;
+    }
   }
 
   .btn-danger-outline:disabled {

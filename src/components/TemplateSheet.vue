@@ -2,6 +2,7 @@
   import { computed, onMounted, onUnmounted, ref } from "vue";
   import { useHybridData } from "@/composables/useHybridData";
   import { useSheetDrag } from "@/composables/useSheetDrag";
+  import { useBodyScrollLock } from "@/composables/useBodyScrollLock";
   import { isCardioExercise, isSetCounted, lastLoggedByExercise } from "@/composables/useSetMetrics";
   import { templateColorOf } from "@/composables/templateColors";
   import { groupTemplateExercises } from "@/composables/templateGroups";
@@ -107,6 +108,9 @@
     isOpen: () => props.template !== null,
     onClose: () => emit("close"),
   });
+
+  // Nothing behind the sheet scrolls while it's open
+  useBodyScrollLock(() => props.template !== null);
 
   const onKeydown = (event: KeyboardEvent) => {
     if (event.key === "Escape" && props.template) emit("close");

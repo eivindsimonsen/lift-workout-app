@@ -1,6 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
+  // hover: only where there's a real pointer. On a phone a tap leaves the hover
+  // style stuck on whatever was under the finger, e.g. a row behind a sheet that
+  // was just closed. Own :hover rules in components are wrapped in @media (hover: hover) too.
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       colors: {

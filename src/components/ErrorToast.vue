@@ -163,7 +163,9 @@ onUnmounted(() => {
   transition: color 0.15s;
 }
 
-.toast__close:hover {
-  color: #fff;
+@media (hover: hover) and (pointer: fine) {
+  .toast__close:hover {
+    color: #fff;
+  }
 }
 </style>

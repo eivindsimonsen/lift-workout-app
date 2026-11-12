@@ -369,9 +369,11 @@ const deleteItem = async () => {
   transition: background 0.15s, border-color 0.15s;
 }
 
-.ef__selected-group:hover {
-  background: #1a2232;
-  border-color: #4b5563;
+@media (hover: hover) and (pointer: fine) {
+  .ef__selected-group:hover {
+    background: #1a2232;
+    border-color: #4b5563;
+  }
 }
 
 .ef__selected-group--open {
@@ -481,8 +483,10 @@ const deleteItem = async () => {
   transition: background 0.15s, border-color 0.15s;
 }
 
-.ef__group-option:hover {
-  background: #1f2937;
+@media (hover: hover) and (pointer: fine) {
+  .ef__group-option:hover {
+    background: #1f2937;
+  }
 }
 
 .ef__group-option--selected {

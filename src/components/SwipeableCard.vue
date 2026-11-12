@@ -163,8 +163,10 @@ onMounted(() => {
   transition: all 0.2s ease-out;
 }
 
-.delete-icon:hover {
-  transform: scale(1.1);
+@media (hover: hover) and (pointer: fine) {
+  .delete-icon:hover {
+    transform: scale(1.1);
+  }
 }
 </style>
 

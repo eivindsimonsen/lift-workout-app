@@ -38,7 +38,8 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, watch, computed, type Ref, ref } from 'vue'
+import { onBeforeUnmount, onMounted, computed } from 'vue'
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 
 const props = withDefaults(defineProps<{
   isOpen: boolean
@@ -49,41 +50,21 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 
-const isClient: Ref<boolean> = ref(false)
-
 const onClose = () => emit('close')
 
-const lockBodyScroll = () => {
-  if (!isClient.value) return
-  const originalOverflow = document.body.style.overflow
-  document.body.dataset.prevOverflow = originalOverflow
-  document.body.style.overflow = 'hidden'
-}
-
-const unlockBodyScroll = () => {
-  if (!isClient.value) return
-  const prev = document.body.dataset.prevOverflow || ''
-  document.body.style.overflow = prev
-  delete document.body.dataset.prevOverflow
-}
+// Shared with the bottom sheets, so one closing as this opens can't undo the lock
+useBodyScrollLock(() => props.isOpen)
 
 const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && props.isOpen) onClose()
 }
 
 onMounted(() => {
-  isClient.value = true
   document.addEventListener('keydown', handleKeydown)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeydown)
-  unlockBodyScroll()
-})
-
-watch(() => props.isOpen, (open) => {
-  if (open) lockBodyScroll()
-  else unlockBodyScroll()
 })
 
 const safeAreaStyle = computed(() => ({

@@ -573,9 +573,11 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   user-select: none;
 }
 
-.exercises-view__chip:hover {
-  border-color: #4b5563;
-  color: #e5e7eb;
+@media (hover: hover) and (pointer: fine) {
+  .exercises-view__chip:hover {
+    border-color: #4b5563;
+    color: #e5e7eb;
+  }
 }
 
 .exercises-view__chip--active {
@@ -625,8 +627,10 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   transition: background 0.15s;
 }
 
-.exercises-view__create-btn:hover {
-  background: var(--color-primary-600, #ea6c0e);
+@media (hover: hover) and (pointer: fine) {
+  .exercises-view__create-btn:hover {
+    background: var(--color-primary-600, #ea6c0e);
+  }
 }
 
 /* ── Skeleton ────────────────────────────────────────────────────────────── */
@@ -717,8 +721,10 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   margin-bottom: 0.25rem;
 }
 
-.ex-group:hover {
-  border-left-color: #374151;
+@media (hover: hover) and (pointer: fine) {
+  .ex-group:hover {
+    border-left-color: #374151;
+  }
 }
 
 /* Group header row */
@@ -761,9 +767,11 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   white-space: nowrap;
 }
 
-.ex-group__add-btn:hover {
-  color: #f97316;
-  background: rgb(249 115 22 / 0.08);
+@media (hover: hover) and (pointer: fine) {
+  .ex-group__add-btn:hover {
+    color: #f97316;
+    background: rgb(249 115 22 / 0.08);
+  }
 }
 
 /* Edit-group button — icon + label so it reads clearly on touch devices */
@@ -785,9 +793,11 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   flex-shrink: 0;
 }
 
-.ex-group__settings-btn:hover {
-  color: #9ca3af;
-  background: #1f2937;
+@media (hover: hover) and (pointer: fine) {
+  .ex-group__settings-btn:hover {
+    color: #9ca3af;
+    background: #1f2937;
+  }
 }
 
 /* ── Variant list ────────────────────────────────────────────────────────── */
@@ -835,9 +845,11 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   white-space: nowrap;
 }
 
-.ex-group__variant-name:hover {
-  background: #1f2937;
-  color: #fff;
+@media (hover: hover) and (pointer: fine) {
+  .ex-group__variant-name:hover {
+    background: #1f2937;
+    color: #fff;
+  }
 }
 
 .ex-group__template-star {
@@ -879,9 +891,11 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   flex-shrink: 0;
 }
 
-.ex-group__action-btn:hover:not(:disabled) {
-  background: #1f2937;
-  color: #d1d5db;
+@media (hover: hover) and (pointer: fine) {
+  .ex-group__action-btn:hover:not(:disabled) {
+    background: #1f2937;
+    color: #d1d5db;
+  }
 }
 
 .ex-group__action-btn:disabled {
@@ -889,9 +903,11 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   cursor: not-allowed;
 }
 
-.ex-group__action-btn--save:hover:not(:disabled) {
-  color: #34d399 !important;
-  background: rgb(52 211 153 / 0.1) !important;
+@media (hover: hover) and (pointer: fine) {
+  .ex-group__action-btn--save:hover:not(:disabled) {
+    color: #34d399 !important;
+    background: rgb(52 211 153 / 0.1) !important;
+  }
 }
 
 /* Shared input sizing within the inline add row */
@@ -935,7 +951,9 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   transition: color 0.15s;
 }
 
-.ex-group__empty-link:hover {
-  color: #f97316;
+@media (hover: hover) and (pointer: fine) {
+  .ex-group__empty-link:hover {
+    color: #f97316;
+  }
 }
 </style>

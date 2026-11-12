@@ -14,6 +14,7 @@ import { vibrate } from '@/composables/useHaptics'
 import { useSwipeToDelete } from '@/composables/useSwipeToDelete'
 import { useLongPressReorder } from '@/composables/useLongPressReorder'
 import { useSheetDrag } from '@/composables/useSheetDrag'
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import {
   isCardioExercise,
   isSetCounted,
@@ -812,6 +813,9 @@ const {
   isOpen: () => activeExerciseIndex.value !== null,
   onClose: closeExerciseSheet,
 })
+
+// Nothing behind the sheet scrolls while it's open
+useBodyScrollLock(() => activeExerciseIndex.value !== null)
 
 const prevExercise = () => {
   if (activeExerciseIndex.value !== null && activeExerciseIndex.value > 0) {
@@ -2180,9 +2184,14 @@ watch(() => route.params.id, async (newId, oldId) => {
   cursor: grabbing;
 }
 
-.ex-row:hover, .ex-row:active { background: #131c2b; }
+.ex-row:active { background: #131c2b; }
+@media (hover: hover) and (pointer: fine) {
+  .ex-row:hover { background: #131c2b; }
+}
 .ex-row--done { background: #052e160a; }
-.ex-row--done:hover { background: #052e1612; }
+@media (hover: hover) and (pointer: fine) {
+  .ex-row--done:hover { background: #052e1612; }
+}
 
 .ex-row__dot {
   width: 0.5rem;
@@ -2328,7 +2337,9 @@ watch(() => route.params.id, async (newId, oldId) => {
   transition: background 0.15s;
 }
 
-.ex-sheet__handle:hover::before { background: #9ca3af; }
+@media (hover: hover) and (pointer: fine) {
+  .ex-sheet__handle:hover::before { background: #9ca3af; }
+}
 
 /* Sheet header */
 .ex-sheet__header {
@@ -2372,7 +2383,9 @@ watch(() => route.params.id, async (newId, oldId) => {
   transition: color 0.15s;
 }
 
-.ex-sheet__title-btn:hover { color: #f97316; }
+@media (hover: hover) and (pointer: fine) {
+  .ex-sheet__title-btn:hover { color: #f97316; }
+}
 
 .ex-sheet__ref {
   font-size: 0.6875rem;
@@ -2399,9 +2412,11 @@ watch(() => route.params.id, async (newId, oldId) => {
   transition: background 0.15s, color 0.15s;
 }
 
-.ex-sheet__nav-btn:hover:not(:disabled) {
-  background: #2d3a4f;
-  color: #f3f4f6;
+@media (hover: hover) and (pointer: fine) {
+  .ex-sheet__nav-btn:hover:not(:disabled) {
+    background: #2d3a4f;
+    color: #f3f4f6;
+  }
 }
 
 .ex-sheet__nav-btn:disabled {
@@ -2648,7 +2663,9 @@ watch(() => route.params.id, async (newId, oldId) => {
   transition: background 0.15s;
 }
 
-.ex-card__add-set:hover { background: #f9731622; }
+@media (hover: hover) and (pointer: fine) {
+  .ex-card__add-set:hover { background: #f9731622; }
+}
 
 /* ── Sheet slide-up transition ───────────────────────────────────────────── */
 
@@ -2686,9 +2703,11 @@ watch(() => route.params.id, async (newId, oldId) => {
   margin-left: auto;
 }
 
-.session-reset-btn:hover {
-  color: #f87171;
-  border-color: #f8717140;
+@media (hover: hover) and (pointer: fine) {
+  .session-reset-btn:hover {
+    color: #f87171;
+    border-color: #f8717140;
+  }
 }
 
 .session-reset-confirm {

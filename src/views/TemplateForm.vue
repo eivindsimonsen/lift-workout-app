@@ -680,9 +680,14 @@ onMounted(async () => {
   border-radius: 0.875rem;
 }
 
-.ex-row:hover,
 .ex-row:active {
   background: #131c2b;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ex-row:hover {
+    background: #131c2b;
+  }
 }
 
 .ex-row--empty .ex-row__name {
