@@ -12,10 +12,11 @@ import {
 import { sessionGoalRows, type GoalGapKind, type WeekTally } from "./goalStreak";
 
 /**
- * The numbers on a template tile and its sheet: what the template's sessions
- * usually amount to, when it was last trained, and what the next one would add
- * toward this week's goal. Only type imports and pure modules, so the self-check
- * can bundle and run this outside Vite.
+ * The numbers on a template tile and its sheet: what the last session held (the
+ * tile), what the template's sessions usually amount to, when it was last
+ * trained, and what the next one would add toward this week's goal (the sheet).
+ * Only type imports and pure modules, so the self-check can bundle and run this
+ * outside Vite.
  */
 
 export type TemplateKind = "strength" | "cardio" | "mixed";
@@ -33,11 +34,22 @@ const CARDIO_GROUP = "Kondisjon";
 // History — what the template's sessions held
 // ---------------------------------------------------------------------------
 
+/** What one session held, over its counted sets. */
+export interface SessionSummary {
+  /** null: the session held no counted set. */
+  kind: TemplateKind | null;
+  volumeKg: number;
+  cardioSeconds: number;
+  cardioMetres: number;
+}
+
 export interface TemplateHistory {
   /** Completed sessions from the template. */
   count: number;
   /** The newest of them. */
   lastDate: Date;
+  /** What the newest of them held — the figure on the home-page tile. */
+  last: SessionSummary;
   /** What the last AVERAGE_OVER sessions held; null if none of them held a counted set. */
   kind: TemplateKind | null;
   /** Mean per session of the volume over counted sets, in kg. */
@@ -51,6 +63,9 @@ export interface TemplateHistory {
 }
 
 const mean = (values: number[]): number => (values.length === 0 ? 0 : values.reduce((sum, v) => sum + v, 0) / values.length);
+
+const kindOf = (strength: boolean, cardio: boolean): TemplateKind | null =>
+  strength && cardio ? "mixed" : cardio ? "cardio" : strength ? "strength" : null;
 
 /** One pass over the sessions; only templates with at least one completed session get an entry. */
 export const templateHistories = (sessions: WorkoutSession[]): Map<string, TemplateHistory> => {
@@ -67,40 +82,40 @@ export const templateHistories = (sessions: WorkoutSession[]): Map<string, Templ
     const newest = [...list].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const recent = newest.slice(0, AVERAGE_OVER);
 
-    let hasStrength = false;
-    let hasCardio = false;
-    const volumes: number[] = [];
-    const cardioSeconds: number[] = [];
-    const cardioMetres: number[] = [];
-
-    for (const session of recent) {
-      let volume = 0;
-      let seconds = 0;
-      let metres = 0;
+    // Newest first, so summaries[0] is the last session.
+    const summaries: SessionSummary[] = recent.map((session) => {
+      let strength = false;
+      let cardio = false;
+      let volumeKg = 0;
+      let cardioSeconds = 0;
+      let cardioMetres = 0;
       for (const exercise of session.exercises ?? []) {
-        const cardio = isCardioExercise(exercise);
+        const isCardio = isCardioExercise(exercise);
         for (const set of exercise.sets ?? []) {
           if (!isSetCounted(exercise, set)) continue;
-          if (cardio) hasCardio = true;
-          else hasStrength = true;
-          volume += setVolume(exercise, set);
-          seconds += setDuration(exercise, set);
-          metres += setDistance(exercise, set);
+          if (isCardio) cardio = true;
+          else strength = true;
+          volumeKg += setVolume(exercise, set);
+          cardioSeconds += setDuration(exercise, set);
+          cardioMetres += setDistance(exercise, set);
         }
       }
-      volumes.push(volume);
-      cardioSeconds.push(seconds);
-      cardioMetres.push(metres);
-    }
+      return { kind: kindOf(strength, cardio), volumeKg, cardioSeconds, cardioMetres };
+    });
+
+    const kinds = summaries.map((summary) => summary.kind);
+    const anyStrength = kinds.some((kind) => kind === "strength" || kind === "mixed");
+    const anyCardio = kinds.some((kind) => kind === "cardio" || kind === "mixed");
 
     result.set(templateId, {
       count: list.length,
       lastDate: new Date(newest[0].date),
-      kind: hasStrength && hasCardio ? "mixed" : hasCardio ? "cardio" : hasStrength ? "strength" : null,
-      avgVolumeKg: mean(volumes),
+      last: summaries[0],
+      kind: kindOf(anyStrength, anyCardio),
+      avgVolumeKg: mean(summaries.map((summary) => summary.volumeKg)),
       avgMinutes: mean(recent.map((session) => Number(session.duration) || 0)),
-      avgCardioSeconds: mean(cardioSeconds),
-      avgCardioMetres: mean(cardioMetres),
+      avgCardioSeconds: mean(summaries.map((summary) => summary.cardioSeconds)),
+      avgCardioMetres: mean(summaries.map((summary) => summary.cardioMetres)),
     });
   });
   return result;

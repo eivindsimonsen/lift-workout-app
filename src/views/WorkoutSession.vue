@@ -125,12 +125,10 @@ function closeExerciseQuickView() {
   isExerciseQuickViewOpen.value = false
 }
 
-function openQuickViewGoogleSearch() {
-  const name = exerciseQuickViewTitle.value || ''
-  if (!name) return
-  const searchQuery = encodeURIComponent(`${name} strength training exercise`)
-  const url = `https://www.google.com/search?q=${searchQuery}&tbm=isch`
-  window.open(url, '_blank')
+/** The exercise's own page, with all its history; the Google search lives at the bottom there. */
+function openQuickViewExercisePage() {
+  if (exerciseQuickViewId === null) return
+  router.push(`/exercise/${exerciseQuickViewId}`)
 }
 
 // Computed
@@ -1770,8 +1768,8 @@ watch(() => route.params.id, async (newId, oldId) => {
         <div v-else class="text-sm text-dark-300">Laster…</div>
 
         <template #footer>
-          <button type="button" class="btn-primary w-full" @click="openQuickViewGoogleSearch">
-            Åpne i Google
+          <button type="button" class="btn-primary w-full" @click="openQuickViewExercisePage">
+            Åpne øvelsessiden
           </button>
         </template>
       </SlideOver>

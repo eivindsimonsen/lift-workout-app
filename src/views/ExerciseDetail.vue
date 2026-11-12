@@ -122,7 +122,8 @@
 
   const openGoogleSearch = () => {
     if (!exercise.value?.name) return;
-    const searchQuery = encodeURIComponent(`${exercise.value.name} strength training exercise`);
+    const kind = isCardio.value ? "cardio" : "strength training";
+    const searchQuery = encodeURIComponent(`${exercise.value.name} ${kind} exercise`);
     window.open(`https://www.google.com/search?q=${searchQuery}&tbm=isch`, "_blank");
   };
 
@@ -475,7 +476,7 @@
       </router-link>
 
       <div class="min-w-0 flex-1">
-        <h1 class="ed-title" @click="openGoogleSearch">{{ exercise?.name }}</h1>
+        <h1 class="ed-title">{{ exercise?.name }}</h1>
         <p v-if="exercise" class="ed-meta">
           <span v-for="group in exercise.muscleGroups ?? []" :key="group" class="ed-meta__group">
             <span class="ed-meta__dot" :style="{ backgroundColor: groupColor(group) }"></span>
@@ -677,6 +678,9 @@
         </div>
       </section>
     </template>
+
+    <!-- Last on the page, for both strength and cardio: a look outside the app comes after the exercise's own numbers -->
+    <button v-if="exercise && !isLoading" type="button" class="btn-secondary w-full" @click="openGoogleSearch">Åpne i Google</button>
   </div>
 </template>
 
