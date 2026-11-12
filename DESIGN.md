@@ -220,7 +220,9 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 ### Bunnark (aktiv økt)
 
-- Brukes til redigering underveis i økta. Arket kan være opptil 88dvh høyt, men innholdet holdes kompakt.
+- Brukes til redigering underveis i økta. Arket kan være opptil 3/4 av skjermhøyden, det samme som malarket på forsiden, og innholdet holdes kompakt. Blir innholdet høyere, scroller det inne i arket.
+- Mens et ark er åpent, står siden bak helt stille ([useBodyScrollLock.ts](src/composables/useBodyScrollLock.ts)). `body` er låst, og sveip som arket ikke selv kan scrolle, blir avbrutt. Det gjelder sveip på bakgrunnen, og sveip i et ark som får plass. På iPhone går slike sveip ellers forbi den låste `body` og flytter siden.
+- Hover-stiler gjelder bare med mus (`hoverOnlyWhenSupported` i Tailwind, og `@media (hover: hover)` rundt egne `:hover`-regler). Ellers blir hover hengende på det som lå under fingeren når arket lukkes med et trykk.
 - Håndtaket øverst er en tynn strek, men hele toppen av arket er trykkflate for å lukke.
 - **Dra ned for å lukke** ([useSheetDrag.ts](src/composables/useSheetDrag.ts)) gjelder både dette arket og malarket på forsiden:
   - Bare toppen kan gripes: streken og headeren. Den har `touch-action: none`, og resten av arket ruller og virker som før.

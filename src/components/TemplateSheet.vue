@@ -109,8 +109,8 @@
     onClose: () => emit("close"),
   });
 
-  // Nothing behind the sheet scrolls while it's open
-  useBodyScrollLock(() => props.template !== null);
+  // Nothing behind the sheet scrolls while it's open, not even when the sheet itself has nothing to scroll
+  useBodyScrollLock(() => props.template !== null, panelEl);
 
   const onKeydown = (event: KeyboardEvent) => {
     if (event.key === "Escape" && props.template) emit("close");
@@ -254,7 +254,7 @@
     z-index: 1;
     width: 100%;
     max-width: 40rem;
-    max-height: 88dvh;
+    max-height: calc(100dvh * 3 / 4);
     margin: 0 auto;
     padding: 0 1.125rem calc(1.25rem + env(safe-area-inset-bottom));
     overflow-y: auto;

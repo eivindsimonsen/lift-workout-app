@@ -814,8 +814,8 @@ const {
   onClose: closeExerciseSheet,
 })
 
-// Nothing behind the sheet scrolls while it's open
-useBodyScrollLock(() => activeExerciseIndex.value !== null)
+// Nothing behind the sheet scrolls while it's open, not even when the sheet itself has nothing to scroll
+useBodyScrollLock(() => activeExerciseIndex.value !== null, exSheetPanel)
 
 const prevExercise = () => {
   if (activeExerciseIndex.value !== null && activeExerciseIndex.value > 0) {
@@ -2311,7 +2311,7 @@ watch(() => route.params.id, async (newId, oldId) => {
   background: #1a2233;
   border-top: 1px solid #2d3a4f;
   border-radius: 1.25rem 1.25rem 0 0;
-  max-height: 88dvh;
+  max-height: calc(100dvh * 3 / 4);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
