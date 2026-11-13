@@ -97,7 +97,7 @@ Fonten er Inter (Google Fonts, se `index.html`) og brukes overalt. Tallene forma
 
 ### Header
 
-Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så én metalinje med det viktigste konteksten (dato, varighet). Tilbakeknappen ser lik ut på alle sider og peker til forelderen i brødsmulene:
+Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så én metalinje med det viktigste konteksten (dato, varighet). Tilbakeknappen ser lik ut på alle sider og peker til forelderen i brødsmulene. Øvelsessiden er unntaket. Den åpnes fra Øvelser, fra øktdetaljer og midt i en økt, så der går pila dit du kom fra. Ble siden åpnet direkte, går pila til Øvelser. Siden du lander på, starter øverst som ved alle sidebytter.
 
 ```html
 <router-link

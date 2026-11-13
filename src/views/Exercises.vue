@@ -2,10 +2,16 @@
 // ---------------------------------------------------------------------------
 // Imports
 // ---------------------------------------------------------------------------
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHybridData } from '@/composables/useHybridData'
 import { useExercises } from '@/composables/useExercises'
+import {
+  loadExerciseCategories,
+  loadExerciseStarred,
+  saveExerciseCategories,
+  saveExerciseStarred,
+} from '@/composables/exerciseFilter'
 import ExerciseForm from '@/components/ExerciseForm.vue'
 import muscleGroupsData from '@/data/muscle-groups.json'
 import type { ExerciseData } from '@/types/workout'
@@ -21,6 +27,8 @@ const exercisesStore = useExercises()
 
 const searchQuery = ref('')
 const selectedCategories = ref<string[]>([])
+/** Only exercises with a star, i.e. used in at least one template. */
+const onlyStarred = ref(false)
 const showForm = ref(false)
 const selectedExercise = ref<ExerciseData | null>(null)
 
@@ -41,6 +49,7 @@ const isLoading = computed(
 )
 const hasSearch = computed(() => searchQuery.value.trim().length > 0)
 const hasCategoryFilter = computed(() => selectedCategories.value.length > 0)
+const hasFilter = computed(() => hasCategoryFilter.value || onlyStarred.value)
 
 const availableCategories = computed(() => muscleGroupsData.muscleGroups.map((g) => g.name))
 
@@ -54,6 +63,23 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 /** Returns the accent color for a given category name. */
 const getCategoryColor = (category: string): string => CATEGORY_COLORS[category] ?? '#6b7280'
+
+// The ticked filter survives a visit to an exercise and a restart (see exerciseFilter.ts)
+const userId = computed(() => workoutData.currentUser.value?.id as string | undefined)
+watch(
+  userId,
+  (id) => {
+    selectedCategories.value = id ? loadExerciseCategories(id, availableCategories.value) : []
+    onlyStarred.value = id ? loadExerciseStarred(id) : false
+  },
+  { immediate: true }
+)
+watch(selectedCategories, (categories) => {
+  if (userId.value) saveExerciseCategories(userId.value, categories)
+})
+watch(onlyStarred, (starred) => {
+  if (userId.value) saveExerciseStarred(userId.value, starred)
+})
 
 /** All exercises enriched with session stats (totalSessions, oneRepMax). */
 const enrichedExercises = computed(() => {
@@ -97,7 +123,9 @@ const templateVariantIds = computed(() => {
 const isInTemplate = (variantId: number): boolean => templateVariantIds.value.has(variantId)
 
 /**
- * Filter by muscle category, then by search query.
+ * Filter by muscle category, then to starred variants, then by search query.
+ * «Only starred» keeps the starred variants of each group, and drops groups
+ * with none — the star sits on variants, so a group without any has nothing to show.
  * A query that matches one or more variant names keeps only those variants.
  * Only when no variant matches, but the group name itself does, do all
  * variants stay — otherwise a specific search would surface unrelated
@@ -108,6 +136,12 @@ const filteredExercises = computed(() => {
 
   if (hasCategoryFilter.value) {
     exercises = exercises.filter((e) => selectedCategories.value.includes(e.category))
+  }
+
+  if (onlyStarred.value) {
+    exercises = exercises
+      .map((e) => ({ ...e, variants: e.variants?.filter((v) => isInTemplate(v.id)) }))
+      .filter((e) => (e.variants?.length ?? 0) > 0)
   }
 
   if (!hasSearch.value) return exercises
@@ -125,6 +159,21 @@ const filteredExercises = computed(() => {
     }
   })
   return results
+})
+
+/** Shown when the search and/or the ticked filter leave nothing. */
+const emptyMessage = computed(() => {
+  const where = [
+    onlyStarred.value ? 'blant stjernemerkede øvelser' : '',
+    hasCategoryFilter.value ? 'i valgte muskelgrupper' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  if (hasSearch.value) return `Ingen treff på «${searchQuery.value}»${where ? ` ${where}` : ''}`
+  if (onlyStarred.value) {
+    return hasCategoryFilter.value ? 'Ingen stjernemerkede øvelser i valgte muskelgrupper' : 'Ingen stjernemerkede øvelser'
+  }
+  return 'Ingen øvelser i valgte muskelgrupper'
 })
 
 const categories = computed(() => {
@@ -264,6 +313,16 @@ const saveNewVariant = async (exercise: ExerciseData) => {
           ></span>
           {{ cat }}
         </label>
+        <!-- Not a muscle group: only the exercises used in a template, combined with the groups above -->
+        <label class="exercises-view__chip" :class="{ 'exercises-view__chip--active': onlyStarred }">
+          <input v-model="onlyStarred" type="checkbox" class="sr-only" />
+          <svg class="exercises-view__chip-star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path
+              d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 7.1-1.01L12 2z"
+            />
+          </svg>
+          Stjerne
+        </label>
       </div>
       <p class="exercises-view__legend">
         <svg
@@ -288,16 +347,10 @@ const saveNewVariant = async (exercise: ExerciseData) => {
     <template v-else>
       <!-- No results when filtering or searching -->
       <div
-        v-if="filteredExercises.length === 0 && (hasSearch || hasCategoryFilter)"
+        v-if="filteredExercises.length === 0 && (hasSearch || hasFilter)"
         class="exercises-view__empty"
       >
-        <p class="text-dark-300">
-          <template v-if="hasSearch && hasCategoryFilter">
-            Ingen treff på «{{ searchQuery }}» i valgte muskelgrupper
-          </template>
-          <template v-else-if="hasSearch">Ingen treff på «{{ searchQuery }}»</template>
-          <template v-else>Ingen øvelser i valgte muskelgrupper</template>
-        </p>
+        <p class="text-dark-300">{{ emptyMessage }}</p>
       </div>
 
       <!-- Exercises grouped by category -->
@@ -590,6 +643,14 @@ const saveNewVariant = async (exercise: ExerciseData) => {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+/* In place of the colour dot; the same star and colour as the list and the legend */
+.exercises-view__chip-star {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: #fbbf24;
   flex-shrink: 0;
 }
 

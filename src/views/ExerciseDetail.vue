@@ -120,6 +120,18 @@
 
   const groupColor = (name: string): string => MUSCLE_GROUP_COLORS[name] ?? "#6b7280";
 
+  /**
+   * Back to where the page was opened from: the session, Øvelser or a
+   * session's details. Opened directly, there's nowhere in the app to go back
+   * to, so Øvelser. vue-router keeps the previous in-app path in history.state.
+   * The router still scrolls the page it lands on to the top.
+   */
+  const goBack = () => {
+    const back = window.history.state?.back;
+    if (typeof back === "string" && !back.startsWith("/login")) router.back();
+    else router.push("/exercises");
+  };
+
   const openGoogleSearch = () => {
     if (!exercise.value?.name) return;
     const kind = isCardio.value ? "cardio" : "strength training";
@@ -466,14 +478,16 @@
 
     <!-- Header -->
     <header class="flex items-center gap-3">
-      <router-link
-        to="/exercises"
+      <!-- Opened from several places (also mid-session), so back goes where the user came from -->
+      <button
+        type="button"
         class="inline-flex items-center justify-center w-10 h-10 flex-shrink-0 bg-[#3F302A] hover:bg-[#4A3A32] rounded-lg transition-colors"
-        aria-label="Tilbake til øvelser">
+        aria-label="Tilbake"
+        @click="goBack">
         <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
-      </router-link>
+      </button>
 
       <div class="min-w-0 flex-1">
         <h1 class="ed-title">{{ exercise?.name }}</h1>
