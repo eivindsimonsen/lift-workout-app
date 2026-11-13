@@ -10,6 +10,7 @@
   import TemplateCard from "@/components/TemplateCard.vue";
   import TemplateSheet from "@/components/TemplateSheet.vue";
   import ActiveSessionButton from "@/components/ActiveSessionButton.vue";
+  import SwipeableCard from "@/components/SwipeableCard.vue";
   import { vibrate } from "@/composables/useHaptics";
   import { useGridReorder } from "@/composables/useGridReorder";
   import { useTemplateStats } from "@/composables/useTemplateStats";
@@ -158,6 +159,26 @@
 
     // Haptic feedback for cancellation
     vibrate([200, 100, 200]);
+  };
+
+  /** Swiped left: asks first, then deletes the session, as «Avbryt» in the session does. */
+  const abandonActiveSession = async (sessionId: string) => {
+    if (!confirm("Er du sikker på at du vil avbryte denne økten? Dette kan ikke angres og økten vil slettes permanent.")) return;
+    vibrate(100);
+    try {
+      await workoutData.abandonWorkoutSession(sessionId);
+    } catch (error) {
+      console.error("Error abandoning workout:", error);
+      vibrate([200, 100, 200]);
+      alert("Kunne ikke avbryte økten. Prøv igjen.");
+      return;
+    }
+    // The session's own unsaved copy (WorkoutSession's `workout-session-<id>`) goes with it
+    try {
+      localStorage.removeItem(`workout-session-${sessionId}`);
+    } catch {
+      // Nothing to clean up without storage
+    }
   };
 
   const startWorkout = async (templateId: string) => {
@@ -458,11 +479,19 @@
       </template>
     </router-link>
 
-    <!-- Active session: a tile fixed to the bottom right, known once the sessions are read -->
-    <ActiveSessionButton v-if="localReady && activeSession" :session="activeSession" />
+    <!-- Active session: between the week and the templates, known once the sessions are read. Swipe left to cancel it. -->
+    <section v-if="localReady && activeSession" class="mt-8">
+      <div class="mb-4 flex items-baseline justify-between gap-3">
+        <h2 class="text-xl font-semibold text-white">Aktiv økt</h2>
+        <span class="text-xs text-dark-400 md:hidden">Sveip til venstre for å avbryte</span>
+      </div>
+      <SwipeableCard class="active-swipe" :show-swipe-hint="false" @delete="abandonActiveSession(activeSession.id)">
+        <ActiveSessionButton :session="activeSession" />
+      </SwipeableCard>
+    </section>
 
-    <!-- Workout Templates Section — extra room at the bottom on desktop so the tile never covers the last card -->
-    <div :class="['mt-8 pb-24', activeSession ? 'md:pb-20' : 'md:pb-0']">
+    <!-- Workout Templates Section -->
+    <div class="mt-8 pb-24 md:pb-0">
       <div class="mb-4 flex items-center justify-between">
         <h2 class="text-xl font-semibold text-white">Treningsøkter</h2>
         <router-link to="/template/create" class="btn-primary btn-sm inline-flex items-center gap-1.5" title="Opprett ny treningsøkt">
@@ -553,6 +582,12 @@
 </template>
 
 <style scoped>
+  /* The swipe wrapper takes the panel's corners, so the red cancel area behind it is clipped to match */
+  .active-swipe {
+    border-radius: 0.875rem;
+    overflow: hidden;
+  }
+
   /* ── Week summary card ───────────────────────────────────────────────────── */
 
   .week-card {

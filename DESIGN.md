@@ -186,9 +186,10 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 - **Reglene** ligger bak «Slik fungerer det ›»: alle ukesmålene innen søndag, hvert mål for seg (er du langt over på ett, veier det ikke opp for et annet), og ett mål som mangler når uka er over, starter streaken på nytt. De er lukket når siden åpnes.
 - **Forsiden** viser bare tallet, kjeden og «Rekord N». Streaken forklares bare i Ukesoversikt.
 
-### Flis for aktiv økt (forsiden)
+### Panel for aktiv økt (forsiden)
 
-- [ActiveSessionButton.vue](src/components/ActiveSessionButton.vue): fast nederst til høyre, over bunnmenyen, i arkets farger (`#1a2233`, kant `#2d3a4f`). En ring fylles oransje etter fullførte sett; navn, tid som klokke og «N av M sett». Bare kondisjon: hel cyan ring og «Aktiv tid».
+- [ActiveSessionButton.vue](src/components/ActiveSessionButton.vue): et eget panel med overskriften «Aktiv økt», mellom ukesoversikten og «Treningsøkter». Det har full bredde, i arkets farger (`#1a2233`, kant `#2d3a4f`) og med radius 0.875rem. En ring fylles oransje etter fullførte sett. Deretter kommer navn, tid som klokke og «N av M sett», og til slutt en pil. Bare kondisjon: hel cyan ring og «Aktiv tid». Et trykk åpner økta.
+- **Sveip til venstre for å avbryte** ([SwipeableCard.vue](src/components/SwipeableCard.vue)). Det spør først, og sletter så økta, som «Avbryt» inne i økta. Hintet «Sveip til venstre for å avbryte» står til høyre for overskriften, bare på mobil. På PC avbrytes økta med «Avbryt» i økta.
 - Bare på forsiden.
 
 ### Knapper

@@ -1557,7 +1557,7 @@ watch(() => route.params.id, async (newId, oldId) => {
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <!-- The only way to cancel a session on a phone since the home page's swipe-to-cancel card is gone.
+            <!-- Cancels the session from inside it; the home page's active-session panel can also be swiped to cancel.
                  Deleting is a red text button (DESIGN.md → Knapper), with a 44px tap target. -->
             <button
               type="button"

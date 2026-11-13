@@ -5,8 +5,9 @@
   import type { WorkoutExercise, WorkoutSession } from "@/types/workout";
 
   /**
-   * The active session as a tile fixed to the bottom right of the home page:
-   * name, time since start and logged sets, one tap back into the session.
+   * The active session as a panel on the home page, under the week: name, time
+   * since start and logged sets, one tap back into the session. The home page
+   * wraps it in a swipe-to-cancel.
    */
   const props = defineProps<{
     session: WorkoutSession;
@@ -15,7 +16,7 @@
   /**
    * Sets logged in the session live in its local copy (WorkoutSession's
    * `workout-session-<id>`) until the session is saved, so read that first —
-   * otherwise the tile could show fewer sets than the session itself after an
+   * otherwise the panel could show fewer sets than the session itself after an
    * app restart.
    */
   const readLocalExercises = (sessionId: string): WorkoutExercise[] | null => {
@@ -74,36 +75,26 @@
       </span>
       <span class="active-tile__detail">{{ detail }}</span>
     </span>
+    <svg class="active-tile__chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
   </router-link>
 </template>
 
 <style scoped>
-  /* Clears the bottom navigation on phones. The nav is ≈4.25rem of links; style.css adds up to
-     1.25rem padding in the installed app (0 on Android standalone, 1.25rem on iOS), so 6.25rem
-     plus the safe area leaves room in every mode. */
+  /* In the page's flow, full width; the look is the sheet colours the tile had */
   .active-tile {
-    position: fixed;
-    right: 1rem;
-    bottom: calc(6.25rem + env(safe-area-inset-bottom));
-    z-index: 45;
     display: flex;
     align-items: center;
-    gap: 0.625rem;
-    min-height: 3.25rem;
-    max-width: calc(100vw - 2rem);
-    padding: 0.5rem 0.875rem 0.5rem 0.625rem;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 3.75rem;
+    padding: 0.75rem 1rem 0.75rem 0.875rem;
     background: #1a2233;
     border: 1px solid #2d3a4f;
     border-radius: 0.875rem;
-    box-shadow: 0 10px 24px -8px rgb(0 0 0 / 0.7);
     color: #f1f5f9;
-  }
-
-  @media (min-width: 768px) {
-    .active-tile {
-      right: 1.5rem;
-      bottom: 1.5rem;
-    }
+    -webkit-tap-highlight-color: transparent;
   }
 
   .active-tile:active {
@@ -146,6 +137,7 @@
   }
 
   .active-tile__text {
+    flex: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -176,6 +168,13 @@
     font-size: 0.75rem;
     color: #94a3b8;
     font-variant-numeric: tabular-nums;
+  }
+
+  .active-tile__chevron {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    color: #64748b;
   }
 
   @media (prefers-reduced-motion: reduce) {
