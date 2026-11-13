@@ -20,7 +20,7 @@
        page colour and content starts below it. 2.75rem covered all of it but left too much air
        at the top; 1.75rem is the trade-off. 0 where there's no safe area (desktop); smaller on
        phones with a short status bar. The top line soft on the phone? Raise --top-band. */
-    --top-band: min(env(safe-area-inset-top, 0px), 1.25rem);
+    --top-band: min(env(safe-area-inset-top, 0px), 1rem);
     --top-bar: calc(env(safe-area-inset-top, 0px) + var(--top-band));
   }
 
