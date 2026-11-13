@@ -260,16 +260,17 @@ const saveNewVariant = async (exercise: ExerciseData) => {
         </div>
         <h1 class="text-2xl font-bold text-white">Øvelser</h1>
       </div>
-      <button class="exercises-view__create-btn" @click="openCreateForm">
+      <!-- The same small button as «Ny økt» on the home page -->
+      <button
+        type="button"
+        class="btn-primary btn-sm inline-flex flex-shrink-0 items-center gap-1.5"
+        title="Opprett ny øvelsesgruppe"
+        @click="openCreateForm"
+      >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 4v16m8-8H4"
-          />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
         </svg>
-        Ny gruppe
+        <span>Ny gruppe</span>
       </button>
     </header>
 
