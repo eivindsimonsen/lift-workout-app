@@ -14,12 +14,13 @@
     --safe-area-inset-left: env(safe-area-inset-left, 0px);
     --safe-area-inset-right: env(safe-area-inset-right, 0px);
 
-    /* iOS blurs a band under the status bar in the installed app, about 45pt deep (seen on
-       iOS 27; Chrome on iPhone too). --top-bar is the solid strip in App.vue: the status bar
-       plus that band, so the band only ever shows the page colour, and content starts below
-       it. 0 where there's no safe area (desktop); smaller on phones with a short status bar.
-       Still soft at the top on the phone? Raise --top-band. */
-    --top-band: min(env(safe-area-inset-top, 0px), 2.75rem);
+    /* iOS blurs a band under the status bar in the installed app (seen on iOS 27; Chrome on
+       iPhone too), strongest at the top and fading out about 45pt down. --top-bar is the solid
+       strip in App.vue: the status bar plus the strong part of that band, so it only shows the
+       page colour and content starts below it. 2.75rem covered all of it but left too much air
+       at the top; 1.75rem is the trade-off. 0 where there's no safe area (desktop); smaller on
+       phones with a short status bar. The top line soft on the phone? Raise --top-band. */
+    --top-band: min(env(safe-area-inset-top, 0px), 1.75rem);
     --top-bar: calc(env(safe-area-inset-top, 0px) + var(--top-band));
   }
 
