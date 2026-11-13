@@ -239,7 +239,7 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 - **Referansebredde:** 390 px, med 16 px sidemarg (`px-4` på `main`). Sjekk 320 px også.
 - **Trykkflater:** `style.css` gir alle knapper og felt minst 44 px. Bare tette rutenett der hver rute er et eget mål, som anstrengelse 1–10 og ukevelgeren, kan gå under, og da med `min-width: 0` / `min-height: 0` lokalt.
-- **Safe area:** bruk `env(safe-area-inset-bottom)` nederst i ark og faste elementer.
+- **Safe area:** bruk `env(safe-area-inset-bottom)` nederst i ark og faste elementer. Øverst brukes `var(--top-bar)` (style.css) i stedet for `env(safe-area-inset-top)`. Den dekker statuslinja pluss båndet iOS gjør uskarpt under den, og den tette stripen i App.vue er like høy. Alt som skal ligge øverst og være lesbart, starter under `--top-bar`.
 - **Bevegelse:** pulserende eller animerte detaljer slås av under `prefers-reduced-motion: reduce`.
 - **PWA:** appen skal fungere i alle store mobil- og desktopnettlesere, og som installert app.
 

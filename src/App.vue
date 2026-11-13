@@ -2,11 +2,12 @@
   <ErrorBoundary>
     <div class="min-h-screen bg-dark-900">
       <!-- The installed app is drawn under the iPhone status bar (black-translucent), so this strip
-           in the page colour keeps scrolled content from showing behind the clock. Above sticky page
+           in the page colour keeps scrolled content from showing behind the clock. It also covers
+           the band under the status bar that iOS blurs (--top-bar in style.css). Above sticky page
            headers (z-30), below sheets and modals (z-50+); 0px tall where there's no safe area. -->
       <div
         class="fixed inset-x-0 top-0 z-40 bg-dark-900"
-        style="height: env(safe-area-inset-top, 0px)"
+        style="height: var(--top-bar)"
         aria-hidden="true"
       ></div>
 
@@ -120,7 +121,7 @@
             v-if="isAuthenticated"
             :key="route.path"
             class="container mx-auto px-4 py-8 pb-32 md:pb-8"
-            style="padding-top: calc(0.25rem + env(safe-area-inset-top))"
+            style="padding-top: calc(0.25rem + var(--top-bar))"
             ref="mainContent"
           >
             <router-view />
@@ -131,7 +132,7 @@
             v-else
             key="non-authenticated"
             class="container mx-auto px-4 py-8"
-            style="padding-top: calc(0.25rem + env(safe-area-inset-top))"
+            style="padding-top: calc(0.25rem + var(--top-bar))"
           >
             <router-view />
           </main>
