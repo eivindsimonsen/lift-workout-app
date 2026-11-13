@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-dark-900 text-white font-sans;
+    @apply bg-dark-900 font-sans text-white;
   }
 
   /* PWA and mobile safe area handling */
@@ -20,7 +20,7 @@
        page colour and content starts below it. 2.75rem covered all of it but left too much air
        at the top; 1.75rem is the trade-off. 0 where there's no safe area (desktop); smaller on
        phones with a short status bar. The top line soft on the phone? Raise --top-band. */
-    --top-band: min(env(safe-area-inset-top, 0px), 1.75rem);
+    --top-band: min(env(safe-area-inset-top, 0px), 1.25rem);
     --top-bar: calc(env(safe-area-inset-top, 0px) + var(--top-band));
   }
 
@@ -110,13 +110,13 @@
   }
 
   /* Fix for iOS Safari input styling */
-  input[type="text"],
-  input[type="number"],
-  input[type="email"],
-  input[type="password"],
-  input[type="search"],
-  input[type="tel"],
-  input[type="url"] {
+  input[type='text'],
+  input[type='number'],
+  input[type='email'],
+  input[type='password'],
+  input[type='search'],
+  input[type='tel'],
+  input[type='url'] {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -174,10 +174,10 @@
     }
 
     /* Prevent zoom on input focus for iOS */
-    input[type="text"],
-    input[type="number"],
-    input[type="email"],
-    input[type="password"] {
+    input[type='text'],
+    input[type='number'],
+    input[type='email'],
+    input[type='password'] {
       font-size: 16px;
     }
 
@@ -196,7 +196,7 @@
     }
 
     /* Remove any safe area bottom padding in PWA */
-    nav.fixed.bottom-0[style*="padding-bottom"] {
+    nav.fixed.bottom-0[style*='padding-bottom'] {
       padding-bottom: 0px !important;
     }
 
@@ -424,7 +424,7 @@
   }
 
   /* Allow smaller checkboxes */
-  input[type="checkbox"] {
+  input[type='checkbox'] {
     min-height: auto;
     min-width: auto;
     appearance: none;
@@ -440,13 +440,13 @@
     transition: all 0.2s ease;
   }
 
-  input[type="checkbox"]:checked {
+  input[type='checkbox']:checked {
     background-color: #f97316; /* primary-500 */
     border-color: #f97316; /* primary-500 */
   }
 
-  input[type="checkbox"]:checked::after {
-    content: "";
+  input[type='checkbox']:checked::after {
+    content: '';
     position: absolute;
     left: 2px;
     top: 1px;
@@ -457,7 +457,7 @@
     transform: rotate(45deg);
   }
 
-  input[type="checkbox"]:focus {
+  input[type='checkbox']:focus {
     outline: none;
     ring: 2px;
     ring-color: #f97316; /* primary-500 */
@@ -472,7 +472,7 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-primary-500 hover:bg-primary-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
+    @apply rounded-lg bg-primary-500 px-6 py-3 font-medium text-white transition-colors duration-200 hover:bg-primary-600;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -488,11 +488,11 @@
   }
 
   .btn-primary:disabled {
-    @apply bg-dark-600 text-dark-400 cursor-not-allowed opacity-50;
+    @apply cursor-not-allowed bg-dark-600 text-dark-400 opacity-50;
   }
 
   .btn-secondary {
-    @apply bg-dark-700 hover:bg-dark-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
+    @apply rounded-lg bg-dark-700 px-6 py-3 font-medium text-white transition-colors duration-200 hover:bg-dark-600;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -508,11 +508,11 @@
   }
 
   .btn-secondary:disabled {
-    @apply bg-dark-800 text-dark-400 cursor-not-allowed opacity-50;
+    @apply cursor-not-allowed bg-dark-800 text-dark-400 opacity-50;
   }
 
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
+    @apply rounded-lg bg-red-600 px-6 py-3 font-medium text-white transition-colors duration-200 hover:bg-red-700;
     -webkit-appearance: none;
     appearance: none;
     border: 1px solid transparent;
@@ -525,7 +525,7 @@
   }
 
   .btn-danger:disabled {
-    @apply bg-dark-600 text-dark-400 cursor-not-allowed opacity-50;
+    @apply cursor-not-allowed bg-dark-600 text-dark-400 opacity-50;
   }
 
   /* Small button variant — opts out of the mobile 48px min-height enlargement */
@@ -536,7 +536,7 @@
   }
 
   .btn-danger-outline {
-    @apply text-red-500 font-medium py-3 px-6 rounded-lg transition-colors duration-200;
+    @apply rounded-lg px-6 py-3 font-medium text-red-500 transition-colors duration-200;
     -webkit-appearance: none;
     appearance: none;
     background: transparent;
@@ -551,17 +551,17 @@
 
   @media (hover: hover) and (pointer: fine) {
     .btn-danger-outline:hover {
-      @apply bg-red-950 border-red-500;
+      @apply border-red-500 bg-red-950;
     }
   }
 
   .btn-danger-outline:disabled {
-    @apply text-dark-400 cursor-not-allowed opacity-50;
+    @apply cursor-not-allowed text-dark-400 opacity-50;
     border-color: transparent;
   }
 
   .card {
-    @apply bg-dark-800 rounded-lg p-6 border border-dark-700;
+    @apply rounded-lg border border-dark-700 bg-dark-800 p-6;
   }
 
   /* Router link styling */
@@ -577,7 +577,7 @@
   }
 
   .input-field {
-    @apply bg-dark-700 border border-dark-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent;
+    @apply rounded-lg border border-dark-600 bg-dark-700 px-4 py-3 text-white focus:border-transparent focus:outline-none focus:ring-1 focus:ring-primary-500;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
