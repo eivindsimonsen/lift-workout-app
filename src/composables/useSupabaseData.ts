@@ -5,6 +5,7 @@ import { useIndexedDB } from "@/composables/useIndexedDB";
 import { useExercises } from "./useExercises";
 import type { WorkoutTemplate, WorkoutSession, ExerciseTrackingType } from "@/types/workout";
 import { isSetCounted, setDuration, setVolume, startingSetCount } from "./useSetMetrics";
+import { finalDurationMinutes, minutesSince } from "./longSession";
 
 // ------- tiny logger ----------
 const logSupabaseAccess = (operation: string, details?: any) => {
@@ -1110,7 +1111,8 @@ const createSupabaseData = () => {
     }
   };
 
-  const completeWorkoutSession = async (sessionId: string) => {
+  /** `durationMinutes` replaces the wall clock, for a session left running (see longSession.ts). */
+  const completeWorkoutSession = async (sessionId: string, durationMinutes?: number) => {
     logSupabaseAccess("Complete session", sessionId);
     try {
       const session = sessions.value.find((s) => s.id === sessionId);
@@ -1123,15 +1125,14 @@ const createSupabaseData = () => {
         }, 0)
       );
 
-      // Wall clock from start, unless the logged activity time says more — a
-      // 90-minute match logged afterwards took 90 minutes, not the one it took
-      // to type in.
-      const wallClockMinutes = Math.round((Date.now() - new Date(session.date).getTime()) / 60000);
+      // Wall clock from start (or the duration the user gave), unless the
+      // logged activity time says more.
+      const wallClockMinutes = minutesSince(session.date, Date.now());
       const activeSeconds = session.exercises.reduce(
         (sum, ex) => sum + ex.sets.reduce((s, set) => (isSetCounted(ex, set) ? s + setDuration(ex, set) : s), 0),
         0
       );
-      const duration = Math.max(wallClockMinutes, Math.round(activeSeconds / 60));
+      const duration = finalDurationMinutes(wallClockMinutes, activeSeconds, durationMinutes);
 
       const idx = sessions.value.findIndex((s) => s.id === sessionId);
       if (idx !== -1) {

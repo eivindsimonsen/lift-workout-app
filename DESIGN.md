@@ -225,7 +225,7 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 - Mens et ark er åpent, står siden bak helt stille ([useBodyScrollLock.ts](src/composables/useBodyScrollLock.ts)). `body` er låst, og sveip som arket ikke selv kan scrolle, blir avbrutt. Det gjelder sveip på bakgrunnen, og sveip i et ark som får plass. På iPhone går slike sveip ellers forbi den låste `body` og flytter siden.
 - Hover-stiler gjelder bare med mus (`hoverOnlyWhenSupported` i Tailwind, og `@media (hover: hover)` rundt egne `:hover`-regler). Ellers blir hover hengende på det som lå under fingeren når arket lukkes med et trykk.
 - Håndtaket øverst er en tynn strek, men hele toppen av arket er trykkflate for å lukke.
-- **Dra ned for å lukke** ([useSheetDrag.ts](src/composables/useSheetDrag.ts)) gjelder både dette arket og malarket på forsiden:
+- **Dra ned for å lukke** ([useSheetDrag.ts](src/composables/useSheetDrag.ts)) gjelder dette arket, arket for lang økt og malarket på forsiden:
   - Bare toppen kan gripes: streken og headeren. Den har `touch-action: none`, og resten av arket ruller og virker som før.
   - Arket følger fingeren, og bakgrunnen tones ut.
   - Det lukkes etter en fjerdedel av høyden eller ved et raskt sveip, og spretter ellers tilbake.
@@ -235,6 +235,12 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
   - Nye legges til med den tonede oransje knappen med +-ikon («+ Sett» / «+ Runde») under lista, med en kort oppsummering til venstre.
   - De slettes ved å sveipe raden til venstre, som viser en rød bakgrunn med søppelkasse.
   - Sveiper du bort den siste raden, fjernes hele øvelsen, med bekreftelse.
+- **Lang økt ved fullføring** ([LongSessionSheet.vue](src/components/LongSessionSheet.vue)):
+  - Når «Fullfør Økt» trykkes mer enn 3 timer etter start, kommer et ark i arkets farger i stedet for «Er du sikker?»-boksen.
+  - Arket har tittelen «Økta har vart i 24 t 39 min» og under den «Push · startet i går kl. 18:06».
+  - Så kommer en vennlig linje: «Oi, det var en usedvanlig lang økt! Stemmer det, eller glemte du å avslutte den?»
+  - Deretter kommer to felt for timer og minutter, fylt inn med snittet for malen ([longSession.ts](src/composables/longSession.ts)), og under dem «Lagre 1 t 5 min» (`btn-primary`).
+  - Nederst står tekstknappen «Ja, 24 t 39 min stemmer». Advarselen om ufullførte sett står som hjelpetekst.
 
 ## Mobil og berøring
 

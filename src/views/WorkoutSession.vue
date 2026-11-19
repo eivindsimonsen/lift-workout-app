@@ -10,6 +10,8 @@ import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import * as muscleGroupsData from '@/data/muscle-groups.json'
 import SlideOver from '@/components/SlideOver.vue'
 import CardioActivity from '@/components/CardioActivity.vue'
+import LongSessionSheet from '@/components/LongSessionSheet.vue'
+import { capRunningStints, isLongSession, minutesSince, templateAverageMinutes } from '@/composables/longSession'
 import { vibrate } from '@/composables/useHaptics'
 import { useSwipeToDelete } from '@/composables/useSwipeToDelete'
 import { useLongPressReorder } from '@/composables/useLongPressReorder'
@@ -19,6 +21,7 @@ import {
   isCardioExercise,
   isSetCounted,
   isSetLogged,
+  setDuration,
   setVolume,
   setProgressKg,
   setWeightText,
@@ -417,12 +420,24 @@ onUnmounted(() => clearInterval(clockTicker))
 const canComplete = computed(() => completedSets.value > 0 || anyCardioRunning.value)
 
 /** Banks every running stopwatch, so the logged time is final. */
-const stopCardioTimers = () => {
+/**
+ * With `durationMinutes` (the long-session sheet), a stint still running is cut
+ * to what's left of that duration after the time already banked: a stopwatch
+ * left running on a forgotten session would otherwise bank the whole stretch.
+ */
+const stopCardioTimers = (durationMinutes?: number) => {
   if (!session.value) return
   const stoppedAt = Date.now()
-  session.value.exercises.forEach(ex => {
-    if (isCardioExercise(ex)) pauseTimer(ex, stoppedAt)
-  })
+  const cardio = session.value.exercises.filter(ex => isCardioExercise(ex))
+  if (durationMinutes !== undefined) {
+    const running = cardio.flatMap(ex => ex.sets.filter(set => isSetRunning(set)))
+    const banked = cardio.reduce((sum, ex) => sum + ex.sets.reduce((s, set) => s + (Number(set.duration) || 0), 0), 0)
+    const stints = running.map(set => Math.max(0, (stoppedAt - (set.timerStartedAt as number)) / 1000))
+    const kept = capRunningStints(stints, banked, durationMinutes)
+    // Moving the start forward makes pauseTimer bank only what's kept
+    running.forEach((set, i) => { set.timerStartedAt = stoppedAt - kept[i] * 1000 })
+  }
+  cardio.forEach(ex => pauseTimer(ex, stoppedAt))
 }
 
 /**
@@ -985,6 +1000,15 @@ const updateAppSaveState = () => {
   window.dispatchEvent(updateEvent)
 }
 
+// Completing long after the start (usually a session left running) asks for the real duration
+const showLongSessionSheet = ref(false)
+const longSessionInfo = ref<{ elapsedMinutes: number; averageMinutes: number | null; loggedSeconds: number; removalNote: string | null }>({
+  elapsedMinutes: 0,
+  averageMinutes: null,
+  loggedSeconds: 0,
+  removalNote: null
+})
+
 const handleCompleteWorkout = () => {
   // A round whose clock is still running is kept: completing banks its time.
   const incompleteExercises = session.value?.exercises.filter(exercise =>
@@ -995,15 +1019,52 @@ const handleCompleteWorkout = () => {
     total + exercise.sets.filter(set => !set.isCompleted && !isSetRunning(set)).length, 0
   ) || 0
 
+  const removalNote = incompleteExercises.length > 0 || incompleteSets > 0
+    ? `Merk: ${incompleteExercises.length} ufullførte øvelser og ${incompleteSets} ufullførte sett vil bli fjernet fra økten før den lagres.`
+    : null
+
+  // The sheet replaces the confirm box, so the note about removed sets goes there
+  const elapsedMinutes = session.value ? minutesSince(session.value.date, Date.now()) : 0
+  if (session.value && isLongSession(elapsedMinutes)) {
+    // Cardio time already banked is kept whatever is entered; a running stint isn't (see stopCardioTimers)
+    const loggedSeconds = session.value.exercises.reduce(
+      (sum, ex) => sum + ex.sets.reduce((s, set) => (isSetCounted(ex, set) ? s + setDuration(ex, set) : s), 0),
+      0
+    )
+    longSessionInfo.value = {
+      elapsedMinutes,
+      averageMinutes: templateAverageMinutes(workoutData.sessions.value, session.value.templateId),
+      loggedSeconds,
+      removalNote
+    }
+    showLongSessionSheet.value = true
+    return
+  }
+
   let message = 'Er du sikker på at du vil fullføre økten?'
 
-  if (incompleteExercises.length > 0 || incompleteSets > 0) {
-    message += `\n\nMerk: ${incompleteExercises.length} ufullførte øvelser og ${incompleteSets} ufullførte sett vil bli fjernet fra økten før den lagres.`
+  if (removalNote) {
+    message += `\n\n${removalNote}`
   }
 
   if (confirm(message)) {
     completeWorkout()
   }
+}
+
+// The sheet stays tappable while it slides out, so a second tap must not complete twice
+
+/** «… stemmer»: save the time since the start, as without the sheet. */
+const keepLongSession = () => {
+  if (!showLongSessionSheet.value) return
+  showLongSessionSheet.value = false
+  completeWorkout()
+}
+
+const saveLongSession = (minutes: number) => {
+  if (!showLongSessionSheet.value) return
+  showLongSessionSheet.value = false
+  completeWorkout(minutes)
 }
 
 const handleAbandonWorkout = () => {
@@ -1067,7 +1128,8 @@ const abandonWorkout = async () => {
   }
 }
 
-const completeWorkout = async () => {
+/** `durationMinutes` replaces the time since the start (from the long-session sheet). */
+const completeWorkout = async (durationMinutes?: number) => {
   if (!session.value) return
 
   try {
@@ -1075,7 +1137,7 @@ const completeWorkout = async () => {
 
     // Bank running stopwatches and write them locally first — the local copy is
     // what gets saved below.
-    stopCardioTimers()
+    stopCardioTimers(durationMinutes)
     persistExercisesToLocal()
 
     const localChanges = getLocalChanges(sessionId)
@@ -1098,7 +1160,7 @@ const completeWorkout = async () => {
       exercises: exercisesToPersist
     })
 
-    await workoutData.completeWorkoutSession(sessionId)
+    await workoutData.completeWorkoutSession(sessionId, durationMinutes)
 
     clearLocalChanges(sessionId)
     console.log('✅ Workout completed and synced successfully')
@@ -2125,6 +2187,19 @@ watch(() => route.params.id, async (newId, oldId) => {
       </div>
     </Transition>
   </Teleport>
+
+  <LongSessionSheet
+    v-if="session"
+    :open="showLongSessionSheet"
+    :template-name="session.templateName"
+    :started-at="session.date"
+    :elapsed-minutes="longSessionInfo.elapsedMinutes"
+    :average-minutes="longSessionInfo.averageMinutes"
+    :logged-seconds="longSessionInfo.loggedSeconds"
+    :removal-note="longSessionInfo.removalNote"
+    @close="showLongSessionSheet = false"
+    @keep="keepLongSession"
+    @save="saveLongSession" />
 </template>
 
 <style scoped>
