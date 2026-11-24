@@ -5,9 +5,8 @@
   import { ref, computed, watch, onMounted } from "vue";
   import { useRoute, useRouter } from "vue-router";
   import { useHybridData } from "@/composables/useHybridData";
-  import { useWeekStats, WEEK_DAYS, getIsoWeekNumber, startOfIsoWeek, getTodayIndex } from "@/composables/useWeekStats";
+  import { useWeekStats, getIsoWeekNumber, startOfIsoWeek } from "@/composables/useWeekStats";
   import { useTrainingGoals } from "@/composables/useTrainingGoals";
-  import { useGoalStreak } from "@/composables/useGoalStreak";
   import Breadcrumbs from "@/components/Breadcrumbs.vue";
   import WeekGoalsSettings from "@/components/WeekGoalsSettings.vue";
   // Aliased: the local formatDuration takes minutes, this one takes seconds.
@@ -36,28 +35,6 @@
   // (which is shallow, top-level only) does not apply — `.value` is required
   // both here and in the template.
   const week = useWeekStats(weekOffset);
-
-  // ---------------------------------------------------------------------------
-  // Weekly goal streak — the current week only, with the rules behind a tap.
-  // The home page shows just the number and the chain; this is where it's explained.
-  // ---------------------------------------------------------------------------
-
-  const { ready: libraryReady, current: streakCurrent } = useGoalStreak();
-
-  /**
-   * Needs both the sessions and the exercise library, as on the home page, so a
-   * cold start never flashes "Start en ny streak" before the real number.
-   */
-  const streakReady = computed(() => workoutData.localDataReady.value && libraryReady.value);
-  // Captured once: the row fades in only when it replaces its placeholder.
-  const fadeStreak = !streakReady.value;
-
-  const showStreakRow = computed(() => week.isCurrentWeek.value && hasGoals.value);
-  const showStreakRules = ref(false);
-
-  const streakLabel = computed(() =>
-    streakCurrent.value > 0 ? `${streakCurrent.value} ${streakCurrent.value === 1 ? "uke" : "uker"} på rad` : "Start en ny streak",
-  );
 
   // ---------------------------------------------------------------------------
   // Week navigation
@@ -121,13 +98,28 @@
    * against a whole week reads as a drop every Monday, so it shows last week's
    * figure instead, as something to aim for rather than a verdict.
    * Null when last week had nothing to compare against.
+   *
+   * `lowerIsBetter` flips the colours (pace: fewer seconds per km is faster). For
+   * such a figure 0 means there is no value, not the best one, so a finished
+   * week without it gets no comparison.
    */
-  const vsLastWeek = (current: number, previous: number, format: (value: number) => string): StatComparison => {
+  const vsLastWeek = (
+    current: number,
+    previous: number,
+    format: (value: number) => string,
+    { lowerIsBetter = false }: { lowerIsBetter?: boolean } = {},
+  ): StatComparison => {
     if (previous <= 0) return null;
     if (week.isCurrentWeek.value) return { text: `forrige uke ${format(previous)}`, tone: "muted" };
+    if (lowerIsBetter && current <= 0) return null;
     const pct = Math.round(((current - previous) / previous) * 100);
-    return { text: formatChange(pct), tone: pct >= 0 ? "up" : "down" };
+    const better = lowerIsBetter ? pct <= 0 : pct >= 0;
+    return { text: formatChange(pct), tone: better ? "up" : "down" };
   };
+
+  /** Seconds per km; 0 when there's no distance to divide by. */
+  const paceSecondsPerKm = (seconds: number, metres: number): number => (seconds > 0 && metres > 0 ? (seconds / metres) * 1000 : 0);
+  const formatPaceValue = (secondsPerKm: number): string => formatPace(secondsPerKm, 1000) ?? "–";
 
   // ---------------------------------------------------------------------------
   // Derived view data
@@ -163,7 +155,7 @@
       figures.push(
         { key: "sets", label: "Sett", value: String(t.sets), comparison: vsLastWeek(t.sets, prev.sets, String) },
         { key: "reps", label: "Reps", value: formatNumber(t.reps), comparison: vsLastWeek(t.reps, prev.reps, formatNumber) },
-        { key: "avgVolume", label: "Snitt volum (kg)", value: formatNumber(t.avgVolumePerWorkout), comparison: null },
+        { key: "avgVolume", label: "Snitt volum (kg)", value: formatNumber(t.avgVolumePerWorkout), comparison: vsLastWeek(t.avgVolumePerWorkout, prev.avgVolumePerWorkout, formatNumber) },
         { key: "volume", label: "Volum (kg)", value: formatNumber(t.volume), comparison: vsLastWeek(t.volume, prev.volume, formatNumber) },
       );
     }
@@ -172,7 +164,15 @@
         { key: "cardioTime", label: "Kondisjonstid", value: formatSeconds(t.cardioSeconds), comparison: vsLastWeek(t.cardioSeconds, prev.cardioSeconds, formatSeconds), cardio: true },
         // formatDistance shows "–" for zero.
         { key: "cardioDistance", label: "Distanse", value: formatDistance(t.cardioMetres), comparison: vsLastWeek(t.cardioMetres, prev.cardioMetres, formatDistance), cardio: true },
-        { key: "cardioPace", label: "Snitt tempo", value: formatPace(t.cardioSeconds, t.cardioMetres) ?? "–", comparison: null, cardio: true },
+        {
+          key: "cardioPace",
+          label: "Snitt tempo",
+          value: formatPace(t.cardioSeconds, t.cardioMetres) ?? "–",
+          comparison: vsLastWeek(paceSecondsPerKm(t.cardioSeconds, t.cardioMetres), paceSecondsPerKm(prev.cardioSeconds, prev.cardioMetres), formatPaceValue, {
+            lowerIsBetter: true,
+          }),
+          cardio: true,
+        },
       );
     }
     return figures;
@@ -191,7 +191,6 @@
 
   const isLoadingExercises = computed(() => workoutData.isLoadingExercises.value);
 
-  const maxDailyVolume = computed(() => Math.max(0, ...week.dailyVolume.value.map((d) => d.volume)));
   const maxDailyCardio = computed(() => Math.max(0, ...week.dailyVolume.value.map((d) => d.cardioSeconds)));
 
 
@@ -221,12 +220,6 @@
   /** Only meaningful once at least one rep has been logged. */
   const showRepRanges = computed(() => week.totals.value.reps > 0);
 
-  const dayState = (idx: number): "done" | "today" | "past" | "future" => {
-    if (week.trainedDayIndices.value.has(idx)) return "done";
-    if (!week.isCurrentWeek.value) return "past";
-    if (idx === getTodayIndex()) return "today";
-    return idx < getTodayIndex() ? "past" : "future";
-  };
 </script>
 
 <template>
@@ -234,7 +227,7 @@
     <Breadcrumbs
       :breadcrumbs="[
         { name: 'Økter', path: '/' },
-        { name: 'Ukesoversikt' },
+        { name: 'Ukesmål' },
       ]" />
 
     <!-- Header -->
@@ -315,50 +308,20 @@
     </div>
 
     <template v-else>
-      <!-- Day track -->
-      <div class="wk-card">
-        <div class="wk-days">
-          <div v-for="(label, i) in WEEK_DAYS" :key="label" class="wk-day">
-            <div :class="['wk-day__dot', `wk-day__dot--${dayState(i)}`]">
-              <svg v-if="dayState(i) === 'done'" class="wk-day__check" viewBox="0 0 10 10" fill="none">
-                <path d="M2 5.5l2.2 2.2 3.8-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </div>
-            <span class="wk-day__label">{{ label }}</span>
-          </div>
+      <!-- Goals CTA: in every week without goals, empty ones too, so a new user finds them -->
+      <button
+        v-if="!hasGoals"
+        type="button"
+        class="wk-cta"
+        @click="showSettings = true">
+        <div class="wk-cta__body">
+          <span class="wk-cta__title">Sett opp ukesmål</span>
+          <span class="wk-cta__desc">Velg treningsplan og mål for sett per muskelgruppe, så ser du hvor du ligger an.</span>
         </div>
-      </div>
-
-      <!-- Weekly goal streak: the current week only, the rules behind a tap -->
-      <section v-if="showStreakRow" class="wk-card wk-streak">
-        <div class="wk-streak__row">
-          <svg class="wk-streak__flame" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
-          </svg>
-
-          <!-- The streak needs the sessions and the exercise library; until then a placeholder, so no wrong number flashes by -->
-          <span v-if="streakReady" :class="['wk-streak__text', { 'fade-in': fadeStreak }]">
-            <span class="wk-streak__label">{{ streakLabel }}</span>
-          </span>
-          <span v-else class="wk-streak__text" aria-hidden="true">
-            <span class="wk-streak__label"><span class="wk-streak__ph skeleton w-24"></span></span>
-          </span>
-
-          <button type="button" class="wk-streak__how" :aria-expanded="showStreakRules" @click="showStreakRules = !showStreakRules">
-            Slik fungerer det
-            <svg class="wk-streak__chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-
-        <ul v-if="showStreakRules" class="wk-streak__rules">
-          <li><span>Nå <strong>alle ukesmålene innen søndag</strong>, så øker streaken med én.</span></li>
-          <li><span>Hvert mål teller for seg. Er du langt over på ett, veier det ikke opp for et annet.</span></li>
-          <li><span>Mangler ett mål når uka er over, starter streaken på nytt.</span></li>
-        </ul>
-      </section>
+        <svg class="w-5 h-5 text-primary-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
 
       <!-- Empty week -->
       <div v-if="!hasSessions" class="wk-card wk-empty">
@@ -385,21 +348,6 @@
             </span>
           </div>
         </div>
-
-        <!-- Goals CTA -->
-        <button
-          v-if="!hasGoals"
-          type="button"
-          class="wk-cta"
-          @click="showSettings = true">
-          <div class="wk-cta__body">
-            <span class="wk-cta__title">Sett opp ukesmål</span>
-            <span class="wk-cta__desc">Velg treningsplan og mål for sett per muskelgruppe, så ser du hvor du ligger an.</span>
-          </div>
-          <svg class="w-5 h-5 text-primary-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
 
         <!-- Strength goal: sets per muscle group, volume per day, then rep ranges -->
         <section v-if="showStrengthPanel" class="wk-card">
@@ -460,26 +408,6 @@
           <p v-else-if="week.unresolvedSets.value > 0" class="wk-note">
             {{ week.unresolvedSets.value }} sett er ikke fordelt på muskelgruppe — øvelsen finnes ikke lenger i øvelsesbiblioteket.
           </p>
-
-          <div class="wk-daily">
-            <div class="wk-daily__head">
-              <span class="wk-daily__name">Volum per dag</span>
-              <span v-if="maxDailyVolume > 0" class="wk-daily__max">maks {{ formatNumber(maxDailyVolume) }} kg</span>
-            </div>
-            <div class="wk-bars">
-              <div v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar">
-                <div class="wk-bar__track">
-                  <div
-                    class="wk-bar__fill"
-                    :style="{ height: barHeight(day.volume, maxDailyVolume) }"
-                    :title="`${day.label}: ${formatNumber(day.volume)} kg`"></div>
-                </div>
-              </div>
-            </div>
-            <div class="wk-bars wk-bars--labels">
-              <span v-for="day in week.dailyVolume.value" :key="day.dayIdx" class="wk-bar__label">{{ day.label }}</span>
-            </div>
-          </div>
 
           <div v-if="showRepRanges" class="wk-sub">
             <span class="wk-sub__title">Rep-områder</span>
@@ -714,64 +642,6 @@
     border-color: #f97316;
   }
 
-  /* ── Day track ───────────────────────────────────────────────────────────── */
-
-  .wk-days {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.25rem;
-  }
-
-  .wk-day {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.3125rem;
-    flex: 1;
-  }
-
-  .wk-day__dot {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .wk-day__dot--done {
-    background: #f97316;
-    color: #fff;
-  }
-
-  .wk-day__dot--today {
-    background: transparent;
-    border: 2px solid #f97316;
-    box-shadow: 0 0 0 3px #f9731618;
-  }
-
-  .wk-day__dot--past {
-    background: #1f2937;
-  }
-
-  .wk-day__dot--future {
-    background: #111827;
-    border: 1px solid #1f2937;
-  }
-
-  .wk-day__check {
-    width: 0.875rem;
-    height: 0.875rem;
-  }
-
-  .wk-day__label {
-    font-size: 0.625rem;
-    font-weight: 500;
-    color: #4b5563;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
   /* ── Key figures ─────────────────────────────────────────────────────────── */
 
   .wk-stats {
@@ -848,110 +718,6 @@
   }
 
   /* ── Goals CTA ───────────────────────────────────────────────────────────── */
-
-  /* ── Weekly goal streak ──────────────────────────────────────────────────── */
-
-  /* Less padding on top and bottom: the 44px button sets the row's height */
-  .wk-streak {
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
-  }
-
-  .wk-streak__row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .wk-streak__flame {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-    color: #f97316;
-  }
-
-  /* Wraps rather than squeezing the button on a narrow phone */
-  .wk-streak__text {
-    flex: 1;
-    min-width: 0;
-    line-height: 1.35;
-  }
-
-  .wk-streak__label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #f1f5f9;
-  }
-
-  .wk-streak__how {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    min-height: 2.75rem;
-    padding: 0;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #94a3b8;
-    white-space: nowrap;
-    background: none;
-    border: 0;
-  }
-
-  .wk-streak__chevron {
-    width: 0.875rem;
-    height: 0.875rem;
-    transition: transform 0.2s;
-  }
-
-  .wk-streak__how[aria-expanded="true"] .wk-streak__chevron {
-    transform: rotate(90deg);
-  }
-
-  .wk-streak__rules {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-    margin: 0.25rem 0 0.75rem;
-    padding: 0.75rem 0 0;
-    list-style: none;
-    border-top: 1px solid #1f2937;
-  }
-
-  .wk-streak__rules li {
-    display: flex;
-    gap: 0.5rem;
-    font-size: 0.75rem;
-    line-height: 1.45;
-    color: #94a3b8;
-  }
-
-  .wk-streak__rules li::before {
-    content: "";
-    width: 0.25rem;
-    height: 0.25rem;
-    margin-top: 0.45rem;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: #475569;
-  }
-
-  .wk-streak__rules strong {
-    font-weight: 600;
-    color: #e2e8f0;
-  }
-
-  .wk-streak__ph {
-    display: inline-block;
-    height: 0.7em;
-    vertical-align: middle;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .wk-streak__chevron {
-      transition: none;
-    }
-  }
 
   .wk-cta {
     width: 100%;
@@ -1080,7 +846,7 @@
     color: #64748b;
   }
 
-  /* ── Daily volume bars ───────────────────────────────────────────────────── */
+  /* ── Per-day bars (cardio) ───────────────────────────────────────────────── */
 
   .wk-bars {
     display: flex;

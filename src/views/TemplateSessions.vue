@@ -9,6 +9,8 @@
   import NetworkStatus from "@/components/NetworkStatus.vue";
   import TemplateCard from "@/components/TemplateCard.vue";
   import TemplateSheet from "@/components/TemplateSheet.vue";
+  import StreakInfoSheet from "@/components/StreakInfoSheet.vue";
+  import WeekGoalsSettings from "@/components/WeekGoalsSettings.vue";
   import ActiveSessionButton from "@/components/ActiveSessionButton.vue";
   import SwipeableCard from "@/components/SwipeableCard.vue";
   import { vibrate } from "@/composables/useHaptics";
@@ -103,10 +105,6 @@
   const PLACEHOLDER_NAME_WIDTHS = ["w-20", "w-16", "w-24", "w-14"];
 
   // Methods
-  const formatNumber = (num: number): string => {
-    return new Intl.NumberFormat("no-NO").format(Math.round(num));
-  };
-
   const getMotivationalText = (): string => {
     const texts = ["Gjør deg klar!", "Fokus!", "Nesten der!", "Løft!"];
     return texts[4 - countdownNumber.value] || "Gjør deg klar!";
@@ -216,7 +214,7 @@
   // Weekly summary — the detailed breakdown lives on /week
   // ---------------------------------------------------------------------------
 
-  const { weekNumber, trainedDayIndices, totals: weekTotals, setsGoalProgress, cardioGoalProgress } = useWeekStats(0);
+  const { weekNumber, trainedDayIndices } = useWeekStats(0);
 
   const todayIdx = computed(() => getTodayIndex());
 
@@ -253,7 +251,7 @@
 
   const weeksLabel = (n: number): string => (n === 1 ? "uke på rad" : "uker på rad");
 
-  /** Only the record, when it's higher; how to keep the streak is explained in Ukesoversikt. */
+  /** Only the record, when it's higher; how to keep the streak is explained in the sheet behind the (i). */
   const streakMeta = computed(() => (streakBest.value > streakCurrent.value ? `Rekord ${streakBest.value}` : ""));
 
   const chainLabel = computed(() => {
@@ -290,6 +288,16 @@
   const displayedStreak = computed(() => (celebrationPhase.value === "before" ? streakCurrent.value - 1 : streakCurrent.value));
 
   const isLinkMet = (link: ChainLink): boolean => link.approved && !(link.isCurrent && celebrationPhase.value === "before");
+
+  // The (i) after the streak opens its rules; the rules sheet and the no-goals line lead to the goal settings
+  const showStreakInfo = ref(false);
+  const showGoalSettings = ref(false);
+
+  /** From the rules sheet: close it first, so the settings aren't opened behind it. */
+  const openGoalSettings = () => {
+    showStreakInfo.value = false;
+    showGoalSettings.value = true;
+  };
 
   // ---------------------------------------------------------------------------
   // Template tiles and their sheet
@@ -336,11 +344,17 @@
       </div>
     </div>
 
-    <!-- ── Weekly summary → full breakdown on /week ────────────────────────── -->
-    <router-link to="/week" class="week-card">
-      <!-- Header row -->
-      <div class="week-card__header">
-        <span class="week-card__title">Denne uken</span>
+    <!-- ── Weekly goals → full breakdown on /week ─────────────────────────── -->
+    <section class="week-card">
+      <!--
+        The link is a layer over the whole panel rather than its wrapper, so the
+        (i) and «Sett opp» can sit above it as buttons of their own.
+      -->
+      <router-link to="/week" class="week-card__open" :aria-label="`Ukesmål, uke ${weekNumber}`"></router-link>
+
+      <!-- Header row: hidden from screen readers, the link above already reads «Ukesmål, uke N» -->
+      <div class="week-card__header" aria-hidden="true">
+        <span class="week-card__title">Ukesmål</span>
         <span class="week-card__nav">
           <span class="week-card__badge">Uke {{ weekNumber }}</span>
           <svg class="week-card__chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,7 +391,15 @@
             {{ displayedStreak }}
           </span>
           <span class="week-card__streak-text">
-            <span class="week-card__streak-label">{{ streakCurrent > 0 ? weeksLabel(displayedStreak) : "Start en ny streak" }}</span>
+            <span class="week-card__streak-label">
+              {{ streakCurrent > 0 ? weeksLabel(displayedStreak) : "Start en ny streak"
+              }}<button type="button" class="week-card__info" aria-label="Slik fungerer streaken" @click="showStreakInfo = true">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9.5" stroke-width="2.25" />
+                  <path stroke-linecap="round" stroke-width="2.75" d="M12 11v5.5M12 7.5h.01" />
+                </svg>
+              </button>
+            </span>
             <span v-if="streakMeta" class="week-card__streak-meta">{{ streakMeta }}</span>
           </span>
         </div>
@@ -396,95 +418,32 @@
         <div v-for="(label, i) in WEEK_DAYS" :key="label" class="week-card__day">
           <div v-if="!localReady" class="week-card__dot skeleton skeleton--circle"></div>
           <div v-else :class="['week-card__dot', `week-card__dot--${getDayState(i)}`, { 'fade-in': fadeLocal }]">
-            <svg v-if="getDayState(i) === 'done'" class="week-card__dot-check" viewBox="0 0 10 10" fill="none">
+            <svg v-if="getDayState(i) === 'done'" class="week-card__dot-check" viewBox="0 0 10 10" fill="none" aria-hidden="true">
               <path d="M2 5.5l2.2 2.2 3.8-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
+          <!-- The check is hidden from screen readers; the day says it in words instead -->
           <span :class="['week-card__day-label', { 'week-card__day-label--today': i === todayIdx }]">
-            {{ label }}
+            {{ label }}<span v-if="localReady && getDayState(i) === 'done'" class="sr-only">, trent</span>
           </span>
         </div>
       </div>
 
       <!--
-        With goals the card ends at the day track: what's left this week lives in
-        Ukesoversikt, and each template tile shows what it adds. setsGoalProgress
-        also has a target when goals exist, so the fallbacks are fenced off here.
+        With goals the card ends at the day track: what is left this week lives on
+        the Ukesmål page, and each template tile shows what it adds. Without goals
+        a single line says they exist and opens the settings.
       -->
-      <template v-if="!hasGoals">
-        <!-- Without goals: placeholder for the plain totals until the sessions are read -->
-        <div v-if="!localReady" class="week-card__stats" aria-hidden="true">
-          <div class="week-card__stat">
-            <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-6"></span></span>
-            <span class="week-card__stat-label">Økter</span>
-          </div>
-          <div class="week-card__stat-divider"></div>
-          <div class="week-card__stat">
-            <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-12"></span></span>
-            <span class="week-card__stat-label">Volum (kg)</span>
-          </div>
-          <div class="week-card__stat-divider"></div>
-          <div class="week-card__stat">
-            <span class="week-card__stat-value"><span class="week-card__ph-bar skeleton w-6"></span></span>
-            <span class="week-card__stat-label">Sett</span>
-          </div>
-        </div>
-
-        <!-- Progress toward this week's goal (only without a goal plan; with one the streak covers it) -->
-        <div v-else-if="setsGoalProgress.hasTarget" class="week-card__goal">
-          <div class="week-card__goal-head">
-            <span class="week-card__goal-label">Ukens sett</span>
-            <span class="week-card__goal-count">
-              <strong>{{ setsGoalProgress.done }}</strong> / {{ setsGoalProgress.target }}
-            </span>
-          </div>
-          <div class="week-card__goal-bar">
-            <div class="week-card__goal-fill" :style="{ width: setsGoalProgress.percentage + '%' }"></div>
-          </div>
-          <span class="week-card__goal-pct">{{ setsGoalProgress.percentage }} % av målet</span>
-        </div>
-
-        <div v-else-if="cardioGoalProgress.hasTarget" class="week-card__goal">
-          <div class="week-card__goal-head">
-            <span class="week-card__goal-label">{{ cardioGoalProgress.minutesTarget > 0 ? 'Ukens kondisjon' : 'Ukens distanse' }}</span>
-            <span class="week-card__goal-count">
-              <template v-if="cardioGoalProgress.minutesTarget > 0">
-                <strong>{{ cardioGoalProgress.minutesDone }}</strong> / {{ cardioGoalProgress.minutesTarget }} min
-              </template>
-              <template v-else>
-                <strong>{{ cardioGoalProgress.kmDone }}</strong> / {{ cardioGoalProgress.kmTarget }} km
-              </template>
-            </span>
-          </div>
-          <div class="week-card__goal-bar">
-            <div
-              class="week-card__goal-fill week-card__goal-fill--cardio"
-              :style="{ width: (cardioGoalProgress.minutesTarget > 0 ? cardioGoalProgress.minutesPct : cardioGoalProgress.kmPct) + '%' }"></div>
-          </div>
-          <span class="week-card__goal-pct">
-            {{ cardioGoalProgress.minutesTarget > 0 ? cardioGoalProgress.minutesPct : cardioGoalProgress.kmPct }} % av målet
-          </span>
-        </div>
-
-        <!-- No goals set yet — plain totals instead -->
-        <div v-else :class="['week-card__stats', { 'fade-in': fadeLocal }]">
-          <div class="week-card__stat">
-            <span class="week-card__stat-value">{{ weekTotals.workouts }}</span>
-            <span class="week-card__stat-label">Økter</span>
-          </div>
-          <div class="week-card__stat-divider"></div>
-          <div class="week-card__stat">
-            <span class="week-card__stat-value">{{ formatNumber(weekTotals.volume) }}</span>
-            <span class="week-card__stat-label">Volum (kg)</span>
-          </div>
-          <div class="week-card__stat-divider"></div>
-          <div class="week-card__stat">
-            <span class="week-card__stat-value">{{ weekTotals.sets }}</span>
-            <span class="week-card__stat-label">Sett</span>
-          </div>
-        </div>
-      </template>
-    </router-link>
+      <p v-if="!hasGoals" class="week-card__setup">
+        Ingen ukesmål ennå.
+        <button type="button" class="week-card__setup-btn" @click="showGoalSettings = true">
+          Sett opp
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </p>
+    </section>
 
     <!-- Active session: between the week and the templates, known once the sessions are read. Swipe left to cancel it. -->
     <section v-if="localReady && activeSession" class="mt-8">
@@ -556,6 +515,15 @@
       @close="openTemplateId = null"
       @start="startFromSheet" />
 
+    <StreakInfoSheet
+      :open="showStreakInfo"
+      :current="streakCurrent"
+      :best="streakBest"
+      @close="showStreakInfo = false"
+      @edit-goals="openGoalSettings" />
+
+    <WeekGoalsSettings v-model:visible="showGoalSettings" />
+
     <!-- Countdown Modal -->
     <div v-if="showCountdown" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50" @click="cancelCountdown">
       <div class="w-full h-full flex flex-col items-center justify-center text-center p-8" @click.stop>
@@ -603,14 +571,29 @@
     background: #111827;
     border: 1px solid #1f2937;
     border-radius: 1rem;
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+  }
+
+  /* The link to /week covers the whole panel, border included, and draws the pressed border itself */
+  .week-card__open {
+    position: absolute;
+    inset: -1px;
+    z-index: 1;
+    border: 1px solid transparent;
+    border-radius: inherit;
     transition: border-color 0.15s;
   }
 
-  .week-card:active {
+  .week-card__open:active {
     border-color: #334155;
+  }
+
+  .week-card__open:focus-visible {
+    outline: 2px solid #f97316;
+    outline-offset: 2px;
   }
 
   .week-card__header {
@@ -714,65 +697,48 @@
     font-weight: 700;
   }
 
-  /* ── Goal progress ───────────────────────────────────────────────────────── */
+  /* ── Without goals: one line that opens the settings ────────────────────── */
 
-  .week-card__goal {
+  .week-card__setup {
     display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-    padding: 0.875rem;
-    background: #0d1117;
-    border: 1px solid #1f2937;
-    border-radius: 0.75rem;
-  }
-
-  .week-card__goal-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-  }
-
-  .week-card__goal-label {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: #4b5563;
-  }
-
-  .week-card__goal-count {
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.25rem;
+    margin: -0.5rem 0 -0.75rem;
     font-size: 0.8125rem;
-    color: #64748b;
-    font-variant-numeric: tabular-nums;
+    color: #94a3b8;
   }
 
-  .week-card__goal-count strong {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: #fff;
+  /* Above the link layer, so it opens the settings instead of the week */
+  .week-card__setup-btn {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #fdba74;
+    background: none;
+    border: 0;
   }
 
-  .week-card__goal-bar {
-    height: 0.5rem;
-    background: #1f2937;
-    border-radius: 999px;
-    overflow: hidden;
+  .week-card__setup-btn svg {
+    width: 0.875rem;
+    height: 0.875rem;
   }
 
-  .week-card__goal-fill {
-    height: 100%;
-    background: #f97316;
-    border-radius: 999px;
-    transition: width 0.35s ease-out;
+  /* Pressed: the full orange accent, so the tap registers before the settings open */
+  .week-card__setup-btn:active {
+    color: #f97316;
   }
 
-  .week-card__goal-fill--cardio {
-    background: #06b6d4;
-  }
-
-  .week-card__goal-pct {
-    font-size: 0.6875rem;
-    color: #4b5563;
+  /* style.css removes the focus outline on buttons; keyboard users still need one */
+  .week-card__setup-btn:focus-visible {
+    outline: 2px solid #f97316;
+    outline-offset: 2px;
+    border-radius: 0.25rem;
   }
 
   /* ── Weekly goal streak ──────────────────────────────────────────────────── */
@@ -827,6 +793,53 @@
     color: #f1f5f9;
   }
 
+  /*
+   * The (i): a footnote-sized mark after the label, above the link layer. It
+   * looks 12px but its tap area is an invisible 44px circle, so it opts out
+   * of the global 44px minimum on buttons.
+   */
+  .week-card__info {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    min-width: 0;
+    min-height: 0;
+    margin-left: 0.1875rem;
+    padding: 0;
+    line-height: 0;
+    vertical-align: super;
+    color: #64748b;
+    background: none;
+    border: 0;
+  }
+
+  .week-card__info::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .week-card__info svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  /* Pressed: a step lighter, so the tap registers before the sheet slides up */
+  .week-card__info:active {
+    color: #94a3b8;
+  }
+
+  .week-card__info:focus-visible {
+    outline: 2px solid #f97316;
+    outline-offset: 2px;
+    border-radius: 50%;
+  }
+
   .week-card__streak-meta {
     font-size: 0.75rem;
     color: #64748b;
@@ -870,50 +883,6 @@
     .week-card__link {
       transition: none;
     }
-  }
-
-  /* ── Stats row (fallback when no goals are set) ──────────────────────────── */
-
-  .week-card__stats {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    background: #0d1117;
-    border: 1px solid #1f2937;
-    border-radius: 0.75rem;
-    overflow: hidden;
-  }
-
-  .week-card__stat {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0.75rem 0.5rem;
-    gap: 0.125rem;
-  }
-
-  .week-card__stat-divider {
-    width: 1px;
-    height: 2.5rem;
-    background: #1f2937;
-    flex-shrink: 0;
-  }
-
-  .week-card__stat-value {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #fff;
-    line-height: 1;
-  }
-
-  .week-card__stat-label {
-    font-size: 0.625rem;
-    font-weight: 500;
-    color: #4b5563;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    text-align: center;
   }
 
   /* ── Placeholders while loading ──────────────────────────────────────────── */

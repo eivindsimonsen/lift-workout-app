@@ -134,7 +134,7 @@ const MAX_SESSIONS_PER_WEEK = 14;
 const MAX_CARDIO_MINUTES = 2000;
 const MAX_CARDIO_KM = 500;
 
-/** No plan chosen yet — the UI falls back to plain totals instead of showing 0 / 84. */
+/** No plan chosen yet — no targets are shown (never 0 / 84): the home page offers «Sett opp», the Ukesmål page plain totals. */
 export const EMPTY_GOALS: TrainingGoals = Object.freeze({
   planId: "none",
   sessionsPerWeek: 0,

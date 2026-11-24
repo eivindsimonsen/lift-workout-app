@@ -125,7 +125,7 @@
     draft.value = buildFromPlan(planId);
   };
 
-  /** Turns goal tracking off entirely — the week card falls back to plain totals. */
+  /** Turns goal tracking off entirely — the home page then offers «Sett opp» instead of the streak, and the Ukesmål page shows plain totals. */
   const clearGoals = () => {
     draft.value = { planId: "none", sessionsPerWeek: 0, setsPerMuscleGroup: {}, cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 } };
   };

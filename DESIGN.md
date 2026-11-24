@@ -1,6 +1,6 @@
 # DESIGN.md
 
-Designstilen for LIFT. Nye sider, og sider som tegnes om, følger dette. Fasiten er **Ukesoversikt** ([WeekDetails.vue](src/views/WeekDetails.vue)), **Øktdetaljer** ([SessionDetails.vue](src/views/SessionDetails.vue)), **Historikk** ([History.vue](src/views/History.vue)), **Øvelsesdetaljer** ([ExerciseDetail.vue](src/views/ExerciseDetail.vue)), **Statistikk** ([Stats.vue](src/views/Stats.vue)) og **Profil** ([Profile.vue](src/views/Profile.vue)). Står noe her i strid med de sidene, er det dokumentet som skal rettes.
+Designstilen for LIFT. Nye sider, og sider som tegnes om, følger dette. Fasiten er **Ukesmål** ([WeekDetails.vue](src/views/WeekDetails.vue)), **Øktdetaljer** ([SessionDetails.vue](src/views/SessionDetails.vue)), **Historikk** ([History.vue](src/views/History.vue)), **Øvelsesdetaljer** ([ExerciseDetail.vue](src/views/ExerciseDetail.vue)), **Statistikk** ([Stats.vue](src/views/Stats.vue)) og **Profil** ([Profile.vue](src/views/Profile.vue)). Står noe her i strid med de sidene, er det dokumentet som skal rettes.
 
 Bare innloggingssidene bruker fortsatt den gamle `.card`-stilen. Se [Kjente avvik](#kjente-avvik) nederst.
 
@@ -47,7 +47,7 @@ Fargene er i dag hex-verdier i scoped CSS, ikke variabler. Bruk verdiene under, 
 | Pause | `#f59e0b` | Bare som tilstand på klokka |
 
 - **Muskelgrupper** har faste farger i [muscle-groups.json](src/data/muscle-groups.json). Hent fargene derfra, ikke hardkod dem.
-- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). Malfargen brukes på malflisa og i arket for malen, i panelet for aktiv økt, som prikk i Historikk og under «Økter denne uken» i Ukesoversikt, og i kalenderen i Statistikk. En mal uten farge, og en økt fra en slettet mal, er grå `#475569` — unntatt i kalenderen, der de blir oransje så en treningsdag aldri ser utrent ut, og i panelet for aktiv økt, der de blir oransje (cyan for bare kondisjon) så panelet aldri ser dødt ut.
+- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). Malfargen brukes på malflisa og i arket for malen, i panelet for aktiv økt, som prikk i Historikk og under «Økter denne uken» på Ukesmål-siden, og i kalenderen i Statistikk. En mal uten farge, og en økt fra en slettet mal, er grå `#475569` — unntatt i kalenderen, der de blir oransje så en treningsdag aldri ser utrent ut, og i panelet for aktiv økt, der de blir oransje (cyan for bare kondisjon) så panelet aldri ser dødt ut.
 - Bryst bruker samme oransje som styrkeaksenten. Det er greit, siden gruppen alltid står med navn ved siden av.
 - Grønt og rødt betyr status (fullført og opp, slett og ned). Bruk dem aldri til å vise størrelse, for eksempel anstrengelse.
 
@@ -169,7 +169,7 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
     En mal som aldri er kjørt, viser «–» for siste økt og sist trent.
 
   Flisa viser ikke ukesmålet. Det står i arket.
-- **Tallene** kommer fra [templateStats.ts](src/composables/templateStats.ts). Mål-delen i arket regner med samme regel (`sessionGoalRows`) som «Ukesmålet» i aktiv økt. Da er arket, Ukesoversikt og aktiv økt enige.
+- **Tallene** kommer fra [templateStats.ts](src/composables/templateStats.ts). Mål-delen i arket regner med samme regel (`sessionGoalRows`) som «Ukesmålet» i aktiv økt. Da er arket, Ukesmål-siden og aktiv økt enige.
 - **Arket:** et trykk på flisa åpner et bunnark ([TemplateSheet.vue](src/components/TemplateSheet.vue)) i arkets farger. Det har:
   - en blyant øverst til høyre (ikonknapp i feltfargene) som åpner malskjemaet;
   - fire nøkkeltall;
@@ -180,16 +180,20 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
   Grupperingen er bare visning, og økta følger rekkefølgen i malen.
 - **Rekkefølge:** hold inne og dra en flis for å endre den. [useGridReorder.ts](src/composables/useGridReorder.ts) setter flisa inn der fingeren er, og flisene imellom flytter seg ett hakk, som på en hjemskjerm. Flisa løftes med skygge og svak forstørrelse. Rekkefølgen lagres på telefonen per bruker (`templateOrder.ts`), og nye maler havner nederst.
 
-### Streak i Ukesoversikt
+### Streak på forsiden
 
-- **Plassering:** en kompakt rad i et eget panel rett under dagsporet. Den vises bare for inneværende uke, og bare med ukesmål.
-- **Innhold:** flamme og «3 uker på rad» (eller «Start en ny streak»). Hva som gjenstår, står i målpanelene under.
-- **Reglene** ligger bak «Slik fungerer det ›»: alle ukesmålene innen søndag, hvert mål for seg (er du langt over på ett, veier det ikke opp for et annet), og ett mål som mangler når uka er over, starter streaken på nytt. De er lukket når siden åpnes.
-- **Forsiden** viser bare tallet, kjeden og «Rekord N». Streaken forklares bare i Ukesoversikt.
+- **Panelet heter «Ukesmål»** og har streaken (flamme, tall, «uker på rad», «Rekord N» når rekorden er høyere), kjeden og dagsporet. Et trykk hvor som helst i panelet åpner Ukesmål-siden. Lenka er et usynlig lag over hele panelet, og knappene i panelet ligger over laget, så de aldri havner inne i en lenke.
+- **(i) etter «uker på rad»** (eller «Start en ny streak»): et info-merke på 12 px i `#64748b`, hevet som en fotnote. Trykkflaten er en usynlig sirkel på 44 px. Den vises bare når den ekte streaken står der, ikke på plassholderen.
+- **Arket «Ukestreak»** ([StreakInfoSheet.vue](src/components/StreakInfoSheet.vue)) er et bunnark i arkets farger:
+  - to nøkkeltall, «På rad nå» og «Rekord» (rekord 0 vises som «–»);
+  - reglene: alle ukesmålene innen søndag, hvert mål for seg (er du langt over på ett, veier det ikke opp for et annet), og ett mål som mangler når uka er over, starter streaken på nytt;
+  - «Endre ukesmål» i feltfargene, som lukker arket og åpner målinnstillingene.
+- **Uten ukesmål** slutter panelet med én linje: «Ingen ukesmål ennå. Sett opp ›». «Sett opp» åpner målinnstillingene direkte.
+- **Ukesmål-siden** viser ikke streaken. Hva som gjenstår denne uka, står i målpanelene der.
 
 ### Panel for aktiv økt (forsiden)
 
-- [ActiveSessionButton.vue](src/components/ActiveSessionButton.vue): et eget panel med overskriften «Aktiv økt», mellom ukesoversikten og «Treningsøkter». Det har full bredde, i arkets farger (`#1a2233`, kant `#2d3a4f`) og med radius 0.875rem. En ring fylles etter fullførte sett. Deretter kommer navn, tid som klokke og «N av M sett», og til slutt en pil. Bare kondisjon: hel ring og «Aktiv tid». Et trykk åpner økta.
+- [ActiveSessionButton.vue](src/components/ActiveSessionButton.vue): et eget panel med overskriften «Aktiv økt», mellom Ukesmål-panelet og «Treningsøkter». Det har full bredde, i arkets farger (`#1a2233`, kant `#2d3a4f`) og med radius 0.875rem. En ring fylles etter fullførte sett. Deretter kommer navn, tid som klokke og «N av M sett», og til slutt en pil. Bare kondisjon: hel ring og «Aktiv tid». Et trykk åpner økta.
 - **Malfargen i panelet:** ringen, den pulserende prikken og en toning fra ringsiden har fargen til malen økta ble startet fra. Toningen er `linear-gradient(90deg, color-mix(in srgb, <farge> 24%, #1a2233) 0%, #1a2233 70%)` og ringsporet 25 % i `#243044`. Kanten er arkets vanlige `#2d3a4f`, uten farge, så panelet ikke får en hard farget ramme. Ringen er maskert, så toningen synes midt i. Har malen ingen farge, eller er den slettet, er fargen oransje, eller cyan når økta bare har kondisjon.
 - **Sveip til venstre for å avbryte** ([SwipeableCard.vue](src/components/SwipeableCard.vue)). Det spør først, og sletter så økta, som «Avbryt» inne i økta. Hintet «Sveip til venstre for å avbryte» står til høyre for overskriften, bare på mobil. På PC avbrytes økta med «Avbryt» i økta.
 - Bare på forsiden.
@@ -227,7 +231,7 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 - Mens et ark er åpent, står siden bak helt stille ([useBodyScrollLock.ts](src/composables/useBodyScrollLock.ts)). `body` er låst, og sveip som arket ikke selv kan scrolle, blir avbrutt. Det gjelder sveip på bakgrunnen, og sveip i et ark som får plass. På iPhone går slike sveip ellers forbi den låste `body` og flytter siden.
 - Hover-stiler gjelder bare med mus (`hoverOnlyWhenSupported` i Tailwind, og `@media (hover: hover)` rundt egne `:hover`-regler). Ellers blir hover hengende på det som lå under fingeren når arket lukkes med et trykk.
 - Håndtaket øverst er en tynn strek, men hele toppen av arket er trykkflate for å lukke.
-- **Dra ned for å lukke** ([useSheetDrag.ts](src/composables/useSheetDrag.ts)) gjelder dette arket, arket for lang økt og malarket på forsiden:
+- **Dra ned for å lukke** ([useSheetDrag.ts](src/composables/useSheetDrag.ts)) gjelder dette arket, arket for lang økt, og malarket og streakarket på forsiden:
   - Bare toppen kan gripes: streken og headeren. Den har `touch-action: none`, og resten av arket ruller og virker som før.
   - Arket følger fingeren, og bakgrunnen tones ut.
   - Det lukkes etter en fjerdedel av høyden eller ved et raskt sveip, og spretter ellers tilbake.
@@ -247,7 +251,7 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 ## Mobil og berøring
 
 - **Referansebredde:** 390 px, med 16 px sidemarg (`px-4` på `main`). Sjekk 320 px også.
-- **Trykkflater:** `style.css` gir alle knapper og felt minst 44 px. Bare tette rutenett der hver rute er et eget mål, som anstrengelse 1–10 og ukevelgeren, kan gå under, og da med `min-width: 0` / `min-height: 0` lokalt.
+- **Trykkflater:** `style.css` gir alle knapper og felt minst 44 px. Bare tette rutenett der hver rute er et eget mål, som anstrengelse 1–10 og ukevelgeren, kan gå under, og da med `min-width: 0` / `min-height: 0` lokalt. Det samme gjør (i) bak streaken på forsiden: den ser ut som 12 px, men en usynlig sirkel på 44 px (`::before`) er trykkflaten.
 - **Safe area:** bruk `env(safe-area-inset-bottom)` nederst i ark og faste elementer. Øverst brukes `var(--top-bar)` (style.css) i stedet for `env(safe-area-inset-top)`. Den dekker statuslinja pluss båndet iOS gjør uskarpt under den, og den tette stripen i App.vue er like høy. Alt som skal ligge øverst og være lesbart, starter under `--top-bar`.
 - **Bevegelse:** pulserende eller animerte detaljer slås av under `prefers-reduced-motion: reduce`.
 - **PWA:** appen skal fungere i alle store mobil- og desktopnettlesere, og som installert app.
@@ -286,5 +290,5 @@ Dette bryter med stilen i dag og ryddes når den aktuelle siden tegnes om:
 - **Innloggingssidene** (Login, ResetPassword) bruker `.card` (`#1e293b` / `#334155`).
 - **`.input-field` i `style.css`** setter `border-dark-600` og nullstiller den rett etter med `border: 1px solid;`. Da blir kantfargen tekstfargen, altså hvit, på alle felt i appen. Det er en enlinjes retting, men den endrer alle skjemaene samtidig.
 - **Tilbakeknappens farger** (`#3F302A` / `#4A3A32`) er hardkodet i fem filer. Den bør bli en felles komponent.
-- **Seksjonstitlene i Ukesoversikt** bruker `#6b7280`, mens resten følger `#94a3b8`, som har bedre kontrast.
+- **Seksjonstitlene på Ukesmål-siden** bruker `#6b7280`, mens resten følger `#94a3b8`, som har bedre kontrast.
 - **Alle farger er hex i scoped CSS.** De bør på sikt bli CSS-variabler, så dette dokumentet og koden ikke kan komme ut av takt.
