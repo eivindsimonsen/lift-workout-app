@@ -15,8 +15,9 @@ A modern training log built with Vue 3 (Composition API) and TypeScript. LIFT ma
 
 ## Hva appen tilbyr
 
-- Økter: Start/fortsett aktive økter, legg inn sett med reps og vekt. «Sist»-hint i aktive økter gjør det lett å matche/forbedre tidligere prestasjon.
-- Øvelser: Kategorisert liste (Bryst, Rygg, Ben, Armer, Skuldre) med tydelige handlinger (rediger/slett) og 1RM‑oversikt per øvelse.
+- Økter: Start/fortsett aktive økter, legg inn sett med reps og vekt, eller runder med tid og distanse for kondisjon. «Sist»-hint i aktive økter gjør det lett å matche/forbedre tidligere prestasjon.
+- Ukesmål: Forsiden viser streaken (uker på rad med alle ukesmålene nådd) og hvilke dager du har trent. Ukesmål-siden viser ukas nøkkeltall mot forrige uke, sett per muskelgruppe mot målet og kondisjonsmål i minutter og km.
+- Øvelser: Kategorisert liste (Bryst, Rygg, Ben, Skuldre, Biceps, Triceps, Kjerne, Kondisjon) med tydelige handlinger (rediger/slett) og 1RM‑oversikt per øvelse.
 - Øvelsesdetaljer: PR‑tavle (1, 3, 4, 6, 8, 10, 12, 14 reps), estimert 1RM‑graf (Epley), intensitet per uke (kg per rep), volumtopp og 4‑ukers trend, siste prestasjoner.
 - Historikk: Fullførte økter med filtrering og detaljer.
 - Statistikk: Totaler (sets/reps), vaner (kalender/streaks), fordeling/balanse, prestasjoner og volumprogresjon.
@@ -152,8 +153,8 @@ src/
 
 ## Testing og kvalitet
 
-- ESLint/Volar‑støtte i editor
-- Enkel testkode finnes under `src/Test/` som eksempel; utvid etter behov.
+- Ingen testrunner eller linter. `npm run type-check` (vue-tsc) er hovedsjekken, sammen med å kjøre appen.
+- Prettier er satt opp i `.prettierrc.json`.
 
 ## Kreditering
 

@@ -18,7 +18,7 @@ npm run build        # production build to dist/ (Netlify runs this; SPA fallbac
 npm run preview      # serve the built dist/
 ```
 
-There is no test runner and no linter. Verify changes with `npm run type-check` and by running the app. (The README mentions `src/Test/`, but that directory does not exist.)
+There is no test runner and no linter. Verify changes with `npm run type-check` and by running the app.
 
 Prettier is configured in `.prettierrc.json` (no semicolons, single quotes, width 100, tailwind class sorting). So far only `src/App.vue` has been formatted with it, and the rest of the codebase mixes quote styles. Don't reformat whole files as a side effect of a change; ask first.
 
@@ -68,7 +68,10 @@ Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` 
 
 ### Weekly view and goals
 
-`useWeekStats` (ISO weeks starting Monday, labels `Man`…`Søn`) and `useTrainingGoals` (plans with weekly set targets per muscle group, plus cardio targets) power `TemplateSessions.vue` (home) and `WeekDetails.vue`. The week is the unit of progress. Rest days are planned, so don't add daily streaks or "days in a row" mechanics. The weekly goal streak (`useGoalStreak`: consecutive weeks where every weekly target is met, judged against the goals that applied that week via the goal history in `user_metadata`) is the exception.
+`useWeekStats` (ISO weeks starting Monday, labels `Man`…`Søn`) and `useTrainingGoals` (plans with weekly set targets per muscle group, plus cardio targets) power `TemplateSessions.vue` (home) and `WeekDetails.vue` (titled «Ukesmål» in the UI). The week is the unit of progress. Rest days are planned, so don't add daily streaks or "days in a row" mechanics. The weekly goal streak (`useGoalStreak`: consecutive weeks where every weekly target is met, judged against the goals that applied that week via the goal history in `user_metadata`) is the exception.
+
+- **Home page:** the «Ukesmål» panel holds the streak, the chain of recent weeks and the day track (the only place the day track appears). An (i) after the streak opens `StreakInfoSheet` with the rules and the record. Without goals, the panel ends with «Sett opp» instead. Both lead to `WeekGoalsSettings`. The panel is a `<section>` with the link to `/week` as a layer over it, so these buttons are never inside the link.
+- **`WeekDetails.vue`:** any of the last six weeks, without streak or day track. Key figures compare with the week before; pace compares inverted, since lower is faster. Then come the goal panels and the session list. The gear opens `WeekGoalsSettings`.
 
 ### Active workout (`src/views/WorkoutSession.vue`)
 
@@ -81,6 +84,7 @@ Boot order: `main.ts` → `initSupabase` → `useHybridData().initializeAuth()` 
 - `vite-plugin-pwa` uses `registerType: 'prompt'`. `src/sw.ts` dispatches `sw-update-available`, which `UpdateNotification.vue` uses to ask the user to reload. Supabase requests are cached NetworkFirst for 7 days.
 - Tailwind adds custom `primary` (orange) and `dark` (slate) palettes. Shared component classes (`btn-primary`, `btn-secondary`, `btn-danger`, `card`, `input-field`) and the safe-area and PWA navigation rules are in `src/style.css`.
 - **Read [DESIGN.md](DESIGN.md) before any UI work.** It defines the visual style that new and redesigned views follow (panels, colors, type scale, patterns), with `WeekDetails.vue` and `SessionDetails.vue` as the reference pages. The older `.card`-based views are listed there as known deviations, so don't copy their style.
+- **[WISHLIST.md](WISHLIST.md)** lists features Eivind wants some day, with notes from the code, and the ideas he turned down. Don't suggest the turned-down ones again unless he raises them.
 
 ## Database changes (`supabase-setup/`)
 

@@ -115,6 +115,11 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 - Et rutenett med etikett over og tall under, venstrejustert.
 - To kolonner på mobil og fire fra 640 px.
 - Ingen bakgrunn eller ramme per tall.
+- **Sammenligning med forrige uke** (Ukesmål-siden):
+  - Inneværende uke viser «forrige uke X» i dempet tekst. En uke som pågår, ville ellers sett ut som en nedgang hver mandag.
+  - En ferdig uke viser endringen i prosent, grønn når det gikk bedre og rød når det gikk dårligere.
+  - Tempo snur fargene, siden lavere er raskere. En uke uten tempo (kondisjon uten distanse) får ingen sammenligning.
+  - Uke uten noe å sammenligne med: ingen linje.
 
 ### Rader i lister
 
@@ -290,5 +295,7 @@ Dette bryter med stilen i dag og ryddes når den aktuelle siden tegnes om:
 - **Innloggingssidene** (Login, ResetPassword) bruker `.card` (`#1e293b` / `#334155`).
 - **`.input-field` i `style.css`** setter `border-dark-600` og nullstiller den rett etter med `border: 1px solid;`. Da blir kantfargen tekstfargen, altså hvit, på alle felt i appen. Det er en enlinjes retting, men den endrer alle skjemaene samtidig.
 - **Tilbakeknappens farger** (`#3F302A` / `#4A3A32`) er hardkodet i fem filer. Den bør bli en felles komponent.
-- **Seksjonstitlene på Ukesmål-siden** bruker `#6b7280`, mens resten følger `#94a3b8`, som har bedre kontrast.
+- **Seksjonstitlene på Ukesmål-siden og tittelen «Ukesmål» i panelet på forsiden** bruker `#6b7280`, mens resten følger `#94a3b8`, som har bedre kontrast.
+- **Nøkkeltallene på Ukesmål-siden** er midtstilte fliser med ramme og tallet over etiketten, ikke rutenettet under [Nøkkeltall](#nøkkeltall).
+- **Lasting på Ukesmål-siden** bruker gamle grå blokker (`animate-pulse`), ikke plassholdere i innholdets form. Åpnes siden direkte, står det «0 sett» i Styrkemål til øvelsesbiblioteket er lastet, i stedet for en plassholder.
 - **Alle farger er hex i scoped CSS.** De bør på sikt bli CSS-variabler, så dette dokumentet og koden ikke kan komme ut av takt.
