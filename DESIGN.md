@@ -47,7 +47,7 @@ Fargene er i dag hex-verdier i scoped CSS, ikke variabler. Bruk verdiene under, 
 | Pause | `#f59e0b` | Bare som tilstand på klokka |
 
 - **Muskelgrupper** har faste farger i [muscle-groups.json](src/data/muscle-groups.json). Hent fargene derfra, ikke hardkod dem.
-- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). Malfargen brukes på malflisa og i arket for malen, som prikk i Historikk og under «Økter denne uken» i Ukesoversikt, og i kalenderen i Statistikk. En mal uten farge, og en økt fra en slettet mal, er grå `#475569` — unntatt i kalenderen, der de blir oransje så en treningsdag aldri ser utrent ut.
+- **Malfarger** er de samme åtte kodene (`templateColors.ts` leser dem fra samme fil). Malfargen brukes på malflisa og i arket for malen, i panelet for aktiv økt, som prikk i Historikk og under «Økter denne uken» i Ukesoversikt, og i kalenderen i Statistikk. En mal uten farge, og en økt fra en slettet mal, er grå `#475569` — unntatt i kalenderen, der de blir oransje så en treningsdag aldri ser utrent ut, og i panelet for aktiv økt, der de blir oransje (cyan for bare kondisjon) så panelet aldri ser dødt ut.
 - Bryst bruker samme oransje som styrkeaksenten. Det er greit, siden gruppen alltid står med navn ved siden av.
 - Grønt og rødt betyr status (fullført og opp, slett og ned). Bruk dem aldri til å vise størrelse, for eksempel anstrengelse.
 
@@ -157,7 +157,8 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 ### Malfliser (forsiden)
 
-- **Fliser i rutenett** ([TemplateCard.vue](src/components/TemplateCard.vue)): to kolonner på telefon, også ved 320px, og flere på brede skjermer (`repeat(auto-fill, minmax(8.5rem, 1fr))`). Flisene på samme rad er like høye. Flisa er en panelflate med radius 0.875rem og uten fargekant. Malfargen står som en prikk foran navnet. Den er en markør, ikke en flate. Flisa har ingen startknapp: økta startes fra arket.
+- **Fliser i rutenett** ([TemplateCard.vue](src/components/TemplateCard.vue)): to kolonner på telefon, også ved 320px, og flere på brede skjermer (`repeat(auto-fill, minmax(8.5rem, 1fr))`). Flisene på samme rad er like høye. Flisa er en panelflate med radius 0.875rem og har ingen startknapp: økta startes fra arket.
+- **Malfargen på flisa:** en prikk foran navnet, og en toning som starter i øvre venstre hjørne og er borte før tallene. Toningen er `linear-gradient(155deg, color-mix(in srgb, <malfarge> 22%, #111827) 0%, #111827 45%)`. Kanten er grå `#2d3a4f`, samme som panelet for aktiv økt, og trykket `#3d5068`. Den har ingen malfarge. Plassholderflisene har samme kant. De flate verdiene står i grunnregelen, og `color-mix` legges i en `@supports (color: color-mix(in srgb, red 50%, blue))`-blokk. En flat deklarasjon foran virker ikke som reserve når `color-mix` inneholder `var()`: eldre nettlesere ville da vist flisa gjennomsiktig. En mal uten farge toner i grått.
 - **Innhold, ovenfra:**
   - navnet, på én linje;
   - tre tall under hverandre i samme format, stort tall med liten etikett under, så flisene står likt:
@@ -188,7 +189,8 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 
 ### Panel for aktiv økt (forsiden)
 
-- [ActiveSessionButton.vue](src/components/ActiveSessionButton.vue): et eget panel med overskriften «Aktiv økt», mellom ukesoversikten og «Treningsøkter». Det har full bredde, i arkets farger (`#1a2233`, kant `#2d3a4f`) og med radius 0.875rem. En ring fylles oransje etter fullførte sett. Deretter kommer navn, tid som klokke og «N av M sett», og til slutt en pil. Bare kondisjon: hel cyan ring og «Aktiv tid». Et trykk åpner økta.
+- [ActiveSessionButton.vue](src/components/ActiveSessionButton.vue): et eget panel med overskriften «Aktiv økt», mellom ukesoversikten og «Treningsøkter». Det har full bredde, i arkets farger (`#1a2233`, kant `#2d3a4f`) og med radius 0.875rem. En ring fylles etter fullførte sett. Deretter kommer navn, tid som klokke og «N av M sett», og til slutt en pil. Bare kondisjon: hel ring og «Aktiv tid». Et trykk åpner økta.
+- **Malfargen i panelet:** ringen, den pulserende prikken og en toning fra ringsiden har fargen til malen økta ble startet fra. Toningen er `linear-gradient(90deg, color-mix(in srgb, <farge> 24%, #1a2233) 0%, #1a2233 70%)` og ringsporet 25 % i `#243044`. Kanten er arkets vanlige `#2d3a4f`, uten farge, så panelet ikke får en hard farget ramme. Ringen er maskert, så toningen synes midt i. Har malen ingen farge, eller er den slettet, er fargen oransje, eller cyan når økta bare har kondisjon.
 - **Sveip til venstre for å avbryte** ([SwipeableCard.vue](src/components/SwipeableCard.vue)). Det spør først, og sletter så økta, som «Avbryt» inne i økta. Hintet «Sveip til venstre for å avbryte» står til høyre for overskriften, bare på mobil. På PC avbrytes økta med «Avbryt» i økta.
 - Bare på forsiden.
 
@@ -270,7 +272,7 @@ Siden har ingen kort øverst. Først kommer tilbakeknappen, så tittelen, så é
 ## Ikke gjør
 
 - Ikon i farget firkant over hvert nøkkeltall.
-- Gradienter, glød og glass-effekter.
+- Gradienter, glød og glass-effekter. Unntaket er malfargetoningen på malflisene og panelet for aktiv økt på forsiden.
 - Emoji i grensesnittet. Unntaket er prestasjonsmerkene, som allerede har dem.
 - Kort inne i kort.
 - Midtstilte rutenett med tall i aksentfarge som eneste innhold.

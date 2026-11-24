@@ -11,6 +11,8 @@
    */
   const props = defineProps<{
     session: WorkoutSession;
+    /** The template's own colour; null when it has none or was deleted, which keeps the default colours. */
+    color: string | null;
   }>();
 
   /**
@@ -54,7 +56,8 @@
   const activeTime = computed(() => formatClock(exercises.value.reduce((sum, ex) => sum + liveExerciseSeconds(ex, now.value), 0)));
 
   const progress = computed(() => (isCardioOnly.value ? 1 : totalSets.value > 0 ? completedSets.value / totalSets.value : 0));
-  const ringColor = computed(() => (isCardioOnly.value ? "#06b6d4" : "#f97316"));
+  /** Tints the panel, the ring and the live dot. Without a template colour: orange, or cyan for cardio only. */
+  const tint = computed(() => props.color ?? (isCardioOnly.value ? "#06b6d4" : "#f97316"));
   const detail = computed(() => (isCardioOnly.value ? `Aktiv tid ${activeTime.value}` : `${completedSets.value} av ${totalSets.value} sett`));
 </script>
 
@@ -62,11 +65,11 @@
   <router-link
     :to="`/workout/${session.id}`"
     class="active-tile"
+    :style="{ '--tint': tint }"
     :aria-label="`Fortsett ${session.templateName}, ${detail}`">
-    <span class="active-tile__ring" :style="{ '--ring': ringColor, '--progress': `${Math.round(progress * 100)}%` }" aria-hidden="true">
-      <span class="active-tile__ring-inner">
-        <span class="active-tile__live"></span>
-      </span>
+    <span class="active-tile__ring-wrap" aria-hidden="true">
+      <span class="active-tile__ring" :style="{ '--progress': `${Math.round(progress * 100)}%` }"></span>
+      <span class="active-tile__live"></span>
     </span>
     <span class="active-tile__text">
       <span class="active-tile__title">
@@ -90,6 +93,7 @@
     width: 100%;
     min-height: 3.75rem;
     padding: 0.75rem 1rem 0.75rem 0.875rem;
+    /* Opaque, also with the tint below, so the swipe's red stays hidden */
     background: #1a2233;
     border: 1px solid #2d3a4f;
     border-radius: 0.875rem;
@@ -101,33 +105,50 @@
     background: #243044;
   }
 
-  .active-tile__ring {
+  .active-tile__ring-wrap {
+    position: relative;
     width: 2.125rem;
     height: 2.125rem;
     flex-shrink: 0;
-    border-radius: 50%;
-    background: conic-gradient(var(--ring) var(--progress), #243044 0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
-  .active-tile__ring-inner {
-    width: 1.5rem;
-    height: 1.5rem;
+  /* Masked to a ring, so the panel's tint shows through the middle */
+  .active-tile__ring {
+    position: absolute;
+    inset: 0;
     border-radius: 50%;
-    background: #1a2233;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: conic-gradient(var(--tint) var(--progress), #243044 0);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4.5px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4.5px));
   }
 
   .active-tile__live {
+    position: absolute;
+    top: 50%;
+    left: 50%;
     width: 0.4375rem;
     height: 0.4375rem;
+    margin: -0.21875rem 0 0 -0.21875rem;
     border-radius: 50%;
-    background: var(--ring);
+    background: var(--tint);
     animation: active-tile-live 1.6s ease-in-out infinite;
+  }
+
+  /* The tint fades in from the ring side. Behind @supports, because a color-mix() with
+     var() can't fall back to an earlier declaration: unsupported, it would leave the
+     panel transparent and drop the ring instead of the flat look above. */
+  @supports (color: color-mix(in srgb, red 50%, blue)) {
+    .active-tile {
+      background: linear-gradient(90deg, color-mix(in srgb, var(--tint) 24%, #1a2233) 0%, #1a2233 70%);
+    }
+
+    .active-tile:active {
+      background: linear-gradient(90deg, color-mix(in srgb, var(--tint) 24%, #243044) 0%, #243044 70%);
+    }
+
+    .active-tile__ring {
+      background: conic-gradient(var(--tint) var(--progress), color-mix(in srgb, var(--tint) 25%, #243044) 0);
+    }
   }
 
   @keyframes active-tile-live {

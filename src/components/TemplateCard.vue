@@ -99,7 +99,8 @@
     flex-direction: column;
     padding: 0.875rem 0.875rem 0.75rem;
     background: #111827;
-    border: 1px solid #1f2937;
+    /* The sheet's grey, as on the active-session panel, so the border reads on the fade */
+    border: 1px solid #2d3a4f;
     border-radius: 0.875rem;
     text-align: left;
     cursor: pointer;
@@ -107,7 +108,16 @@
   }
 
   .tpl-tile:active {
-    border-color: #334155;
+    border-color: #3d5068;
+  }
+
+  /* The template's colour fades in from the top-left. Behind @supports, because a
+     color-mix() with var() can't fall back to an earlier declaration: unsupported, it
+     would leave the tile transparent instead of the flat look above. */
+  @supports (color: color-mix(in srgb, red 50%, blue)) {
+    .tpl-tile {
+      background: linear-gradient(155deg, color-mix(in srgb, var(--tpl-color) 22%, #111827) 0%, #111827 45%);
+    }
   }
 
   .tpl-tile:focus-visible {

@@ -170,7 +170,11 @@
               <span class="goals__plan-name">{{ plan.name }}</span>
               <span class="goals__plan-desc">{{ plan.description }}</span>
             </span>
-            <span class="goals__plan-count">{{ plan.sessionsPerWeek }}×</span>
+            <span
+              v-if="plan.sessionsPerWeek > 0"
+              class="goals__plan-count">
+              {{ plan.sessionsPerWeek }}×
+            </span>
           </button>
         </div>
       </section>

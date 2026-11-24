@@ -112,7 +112,8 @@ export const TRAINING_PLANS: TrainingPlan[] = [
     id: "cardio",
     name: "Kondisjon",
     description: "Kun kondisjon — mål settes i minutter og kilometer, ikke sett.",
-    sessionsPerWeek: 4,
+    // No fixed session count — the user decides how often.
+    sessionsPerWeek: 0,
     setsPerMuscleGroup: {},
     cardio: { minutesPerWeek: 150, kilometresPerWeek: 25 },
   },
@@ -120,7 +121,8 @@ export const TRAINING_PLANS: TrainingPlan[] = [
     id: "custom",
     name: "Egendefinert",
     description: "Sett dine egne mål per muskelgruppe.",
-    sessionsPerWeek: 4,
+    // No fixed session count — the user decides how often.
+    sessionsPerWeek: 0,
     setsPerMuscleGroup: { Bryst: 12, Rygg: 12, Ben: 12, Skuldre: 10, Biceps: 8, Triceps: 8, Kjerne: 6 },
     cardio: { minutesPerWeek: 0, kilometresPerWeek: 0 },
   },

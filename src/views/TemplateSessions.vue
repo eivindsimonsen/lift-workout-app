@@ -62,6 +62,13 @@
   );
 
   const templatesById = computed(() => new Map(workoutData.templates.value.map((t) => [t.id, t])));
+
+  /** The active session's template colour as the template is now; null when it has none or was deleted. */
+  const activeSessionColor = computed(() => {
+    const templateId = activeSession.value?.templateId;
+    return (templateId && templatesById.value.get(templateId)?.color) || null;
+  });
+
   const orderedTemplates = computed(() =>
     templateOrderIds.value.map((id) => templatesById.value.get(id)).filter((t): t is WorkoutTemplate => Boolean(t)),
   );
@@ -486,7 +493,7 @@
         <span class="text-xs text-dark-400 md:hidden">Sveip til venstre for å avbryte</span>
       </div>
       <SwipeableCard class="active-swipe" :show-swipe-hint="false" @delete="abandonActiveSession(activeSession.id)">
-        <ActiveSessionButton :session="activeSession" />
+        <ActiveSessionButton :session="activeSession" :color="activeSessionColor" />
       </SwipeableCard>
     </section>
 
@@ -966,7 +973,7 @@
     flex-direction: column;
     padding: 0.875rem 0.875rem 0.75rem;
     background: #111827;
-    border: 1px solid #1f2937;
+    border: 1px solid #2d3a4f;
     border-radius: 0.875rem;
   }
 
