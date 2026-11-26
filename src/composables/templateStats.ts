@@ -236,7 +236,7 @@ export interface TemplateGoalRow {
   target: number;
   /** Already reached before the session — what the ✓ means. */
   metNow: boolean;
-  /** What the session adds toward what's left; never past the target. */
+  /** All the session adds, also past the target; 0 for a row already met (it shows ✓). */
   add: number;
 }
 
@@ -256,20 +256,23 @@ const round1 = (value: number): number => Math.round(value * 10) / 10;
 /**
  * The template's goal rows, by the same rule as the live session's
  * (`sessionGoalRows`). null when there are no rows: no goals, or no group the
- * template trains has a target.
+ * template trains has a target. Unlike the live session's bars, `add` isn't
+ * capped at the target: the sheet says what the whole session adds, overshoot
+ * included.
  */
 export const templateGoalPlan = (estimate: TemplateEstimate, week: WeekTally, goals: TrainingGoals): TemplateGoalPlan | null => {
   const sessionRows = sessionGoalRows(week, estimate.tally, estimate.groups, estimate.hasCardio, goals);
   if (sessionRows.length === 0) return null;
 
   const rows: TemplateGoalRow[] = sessionRows.map((row) => {
-    const added = row.todayShare * row.target;
+    const metNow = row.before >= row.target;
+    const added = metNow ? 0 : row.today;
     return {
       name: row.name,
       kind: row.kind,
       done: row.before,
       target: row.target,
-      metNow: row.before >= row.target,
+      metNow,
       add: row.kind === "km" ? round1(added) : Math.round(added),
     };
   });

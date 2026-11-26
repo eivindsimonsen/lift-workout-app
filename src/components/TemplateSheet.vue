@@ -219,7 +219,7 @@
 
           <button
             type="button"
-            class="btn-primary tpl-sheet__go"
+            :class="['btn-primary', 'tpl-sheet__go', { 'tpl-sheet__go--tinted': !!template.color }]"
             :disabled="startDisabled"
             :title="startDisabled ? 'Du har allerede en aktiv økt. Fullfør den først.' : 'Start økt'"
             @click="emit('start', template.id)">
@@ -527,6 +527,17 @@
     justify-content: center;
     gap: 0.5rem;
     margin-top: 1.25rem;
+  }
+
+  /* In the template's colour; a template without one keeps btn-primary's orange, and disabled stays grey */
+  .tpl-sheet__go--tinted:not(:disabled) {
+    background: var(--tpl-color);
+  }
+
+  @media (hover: hover) {
+    .tpl-sheet__go--tinted:not(:disabled):hover {
+      filter: brightness(0.9);
+    }
   }
 
   .tpl-sheet__go svg {

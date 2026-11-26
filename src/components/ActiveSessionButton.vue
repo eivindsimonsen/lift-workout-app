@@ -56,7 +56,7 @@
   const activeTime = computed(() => formatClock(exercises.value.reduce((sum, ex) => sum + liveExerciseSeconds(ex, now.value), 0)));
 
   const progress = computed(() => (isCardioOnly.value ? 1 : totalSets.value > 0 ? completedSets.value / totalSets.value : 0));
-  /** Tints the panel, the ring and the live dot. Without a template colour: orange, or cyan for cardio only. */
+  /** Tints the border, the ring and the live dot. Without a template colour: orange, or cyan for cardio only. */
   const tint = computed(() => props.color ?? (isCardioOnly.value ? "#06b6d4" : "#f97316"));
   const detail = computed(() => (isCardioOnly.value ? `Aktiv tid ${activeTime.value}` : `${completedSets.value} av ${totalSets.value} sett`));
 </script>
@@ -93,7 +93,7 @@
     width: 100%;
     min-height: 3.75rem;
     padding: 0.75rem 1rem 0.75rem 0.875rem;
-    /* Opaque, also with the tint below, so the swipe's red stays hidden */
+    /* Opaque, so the swipe's red stays hidden */
     background: #1a2233;
     border: 1px solid #2d3a4f;
     border-radius: 0.875rem;
@@ -112,7 +112,7 @@
     flex-shrink: 0;
   }
 
-  /* Masked to a ring, so the panel's tint shows through the middle */
+  /* Masked to a ring, so the panel shows through the middle */
   .active-tile__ring {
     position: absolute;
     inset: 0;
@@ -134,16 +134,12 @@
     animation: active-tile-live 1.6s ease-in-out infinite;
   }
 
-  /* The tint fades in from the ring side. Behind @supports, because a color-mix() with
-     var() can't fall back to an earlier declaration: unsupported, it would leave the
-     panel transparent and drop the ring instead of the flat look above. */
+  /* A thin border in the tint. Behind @supports, because a color-mix() with var() can't
+     fall back to an earlier declaration: unsupported, it would turn the border white and
+     drop the ring instead of the flat look above. */
   @supports (color: color-mix(in srgb, red 50%, blue)) {
     .active-tile {
-      background: linear-gradient(90deg, color-mix(in srgb, var(--tint) 24%, #1a2233) 0%, #1a2233 70%);
-    }
-
-    .active-tile:active {
-      background: linear-gradient(90deg, color-mix(in srgb, var(--tint) 24%, #243044) 0%, #243044 70%);
+      border-color: color-mix(in srgb, var(--tint) 60%, #2d3a4f);
     }
 
     .active-tile__ring {
